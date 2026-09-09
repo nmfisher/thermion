@@ -1,5 +1,6 @@
 #include "rendering/FrameRateGate.hpp"
 #include "rendering/FrameScheduler.hpp"
+#include "rendering/UploadCompletion.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -169,7 +170,38 @@ protected:
 };
 #endif
 
+static int uploadCompletions = 0;
+static void uploadReleased(int32_t id) {
+    require(id == 42, "upload lost its callback ID");
+    ++uploadCompletions;
+}
+
+static void testUploadCompletion() {
+    uploadCompletions = 0;
+    auto* empty = new UploadCompletion(uploadReleased, 42);
+    empty->release(); // Validation failed before any buffer was submitted.
+    require(uploadCompletions == 1, "empty submission did not release");
+
+    auto* partial = new UploadCompletion(uploadReleased, 42);
+    partial->addBuffer();
+    partial->release(); // A later mip failed; submission has ended.
+    require(uploadCompletions == 1, "partial upload signalled before buffer release");
+    partial->release(); // The only submitted buffer is now done.
+    require(uploadCompletions == 2, "partial upload did not signal exactly once");
+
+    auto* early = new UploadCompletion(uploadReleased, 42);
+    early->addBuffer();
+    early->release(); // First buffer completes while submission is still active.
+    require(uploadCompletions == 2, "early buffer ended an active submission");
+    early->addBuffer();
+    early->release(); // Submission ends.
+    require(uploadCompletions == 2, "later buffer was not counted");
+    early->release();
+    require(uploadCompletions == 3, "successful upload did not signal exactly once");
+}
+
 int main() {
+    testUploadCompletion();
     testRateGate();
     testFrameTime();
 #if __APPLE__ && TARGET_OS_OSX

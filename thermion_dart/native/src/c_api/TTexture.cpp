@@ -20,6 +20,8 @@
 #include <ktxreader/Ktx2Reader.h>
 
 #include "c_api/TTexture.h"
+#include "rendering/UploadCompletion.hpp"
+#include <stdexcept>
 
 #include "Log.hpp"
 
@@ -186,27 +188,76 @@ namespace thermion
 
             auto *bundle = reinterpret_cast<image::Ktx1Bundle *>(tBundle);
 
-            std::vector<void *> *callbackData = new std::vector<void *>{
-                reinterpret_cast<void *>(onTextureUploadComplete),
-                reinterpret_cast<void *>(requestId)};
+            UploadCompletion* completion;
+            try {
+                completion = new UploadCompletion(onTextureUploadComplete, requestId);
+            } catch (...) {
+                // No buffers were submitted if bookkeeping allocation failed.
+                if (onTextureUploadComplete) onTextureUploadComplete(requestId);
+                throw;
+            }
+            filament::Texture* texture = nullptr;
+            try {
+                namespace reader = ktxreader::Ktx1Reader;
+                const auto& info = bundle->getInfo();
+                const auto mipCount = bundle->getNumMipLevels();
+                const uint32_t faces = bundle->isCubemap() ? 6 : 1;
 
-            auto *texture =
-                ktxreader::Ktx1Reader::createTexture(
-                    engine, *bundle, false, [](void *userdata)
-                    {
-                        std::vector<void*>* vec = (std::vector<void*>*)userdata;
-                        
-                        void *callbackPtr = vec->at(0);
-                        uintptr_t requestId = (uintptr_t)vec->at(1);
+                struct Level { uint8_t* data; uint32_t faceBytes; };
+                std::vector<Level> levels;
+                for (uint32_t mip = 0; mip < mipCount; ++mip) {
+                    uint8_t* data = nullptr;
+                    uint32_t bytes = 0;
+                    if (!bundle->getBlob({mip, 0, 0}, &data, &bytes)) {
+                        throw std::runtime_error("Missing KTX mip data");
+                    }
+                    // Preserve the reader's check that every face exists before
+                    // submitting buffers. Ktx1Bundle stores faces consecutively.
+                    for (uint32_t face = 1; face < faces; ++face) {
+                        uint8_t* faceData = nullptr;
+                        uint32_t faceBytes = 0;
+                        if (!bundle->getBlob({mip, 0, face}, &faceData, &faceBytes)) {
+                            throw std::runtime_error("Invalid KTX cubemap face data");
+                        }
+                    }
+                    levels.push_back({data, bytes});
+                }
 
-                        delete vec;
-                        
-                        if (callbackPtr)
-                        {
-                            auto callback = ((VoidCallback)callbackPtr);
-                            callback(requestId);
-                        } },
-                    (void *)callbackData);
+                texture = filament::Texture::Builder()
+                    .width(info.pixelWidth).height(info.pixelHeight)
+                    .levels(static_cast<uint8_t>(mipCount))
+                    .sampler(faces == 6 ? filament::Texture::Sampler::SAMPLER_CUBEMAP
+                                       : filament::Texture::Sampler::SAMPLER_2D)
+                    .format(reader::toTextureFormat(info)).build(*engine);
+                if (!texture) throw std::runtime_error("Failed to create KTX texture");
+                for (uint32_t mip = 0; mip < mipCount; ++mip) {
+                    const auto level = levels[mip];
+                    const size_t bytes = size_t(level.faceBytes) * faces;
+                    filament::Texture::PixelBufferDescriptor pixels = reader::isCompressed(info)
+                        ? filament::Texture::PixelBufferDescriptor(level.data, bytes,
+                            reader::toCompressedPixelDataType(info), level.faceBytes, nullptr)
+                        : filament::Texture::PixelBufferDescriptor(level.data, bytes,
+                            reader::toPixelDataFormat(info), reader::toPixelDataType(info));
+                    // Descriptor construction/format conversion may fail before
+                    // this point. Register only a successfully constructed buffer.
+                    // setCallback is noexcept and does not allocate.
+                    completion->addBuffer();
+                    pixels.setCallback([](void*, size_t, void* user) {
+                        static_cast<UploadCompletion*>(user)->release();
+                    }, completion);
+                    if (faces == 6) {
+                        texture->setImage(*engine, mip, 0, 0, 0,
+                            texture->getWidth(mip), texture->getHeight(mip), faces, std::move(pixels));
+                    } else {
+                        texture->setImage(*engine, mip, std::move(pixels));
+                    }
+                }
+            } catch (...) {
+                if (texture) engine->destroy(texture);
+                completion->release(); // End submission; existing buffers may remain.
+                throw;
+            }
+            completion->release();
             return reinterpret_cast<TTexture *>(texture);
         }
 

@@ -8,7 +8,7 @@ abstract class Ktx1Bundle {
 
   /// Returns when the texture has been created, before upload data is necessarily
   /// released. Keep this bundle alive until [onTextureUploadComplete] is called.
-  /// That callback signals buffer release;
+  /// That callback signals buffer release, including after submission failure;
   /// this Future separately reports creation success or failure.
   /// A failed creation Future alone does not make it safe to destroy the bundle.
   Future<Texture> createTexture({VoidCallback? onTextureUploadComplete, int? textureUploadCompleteRequestId});
