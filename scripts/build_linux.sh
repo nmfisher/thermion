@@ -266,6 +266,7 @@ if [ "$BUILD_DEBUG" = true ]; then
 fi
 
 # Include the version-matched shader tools used by regenerate-materials.sh.
+# Filament split builds always use Release host tools, even for a Debug runtime.
 for mode in release debug; do
   if [ "$mode" = release ] && [ "$BUILD_RELEASE" = true ]; then
     tools_target="$TARGET_RELEASE_DIR/bin"
@@ -275,8 +276,8 @@ for mode in release debug; do
     continue
   fi
   mkdir -p "$tools_target"
-  cp "out/prebuilt-tools-$mode/tools/matc/matc" "$tools_target/" || exit 1
-  cp "out/prebuilt-tools-$mode/tools/resgen/resgen" "$tools_target/" || exit 1
+  cp "out/prebuilt-tools-release/tools/matc/matc" "$tools_target/" || exit 1
+  cp "out/prebuilt-tools-release/tools/resgen/resgen" "$tools_target/" || exit 1
 done
 
 # Copy release libraries
