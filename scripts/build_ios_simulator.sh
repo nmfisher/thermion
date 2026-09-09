@@ -199,6 +199,13 @@ copy_sim_libs() {
 
   mkdir -p "$TARGET_DIR"
 
+  # Simulator archives need their matching headers too; the Dart hook reads
+  # include/ from the selected archive, just as it does for device builds.
+  mkdir -p "$TARGET_DIR/include/third_party/stb"
+  cp -R "out/ios-${lc_type}-sim/filament/include/"* "$TARGET_DIR/include/"
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_DIR/include/"
+  cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_DIR/include/third_party/stb/"
+
   # Copy main Filament libs (installed by ninja install) into flat lib<name>.a
   # archives (what build.dart links). Filament's iOS install layout varies by
   # version/platform:

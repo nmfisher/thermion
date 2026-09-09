@@ -278,6 +278,13 @@ if [ "$BUILD_RELEASE" = true ]; then
   }
 
 
+  # Copy stb_image.h
+  mkdir -p "$TARGET_RELEASE_DIR/include/third_party/stb"
+  cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_RELEASE_DIR/include/third_party/stb/" || {
+    echo "Error: Failed to copy stb_image.h to target"
+    exit 1
+  }
+
   # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
   cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_RELEASE_DIR/include/" || {
     echo "Error: Failed to copy bluevk headers to target"
@@ -302,6 +309,13 @@ if [ "$BUILD_DEBUG" = true ]; then
     exit 1
   }
 
+
+  # Copy stb_image.h
+  mkdir -p "$TARGET_DEBUG_DIR/include/third_party/stb"
+  cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_DEBUG_DIR/include/third_party/stb/" || {
+    echo "Error: Failed to copy stb_image.h to target"
+    exit 1
+  }
 
   # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
   cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_DEBUG_DIR/include/" || {

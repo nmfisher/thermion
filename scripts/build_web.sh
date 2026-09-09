@@ -547,6 +547,13 @@ copy_web_headers() {
     exit 1
   }
 
+  # stb_image.h (third-party header used by TTexture.cpp)
+  mkdir -p "$inc/third_party/stb"
+  cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$inc/third_party/stb/" || {
+    echo "Error: Failed to copy stb_image.h"
+    exit 1
+  }
+
 }
 
 if [ "$BUILD_RELEASE" = true ]; then
