@@ -272,37 +272,45 @@ class ThermionViewerFFI extends ThermionViewer {
 
     var data = await _app.loadResource(skyboxPath);
 
-    final completer = Completer<void>();
     FFIKtx1Bundle? bundle;
-    late FFISkybox skybox;
-
-    final uploadFuture = withVoidCallback((requestId, onTextureUploadComplete) async {
+    Future<void>? uploadReleased;
+    FFITexture? texture;
+    FFISkybox? skybox;
+    try {
       bundle = await FFIKtx1Bundle.create(_app, data) as FFIKtx1Bundle;
-
-      _skyboxTexture =
-          await bundle!.createTexture(
-                onTextureUploadComplete: onTextureUploadComplete,
-                textureUploadCompleteRequestId: requestId,
-              )
-              as FFITexture;
-
-      skybox = await _app.buildSkybox(texture: _skyboxTexture) as FFISkybox;
-
+      late Future<Texture> textureCreated;
+      // This callback means only that native code released the pixel data.
+      // Keep async setup outside its dispatch closure: setup failure must not
+      // complete the release Future or trigger early bundle destruction.
+      uploadReleased = withVoidCallback((id, callback) {
+        textureCreated = bundle!.createTexture(onTextureUploadComplete: callback, textureUploadCompleteRequestId: id);
+      });
+      texture = await textureCreated as FFITexture;
+      skybox = await _app.buildSkybox(texture: texture) as FFISkybox;
       await scene.setSkybox(skybox);
-
-      completer.complete();
-    });
-
-    late final Future<void> trackedUploadFuture;
-    trackedUploadFuture = uploadFuture.whenComplete(() async {
-      await bundle?.destroy();
-      if (identical(_skyboxTextureUploadComplete, trackedUploadFuture)) {
-        _skyboxTextureUploadComplete = null;
+      _skyboxTexture = texture;
+      return skybox;
+    } catch (_) {
+      await skybox?.destroy();
+      if (uploadReleased != null) await _app.flush();
+      await texture?.destroy();
+      rethrow;
+    } finally {
+      if (bundle != null) {
+        final ownedBundle = bundle;
+        // Setup no longer uses the bundle. Cleanup still waits for the separate
+        // buffer-release callback, on both setup success and setup failure.
+        late final Future<void> cleanup;
+        cleanup = (uploadReleased ?? Future<void>.value()).then((_) async {
+          await ownedBundle.destroy();
+          if (identical(_skyboxTextureUploadComplete, cleanup)) {
+            _skyboxTextureUploadComplete = null;
+          }
+        });
+        _skyboxTextureUploadComplete = cleanup;
       }
-    });
-    _skyboxTextureUploadComplete = trackedUploadFuture;
-    await completer.future;
-    return skybox;
+      if (FILAMENT_WASM) data.free();
+    }
   }
 
   //
@@ -315,46 +323,48 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<void> _loadIbl(String lightingPath, {double intensity = 30000, bool destroyExisting = true}) async {
     await _removeIbl(destroy: destroyExisting);
 
-    final completer = Completer<void>();
+    final data = await _app.loadResource(lightingPath);
     FFIKtx1Bundle? bundle;
-    final uploadFuture = withVoidCallback((requestId, onTextureUploadComplete) async {
-      var data = await _app.loadResource(lightingPath);
-
+    Future<void>? uploadReleased;
+    Texture? texture;
+    FFIIndirectLight? ibl;
+    try {
       bundle = await FFIKtx1Bundle.create(_app, data) as FFIKtx1Bundle;
-
-      final texture = await bundle!.createTexture(
-        onTextureUploadComplete: onTextureUploadComplete,
-        textureUploadCompleteRequestId: requestId,
-      );
-      final harmonics = bundle!.getSphericalHarmonics();
-
-      final ibl = await FFIIndirectLight.fromIrradianceHarmonics(
+      late Future<Texture> textureCreated;
+      uploadReleased = withVoidCallback((id, callback) {
+        textureCreated = bundle!.createTexture(onTextureUploadComplete: callback, textureUploadCompleteRequestId: id);
+      });
+      texture = await textureCreated;
+      final harmonics = bundle.getSphericalHarmonics();
+      ibl = await FFIIndirectLight.fromIrradianceHarmonics(
         _app,
         harmonics,
         reflectionsTexture: texture,
         intensity: intensity,
       );
-
       await scene.setIndirectLight(ibl);
-
-      if (FILAMENT_WASM) {
-        data.free();
+    } catch (_) {
+      if (ibl != null) {
+        await ibl.destroy(); // Also releases its owned reflection texture.
+      } else {
+        if (uploadReleased != null) await _app.flush();
+        await texture?.destroy();
       }
-
-      completer.complete();
-      _logger.info("IBL texture ready");
-    });
-
-    late final Future<void> trackedUploadFuture;
-    trackedUploadFuture = uploadFuture.whenComplete(() async {
-      await bundle?.destroy();
-      if (identical(_iblTextureUploadComplete, trackedUploadFuture)) {
-        _iblTextureUploadComplete = null;
+      rethrow;
+    } finally {
+      if (bundle != null) {
+        final ownedBundle = bundle;
+        late final Future<void> cleanup;
+        cleanup = (uploadReleased ?? Future<void>.value()).then((_) async {
+          await ownedBundle.destroy();
+          if (identical(_iblTextureUploadComplete, cleanup)) {
+            _iblTextureUploadComplete = null;
+          }
+        });
+        _iblTextureUploadComplete = cleanup;
       }
-      _logger.info("IBL texture upload complete");
-    });
-    _iblTextureUploadComplete = trackedUploadFuture;
-    await completer.future;
+      if (FILAMENT_WASM) data.free();
+    }
   }
 
   Future<void> _loadIblFromTexture(
@@ -407,10 +417,9 @@ class ThermionViewerFFI extends ThermionViewer {
     throw UnimplementedError();
   }
 
-  Future? _skyboxTextureUploadComplete;
+  Future<void>? _skyboxTextureUploadComplete;
+  Future<void>? _iblTextureUploadComplete;
   FFITexture? _skyboxTexture;
-
-  Future? _iblTextureUploadComplete;
 
   //
   @override

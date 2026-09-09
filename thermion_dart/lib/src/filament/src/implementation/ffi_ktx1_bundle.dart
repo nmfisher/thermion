@@ -7,6 +7,11 @@ class FFIKtx1Bundle extends Ktx1Bundle {
   final Pointer<TKtx1Bundle> pointer;
 
   final FFIFilamentApp _app;
+  bool _destroyed = false;
+
+  void _checkAlive() {
+    if (_destroyed) throw StateError("KTX bundle has been destroyed");
+  }
 
   FFIKtx1Bundle(this.pointer, this._app);
 
@@ -14,13 +19,14 @@ class FFIKtx1Bundle extends Ktx1Bundle {
   ///
   ///
   bool isCubemap() {
+    _checkAlive();
     return Ktx1Bundle_isCubemap(pointer);
   }
 
-  ///
-  ///
-  ///
+  @override
   Future destroy() async {
+    if (_destroyed) return;
+    _destroyed = true;
     Ktx1Bundle_destroy(pointer);
   }
 
@@ -28,6 +34,7 @@ class FFIKtx1Bundle extends Ktx1Bundle {
   ///
   ///
   Float32List getSphericalHarmonics() {
+    _checkAlive();
     final harmonics = makeFloat32List(27);
     Ktx1Bundle_getSphericalHarmonics(pointer, harmonics.address);
     return harmonics;
@@ -47,6 +54,7 @@ class FFIKtx1Bundle extends Ktx1Bundle {
   }
 
   Future<Texture> createTexture({VoidCallback? onTextureUploadComplete, int? textureUploadCompleteRequestId}) async {
+    _checkAlive();
     final texturePtr = await withPointerCallback<TTexture>((cb) {
       Ktx1Reader_createTextureRenderThread(
         _app.engine,
@@ -56,6 +64,7 @@ class FFIKtx1Bundle extends Ktx1Bundle {
         cb,
       );
     });
+    if (texturePtr == nullptr) throw StateError("Failed to create KTX texture");
     return FFITexture(_app.engine, texturePtr, _app);
   }
 }
