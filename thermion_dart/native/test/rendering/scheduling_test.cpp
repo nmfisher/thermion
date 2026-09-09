@@ -1,8 +1,12 @@
 #include "rendering/FrameRateGate.hpp"
 #include "rendering/FrameScheduler.hpp"
+#include "rendering/RenderThread.hpp"
 
 #include <atomic>
 #include <chrono>
+#include <cstdlib>
+#include <future>
+#include <vector>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -169,7 +173,59 @@ protected:
 };
 #endif
 
+static std::vector<uint32_t> errors;
+static void taskFailed(uint32_t id, const char* message) {
+    require(message && std::string(message).find("expected") != std::string::npos,
+            "error lost its message");
+    errors.push_back(id);
+    std::free(const_cast<char*>(message));
+}
+
+static void testTaskErrors() {
+    RenderThread thread;
+    pushTaskErrorContext(7, taskFailed);
+    pushTaskErrorContext(8, taskFailed);
+    thread.addDetachedTask([] { throw std::runtime_error("expected scoped failure"); });
+    require(popTaskErrorContext() == 1, "scope lost its queued task count");
+    require(currentTaskError.requestId == 7, "nested error scope did not restore parent");
+    require(popTaskErrorContext() == 0, "inner task counted against its parent");
+    require(!currentTaskError.callback, "error context leaked into unrelated dispatch");
+    std::packaged_task<void()> barrier([] {});
+    thread.addTask(barrier).get();
+    require(errors == std::vector<uint32_t>({8}), "inner error incorrectly settled its parent");
+}
+
+static void testQueue() {
+    std::vector<int> order;
+    {
+        RenderThread thread;
+        for (int i = 0; i < 10000; ++i) {
+            thread.addDetachedTask([&order, i] { order.push_back(i); });
+        }
+        thread.addDetachedTask([] { throw std::runtime_error("expected detached-task test error"); });
+        thread.addDetachedTask([&order] { order.push_back(10000); });
+        std::packaged_task<void()> failed([] { throw std::runtime_error("expected packaged error"); });
+        auto result = thread.addTask(failed);
+        try {
+            result.get();
+            require(false, "packaged exception was lost");
+        } catch (const std::runtime_error& error) {
+            require(std::string(error.what()) == "expected packaged error", "wrong packaged error");
+        }
+    }
+    require(order.size() == 10001, "shutdown failed to drain tasks or worker died on exception");
+    for (size_t i = 0; i < order.size(); ++i) require(order[i] == int(i), "FIFO order changed");
+    // Exercise transitions between an idle queue and shutdown repeatedly.
+    for (int i = 0; i < 1000; ++i) {
+        RenderThread thread;
+        std::packaged_task<void()> task([] {});
+        thread.addTask(task).get();
+    }
+}
+
 int main() {
+    testQueue();
+    testTaskErrors();
     testRateGate();
     testFrameTime();
 #if __APPLE__ && TARGET_OS_OSX

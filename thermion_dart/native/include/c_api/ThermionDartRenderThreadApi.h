@@ -21,6 +21,23 @@ namespace thermion
         typedef int32_t EntityId;
         typedef void (*FilamentRenderCallback)(void *const owner);
 
+        typedef void (*RenderTaskErrorCallback)(uint32_t requestId, const char *ownedMessage);
+        // Push only around a synchronous dispatch on the current calling thread;
+        // a null callback pops that scope. Queued callback tasks capture the scope,
+        // including synchronous parents. Do not retain thread-local scope across
+        // an await or move it between calling threads.
+        // Popping returns the number of tasks submitted directly in this scope.
+        // Dart uses this to retain callbacks if dispatch throws after enqueueing.
+        // Nested scopes report their own errors; parents observe their Dart Futures.
+        // Reports C++ exceptions escaping task bodies, not crashes or errors stored
+        // in packaged-task futures. Success/error are alternative completions for
+        // a request; receivers must ignore errors for already completed IDs.
+        // The callback must remain valid until native workers have stopped. Each
+        // message is receiver-owned and must be freed with the function below,
+        // including late errors. It can be null if message allocation fails.
+        EMSCRIPTEN_KEEPALIVE uint32_t RenderThread_setTaskErrorCallback(uint32_t requestId, RenderTaskErrorCallback callback);
+        EMSCRIPTEN_KEEPALIVE void RenderThread_freeErrorMessage(const char *message);
+
         EMSCRIPTEN_KEEPALIVE void* RenderThread_create();
         // Creates a RenderThread that transfers the given canvas element
         // (CSS selector) to its worker — one thread per viewer on web.

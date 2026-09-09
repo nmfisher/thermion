@@ -429,7 +429,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     NameComponentManager_destroy(nameComponentManager);
 
     await withVoidCallback((requestId, cb) => Engine_destroyRendererRenderThread(engine, renderer, requestId, cb));
-    await withVoidCallback((requestId, cb) async {
+    await withVoidCallback((requestId, cb) {
       Engine_destroyRenderThread(engine, requestId, cb);
     });
 
