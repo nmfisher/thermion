@@ -261,6 +261,8 @@ EMSCRIPTEN_KEEPALIVE void Ktx1Bundle_getSphericalHarmonics(
 EMSCRIPTEN_KEEPALIVE bool Ktx1Bundle_isCubemap(
     TKtx1Bundle *tBundle
 );
+// Immediately frees the bundle and its data. The caller must wait until all
+// queued creation and upload buffers have finished using it before calling this.
 EMSCRIPTEN_KEEPALIVE void Ktx1Bundle_destroy(
     TKtx1Bundle *tBundle
 );

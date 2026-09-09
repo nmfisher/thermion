@@ -41,3 +41,34 @@ The gate extraction is reused by the web worker in #301. Task-error propagation
 is in #318; forwarding scheduler timestamps through Flutter into rendering is
 in #319. Normalizing native scheduler output alone does not replace the existing
 Dart wall-clock render timestamp. Browser dispatch/lifetime fixtures land in #301.
+
+## KTX upload lifetime tests
+
+The caller owns the KTX bundle. `destroy()` immediately deletes it and its data;
+calling it while queued creation or an upload still uses the data is invalid.
+Texture creation returns before buffer release is guaranteed. Keep the bundle
+alive until the upload-release callback arrives, then destroy it explicitly.
+Created textures have their own lifetime and must be destroyed separately.
+
+Skybox and IBL loaders keep setup and buffer-release Futures separate. Setup
+errors reach the public Future; bundle cleanup waits for buffer release even
+when setup fails. Successful loads do not add a GPU-completion wait. Removal
+and disposal flush pending work and wait for bundle cleanup, as before.
+Native C++ exception delivery to Dart is handled separately in #318.
+
+Native partial-submission failure handling is a separate change. This PR does
+not guarantee release notification if Filament fails during submission.
+Run the Dart integration tests from `thermion_dart/`:
+
+```sh
+THERMION_UPLOAD_LIFETIME_FIXTURE=/tmp/thermion-scheduling/libupload_lifetime_fixture.dylib \
+  dart test --concurrency=1 test/ktx_upload_lifetime_test.dart test/skybox_tests.dart
+```
+
+The fixture is built by the CMake commands above. On Linux use
+`libupload_lifetime_fixture.so`; on Windows use `Release/upload_lifetime_fixture.dll`
+and set the variable using your shell's syntax. The tests require a working GPU
+backend (Metal on macOS). They gate the worker to verify release is still pending,
+exercise cubemap/mipmapped/2D uploads followed by explicit bundle destruction,
+and check public skybox/IBL failure delivery. Dart's native build hook builds
+Thermion and obtains Filament.

@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.22)
 project(thermion_scheduling_tests LANGUAGES CXX)
 
 find_package(Threads REQUIRED)
+add_library(upload_lifetime_fixture SHARED upload_lifetime_fixture.cpp)
+target_compile_features(upload_lifetime_fixture PRIVATE cxx_std_17)
+target_link_libraries(upload_lifetime_fixture PRIVATE Threads::Threads)
 add_executable(scheduling_test
     scheduling_test.cpp
     ../../src/rendering/FrameScheduler.cpp)
