@@ -71,6 +71,16 @@ By default the viewer renders on **every vsync** — i.e. at the display's nativ
 
 The native display-link sources apply the cap in `FrameScheduler::handleSourceTick`, fed by `FrameScheduler_setTargetFps`. Linux applies the same absolute-deadline algorithm to Flutter's frame timestamps before entering the common frame-handler pipeline. Web applies it directly in its `requestAnimationFrame` loop.
 
+Native admission uses `FrameRateGate`. Android registers on every vsync, so a
+lower cap reduces Dart/render work but does not reduce native callback frequency.
+The native scheduler reports steady-clock nanoseconds. Apple frame times are
+mapped approximately from their source clocks; invalid timing metadata falls
+back to delivery time and recovery cannot move timestamps backwards. This
+normalization alone does not change rendering's clock: forwarding the timestamp
+through the Dart frame handler and render call is tracked in #319. See the
+[native scheduling tests](../../thermion_dart/native/test/rendering/README.md)
+for coverage and platform validation limits.
+
 Framerate is a property of the **shared render loop**, not of any one viewer. All viewers on the same engine are pace-locked to the same rate (one scheduler drives a single `renderManager.render()` that renders every attached view each tick), so there is no per-view pacing — the last `setTargetFramerate` call wins for all viewers.
 
 Values less than or equal to zero remove the cap. The in-flight guards still drop work when rendering takes longer than the available frame budget, so the configured value is an upper bound rather than a guarantee that the renderer can sustain that rate.

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rendering/FrameRateGate.hpp"
+#include "rendering/FrameTime.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -15,6 +16,10 @@
 #include <CoreVideo/CoreVideo.h>
 #include <mach/mach_time.h>
 #endif
+#endif
+
+#ifdef _WIN32
+struct IDXGIOutput;
 #endif
 
 namespace thermion {
@@ -44,14 +49,19 @@ namespace thermion {
 /// reduces wakeups. The scheduler also checks each source tick against the
 /// target rate. This final check handles approximate source rates and changes
 /// to the display rate. It also handles a target rate that does not divide the
-/// display rate evenly.
+/// display rate evenly. Android registers on every vsync: rejected ticks avoid
+/// Dart/render work, but do not reduce the native callback frequency.
 ///
 /// The final check uses absolute deadlines. It skips missed deadlines and does
 /// not send a burst of late callbacks. It can accept a tick up to 1 ms before a
 /// deadline. This tolerance accounts for timestamp variation.
 ///
 /// Each frame timestamp is in nanoseconds in the std::chrono::steady_clock
-/// time base, suitable for Filament beginFrame and animation updates.
+/// time base. Apple conversions approximately preserve frame age. macOS estimates
+/// the preceding vsync from the predicted presentation and refresh period; when
+/// timing metadata is unusable, it uses delivery time, as the timer source does.
+/// Timestamps remain nondecreasing across this fallback. They are not a guarantee
+/// of actual presentation time. Callers must forward them to use them for rendering.
 class FrameScheduler {
 public:
     /// Receives a monotonic frame timestamp and the pointer supplied to start().
@@ -98,6 +108,11 @@ protected:
     void handleSourceTick(uint64_t timestampNanos);
     void resetState();
     virtual void onTargetFpsChanged(int) {}
+
+    // Shared by the generic timer and the DXGI fallback. The caller owns the
+    // thread and must synchronize stop/rate-change notifications with wakeMutex.
+    void runTimerLoop(std::atomic<bool>& running, int fallbackFps,
+                      std::mutex& wakeMutex, std::condition_variable& wakeCondition);
 };
 
 /// Uses an interruptible timer as the frame source.
@@ -113,7 +128,6 @@ public:
     void start(TickCallback tickCallback, void* userData = nullptr) override;
     void stop() override;
 private:
-    void run();
     void onTargetFpsChanged(int) override;
 };
 
@@ -121,6 +135,7 @@ private:
 /// Uses CADisplayLink as the iOS frame source.
 class CADisplayLinkScheduler : public FrameScheduler {
     void* _wrapper = nullptr;
+    FrameTimeMapper _frameTime;
 public:
     ~CADisplayLinkScheduler() override { stop(); }
     void start(TickCallback tickCallback, void* userData = nullptr) override;
@@ -136,6 +151,7 @@ private:
 class CVDisplayLinkScheduler : public FrameScheduler {
     CVDisplayLinkRef _displayLink = nullptr;
     mach_timebase_info_data_t _timebase{};
+    FrameTimeMapper _frameTime;
 public:
     ~CVDisplayLinkScheduler() override { stop(); }
     void start(TickCallback tickCallback, void* userData = nullptr) override;
@@ -160,6 +176,9 @@ public:
     ~DXGIFrameScheduler() override { stop(); }
     void start(TickCallback tickCallback, void* userData = nullptr) override;
     void stop() override;
+protected:
+    // Isolate the platform wait so tests can force failure without a display.
+    virtual bool waitForVBlank(IDXGIOutput* output);
 private:
     void onTargetFpsChanged(int) override;
 };

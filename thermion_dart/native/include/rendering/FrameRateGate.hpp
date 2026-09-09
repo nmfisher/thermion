@@ -9,6 +9,12 @@ namespace thermion {
 // Deadlines retain their phase across late ticks without queuing catch-up work.
 class FrameRateGate {
 public:
+    // nanos is a nondecreasing timestamp in nanoseconds from one clock domain.
+    // The first tick (including zero) and the first tick at a different positive
+    // fps are admitted immediately and establish a new deadline phase. fps <= 0
+    // admits every tick and clears that phase. Call reset() before changing clocks.
+    // Ticks up to 1 ms early are admitted to tolerate source timestamp jitter;
+    // this is an average cadence target, not a minimum gap between callbacks.
     bool admit(uint64_t nanos, int fps) {
         if (fps <= 0) {
             reset();

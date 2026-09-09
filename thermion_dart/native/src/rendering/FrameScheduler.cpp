@@ -22,17 +22,10 @@
 
 namespace thermion {
 
-#if __APPLE__
-// Apple display-link clocks need not share steady_clock's epoch or sleep
-// behavior. Preserve the source frame's age while converting at delivery.
-static uint64_t toSteadyClock(uint64_t sourceFrame, uint64_t sourceNow) {
-    const uint64_t now = std::chrono::duration_cast<std::chrono::nanoseconds>(
+static uint64_t steadyClockNanos() {
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
-    return sourceFrame <= sourceNow
-        ? now - std::min(now, sourceNow - sourceFrame)
-        : now + (sourceFrame - sourceNow);
 }
-#endif
 
 // ---------------------------------------------------------------------------
 // FrameScheduler (base helpers)
@@ -89,7 +82,8 @@ void TimerFrameScheduler::onTargetFpsChanged(int) {
     _wakeCondition.notify_all();
 }
 
-void TimerFrameScheduler::run() {
+void FrameScheduler::runTimerLoop(std::atomic<bool>& running, int fallbackFps,
+        std::mutex& wakeMutex, std::condition_variable& wakeCondition) {
     using Clock = std::chrono::steady_clock;
 
     int appliedSourceFps = 0;
@@ -98,11 +92,11 @@ void TimerFrameScheduler::run() {
     auto lastActual = nextWake;
     uint64_t frameCount = 0;
 
-    while (_running.load(std::memory_order_relaxed)) {
+    while (running.load(std::memory_order_relaxed)) {
         const int requestedFps = _fpsLimit.load(std::memory_order_relaxed);
         const int sourceFps = requestedFps > 0
             ? requestedFps
-            : std::max(1, _targetFps);
+            : std::max(1, fallbackFps);
         if (sourceFps != appliedSourceFps) {
             appliedSourceFps = sourceFps;
             sourceInterval = std::chrono::nanoseconds(
@@ -143,13 +137,13 @@ void TimerFrameScheduler::run() {
             nextWake += sourceInterval * missedIntervals;
         }
 
-        std::unique_lock<std::mutex> lock(_wakeMutex);
-        _wakeCondition.wait_until(lock, nextWake, [this, appliedSourceFps]() {
+        std::unique_lock<std::mutex> lock(wakeMutex);
+        wakeCondition.wait_until(lock, nextWake, [this, appliedSourceFps, fallbackFps, &running]() {
             const int requestedFps = _fpsLimit.load(std::memory_order_relaxed);
             const int sourceFps = requestedFps > 0
                 ? requestedFps
-                : std::max(1, _targetFps);
-            return !_running.load(std::memory_order_relaxed) ||
+                : std::max(1, fallbackFps);
+            return !running.load(std::memory_order_relaxed) ||
                 sourceFps != appliedSourceFps;
         });
     }
@@ -160,7 +154,9 @@ void TimerFrameScheduler::start(TickCallback tickCallback, void* userData) {
     _tickCallback = tickCallback;
     _tickUserData = userData;
     _running = true;
-    _thread = new std::thread([this]() { run(); });
+    _thread = new std::thread([this]() {
+        runTimerLoop(_running, _targetFps, _wakeMutex, _wakeCondition);
+    });
 }
 
 void TimerFrameScheduler::stop() {
@@ -185,8 +181,9 @@ void TimerFrameScheduler::stop() {
 
 void CADisplayLinkScheduler::displayLinkCallback(uint64_t frameTimeNanos, void* context) {
     auto* self = static_cast<CADisplayLinkScheduler*>(context);
-    self->handleSourceTick(toSteadyClock(
-        frameTimeNanos, CADisplayLinkWrapper_currentTimeNanos()));
+    const uint64_t sourceNow = CADisplayLinkWrapper_currentTimeNanos();
+    const uint64_t steadyNow = steadyClockNanos();
+    self->handleSourceTick(self->_frameTime.map(frameTimeNanos, sourceNow, steadyNow));
 }
 
 void CADisplayLinkScheduler::start(TickCallback tickCallback, void* userData) {
@@ -211,6 +208,7 @@ void CADisplayLinkScheduler::stop() {
         _wrapper = nullptr;
     }
     resetState();
+    _frameTime.reset();
 }
 
 #endif // __APPLE__ && TARGET_OS_IOS
@@ -239,6 +237,7 @@ void CVDisplayLinkScheduler::stop() {
         _displayLink = nullptr;
     }
     resetState();
+    _frameTime.reset();
 }
 
 CVReturn CVDisplayLinkScheduler::displayLinkCallback(CVDisplayLinkRef displayLink,
@@ -246,21 +245,10 @@ CVReturn CVDisplayLinkScheduler::displayLinkCallback(CVDisplayLinkRef displayLin
     CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* context) {
 
     auto* self = static_cast<CVDisplayLinkScheduler*>(context);
-    auto machToNanos = [self](uint64_t ticks) -> uint64_t {
-        return static_cast<unsigned __int128>(ticks) * self->_timebase.numer /
-            self->_timebase.denom;
-    };
-    uint64_t frameNanos = machToNanos(inOutputTime->hostTime);
-    // CVDisplayLink predicts the next presentation. Filament beginFrame wants
-    // the preceding hardware vsync, as do the Android and iOS frame sources.
-    if ((inOutputTime->flags & kCVTimeStampVideoRefreshPeriodValid) &&
-        inOutputTime->videoTimeScale > 0) {
-        const uint64_t period = static_cast<unsigned __int128>(
-            inOutputTime->videoRefreshPeriod) * 1000000000ULL /
-            inOutputTime->videoTimeScale;
-        frameNanos -= std::min(frameNanos, period);
-    }
-    self->handleSourceTick(toSteadyClock(frameNanos, machToNanos(mach_absolute_time())));
+    const uint64_t sourceNow = machTimeNanos(mach_absolute_time(), self->_timebase);
+    const uint64_t steadyNow = steadyClockNanos();
+    self->handleSourceTick(self->_frameTime.map(
+        precedingVsyncNanos(*inOutputTime, self->_timebase), sourceNow, steadyNow));
     return kCVReturnSuccess;
 }
 
@@ -271,6 +259,10 @@ CVReturn CVDisplayLinkScheduler::displayLinkCallback(CVDisplayLinkRef displayLin
 // ---------------------------------------------------------------------------
 
 #ifdef _WIN32
+
+bool DXGIFrameScheduler::waitForVBlank(IDXGIOutput* output) {
+    return output && SUCCEEDED(output->WaitForVBlank());
+}
 
 void DXGIFrameScheduler::start(TickCallback tickCallback, void* userData) {
     stop();
@@ -295,39 +287,16 @@ void DXGIFrameScheduler::start(TickCallback tickCallback, void* userData) {
             }
         }
 
-        using Clock = std::chrono::steady_clock;
-        auto nextWake = Clock::now();
-        int appliedFps = 0;
         while (_running) {
-            if (output && FAILED(output->WaitForVBlank())) {
-                Log("DXGIFrameScheduler: WaitForVBlank failed, falling back to timer");
-                output->Release();
+            if (!waitForVBlank(output)) {
+                Log("DXGIFrameScheduler: VBlank unavailable, falling back to timer");
+                if (output) output->Release();
                 output = nullptr;
-                nextWake = Clock::now();
-            }
-            if (!output) {
-                const int requested = _fpsLimit.load(std::memory_order_relaxed);
-                const int fps = requested > 0 ? requested : _targetFps;
-                if (fps != appliedFps) {
-                    appliedFps = fps;
-                    nextWake = Clock::now();
-                }
-                const auto interval = std::chrono::nanoseconds(
-                    std::max<uint64_t>(1, 1000000000ULL / fps));
-                std::unique_lock<std::mutex> lock(_wakeMutex);
-                if (_wakeCondition.wait_until(lock, nextWake, [this, requested] {
-                    return !_running || _fpsLimit.load(std::memory_order_relaxed) != requested;
-                })) continue;
-                nextWake += interval;
-                const auto now = Clock::now();
-                if (nextWake <= now) {
-                    nextWake += interval * ((now - nextWake) / interval + 1);
-                }
+                runTimerLoop(_running, _targetFps, _wakeMutex, _wakeCondition);
+                break;
             }
             if (_running) {
-                uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    Clock::now().time_since_epoch()).count();
-                handleSourceTick(nanos);
+                handleSourceTick(steadyClockNanos());
             }
         }
 
