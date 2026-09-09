@@ -1,5 +1,7 @@
 #pragma once
 
+#include "rendering/TaskError.hpp"
+
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -129,9 +131,18 @@ private:
     void runNativeLoop();
     #endif
 
+    // A task carries the error scope that was installed when it was enqueued,
+    // so a failure on the worker reaches the Dart future that awaits it.
+    struct Task {
+        std::function<void()> work;
+        TaskErrorContext error;
+    };
+    void executeTask(Task& task);
+    void reportError(TaskErrorContext context, const char* message) const;
+
     std::mutex _taskMutex;
     std::condition_variable _cv;
-    std::deque<std::function<void()>> _tasks;
+    std::deque<Task> _tasks;
     std::chrono::high_resolution_clock::time_point _lastFrameTime;
     int _frameCount = 0;
     float _accumulatedTime = 0.0f;
@@ -154,11 +165,14 @@ private:
 template <class Rt>
 auto RenderThread::addTask(std::packaged_task<Rt()>& pt) -> std::future<Rt> {
     auto ret = pt.get_future();
+    // The caller's error scope is the one installed by the synchronous FFI
+    // dispatch; it is popped before Dart awaits, so capture it now.
+    const auto error = currentTaskError;
     {
         std::lock_guard<std::mutex> lock(_taskMutex);
-        _tasks.push_back([pt = std::make_shared<std::packaged_task<Rt()>>(
+        _tasks.push_back(Task{[pt = std::make_shared<std::packaged_task<Rt()>>(
                              std::move(pt))]
-                        { (*pt)(); });
+                        { (*pt)(); }, error});
     }
     #ifndef __EMSCRIPTEN__
     _cv.notify_one();
@@ -170,10 +184,11 @@ template <class Fn>
 void RenderThread::addDetachedTask(Fn&& fn) {
     // Construct outside the critical section since std::function may need to
     // allocate for a large capture.
-    std::function<void()> task(std::forward<Fn>(fn));
+    std::function<void()> work(std::forward<Fn>(fn));
+    const auto error = currentTaskError;
     {
         std::lock_guard<std::mutex> lock(_taskMutex);
-        _tasks.push_back(std::move(task));
+        _tasks.push_back(Task{std::move(work), error});
     }
     #ifndef __EMSCRIPTEN__
     _cv.notify_one();

@@ -61,6 +61,16 @@ using namespace std::chrono_literals;
 #endif
 extern "C"
 {
+  EMSCRIPTEN_KEEPALIVE void RenderThread_setTaskErrorCallback(
+      uint32_t requestId, RenderTaskErrorCallback callback) {
+    if (callback) pushTaskErrorContext(requestId, callback);
+    else popTaskErrorContext();
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderThread_freeErrorMessage(const char* message) {
+    std::free(const_cast<char*>(message));
+  }
+
 
   // ─────────────────────────────────────────────────────────────────────────
   // Owner-keyed thread registry.

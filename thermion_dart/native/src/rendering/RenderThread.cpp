@@ -1,6 +1,7 @@
 #include "rendering/RenderThread.hpp"
 #include "rendering/RenderManager.hpp"
 
+#include <cstring>
 #include <functional>
 #include <stdlib.h>
 #include <time.h>
@@ -119,7 +120,7 @@ RenderThread::~RenderThread()
     // each task under the queue mutex so the worker and destructor cannot
     // concurrently mutate the deque.
     while (true) {
-        std::function<void()> task;
+        Task task;
         {
             std::lock_guard<std::mutex> lock(_taskMutex);
             if (_tasks.empty()) {
@@ -128,7 +129,7 @@ RenderThread::~RenderThread()
             task = std::move(_tasks.front());
             _tasks.pop_front();
         }
-        task();
+        executeTask(task);
     }
 
     // pthread_join from the browser main thread is fundamentally restricted in
@@ -170,7 +171,7 @@ void RenderThread::iter() {
         auto task = std::move(_tasks.front());
         _tasks.pop_front();
         taskLock.unlock();
-        task();
+        executeTask(task);
         taskLock.lock();
     }
     taskLock.unlock();
@@ -206,10 +207,49 @@ void RenderThread::runNativeLoop() {
         auto task = std::move(_tasks.front());
         _tasks.pop_front();
         taskLock.unlock();
-        task();
+        executeTask(task);
         taskLock.lock();
     }
 }
 #endif
+
+void RenderThread::executeTask(Task& task) {
+    TaskErrorScope scope(task.error);
+    try {
+        task.work();
+    } catch (const std::exception& error) {
+        reportError(task.error, error.what());
+    } catch (...) {
+        reportError(task.error, "Unknown native task exception");
+    }
+}
+
+void RenderThread::reportError(TaskErrorContext context, const char* message) const {
+    Log("RenderThread task failed: %s", message);
+    // Nested helpers (e.g. texture creation plus upload completion) can have
+    // more than one pending request for one operation. Fail every active scope.
+    while (context.callback) {
+        const size_t length = std::strlen(message) + 1;
+        auto* ownedMessage = static_cast<char*>(std::malloc(length));
+        if (ownedMessage) std::memcpy(ownedMessage, message, length);
+        const auto callback = context.callback;
+        const auto requestId = context.requestId;
+#ifdef __EMSCRIPTEN__
+        // Dart awaits from the browser main thread, which drains the proxying
+        // queue between event-loop turns; delivering there keeps the failure on
+        // the thread that owns the completer.
+        if (pthread_equal(pthread_self(), outer)) {
+            callback(requestId, ownedMessage);
+        } else {
+            queue.proxySync(outer, [callback, requestId, ownedMessage] {
+                callback(requestId, ownedMessage);
+            });
+        }
+#else
+        callback(requestId, ownedMessage);
+#endif
+        context = context.parent ? *context.parent : TaskErrorContext{};
+    }
+}
 
 } // namespace thermion

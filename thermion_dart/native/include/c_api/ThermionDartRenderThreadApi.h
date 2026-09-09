@@ -21,6 +21,13 @@ namespace thermion
         typedef int32_t EntityId;
         typedef void (*FilamentRenderCallback)(void *const owner);
 
+        typedef void (*RenderTaskErrorCallback)(uint32_t requestId, const char *ownedMessage);
+        // Set only around a synchronous dispatch on the current calling thread.
+        // Passing a null callback pops the scope. Nested dispatches retain their parent error scope. Messages are owned by the
+        // receiver and must be freed using RenderThread_freeErrorMessage.
+        EMSCRIPTEN_KEEPALIVE void RenderThread_setTaskErrorCallback(uint32_t requestId, RenderTaskErrorCallback callback);
+        EMSCRIPTEN_KEEPALIVE void RenderThread_freeErrorMessage(const char *message);
+
         EMSCRIPTEN_KEEPALIVE void* RenderThread_create();
         // Creates a RenderThread that transfers the given canvas element
         // (CSS selector) to its worker — one thread per viewer on web.

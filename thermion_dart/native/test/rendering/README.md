@@ -10,11 +10,12 @@ cmake --build /tmp/thermion-scheduling
 ctest --test-dir /tmp/thermion-scheduling --output-on-failure
 ```
 
-This covers fractional refresh-rate cadence, timer changes and prompt stop.
+This covers fractional refresh-rate cadence, timer changes and prompt stop,
+ordered task dispatch, exception reporting, nested error scopes, and repeated
+shutdown.
 
-The RenderThread worker-queue and task-error tests, plus the standalone browser
-fixtures for web dispatch and shutdown lifetimes, land with the RenderThread
-rework in #301.
+The standalone browser fixtures for web dispatch and shutdown lifetimes land
+with the RenderThread worker rework in #301.
 
 These tests do not measure physical display presentation intervals or perceived
 animation smoothness.

@@ -9,6 +9,7 @@ endif()
 find_package(Threads REQUIRED)
 add_executable(scheduling_test
     scheduling_test.cpp
+    ../../src/rendering/RenderThread.cpp
     ../../src/rendering/FrameScheduler.cpp)
 target_compile_features(scheduling_test PRIVATE cxx_std_17)
 target_include_directories(scheduling_test PRIVATE ../../include "${FILAMENT_INCLUDE_DIR}")
