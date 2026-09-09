@@ -2694,6 +2694,12 @@ external ffi.Pointer<ffi.Void> RenderThread_createForCanvas(ffi.Pointer<ffi.Char
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
 external void RenderThread_destroy(ffi.Pointer<ffi.Void> renderThread);
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Char>)>(isLeaf: true)
+external void RenderThread_freeErrorMessage(ffi.Pointer<ffi.Char> message);
+
+@ffi.Native<ffi.Uint32 Function(ffi.Uint32, RenderTaskErrorCallback)>(isLeaf: true)
+external int RenderThread_setTaskErrorCallback(int requestId, RenderTaskErrorCallback callback);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size, ffi.Uint16)>(isLeaf: true)
 external void RenderableBuilder_blendOrder(ffi.Pointer<TRenderableBuilder> builder, int primitiveIndex, int order);
 
@@ -4996,6 +5002,10 @@ typedef DartPickCallbackFunction =
     void Function(int requestId, DartEntityId entityId, double depth, double fragX, double fragY, double fragZ);
 
 const int ROTATION_INTENT_MASK = 2;
+
+typedef RenderTaskErrorCallback = ffi.Pointer<ffi.NativeFunction<RenderTaskErrorCallbackFunction>>;
+typedef RenderTaskErrorCallbackFunction = ffi.Void Function(ffi.Uint32 requestId, ffi.Pointer<ffi.Char> ownedMessage);
+typedef DartRenderTaskErrorCallbackFunction = void Function(int requestId, ffi.Pointer<ffi.Char> ownedMessage);
 
 const int SPRINT_INTENT_MASK = 8;
 

@@ -12,6 +12,9 @@ ctest --test-dir /tmp/thermion-scheduling -C Release --output-on-failure
 
 Coverage:
 
+- Ordered task dispatch, exception reporting, nested error scopes, and repeated
+  worker shutdown.
+
 - Gate totals under regular 60, 90, 120, and 144 Hz source ticks; alternating
   1/2-vsync gaps for 60 fps on 90 Hz; the 1 ms early-admission boundary; zero
   timestamps, stalls, rate changes, unlimited mode, and reset.
@@ -41,6 +44,62 @@ The gate extraction is reused by the web worker in #301. Task-error propagation
 is in #318; forwarding scheduler timestamps through Flutter into rendering is
 in #319. Normalizing native scheduler output alone does not replace the existing
 Dart wall-clock render timestamp. Browser dispatch/lifetime fixtures land in #301.
+
+## Task error tests
+
+Callback-based C API operations queue ordinary tasks. If their work throws a C++
+exception before the success callback, the worker reports the captured request ID
+and Dart completes its Future with a `StateError`. C++ callers that use
+`std::packaged_task` still receive errors in their C++ futures. Neither path
+recovers from crashes or process termination.
+
+Each callback helper represents one native operation with one terminal success
+or error callback. Queue that operation synchronously inside the dispatch
+closure. Native requests after an `await` need their own callback helper and
+scope. A native error completes only its own scope; awaiting a child Future
+propagates its error through Dart without invalidating a parent's callback.
+
+Popping a native scope returns the number of tasks it queued. If Dart setup
+fails after queueing work, the helper waits for native completion before
+rethrowing the setup error. This keeps typed callbacks and caller-owned buffers
+alive while native code can still use them. Web keeps pumping completions during
+that wait. Async setup is also observed to completion before cleanup. Tasks
+retain their existing FIFO order; this does not wait for GPU completion.
+
+The shared native error/void listeners remain allocated for the isolate's lifetime
+so late callbacks cannot call a closed trampoline. They keep the isolate alive
+only while requests are pending. Applications must stop native workers before
+explicitly killing the isolate. Late errors are ignored by request ID, but their
+message buffers are still freed.
+
+Run the Dart regressions from `thermion_dart/`:
+
+```sh
+dart test test/task_error_registry_test.dart
+THERMION_TASK_ERROR_FIXTURE=/tmp/thermion-scheduling/libtask_error_fixture.dylib \
+  dart test --concurrency=1 test/native_task_errors_test.dart test/ffi_void_callback_test.dart \
+    test/ktx_task_errors_test.dart
+```
+
+The CMake build above produces the fixture library. On Linux use
+`libtask_error_fixture.so`; on Windows use `Release/task_error_fixture.dll` and
+set the environment variable using your shell's syntax. The native integration
+test skips when the variable is absent. Dart's native build hook also builds
+Thermion and obtains its Filament dependencies for these tests.
+
+The fixture throws inside the production `RenderThread_addTask` path, checks
+typed/void error delivery and subsequent worker progress, and tests that a child
+process exits naturally after shutdown. Queued callbacks are also checked after
+Dart dispatch throws, to verify that callback cleanup waits for native work.
+A nested failure must leave a separate upload-release callback pending. The KTX
+error test uses a real engine and verifies Filament texture creation failure reports both the
+creation error and buffer release before the caller destroys the bundle.
+Pure-Dart tests cover polling with sync
+and async setup, setup/pump errors, nested scopes, duplicate errors, and listener
+keep-alive transitions. These are manual tests; no workflow is added.
+
+For the release-mode callback and headless frame performance comparison, see
+the [benchmark report and reproduction instructions](../../../test/benchmarks/README.md).
 
 ## KTX upload lifetime tests
 

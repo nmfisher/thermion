@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'void_callback_registry.dart';
+import 'native_task_errors.dart';
 export 'package:ffi/ffi.dart';
 export 'dart:ffi' hide Size;
 
@@ -116,6 +117,11 @@ extension PCBF on DartPickCallbackFunction {
 
 final _voidCallbackRegistry = VoidCallbackRegistry();
 
+// Callback helper contract (void and typed helpers below): dispatch one native
+// operation synchronously, with success/error as alternative final completions.
+// Do not reuse its callback for independent tasks or submit it after an await;
+// use another helper for that work. The registry delays cleanup after a Dart
+// dispatch error until any queued operation has delivered its final callback.
 Future<void> withVoidCallback(Function(int, Pointer<NativeFunction<Void Function(Int32)>>) func) =>
     _voidCallbackRegistry.invoke(func);
 
@@ -128,10 +134,11 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
     completer.complete(ptr.cast<T>());
   };
   final nativeCallable = NativeCallable<Void Function(Pointer<NativeType>)>.listener(callback);
-  func.call(nativeCallable.nativeFunction);
-  var ptr = await completer.future;
-  nativeCallable.close();
-  return ptr;
+  try {
+    return await nativeTaskErrors.invoke(completer, () => func.call(nativeCallable.nativeFunction));
+  } finally {
+    nativeCallable.close();
+  }
 }
 
 Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
@@ -141,10 +148,11 @@ Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool
     completer.complete(result);
   };
   final nativeCallable = NativeCallable<Void Function(Bool)>.listener(callback);
-  func.call(nativeCallable.nativeFunction);
-  await completer.future;
-  nativeCallable.close();
-  return completer.future;
+  try {
+    return await nativeTaskErrors.invoke(completer, () => func.call(nativeCallable.nativeFunction));
+  } finally {
+    nativeCallable.close();
+  }
 }
 
 Future<double> withFloatCallback(Function(Pointer<NativeFunction<Void Function(Float)>>) func) async {
@@ -154,10 +162,11 @@ Future<double> withFloatCallback(Function(Pointer<NativeFunction<Void Function(F
     completer.complete(result);
   };
   final nativeCallable = NativeCallable<Void Function(Float)>.listener(callback);
-  func.call(nativeCallable.nativeFunction);
-  await completer.future;
-  nativeCallable.close();
-  return completer.future;
+  try {
+    return await nativeTaskErrors.invoke(completer, () => func.call(nativeCallable.nativeFunction));
+  } finally {
+    nativeCallable.close();
+  }
 }
 
 Future<int> withIntCallback(Function(Pointer<NativeFunction<Void Function(Int32)>>) func) async {
@@ -167,10 +176,11 @@ Future<int> withIntCallback(Function(Pointer<NativeFunction<Void Function(Int32)
     completer.complete(result);
   };
   final nativeCallable = NativeCallable<Void Function(Int32)>.listener(callback);
-  func.call(nativeCallable.nativeFunction);
-  await completer.future;
-  nativeCallable.close();
-  return completer.future;
+  try {
+    return await nativeTaskErrors.invoke(completer, () => func.call(nativeCallable.nativeFunction));
+  } finally {
+    nativeCallable.close();
+  }
 }
 
 Future<int> withUInt32Callback(Function(Pointer<NativeFunction<Void Function(Uint32)>>) func) async {
@@ -180,10 +190,11 @@ Future<int> withUInt32Callback(Function(Pointer<NativeFunction<Void Function(Uin
     completer.complete(result);
   };
   final nativeCallable = NativeCallable<Void Function(Uint32)>.listener(callback);
-  func.call(nativeCallable.nativeFunction);
-  await completer.future;
-  nativeCallable.close();
-  return completer.future;
+  try {
+    return await nativeTaskErrors.invoke(completer, () => func.call(nativeCallable.nativeFunction));
+  } finally {
+    nativeCallable.close();
+  }
 }
 
 Future<String> withCharPtrCallback(Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>) func) async {
@@ -193,10 +204,11 @@ Future<String> withCharPtrCallback(Function(Pointer<NativeFunction<Void Function
     completer.complete(result.cast<Utf8>().toDartString());
   };
   final nativeCallable = NativeCallable<Void Function(Pointer<Char>)>.listener(callback);
-  func.call(nativeCallable.nativeFunction);
-  await completer.future;
-  nativeCallable.close();
-  return completer.future;
+  try {
+    return await nativeTaskErrors.invoke(completer, () => func.call(nativeCallable.nativeFunction));
+  } finally {
+    nativeCallable.close();
+  }
 }
 
 extension FreeTypedData<T> on TypedData {

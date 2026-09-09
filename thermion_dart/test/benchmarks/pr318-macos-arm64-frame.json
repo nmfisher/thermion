@@ -1,0 +1,602 @@
+{
+  "kind": "frame",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "runs": [
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "fps": 60,
+          "updates": 0,
+          "frames": 180,
+          "p50_us": 81.833,
+          "p95_us": 152.209,
+          "p99_us": 320.625,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 60,
+          "updates": 100,
+          "frames": 180,
+          "p50_us": 319.833,
+          "p95_us": 587.541,
+          "p99_us": 1106.708,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 0,
+          "frames": 360,
+          "p50_us": 67.25,
+          "p95_us": 170.833,
+          "p99_us": 536.292,
+          "deadline_misses": 5
+        },
+        {
+          "fps": 120,
+          "updates": 100,
+          "frames": 360,
+          "p50_us": 243.875,
+          "p95_us": 635.458,
+          "p99_us": 1523.333,
+          "deadline_misses": 3
+        }
+      ],
+      "pair": 0,
+      "version": "base",
+      "wall_s": 17.081850416958332,
+      "user_s": 0.54,
+      "sys_s": 0.53,
+      "peak_rss_bytes": 74317824,
+      "time_output": "       17.05 real         0.54 user         0.53 sys\n            74317824  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4635  page reclaims\n                 393  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   2  voluntary context switches\n               52181  involuntary context switches\n          4051106535  instructions retired\n          3256817148  cycles elapsed\n            63423112  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "fps": 60,
+          "updates": 0,
+          "frames": 180,
+          "p50_us": 87.917,
+          "p95_us": 260.792,
+          "p99_us": 754.0,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 60,
+          "updates": 100,
+          "frames": 180,
+          "p50_us": 306.417,
+          "p95_us": 760.958,
+          "p99_us": 4073.917,
+          "deadline_misses": 1
+        },
+        {
+          "fps": 120,
+          "updates": 0,
+          "frames": 360,
+          "p50_us": 64.958,
+          "p95_us": 255.083,
+          "p99_us": 1701.875,
+          "deadline_misses": 4
+        },
+        {
+          "fps": 120,
+          "updates": 100,
+          "frames": 360,
+          "p50_us": 289.875,
+          "p95_us": 680.042,
+          "p99_us": 1244.0,
+          "deadline_misses": 4
+        }
+      ],
+      "pair": 0,
+      "version": "pr",
+      "wall_s": 16.939644792000763,
+      "user_s": 0.6,
+      "sys_s": 0.53,
+      "peak_rss_bytes": 74170368,
+      "time_output": "       16.88 real         0.60 user         0.53 sys\n            74170368  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4642  page reclaims\n                 399  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   3  voluntary context switches\n               42471  involuntary context switches\n          4296658218  instructions retired\n          3015169815  cycles elapsed\n            63242912  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "fps": 60,
+          "updates": 0,
+          "frames": 180,
+          "p50_us": 92.334,
+          "p95_us": 139.833,
+          "p99_us": 321.125,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 60,
+          "updates": 100,
+          "frames": 180,
+          "p50_us": 302.167,
+          "p95_us": 694.583,
+          "p99_us": 808.542,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 0,
+          "frames": 360,
+          "p50_us": 72.333,
+          "p95_us": 167.583,
+          "p99_us": 208.209,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 100,
+          "frames": 360,
+          "p50_us": 232.042,
+          "p95_us": 544.458,
+          "p99_us": 838.542,
+          "deadline_misses": 0
+        }
+      ],
+      "pair": 1,
+      "version": "pr",
+      "wall_s": 16.108396083000116,
+      "user_s": 0.58,
+      "sys_s": 0.52,
+      "peak_rss_bytes": 73793536,
+      "time_output": "       16.05 real         0.58 user         0.52 sys\n            73793536  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4610  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   1  voluntary context switches\n               40177  involuntary context switches\n          4255555229  instructions retired\n          2924144337  cycles elapsed\n            62931568  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "fps": 60,
+          "updates": 0,
+          "frames": 180,
+          "p50_us": 96.458,
+          "p95_us": 300.25,
+          "p99_us": 388.833,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 60,
+          "updates": 100,
+          "frames": 180,
+          "p50_us": 232.5,
+          "p95_us": 436.958,
+          "p99_us": 975.792,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 0,
+          "frames": 360,
+          "p50_us": 57.875,
+          "p95_us": 96.708,
+          "p99_us": 125.75,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 100,
+          "frames": 360,
+          "p50_us": 204.708,
+          "p95_us": 385.292,
+          "p99_us": 778.958,
+          "deadline_misses": 0
+        }
+      ],
+      "pair": 1,
+      "version": "base",
+      "wall_s": 16.080590958008543,
+      "user_s": 0.49,
+      "sys_s": 0.53,
+      "peak_rss_bytes": 73908224,
+      "time_output": "       16.04 real         0.49 user         0.53 sys\n            73908224  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4614  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   5  voluntary context switches\n               47129  involuntary context switches\n          3948391136  instructions retired\n          2866353779  cycles elapsed\n            63013512  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "fps": 60,
+          "updates": 0,
+          "frames": 180,
+          "p50_us": 83.334,
+          "p95_us": 131.292,
+          "p99_us": 223.167,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 60,
+          "updates": 100,
+          "frames": 180,
+          "p50_us": 232.083,
+          "p95_us": 416.833,
+          "p99_us": 526.708,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 0,
+          "frames": 360,
+          "p50_us": 49.458,
+          "p95_us": 86.292,
+          "p99_us": 141.209,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 100,
+          "frames": 360,
+          "p50_us": 185.958,
+          "p95_us": 411.209,
+          "p99_us": 3462.541,
+          "deadline_misses": 5
+        }
+      ],
+      "pair": 2,
+      "version": "base",
+      "wall_s": 16.061677916906774,
+      "user_s": 0.41,
+      "sys_s": 0.44,
+      "peak_rss_bytes": 73875456,
+      "time_output": "       16.03 real         0.41 user         0.44 sys\n            73875456  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4610  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                  14  voluntary context switches\n               45599  involuntary context switches\n          3919885436  instructions retired\n          2541004570  cycles elapsed\n            63029896  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "fps": 60,
+          "updates": 0,
+          "frames": 180,
+          "p50_us": 60.208,
+          "p95_us": 116.625,
+          "p99_us": 204.0,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 60,
+          "updates": 100,
+          "frames": 180,
+          "p50_us": 186.625,
+          "p95_us": 417.417,
+          "p99_us": 767.5,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 0,
+          "frames": 360,
+          "p50_us": 47.417,
+          "p95_us": 90.625,
+          "p99_us": 133.208,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 100,
+          "frames": 360,
+          "p50_us": 168.792,
+          "p95_us": 389.375,
+          "p99_us": 606.625,
+          "deadline_misses": 0
+        }
+      ],
+      "pair": 2,
+      "version": "pr",
+      "wall_s": 16.051259999978356,
+      "user_s": 0.4,
+      "sys_s": 0.41,
+      "peak_rss_bytes": 73973760,
+      "time_output": "       16.01 real         0.40 user         0.41 sys\n            73973760  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4620  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   2  voluntary context switches\n               39458  involuntary context switches\n          4237903933  instructions retired\n          2369735484  cycles elapsed\n            63095456  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "fps": 60,
+          "updates": 0,
+          "frames": 180,
+          "p50_us": 78.833,
+          "p95_us": 135.5,
+          "p99_us": 284.916,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 60,
+          "updates": 100,
+          "frames": 180,
+          "p50_us": 218.834,
+          "p95_us": 491.792,
+          "p99_us": 618.041,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 0,
+          "frames": 360,
+          "p50_us": 62.416,
+          "p95_us": 108.625,
+          "p99_us": 238.625,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 100,
+          "frames": 360,
+          "p50_us": 192.167,
+          "p95_us": 384.125,
+          "p99_us": 517.916,
+          "deadline_misses": 0
+        }
+      ],
+      "pair": 3,
+      "version": "pr",
+      "wall_s": 16.02471270901151,
+      "user_s": 0.45,
+      "sys_s": 0.45,
+      "peak_rss_bytes": 74006528,
+      "time_output": "       16.00 real         0.45 user         0.45 sys\n            74006528  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4624  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n               39911  involuntary context switches\n          4244990309  instructions retired\n          2599912647  cycles elapsed\n            63111840  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "fps": 60,
+          "updates": 0,
+          "frames": 180,
+          "p50_us": 83.916,
+          "p95_us": 203.916,
+          "p99_us": 428.25,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 60,
+          "updates": 100,
+          "frames": 180,
+          "p50_us": 260.667,
+          "p95_us": 542.875,
+          "p99_us": 764.917,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 0,
+          "frames": 360,
+          "p50_us": 88.292,
+          "p95_us": 195.709,
+          "p99_us": 326.875,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 100,
+          "frames": 360,
+          "p50_us": 368.083,
+          "p95_us": 842.583,
+          "p99_us": 1057.625,
+          "deadline_misses": 0
+        }
+      ],
+      "pair": 3,
+      "version": "base",
+      "wall_s": 16.061559665948153,
+      "user_s": 0.65,
+      "sys_s": 0.66,
+      "peak_rss_bytes": 73842688,
+      "time_output": "       16.02 real         0.65 user         0.66 sys\n            73842688  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4605  page reclaims\n                 396  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   1  voluntary context switches\n               46915  involuntary context switches\n          3959664515  instructions retired\n          2650546861  cycles elapsed\n            62948000  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "fps": 60,
+          "updates": 0,
+          "frames": 180,
+          "p50_us": 71.125,
+          "p95_us": 103.125,
+          "p99_us": 236.75,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 60,
+          "updates": 100,
+          "frames": 180,
+          "p50_us": 277.625,
+          "p95_us": 480.0,
+          "p99_us": 705.334,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 0,
+          "frames": 360,
+          "p50_us": 57.166,
+          "p95_us": 95.208,
+          "p99_us": 193.708,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 100,
+          "frames": 360,
+          "p50_us": 231.041,
+          "p95_us": 429.25,
+          "p99_us": 494.084,
+          "deadline_misses": 0
+        }
+      ],
+      "pair": 4,
+      "version": "base",
+      "wall_s": 16.034561749896966,
+      "user_s": 0.45,
+      "sys_s": 0.49,
+      "peak_rss_bytes": 73629696,
+      "time_output": "       16.02 real         0.45 user         0.49 sys\n            73629696  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4589  page reclaims\n                 398  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   1  voluntary context switches\n               47690  involuntary context switches\n          3977842282  instructions retired\n          2239649672  cycles elapsed\n            62735008  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "fps": 60,
+          "updates": 0,
+          "frames": 180,
+          "p50_us": 74.167,
+          "p95_us": 115.042,
+          "p99_us": 185.958,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 60,
+          "updates": 100,
+          "frames": 180,
+          "p50_us": 269.083,
+          "p95_us": 553.709,
+          "p99_us": 763.834,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 0,
+          "frames": 360,
+          "p50_us": 63.125,
+          "p95_us": 113.583,
+          "p99_us": 139.625,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 100,
+          "frames": 360,
+          "p50_us": 205.25,
+          "p95_us": 451.208,
+          "p99_us": 984.625,
+          "deadline_misses": 0
+        }
+      ],
+      "pair": 4,
+      "version": "pr",
+      "wall_s": 16.057407708023675,
+      "user_s": 0.49,
+      "sys_s": 0.47,
+      "peak_rss_bytes": 74072064,
+      "time_output": "       16.01 real         0.49 user         0.47 sys\n            74072064  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4627  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n               39263  involuntary context switches\n          4224185842  instructions retired\n          2424342678  cycles elapsed\n            63144608  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "fps": 60,
+          "updates": 0,
+          "frames": 180,
+          "p50_us": 85.833,
+          "p95_us": 126.166,
+          "p99_us": 312.167,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 60,
+          "updates": 100,
+          "frames": 180,
+          "p50_us": 277.625,
+          "p95_us": 512.709,
+          "p99_us": 606.333,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 0,
+          "frames": 360,
+          "p50_us": 58.0,
+          "p95_us": 98.833,
+          "p99_us": 152.625,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 100,
+          "frames": 360,
+          "p50_us": 227.75,
+          "p95_us": 441.875,
+          "p99_us": 615.584,
+          "deadline_misses": 0
+        }
+      ],
+      "pair": 5,
+      "version": "pr",
+      "wall_s": 16.045640208991244,
+      "user_s": 0.49,
+      "sys_s": 0.46,
+      "peak_rss_bytes": 73777152,
+      "time_output": "       16.02 real         0.49 user         0.46 sys\n            73777152  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4608  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n               41260  involuntary context switches\n          4268340983  instructions retired\n          2862851951  cycles elapsed\n            62816904  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "fps": 60,
+          "updates": 0,
+          "frames": 180,
+          "p50_us": 79.625,
+          "p95_us": 142.042,
+          "p99_us": 448.125,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 60,
+          "updates": 100,
+          "frames": 180,
+          "p50_us": 282.833,
+          "p95_us": 442.833,
+          "p99_us": 690.666,
+          "deadline_misses": 0
+        },
+        {
+          "fps": 120,
+          "updates": 0,
+          "frames": 360,
+          "p50_us": 72.084,
+          "p95_us": 175.25,
+          "p99_us": 528.458,
+          "deadline_misses": 1
+        },
+        {
+          "fps": 120,
+          "updates": 100,
+          "frames": 360,
+          "p50_us": 288.125,
+          "p95_us": 700.292,
+          "p99_us": 1996.959,
+          "deadline_misses": 1
+        }
+      ],
+      "pair": 5,
+      "version": "base",
+      "wall_s": 16.084112499956973,
+      "user_s": 0.55,
+      "sys_s": 0.56,
+      "peak_rss_bytes": 73711616,
+      "time_output": "       16.03 real         0.55 user         0.56 sys\n            73711616  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4603  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n               48281  involuntary context switches\n          3971245854  instructions retired\n          3013860457  cycles elapsed\n            62882464  peak memory footprint\n"
+    }
+  ],
+  "binaries": {
+    "base": {
+      "path": "/private/tmp/thermion-frame-bench-base/bundle/bin/task_error_frame_benchmark",
+      "sha256": "ed91f54f8371b6c4123416d429d0f11659682b93daca8ba9d18ac9f51b9bd419",
+      "native_library_sha256": "07504ce6fad52db99ac4725cb71051b785ec63376ba4302f4aa02a8669a5b428"
+    },
+    "pr": {
+      "path": "/private/tmp/thermion-frame-bench-pr/bundle/bin/task_error_frame_benchmark",
+      "sha256": "9c0a0b89445fbc7b86ad6ee9854467e67587f64f424e2f41c6f58fb17d66b232",
+      "native_library_sha256": "0250818a63b7c856aa5f4b148ea9dd6274597cf8f301a912f1a82c1e0af3ce70"
+    }
+  },
+  "base_commit": "6b0511732",
+  "pr_commit": "87b9d280a",
+  "compiler": "Apple clang 21.0.0, -O3; Dart 3.12.1 AOT via dart build cli",
+  "native_backend": "Metal, headless 512x512 unlit cube",
+  "date": "2026-09-09",
+  "hardware": "Apple M2 Pro",
+  "os": "macOS 26.6.2 (25G83)",
+  "benchmark_source_sha256": "cc8b2cc722a24795aeb432b9fdacb07d14874f46a3321c0b2a468ef79c76ab83"
+}

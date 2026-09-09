@@ -1,0 +1,1818 @@
+{
+  "kind": "micro",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "runs": [
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 66219.084,
+          "ns_per_op": 1010.4230346679688,
+          "p50_us": 0.792,
+          "p95_us": 1.042,
+          "p99_us": 1.833
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 76387.0,
+          "ns_per_op": 1165.5731201171875,
+          "p50_us": 12.333,
+          "p95_us": 34.958,
+          "p99_us": 85.834
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 681543.125,
+          "ns_per_op": 10399.52278137207,
+          "p50_us": 9.583,
+          "p95_us": 16.958,
+          "p99_us": 25.416
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 160736.583,
+          "ns_per_op": 2452.6456146240234,
+          "p50_us": 38.375,
+          "p95_us": 90.125,
+          "p99_us": 119.417
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 634541.875,
+          "ns_per_op": 9682.340621948242,
+          "p50_us": 8.417,
+          "p95_us": 16.0,
+          "p99_us": 23.833
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 129656.083,
+          "ns_per_op": 1978.3948211669922,
+          "p50_us": 27.75,
+          "p95_us": 77.916,
+          "p99_us": 117.25
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 674340.583,
+          "ns_per_op": 10289.620712280273,
+          "p50_us": 8.667,
+          "p95_us": 18.708,
+          "p99_us": 34.042
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 132527.584,
+          "ns_per_op": 2022.21044921875,
+          "p50_us": 29.0,
+          "p95_us": 82.375,
+          "p99_us": 121.625
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 627123.042,
+          "ns_per_op": 9569.138214111328,
+          "p50_us": 8.583,
+          "p95_us": 17.25,
+          "p99_us": 27.125
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 131557.042,
+          "ns_per_op": 2007.4011535644531,
+          "p50_us": 28.708,
+          "p95_us": 79.166,
+          "p99_us": 134.542
+        }
+      ],
+      "pair": 0,
+      "version": "base",
+      "wall_s": 4.732398374937475,
+      "user_s": 2.23,
+      "sys_s": 1.62,
+      "peak_rss_bytes": 78266368,
+      "time_output": "        4.72 real         2.23 user         1.62 sys\n            78266368  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4755  page reclaims\n                 399  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                  17  voluntary context switches\n              617590  involuntary context switches\n         25673777539  instructions retired\n         11091632212  cycles elapsed\n            57918112  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 94247.0,
+          "ns_per_op": 1438.0950927734375,
+          "p50_us": 1.167,
+          "p95_us": 1.5,
+          "p99_us": 5.25
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 101346.792,
+          "ns_per_op": 1546.4293212890625,
+          "p50_us": 19.542,
+          "p95_us": 37.0,
+          "p99_us": 86.209
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 780850.625,
+          "ns_per_op": 11914.834976196289,
+          "p50_us": 9.833,
+          "p95_us": 19.625,
+          "p99_us": 35.417
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 183274.875,
+          "ns_per_op": 2796.5526580810547,
+          "p50_us": 38.667,
+          "p95_us": 101.209,
+          "p99_us": 190.25
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 677172.25,
+          "ns_per_op": 10332.828521728516,
+          "p50_us": 9.375,
+          "p95_us": 16.792,
+          "p99_us": 23.916
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 120179.791,
+          "ns_per_op": 1833.798080444336,
+          "p50_us": 26.75,
+          "p95_us": 67.958,
+          "p99_us": 101.291
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 672268.75,
+          "ns_per_op": 10258.007049560547,
+          "p50_us": 9.292,
+          "p95_us": 14.917,
+          "p99_us": 23.583
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 128963.25,
+          "ns_per_op": 1967.8230285644531,
+          "p50_us": 27.5,
+          "p95_us": 75.333,
+          "p99_us": 114.291
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 677073.75,
+          "ns_per_op": 10331.32553100586,
+          "p50_us": 9.333,
+          "p95_us": 16.5,
+          "p99_us": 23.792
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 113004.958,
+          "ns_per_op": 1724.3188171386719,
+          "p50_us": 25.5,
+          "p95_us": 52.042,
+          "p99_us": 88.792
+        }
+      ],
+      "pair": 0,
+      "version": "pr",
+      "wall_s": 3.9391377080464736,
+      "user_s": 2.61,
+      "sys_s": 1.53,
+      "peak_rss_bytes": 84230144,
+      "time_output": "        3.93 real         2.61 user         1.53 sys\n            84230144  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                5124  page reclaims\n                 393  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   1  voluntary context switches\n              588460  involuntary context switches\n         27456659298  instructions retired\n         11799879838  cycles elapsed\n            63767176  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 156643.792,
+          "ns_per_op": 2390.194580078125,
+          "p50_us": 1.167,
+          "p95_us": 2.75,
+          "p99_us": 4.458
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 87651.333,
+          "ns_per_op": 1337.4532012939453,
+          "p50_us": 19.458,
+          "p95_us": 35.958,
+          "p99_us": 88.25
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 709041.334,
+          "ns_per_op": 10819.11215209961,
+          "p50_us": 9.75,
+          "p95_us": 16.084,
+          "p99_us": 24.875
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 236396.792,
+          "ns_per_op": 3607.1287841796875,
+          "p50_us": 53.25,
+          "p95_us": 134.167,
+          "p99_us": 218.416
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 652876.667,
+          "ns_per_op": 9962.107345581055,
+          "p50_us": 9.166,
+          "p95_us": 16.375,
+          "p99_us": 23.833
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 110236.459,
+          "ns_per_op": 1682.0748748779297,
+          "p50_us": 25.542,
+          "p95_us": 80.167,
+          "p99_us": 102.292
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 724471.541,
+          "ns_per_op": 11054.55842590332,
+          "p50_us": 9.334,
+          "p95_us": 18.417,
+          "p99_us": 31.459
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 186687.667,
+          "ns_per_op": 2848.627731323242,
+          "p50_us": 28.916,
+          "p95_us": 114.292,
+          "p99_us": 191.167
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 699098.333,
+          "ns_per_op": 10667.393997192383,
+          "p50_us": 9.333,
+          "p95_us": 18.458,
+          "p99_us": 31.917
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 156878.209,
+          "ns_per_op": 2393.771499633789,
+          "p50_us": 26.666,
+          "p95_us": 98.333,
+          "p99_us": 190.5
+        }
+      ],
+      "pair": 1,
+      "version": "pr",
+      "wall_s": 3.9984478330006823,
+      "user_s": 2.62,
+      "sys_s": 1.6,
+      "peak_rss_bytes": 78348288,
+      "time_output": "        3.99 real         2.62 user         1.60 sys\n            78348288  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4766  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n              600278  involuntary context switches\n         27893737275  instructions retired\n         12056698025  cycles elapsed\n            57901728  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 63642.292,
+          "ns_per_op": 971.1043090820312,
+          "p50_us": 0.792,
+          "p95_us": 1.0,
+          "p99_us": 1.167
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 55477.708,
+          "ns_per_op": 846.5226440429688,
+          "p50_us": 12.375,
+          "p95_us": 19.25,
+          "p99_us": 59.083
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 804305.75,
+          "ns_per_op": 12272.73178100586,
+          "p50_us": 9.625,
+          "p95_us": 20.5,
+          "p99_us": 34.458
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 211831.417,
+          "ns_per_op": 3232.2909088134766,
+          "p50_us": 46.625,
+          "p95_us": 123.542,
+          "p99_us": 179.75
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 637336.583,
+          "ns_per_op": 9724.984481811523,
+          "p50_us": 7.209,
+          "p95_us": 19.25,
+          "p99_us": 33.125
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 116852.959,
+          "ns_per_op": 1783.034652709961,
+          "p50_us": 24.625,
+          "p95_us": 67.542,
+          "p99_us": 108.5
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 615671.166,
+          "ns_per_op": 9394.396453857422,
+          "p50_us": 6.958,
+          "p95_us": 17.75,
+          "p99_us": 28.125
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 117545.542,
+          "ns_per_op": 1793.6026306152344,
+          "p50_us": 26.834,
+          "p95_us": 72.583,
+          "p99_us": 107.417
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 677744.791,
+          "ns_per_op": 10341.564804077148,
+          "p50_us": 6.917,
+          "p95_us": 20.666,
+          "p99_us": 40.208
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 176558.625,
+          "ns_per_op": 2694.070816040039,
+          "p50_us": 27.375,
+          "p95_us": 107.375,
+          "p99_us": 203.834
+        }
+      ],
+      "pair": 1,
+      "version": "base",
+      "wall_s": 3.8623029169393703,
+      "user_s": 2.13,
+      "sys_s": 1.85,
+      "peak_rss_bytes": 77561856,
+      "time_output": "        3.85 real         2.13 user         1.85 sys\n            77561856  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4724  page reclaims\n                 394  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   8  voluntary context switches\n              625771  involuntary context switches\n         25736986664  instructions retired\n         12404938677  cycles elapsed\n            57246368  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 78614.417,
+          "ns_per_op": 1199.560806274414,
+          "p50_us": 0.834,
+          "p95_us": 1.791,
+          "p99_us": 1.959
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 71035.166,
+          "ns_per_op": 1083.9106140136719,
+          "p50_us": 12.792,
+          "p95_us": 45.625,
+          "p99_us": 96.584
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 732892.042,
+          "ns_per_op": 11183.04507446289,
+          "p50_us": 9.584,
+          "p95_us": 21.875,
+          "p99_us": 42.083
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 156552.458,
+          "ns_per_op": 2388.8009338378906,
+          "p50_us": 37.292,
+          "p95_us": 89.834,
+          "p99_us": 123.084
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 639078.708,
+          "ns_per_op": 9751.567199707031,
+          "p50_us": 8.875,
+          "p95_us": 16.459,
+          "p99_us": 24.875
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 113389.208,
+          "ns_per_op": 1730.1820068359375,
+          "p50_us": 23.958,
+          "p95_us": 62.167,
+          "p99_us": 92.208
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 690220.0,
+          "ns_per_op": 10531.92138671875,
+          "p50_us": 6.167,
+          "p95_us": 20.125,
+          "p99_us": 42.209
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 130844.75,
+          "ns_per_op": 1996.5324401855469,
+          "p50_us": 28.208,
+          "p95_us": 83.334,
+          "p99_us": 122.292
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 648455.166,
+          "ns_per_op": 9894.640594482422,
+          "p50_us": 8.667,
+          "p95_us": 16.666,
+          "p99_us": 25.083
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 107511.083,
+          "ns_per_op": 1640.4889373779297,
+          "p50_us": 20.708,
+          "p95_us": 61.792,
+          "p99_us": 94.583
+        }
+      ],
+      "pair": 2,
+      "version": "base",
+      "wall_s": 3.7798335410188884,
+      "user_s": 2.18,
+      "sys_s": 1.67,
+      "peak_rss_bytes": 78233600,
+      "time_output": "        3.77 real         2.18 user         1.67 sys\n            78233600  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4757  page reclaims\n                 398  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n              619106  involuntary context switches\n         25631767629  instructions retired\n         11485079870  cycles elapsed\n            57819784  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 90303.459,
+          "ns_per_op": 1377.9214324951172,
+          "p50_us": 1.167,
+          "p95_us": 1.417,
+          "p99_us": 1.792
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 88199.25,
+          "ns_per_op": 1345.8137512207031,
+          "p50_us": 19.584,
+          "p95_us": 36.333,
+          "p99_us": 85.125
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 684668.167,
+          "ns_per_op": 10447.207138061523,
+          "p50_us": 6.833,
+          "p95_us": 19.5,
+          "p99_us": 35.375
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 220080.042,
+          "ns_per_op": 3358.1549377441406,
+          "p50_us": 43.375,
+          "p95_us": 138.083,
+          "p99_us": 215.041
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 657938.709,
+          "ns_per_op": 10039.34797668457,
+          "p50_us": 8.083,
+          "p95_us": 19.459,
+          "p99_us": 34.0
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 114684.083,
+          "ns_per_op": 1749.9402313232422,
+          "p50_us": 23.208,
+          "p95_us": 75.167,
+          "p99_us": 127.833
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 669451.209,
+          "ns_per_op": 10215.014785766602,
+          "p50_us": 6.333,
+          "p95_us": 20.542,
+          "p99_us": 41.959
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 209683.333,
+          "ns_per_op": 3199.5137481689453,
+          "p50_us": 33.25,
+          "p95_us": 158.042,
+          "p99_us": 300.125
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 757560.375,
+          "ns_per_op": 11559.453964233398,
+          "p50_us": 7.625,
+          "p95_us": 25.417,
+          "p99_us": 44.417
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 229204.834,
+          "ns_per_op": 3497.388214111328,
+          "p50_us": 28.292,
+          "p95_us": 164.917,
+          "p99_us": 387.417
+        }
+      ],
+      "pair": 2,
+      "version": "pr",
+      "wall_s": 4.048434250056744,
+      "user_s": 2.38,
+      "sys_s": 1.84,
+      "peak_rss_bytes": 78168064,
+      "time_output": "        4.03 real         2.38 user         1.84 sys\n            78168064  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4746  page reclaims\n                 398  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   2  voluntary context switches\n              618683  involuntary context switches\n         28214599014  instructions retired\n         13298441377  cycles elapsed\n            57770656  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 113285.666,
+          "ns_per_op": 1728.6020812988281,
+          "p50_us": 1.208,
+          "p95_us": 2.792,
+          "p99_us": 5.792
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 98741.666,
+          "ns_per_op": 1506.6782531738281,
+          "p50_us": 20.084,
+          "p95_us": 56.917,
+          "p99_us": 108.75
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 859433.041,
+          "ns_per_op": 13113.907485961914,
+          "p50_us": 9.0,
+          "p95_us": 26.5,
+          "p99_us": 52.083
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 172019.25,
+          "ns_per_op": 2624.805450439453,
+          "p50_us": 36.0,
+          "p95_us": 93.833,
+          "p99_us": 148.708
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 650511.041,
+          "ns_per_op": 9926.010757446289,
+          "p50_us": 8.5,
+          "p95_us": 17.625,
+          "p99_us": 28.792
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 109723.583,
+          "ns_per_op": 1674.249008178711,
+          "p50_us": 23.083,
+          "p95_us": 74.667,
+          "p99_us": 130.792
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 645375.667,
+          "ns_per_op": 9847.651168823242,
+          "p50_us": 7.375,
+          "p95_us": 18.166,
+          "p99_us": 29.042
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 114804.625,
+          "ns_per_op": 1751.779556274414,
+          "p50_us": 24.792,
+          "p95_us": 77.708,
+          "p99_us": 120.958
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 546872.875,
+          "ns_per_op": 8344.61784362793,
+          "p50_us": 6.334,
+          "p95_us": 15.959,
+          "p99_us": 21.5
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 114310.791,
+          "ns_per_op": 1744.2442474365234,
+          "p50_us": 24.459,
+          "p95_us": 82.292,
+          "p99_us": 117.333
+        }
+      ],
+      "pair": 3,
+      "version": "pr",
+      "wall_s": 3.6647487500449643,
+      "user_s": 2.36,
+      "sys_s": 1.63,
+      "peak_rss_bytes": 78135296,
+      "time_output": "        3.65 real         2.36 user         1.63 sys\n            78135296  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4752  page reclaims\n                 393  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n              590033  involuntary context switches\n         27767116730  instructions retired\n         12396776520  cycles elapsed\n            57705120  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 93093.875,
+          "ns_per_op": 1420.4998016357422,
+          "p50_us": 0.833,
+          "p95_us": 1.709,
+          "p99_us": 1.959
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 94018.958,
+          "ns_per_op": 1434.6154479980469,
+          "p50_us": 12.833,
+          "p95_us": 40.667,
+          "p99_us": 122.125
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 709751.75,
+          "ns_per_op": 10829.952239990234,
+          "p50_us": 9.75,
+          "p95_us": 19.458,
+          "p99_us": 33.209
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 161684.709,
+          "ns_per_op": 2467.1128692626953,
+          "p50_us": 36.625,
+          "p95_us": 94.833,
+          "p99_us": 129.666
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 640955.834,
+          "ns_per_op": 9780.209869384766,
+          "p50_us": 6.459,
+          "p95_us": 17.334,
+          "p99_us": 28.041
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 127114.375,
+          "ns_per_op": 1939.6114349365234,
+          "p50_us": 25.708,
+          "p95_us": 78.125,
+          "p99_us": 127.75
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 638599.917,
+          "ns_per_op": 9744.261428833008,
+          "p50_us": 8.292,
+          "p95_us": 17.917,
+          "p99_us": 29.583
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 109470.541,
+          "ns_per_op": 1670.3878936767578,
+          "p50_us": 20.417,
+          "p95_us": 62.084,
+          "p99_us": 105.708
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 654815.125,
+          "ns_per_op": 9991.68586730957,
+          "p50_us": 6.083,
+          "p95_us": 19.0,
+          "p99_us": 56.209
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 98044.167,
+          "ns_per_op": 1496.0352630615234,
+          "p50_us": 18.708,
+          "p95_us": 53.791,
+          "p99_us": 80.584
+        }
+      ],
+      "pair": 3,
+      "version": "base",
+      "wall_s": 3.622222666046582,
+      "user_s": 2.12,
+      "sys_s": 1.65,
+      "peak_rss_bytes": 78299136,
+      "time_output": "        3.61 real         2.12 user         1.65 sys\n            78299136  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4771  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n              615645  involuntary context switches\n         25734742251  instructions retired\n         11422667306  cycles elapsed\n            58049184  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 64786.958,
+          "ns_per_op": 988.5705261230469,
+          "p50_us": 0.833,
+          "p95_us": 0.917,
+          "p99_us": 1.125
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 53489.208,
+          "ns_per_op": 816.1805419921875,
+          "p50_us": 12.416,
+          "p95_us": 15.958,
+          "p99_us": 52.125
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 582381.208,
+          "ns_per_op": 8886.432006835938,
+          "p50_us": 6.75,
+          "p95_us": 17.209,
+          "p99_us": 21.75
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 152651.0,
+          "ns_per_op": 2329.2694091796875,
+          "p50_us": 36.625,
+          "p95_us": 86.5,
+          "p99_us": 117.875
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 601207.917,
+          "ns_per_op": 9173.704788208008,
+          "p50_us": 8.583,
+          "p95_us": 16.208,
+          "p99_us": 25.417
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 116934.75,
+          "ns_per_op": 1784.2826843261719,
+          "p50_us": 26.125,
+          "p95_us": 69.375,
+          "p99_us": 99.791
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 592900.375,
+          "ns_per_op": 9046.941757202148,
+          "p50_us": 8.458,
+          "p95_us": 12.917,
+          "p99_us": 21.792
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 114799.5,
+          "ns_per_op": 1751.7013549804688,
+          "p50_us": 21.417,
+          "p95_us": 75.916,
+          "p99_us": 129.0
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 564054.208,
+          "ns_per_op": 8606.7841796875,
+          "p50_us": 7.125,
+          "p95_us": 16.75,
+          "p99_us": 25.042
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 122017.875,
+          "ns_per_op": 1861.8450164794922,
+          "p50_us": 26.334,
+          "p95_us": 79.125,
+          "p99_us": 112.0
+        }
+      ],
+      "pair": 4,
+      "version": "base",
+      "wall_s": 3.1888351250672713,
+      "user_s": 2.08,
+      "sys_s": 1.51,
+      "peak_rss_bytes": 78135296,
+      "time_output": "        3.18 real         2.08 user         1.51 sys\n            78135296  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4749  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n              616961  involuntary context switches\n         25723760707  instructions retired\n         10747407668  cycles elapsed\n            57688736  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 101498.292,
+          "ns_per_op": 1548.7410278320312,
+          "p50_us": 1.208,
+          "p95_us": 2.584,
+          "p99_us": 2.958
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 96889.292,
+          "ns_per_op": 1478.4132690429688,
+          "p50_us": 20.083,
+          "p95_us": 50.166,
+          "p99_us": 94.75
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 717904.541,
+          "ns_per_op": 10954.353958129883,
+          "p50_us": 7.333,
+          "p95_us": 21.292,
+          "p99_us": 38.583
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 191455.75,
+          "ns_per_op": 2921.3829040527344,
+          "p50_us": 38.75,
+          "p95_us": 109.125,
+          "p99_us": 176.792
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 654963.959,
+          "ns_per_op": 9993.956893920898,
+          "p50_us": 9.375,
+          "p95_us": 17.208,
+          "p99_us": 24.5
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 110855.625,
+          "ns_per_op": 1691.5225982666016,
+          "p50_us": 25.458,
+          "p95_us": 83.709,
+          "p99_us": 106.5
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 649919.042,
+          "ns_per_op": 9916.977569580078,
+          "p50_us": 9.375,
+          "p95_us": 16.375,
+          "p99_us": 27.834
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 145929.75,
+          "ns_per_op": 2226.7112731933594,
+          "p50_us": 27.542,
+          "p95_us": 103.875,
+          "p99_us": 166.458
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 669328.375,
+          "ns_per_op": 10213.140487670898,
+          "p50_us": 9.417,
+          "p95_us": 17.375,
+          "p99_us": 27.167
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 116317.25,
+          "ns_per_op": 1774.8603820800781,
+          "p50_us": 25.25,
+          "p95_us": 85.667,
+          "p99_us": 116.625
+        }
+      ],
+      "pair": 4,
+      "version": "pr",
+      "wall_s": 3.694563415949233,
+      "user_s": 2.52,
+      "sys_s": 1.59,
+      "peak_rss_bytes": 78151680,
+      "time_output": "        3.69 real         2.52 user         1.59 sys\n            78151680  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4750  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n              593489  involuntary context switches\n         27810087600  instructions retired\n         12023977600  cycles elapsed\n            57705120  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 88779.041,
+          "ns_per_op": 1354.660659790039,
+          "p50_us": 1.167,
+          "p95_us": 1.375,
+          "p99_us": 1.666
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 88019.167,
+          "ns_per_op": 1343.065902709961,
+          "p50_us": 19.708,
+          "p95_us": 34.375,
+          "p99_us": 90.333
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 719979.75,
+          "ns_per_op": 10986.019134521484,
+          "p50_us": 9.709,
+          "p95_us": 20.125,
+          "p99_us": 38.583
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 172222.417,
+          "ns_per_op": 2627.905532836914,
+          "p50_us": 39.625,
+          "p95_us": 95.458,
+          "p99_us": 146.625
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 626750.458,
+          "ns_per_op": 9563.453033447266,
+          "p50_us": 6.916,
+          "p95_us": 17.417,
+          "p99_us": 26.833
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 100017.416,
+          "ns_per_op": 1526.1446533203125,
+          "p50_us": 23.042,
+          "p95_us": 52.5,
+          "p99_us": 74.375
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 755371.291,
+          "ns_per_op": 11526.051193237305,
+          "p50_us": 6.75,
+          "p95_us": 22.791,
+          "p99_us": 60.917
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 174701.0,
+          "ns_per_op": 2665.7257080078125,
+          "p50_us": 25.834,
+          "p95_us": 85.542,
+          "p99_us": 307.542
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 698624.792,
+          "ns_per_op": 10660.168334960938,
+          "p50_us": 7.5,
+          "p95_us": 20.041,
+          "p99_us": 33.167
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 120572.958,
+          "ns_per_op": 1839.7973327636719,
+          "p50_us": 24.625,
+          "p95_us": 68.541,
+          "p99_us": 105.417
+        }
+      ],
+      "pair": 5,
+      "version": "pr",
+      "wall_s": 3.7666898330207914,
+      "user_s": 2.36,
+      "sys_s": 1.7,
+      "peak_rss_bytes": 83836928,
+      "time_output": "        3.76 real         2.36 user         1.70 sys\n            83836928  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                5096  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n              590337  involuntary context switches\n         27539168519  instructions retired\n         12730562080  cycles elapsed\n            63341168  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 67636.375,
+          "ns_per_op": 1032.0491790771484,
+          "p50_us": 0.833,
+          "p95_us": 0.917,
+          "p99_us": 1.792
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 57254.916,
+          "ns_per_op": 873.6406860351562,
+          "p50_us": 12.5,
+          "p95_us": 19.375,
+          "p99_us": 62.292
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 616297.667,
+          "ns_per_op": 9403.956100463867,
+          "p50_us": 6.875,
+          "p95_us": 18.625,
+          "p99_us": 25.166
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 166631.917,
+          "ns_per_op": 2542.601272583008,
+          "p50_us": 34.833,
+          "p95_us": 100.542,
+          "p99_us": 162.166
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 623035.75,
+          "ns_per_op": 9506.771087646484,
+          "p50_us": 8.75,
+          "p95_us": 17.167,
+          "p99_us": 26.458
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 135447.208,
+          "ns_per_op": 2066.7603759765625,
+          "p50_us": 26.5,
+          "p95_us": 84.75,
+          "p99_us": 132.334
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 622117.958,
+          "ns_per_op": 9492.766693115234,
+          "p50_us": 7.542,
+          "p95_us": 18.042,
+          "p99_us": 28.916
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 133862.292,
+          "ns_per_op": 2042.5764770507812,
+          "p50_us": 28.25,
+          "p95_us": 88.958,
+          "p99_us": 135.0
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 714392.125,
+          "ns_per_op": 10900.758743286133,
+          "p50_us": 8.875,
+          "p95_us": 18.083,
+          "p99_us": 30.959
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 120562.084,
+          "ns_per_op": 1839.6314086914062,
+          "p50_us": 25.75,
+          "p95_us": 72.917,
+          "p99_us": 107.833
+        }
+      ],
+      "pair": 5,
+      "version": "base",
+      "wall_s": 3.4879269170342013,
+      "user_s": 2.16,
+      "sys_s": 1.69,
+      "peak_rss_bytes": 78364672,
+      "time_output": "        3.48 real         2.16 user         1.69 sys\n            78364672  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4760  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n              618673  involuntary context switches\n         25663523676  instructions retired\n         11698035683  cycles elapsed\n            57934496  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 63931.917,
+          "ns_per_op": 975.5236358642578,
+          "p50_us": 0.792,
+          "p95_us": 0.958,
+          "p99_us": 1.166
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 53799.125,
+          "ns_per_op": 820.9095001220703,
+          "p50_us": 12.208,
+          "p95_us": 17.792,
+          "p99_us": 52.417
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 652685.75,
+          "ns_per_op": 9959.19418334961,
+          "p50_us": 9.625,
+          "p95_us": 13.75,
+          "p99_us": 21.042
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 142219.375,
+          "ns_per_op": 2170.095443725586,
+          "p50_us": 35.5,
+          "p95_us": 71.875,
+          "p99_us": 103.458
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 608858.375,
+          "ns_per_op": 9290.441513061523,
+          "p50_us": 8.791,
+          "p95_us": 12.75,
+          "p99_us": 21.417
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 128128.0,
+          "ns_per_op": 1955.078125,
+          "p50_us": 28.209,
+          "p95_us": 75.916,
+          "p99_us": 109.083
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 582582.166,
+          "ns_per_op": 8889.49838256836,
+          "p50_us": 8.459,
+          "p95_us": 13.417,
+          "p99_us": 21.541
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 115308.042,
+          "ns_per_op": 1759.4610900878906,
+          "p50_us": 26.25,
+          "p95_us": 67.792,
+          "p99_us": 95.417
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 572430.5,
+          "ns_per_op": 8734.596252441406,
+          "p50_us": 8.541,
+          "p95_us": 11.958,
+          "p99_us": 18.0
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 116367.792,
+          "ns_per_op": 1775.631591796875,
+          "p50_us": 25.5,
+          "p95_us": 63.917,
+          "p99_us": 94.084
+        }
+      ],
+      "pair": 6,
+      "version": "base",
+      "wall_s": 3.243821917101741,
+      "user_s": 2.19,
+      "sys_s": 1.47,
+      "peak_rss_bytes": 78036992,
+      "time_output": "        3.24 real         2.19 user         1.47 sys\n            78036992  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4744  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n              611864  involuntary context switches\n         25597488809  instructions retired\n         10308014260  cycles elapsed\n            57574024  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 92178.917,
+          "ns_per_op": 1406.5386505126953,
+          "p50_us": 1.167,
+          "p95_us": 1.417,
+          "p99_us": 2.625
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 97149.5,
+          "ns_per_op": 1482.3837280273438,
+          "p50_us": 20.0,
+          "p95_us": 48.584,
+          "p99_us": 88.917
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 712857.625,
+          "ns_per_op": 10877.344131469727,
+          "p50_us": 9.833,
+          "p95_us": 16.0,
+          "p99_us": 23.917
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 154015.084,
+          "ns_per_op": 2350.0836791992188,
+          "p50_us": 37.625,
+          "p95_us": 80.541,
+          "p99_us": 107.834
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 657993.083,
+          "ns_per_op": 10040.177658081055,
+          "p50_us": 9.25,
+          "p95_us": 13.084,
+          "p99_us": 22.25
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 108777.125,
+          "ns_per_op": 1659.8072052001953,
+          "p50_us": 25.083,
+          "p95_us": 78.958,
+          "p99_us": 104.875
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 654997.375,
+          "ns_per_op": 9994.466781616211,
+          "p50_us": 9.25,
+          "p95_us": 15.0,
+          "p99_us": 24.625
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 108706.25,
+          "ns_per_op": 1658.7257385253906,
+          "p50_us": 25.791,
+          "p95_us": 80.083,
+          "p99_us": 99.875
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 623304.042,
+          "ns_per_op": 9510.86489868164,
+          "p50_us": 9.208,
+          "p95_us": 12.416,
+          "p99_us": 18.875
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 110418.542,
+          "ns_per_op": 1684.8532409667969,
+          "p50_us": 25.125,
+          "p95_us": 81.625,
+          "p99_us": 106.416
+        }
+      ],
+      "pair": 6,
+      "version": "pr",
+      "wall_s": 3.538750290987082,
+      "user_s": 2.5,
+      "sys_s": 1.42,
+      "peak_rss_bytes": 78135296,
+      "time_output": "        3.53 real         2.50 user         1.42 sys\n            78135296  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4751  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n              581297  involuntary context switches\n         27579769244  instructions retired\n         10980631564  cycles elapsed\n            57672328  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 87606.209,
+          "ns_per_op": 1336.764663696289,
+          "p50_us": 1.166,
+          "p95_us": 1.375,
+          "p99_us": 1.959
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 82958.084,
+          "ns_per_op": 1265.8399047851562,
+          "p50_us": 19.084,
+          "p95_us": 27.583,
+          "p99_us": 74.25
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 712784.125,
+          "ns_per_op": 10876.222610473633,
+          "p50_us": 9.833,
+          "p95_us": 13.625,
+          "p99_us": 22.666
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 159835.083,
+          "ns_per_op": 2438.8898162841797,
+          "p50_us": 36.25,
+          "p95_us": 86.0,
+          "p99_us": 124.042
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 623969.167,
+          "ns_per_op": 9521.013900756836,
+          "p50_us": 9.25,
+          "p95_us": 13.5,
+          "p99_us": 20.958
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 102783.208,
+          "ns_per_op": 1568.3472900390625,
+          "p50_us": 24.208,
+          "p95_us": 76.625,
+          "p99_us": 96.791
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 604841.416,
+          "ns_per_op": 9229.147583007812,
+          "p50_us": 9.167,
+          "p95_us": 11.917,
+          "p99_us": 17.5
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 134426.834,
+          "ns_per_op": 2051.190704345703,
+          "p50_us": 25.584,
+          "p95_us": 90.875,
+          "p99_us": 160.5
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 631460.75,
+          "ns_per_op": 9635.326385498047,
+          "p50_us": 9.25,
+          "p95_us": 13.875,
+          "p99_us": 24.667
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 113083.209,
+          "ns_per_op": 1725.5128326416016,
+          "p50_us": 25.0,
+          "p95_us": 84.333,
+          "p99_us": 112.167
+        }
+      ],
+      "pair": 7,
+      "version": "pr",
+      "wall_s": 3.4640018329955637,
+      "user_s": 2.47,
+      "sys_s": 1.37,
+      "peak_rss_bytes": 78299136,
+      "time_output": "        3.46 real         2.47 user         1.37 sys\n            78299136  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4760  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n              578629  involuntary context switches\n         27559281143  instructions retired\n         10770068601  cycles elapsed\n            57836192  peak memory footprint\n"
+    },
+    {
+      "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "results": [
+        {
+          "scenario": "immediate_void",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 61391.333,
+          "ns_per_op": 936.7574005126953,
+          "p50_us": 0.792,
+          "p95_us": 0.958,
+          "p99_us": 1.083
+        },
+        {
+          "scenario": "immediate_void",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 52424.375,
+          "ns_per_op": 799.9324798583984,
+          "p50_us": 12.209,
+          "p95_us": 16.208,
+          "p99_us": 49.417
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 649360.0,
+          "ns_per_op": 9908.447265625,
+          "p50_us": 9.667,
+          "p95_us": 13.042,
+          "p99_us": 20.5
+        },
+        {
+          "scenario": "image_width",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 145468.291,
+          "ns_per_op": 2219.669967651367,
+          "p50_us": 35.0,
+          "p95_us": 80.084,
+          "p99_us": 109.75
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 616710.333,
+          "ns_per_op": 9410.252883911133,
+          "p50_us": 8.875,
+          "p95_us": 12.75,
+          "p99_us": 21.708
+        },
+        {
+          "scenario": "set_parent",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 130221.125,
+          "ns_per_op": 1987.0166778564453,
+          "p50_us": 27.959,
+          "p95_us": 80.167,
+          "p99_us": 117.458
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 587699.375,
+          "ns_per_op": 8967.580795288086,
+          "p50_us": 8.583,
+          "p95_us": 12.625,
+          "p99_us": 19.5
+        },
+        {
+          "scenario": "set_transform",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 107783.791,
+          "ns_per_op": 1644.650131225586,
+          "p50_us": 23.75,
+          "p95_us": 54.791,
+          "p99_us": 84.209
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 1,
+          "count": 65536,
+          "elapsed_us": 577851.5,
+          "ns_per_op": 8817.314147949219,
+          "p50_us": 8.625,
+          "p95_us": 11.666,
+          "p99_us": 17.417
+        },
+        {
+          "scenario": "render_empty",
+          "concurrency": 32,
+          "count": 65536,
+          "elapsed_us": 107954.542,
+          "ns_per_op": 1647.2555847167969,
+          "p50_us": 23.708,
+          "p95_us": 61.083,
+          "p99_us": 86.625
+        }
+      ],
+      "pair": 7,
+      "version": "base",
+      "wall_s": 3.24188124993816,
+      "user_s": 2.19,
+      "sys_s": 1.46,
+      "peak_rss_bytes": 77987840,
+      "time_output": "        3.23 real         2.19 user         1.46 sys\n            77987840  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4738  page reclaims\n                 391  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                   0  voluntary context switches\n              612379  involuntary context switches\n         25628081428  instructions retired\n         10265237759  cycles elapsed\n            57508464  peak memory footprint\n"
+    }
+  ],
+  "binaries": {
+    "base": {
+      "path": "/private/tmp/thermion-bench-base/bundle/bin/task_error_benchmark",
+      "sha256": "709b4f84ab09b29c250e97eeef08b2ec61622d433bca2ece8485e0384660cbda",
+      "native_library_sha256": "07504ce6fad52db99ac4725cb71051b785ec63376ba4302f4aa02a8669a5b428"
+    },
+    "pr": {
+      "path": "/private/tmp/thermion-bench-pr/bundle/bin/task_error_benchmark",
+      "sha256": "ad22cbef8da04750cf16bf856c9549caa123662adbc57f92dc9127af01af7533",
+      "native_library_sha256": "0250818a63b7c856aa5f4b148ea9dd6274597cf8f301a912f1a82c1e0af3ce70"
+    }
+  },
+  "base_commit": "6b0511732",
+  "pr_commit": "87b9d280a",
+  "compiler": "Apple clang 21.0.0, -O3; Dart 3.12.1 AOT via dart build cli",
+  "native_backend": "Metal (no attached views in microbenchmarks)",
+  "date": "2026-09-09",
+  "hardware": "Apple M2 Pro",
+  "os": "macOS 26.6.2 (25G83)",
+  "benchmark_source_sha256": "59c5522a44c8aed2a16de3861251a0255b79d0ac6cbc79aad05ec95b364107fa"
+}

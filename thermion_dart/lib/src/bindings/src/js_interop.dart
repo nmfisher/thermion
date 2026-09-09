@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'thermion_dart_js_interop.g.dart';
+import 'task_error_registry.dart';
 import 'dart:js_interop';
 
 export 'dart:typed_data';
@@ -65,106 +66,86 @@ extension VFCB on void Function() {
   }
 }
 
-int _lastRequestId = 0;
-final _completers = <int, Completer>{};
-void Function(int) _voidCallback = (int requestId) {
-  _completers[requestId]!.complete();
-  _completers.remove(requestId);
-};
+final _taskErrors = TaskErrorRegistry(
+  install: (requestId) => RenderThread_setTaskErrorCallback(requestId, _taskErrorCallbackPtr.cast()),
+  clear: () => RenderThread_setTaskErrorCallback(0, nullptr),
+);
 
-final _voidCallbackPtr = _voidCallback.addFunction();
+void _taskFailed(int requestId, Pointer<Char> message) {
+  try {
+    _taskErrors.fail(requestId, message == nullptr ? 'Native render task failed' : message.cast<Utf8>().toDartString());
+  } finally {
+    RenderThread_freeErrorMessage(message);
+  }
+}
+
+final _taskErrorCallbackPtr = addFunction<RenderTaskErrorCallbackFunction>(_taskFailed.toJS, 'vip');
+
+int _lastRequestId = 0;
+final _completers = <int, Completer<void>>{};
+void _completeVoid(int requestId) {
+  final completer = _completers.remove(requestId);
+  if (completer != null && !completer.isCompleted) completer.complete();
+}
+
+final _voidCallbackPtr = _completeVoid.addFunction();
+
+Future<T> _dispatch<T>(Completer<T> completer, FutureOr<void> Function() call) {
+  return _taskErrors.invoke(completer, call, pump: () => _NativeLibrary.instance._execute_queue());
+}
 
 Future<void> withVoidCallback(Function(int, Pointer<NativeFunction<Void Function(int)>>) func) async {
-  final completer = Completer();
-  var requestId = _lastRequestId;
-  _lastRequestId++;
-
+  while (_completers.containsKey(_lastRequestId)) {
+    _lastRequestId = (_lastRequestId + 1) & 0x7fffffff;
+  }
+  final requestId = _lastRequestId;
+  _lastRequestId = (_lastRequestId + 1) & 0x7fffffff;
+  final completer = Completer<void>();
   _completers[requestId] = completer;
 
   try {
-    func.call(requestId, _voidCallbackPtr.cast());
-  } catch (_) {
+    await _dispatch(completer, () => func.call(requestId, _voidCallbackPtr.cast()));
+  } finally {
     _completers.remove(requestId);
-    rethrow;
   }
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
-  }
-  await completer.future;
 }
 
 Future<Pointer<T>> withPointerCallback<T extends NativeType>(
   Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>) func,
 ) async {
   final completer = Completer<Pointer<T>>();
-  // ignore: prefer_function_declarations_over_variables
-  void Function(Pointer<T>) callback = (Pointer<T> ptr) {
-    completer.complete(ptr.cast<T>());
-  };
+  void callback(Pointer<T> ptr) => completer.complete(ptr.cast<T>());
 
   final onComplete_interopFnPtr = callback.addFunction();
 
-  func.call(onComplete_interopFnPtr.cast());
-
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
+  try {
+    return await _dispatch(completer, () => func.call(onComplete_interopFnPtr.cast()));
+  } finally {
+    onComplete_interopFnPtr.dispose();
   }
-
-  var ptr = await completer.future;
-  onComplete_interopFnPtr.dispose();
-
-  return ptr;
 }
 
 Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
   final completer = Completer<bool>();
-  // ignore: prefer_function_declarations_over_variables
-  void Function(int) callback = (int result) {
-    completer.complete(result == 1);
-  };
+  void callback(int result) => completer.complete(result == 1);
 
   final onComplete_interopFnPtr = callback.addFunction();
 
-  func.call(onComplete_interopFnPtr.cast());
-
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
-  }
-
-  return completer.future;
+  return _dispatch(completer, () => func.call(onComplete_interopFnPtr.cast()));
 }
 
 Future<double> withFloatCallback(void Function(Pointer<NativeFunction<void Function(double)>>) func) async {
   final completer = Completer<double>();
-  // ignore: prefer_function_declarations_over_variables
-  void Function(double) callback = (double result) {
-    completer.complete(result);
-  };
-  var ptr = callback.addFunction();
-  func.call(ptr);
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
-  }
-  return completer.future;
+  void callback(double result) => completer.complete(result);
+  final ptr = callback.addFunction();
+  return _dispatch(completer, () => func.call(ptr));
 }
 
 Future<int> withIntCallback(Function(Pointer<NativeFunction<void Function(int)>>) func) async {
   final completer = Completer<int>();
-  // ignore: prefer_function_declarations_over_variables
-  void Function(int) callback = (int result) {
-    completer.complete(result);
-  };
-  var ptr = callback.addFunction();
-  func.call(ptr);
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
-  }
-  return completer.future;
+  void callback(int result) => completer.complete(result);
+  final ptr = callback.addFunction();
+  return _dispatch(completer, () => func.call(ptr));
 }
 
 Pointer<T> allocate<T extends NativeType>(int byteCount) {
@@ -179,18 +160,16 @@ Pointer<T> allocate<T extends NativeType>(int byteCount) {
 
 Future<int> withUInt32Callback(Function(Pointer<NativeFunction<Void Function(int)>>) func) async {
   final completer = Completer<int>();
-  // ignore: prefer_function_declarations_over_variables
-  void Function(int) callback = (int result) {
-    completer.complete(result);
-  };
+  void callback(int result) => completer.complete(result);
   final ptr = callback.addFunction();
-  func.call(ptr.cast());
-  await completer.future;
-  return completer.future;
+  return _dispatch(completer, () => func.call(ptr.cast()));
 }
 
 Future<String> withCharPtrCallback(Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>) func) async {
-  throw UnimplementedError();
+  final completer = Completer<String>();
+  void callback(Pointer<Char> result) => completer.complete(result.cast<Utf8>().toDartString());
+  final ptr = callback.addFunction();
+  return _dispatch(completer, () => func.call(ptr.cast()));
 }
 
 extension DartBigIntExtension on int {

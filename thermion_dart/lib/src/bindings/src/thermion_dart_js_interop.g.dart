@@ -1343,6 +1343,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<Void> _RenderThread_create();
   external Pointer<Void> _RenderThread_createForCanvas(Pointer<Char> canvasSelector);
   external void _RenderThread_destroy(Pointer<Void> renderThread);
+  external void _RenderThread_freeErrorMessage(Pointer<Char> message);
+  external int _RenderThread_setTaskErrorCallback(int requestId, RenderTaskErrorCallback callback);
   external void _RenderableBuilder_blendOrder(Pointer<TRenderableBuilder> builder, size_t primitiveIndex, int order);
   external void _RenderableBuilder_boneIndicesAndWeights(
     Pointer<TRenderableBuilder> builder,
@@ -6082,6 +6084,19 @@ void RenderThread_destroy(Pointer<Void> renderThread) {
   return result;
 }
 
+void RenderThread_freeErrorMessage(Pointer<Char> message) {
+  final result = GeneratedBindings.instance._RenderThread_freeErrorMessage(message);
+  return result;
+}
+
+int RenderThread_setTaskErrorCallback(int requestId, DartRenderTaskErrorCallback callback) {
+  final result = GeneratedBindings.instance._RenderThread_setTaskErrorCallback(
+    requestId,
+    callback as Pointer<NativeFunction<RenderTaskErrorCallbackFunction>>,
+  );
+  return result;
+}
+
 void RenderableBuilder_blendOrder(Pointer<TRenderableBuilder> builder, Dartsize_t primitiveIndex, int order) {
   final result = GeneratedBindings.instance._RenderableBuilder_blendOrder(builder.cast(), primitiveIndex, order);
   return result;
@@ -9454,6 +9469,11 @@ typedef DartPickCallbackFunction =
     void Function(int requestId, DartEntityId entityId, double depth, double fragX, double fragY, double fragZ);
 
 const int ROTATION_INTENT_MASK = 2;
+
+typedef RenderTaskErrorCallback = Pointer<NativeFunction<RenderTaskErrorCallbackFunction>>;
+typedef DartRenderTaskErrorCallback = Pointer<NativeFunction<RenderTaskErrorCallbackFunction>>;
+typedef RenderTaskErrorCallbackFunction = void Function(int requestId, Pointer<Char> ownedMessage);
+typedef DartRenderTaskErrorCallbackFunction = void Function(int requestId, Pointer<Char> ownedMessage);
 
 const int SPRINT_INTENT_MASK = 8;
 
