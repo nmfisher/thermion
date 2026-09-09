@@ -1,0 +1,43 @@
+# Scheduling regressions
+
+Run from the repository root with CMake 3.22+ and a C++17 compiler. The suite
+needs no Filament, Dart, or Flutter installation. It targets desktop Linux,
+macOS, and Windows. Run it manually using the commands below.
+
+```sh
+cmake -S thermion_dart/native/test/rendering -B /tmp/thermion-scheduling
+cmake --build /tmp/thermion-scheduling --config Release
+ctest --test-dir /tmp/thermion-scheduling -C Release --output-on-failure
+```
+
+Coverage:
+
+- Gate totals under regular 60, 90, 120, and 144 Hz source ticks; alternating
+  1/2-vsync gaps for 60 fps on 90 Hz; the 1 ms early-admission boundary; zero
+  timestamps, stalls, rate changes, unlimited mode, and reset.
+- Clock mapping with distinct epochs, missing/future timestamps, underflow,
+  recovery without backwards time, and a changed clock offset after sleep.
+- On macOS, preceding-vsync estimates with missing or invalid CVDisplayLink
+  metadata, measured rate adjustment, and overflow-safe Mach tick conversion.
+- Generic timer rate increases/decreases and prompt stop while waiting. On
+  Windows, the same checks force a failed VBlank wait through DXGI's fallback,
+  assert that it stops retrying VBlank, and exercise the shared timer loop.
+
+The clock mapper estimates frame age from nearby source-clock and steady-clock
+samples. Sampling delay introduces error. Missing or implausible Apple timing
+data falls back to delivery time, as the timer source does; recovery is clamped
+to nondecreasing time. The fallback is not a measured hardware vsync.
+
+These tests do not measure physical presentation intervals, animation
+smoothness, Android looper behavior, live Apple display-link callbacks, or
+successful DXGI hardware waits. Stopping DXGI's timer wait is interruptible;
+an in-progress hardware `WaitForVBlank` must still return before stop completes.
+
+Native Android callbacks remain registered at display frequency even when the
+gate rejects rendering work. Device validation should check the cadence and
+wakeup cost at low target rates and during display refresh changes.
+
+The gate extraction is reused by the web worker in #301. Task-error propagation
+is in #318; forwarding scheduler timestamps through Flutter into rendering is
+in #319. Normalizing native scheduler output alone does not replace the existing
+Dart wall-clock render timestamp. Browser dispatch/lifetime fixtures land in #301.

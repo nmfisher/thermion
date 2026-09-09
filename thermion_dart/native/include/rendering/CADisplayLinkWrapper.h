@@ -12,6 +12,7 @@ void CADisplayLinkWrapper_setTargetFps(void* wrapper, int fps);
 void CADisplayLinkWrapper_start(void* wrapper);
 void CADisplayLinkWrapper_stop(void* wrapper);
 void CADisplayLinkWrapper_destroy(void* wrapper);
+uint64_t CADisplayLinkWrapper_currentTimeNanos(void);
 
 #ifdef __cplusplus
 }
