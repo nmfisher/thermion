@@ -122,7 +122,8 @@ git checkout "${FILAMENT_VERSION}" || {
 
 # The material generator needs a matc that supports WGSL. Enable it only in
 # the separate host tools; runtime backends keep their existing configuration.
-export FILAMENT_HOST_TOOLS_OPTIONS="-DFILAMENT_SUPPORTS_WEBGPU=ON"
+# Shader compilation needs no window, so disable Dawn's X11 surface support.
+export FILAMENT_HOST_TOOLS_OPTIONS="-DFILAMENT_SUPPORTS_WEBGPU=ON -DDAWN_USE_X11=OFF"
 
 # Keep host tools separate from the runtime archives built below.
 git apply "$SCRIPT_DIR/filament-no-exceptions.patch" || exit 1
