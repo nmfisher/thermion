@@ -138,6 +138,9 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
+# Keep host tools separate from the runtime archives built below.
+git apply "$SCRIPT_DIR/filament-no-exceptions.patch" || exit 1
+
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
 sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF \\|g' build.sh
@@ -145,9 +148,6 @@ sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON
 # Patch libz CMakeLists.txt to fix duplicate libz.a output issue (Emscripten-specific)
 echo "Patching libz CMakeLists.txt for Emscripten..."
 sed -i.bak 's/set_target_properties(zlib zlibstatic PROPERTIES OUTPUT_NAME z)/set_target_properties(zlib PROPERTIES OUTPUT_NAME z)\n set_target_properties(zlibstatic PROPERTIES OUTPUT_NAME zstatic)/g' third_party/libz/CMakeLists.txt
-
-# Keep host tools separate from the runtime archives built below.
-git apply "$SCRIPT_DIR/filament-no-exceptions.patch" || exit 1
 
 # emsdk 6.0.4 ships clang 19+, which adds new warning categories that Filament
 # promotes to hard errors via -Werror (e.g. -Wunused-template in robin-map, and
