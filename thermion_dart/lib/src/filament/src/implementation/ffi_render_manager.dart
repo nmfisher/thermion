@@ -225,8 +225,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
     } else {
       // Frame timestamps share one clock: the native steady clock that the
       // frame schedulers and Filament's beginFrame already use.
-      final timestamp =
-          frameTimeInNanos ?? FrameScheduler_steadyClockUs().toInt() * 1000;
+      final timestamp = frameTimeInNanos ?? FrameScheduler_steadyClockUs().toInt() * 1000;
 
       await withVoidCallback((requestId, cb) {
         RenderManager_renderRenderThread(pointer, timestamp.toBigInt, requestId, cb);
