@@ -64,6 +64,35 @@ private:
     EGLenum _api;
 };
 
+static std::string ResolveDrmDevicePath(EGLDisplay display) {
+    if (display != EGL_NO_DISPLAY) {
+        auto queryDisplayAttrib =
+            reinterpret_cast<PFNEGLQUERYDISPLAYATTRIBEXTPROC>(
+                eglGetProcAddress("eglQueryDisplayAttribEXT"));
+        auto queryDeviceString =
+            reinterpret_cast<PFNEGLQUERYDEVICESTRINGEXTPROC>(
+                eglGetProcAddress("eglQueryDeviceStringEXT"));
+        EGLAttrib deviceAttribute = 0;
+        if (queryDisplayAttrib && queryDeviceString &&
+            queryDisplayAttrib(
+                display, EGL_DEVICE_EXT, &deviceAttribute)) {
+            auto device = reinterpret_cast<EGLDeviceEXT>(deviceAttribute);
+            const char* path = queryDeviceString(
+                device, EGL_DRM_RENDER_NODE_FILE_EXT);
+            if (!path || path[0] == '\0') {
+                path = queryDeviceString(device, EGL_DRM_DEVICE_FILE_EXT);
+            }
+            if (path && path[0] != '\0') {
+                return path;
+            }
+        }
+    }
+
+    // Retain the historic default for non-Flutter/headless EGL stacks that do
+    // not expose EGL_EXT_device_query.
+    return "/dev/dri/renderD128";
+}
+
 class LinuxOpenGLContext::Impl {
 public:
     ~Impl() {
@@ -117,14 +146,19 @@ public:
     explicit Impl(void* borrowedDisplay) {
         std::cerr << "[ThermionGL:Context] Initializing EGL/GBM..." << std::endl;
 
-        // Step 1: Open DRM render node
-        _drmFd = open("/dev/dri/renderD128", O_RDWR);
+        // Step 1: Open the render node backing Flutter's EGLDisplay. Hardcoding
+        // renderD128 can select a different GPU on multi-GPU systems, making
+        // the exported DMA-BUF impossible for Flutter to import.
+        const std::string drmDevicePath = ResolveDrmDevicePath(
+            static_cast<EGLDisplay>(borrowedDisplay));
+        _drmFd = open(drmDevicePath.c_str(), O_RDWR);
         if (_drmFd < 0) {
-            _lastError = "Failed to open /dev/dri/renderD128";
-            LOG_ERROR("Failed to open /dev/dri/renderD128");
+            _lastError = "Failed to open " + drmDevicePath;
+            std::cerr << "[ThermionGL:Context] " << _lastError << std::endl;
             return;
         }
-        std::cerr << "[ThermionGL:Context] DRM fd=" << _drmFd << std::endl;
+        std::cerr << "[ThermionGL:Context] DRM device=" << drmDevicePath
+                  << " fd=" << _drmFd << std::endl;
 
         // Step 2: Create GBM device
         _gbmDevice = gbm_create_device(_drmFd);
