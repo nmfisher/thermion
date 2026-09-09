@@ -56,6 +56,8 @@ when setup fails. Successful loads do not add a GPU-completion wait. Removal
 and disposal flush pending work and wait for bundle cleanup, as before.
 Native C++ exception delivery to Dart is handled separately in #318.
 
+Native partial-submission failure handling is a separate change. This PR does
+not guarantee release notification if Filament fails during submission.
 Run the Dart integration tests from `thermion_dart/`:
 
 ```sh
@@ -70,24 +72,3 @@ backend (Metal on macOS). They gate the worker to verify release is still pendin
 exercise cubemap/mipmapped/2D uploads followed by explicit bundle destruction,
 and check public skybox/IBL failure delivery. Dart's native build hook builds
 Thermion and obtains Filament.
-
-## Native KTX upload completion
-
-Thermion submits KTX mip buffers itself so that completion counts buffers that
-were actually constructed, including when later submission throws. This replaces
-the call to Filament's `Ktx1Reader::createTexture`; it continues to use Filament's
-format mapping, texture builder, and upload API. The cost is maintaining the upload
-loop here. Fixing completion in Filament's reader and updating the dependency is
-an alternative that would avoid this duplication.
-
-The completion record owns no bundle or pixel data. An initial token covers
-submission; each constructed pixel buffer adds one token before submission. The
-release callback runs after submission ends and every buffer releases its token.
-An exception destroys the incomplete texture but leaves release tracking alive
-until outstanding buffers finish. There are no smart pointers or per-buffer
-allocations for this tracking.
-
-The C++ suite above covers zero buffers, partial submission failure, and a buffer
-finishing before later buffers are submitted. The Dart upload suite covers real
-2D, cubemap, and mipmapped uploads. Native exception delivery to Dart additionally
-requires the task-error change; completion tracking itself does not deliver errors.
