@@ -35,11 +35,11 @@ class FrameScheduler {
   static FrameScheduler get instance => _instance;
 
   /// Work dispatched once for each accepted timing tick.
-  Future<void> Function()? _frameHandler;
+  Future<void> Function(int frameTimeNanos)? _frameHandler;
 
   /// Bind the work dispatched for each accepted tick. Must be called before
   /// [start] or [startFlutterSynced].
-  void setFrameHandler(Future<void> Function() handler) {
+  void setFrameHandler(Future<void> Function(int frameTimeNanos) handler) {
     _frameHandler = handler;
   }
 
@@ -51,6 +51,8 @@ class FrameScheduler {
   bool _active = false;
   bool _paused = false;
   bool _rendering = false;
+  int _handlerGeneration = 0;
+  int _sourceGeneration = 0;
 
   /// True once [startFlutterSynced] has registered a persistent frame
   /// callback. In that mode the loop is driven by Flutter's frame clock
@@ -64,6 +66,7 @@ class FrameScheduler {
   int Function()? _flutterTargetFps;
   int _flutterAppliedFpsLimit = 0;
   int _nextFlutterFrameUs = 0;
+  int? _flutterClockOffsetUs;
 
   int _diagFrameCount = 0;
   int _diagDropCount = 0;
@@ -98,6 +101,7 @@ class FrameScheduler {
   Future<void> start() async {
     if (_active) return;
     _active = true;
+    final generation = ++_sourceGeneration;
 
     final usePortMode =
         kDebugMode &&
@@ -109,9 +113,11 @@ class FrameScheduler {
     if (usePortMode) {
       await _initializePortMode();
     } else {
-      _tickCallable = ffi.NativeCallable<FrameTickCallbackFunction>.listener(
-        _handleNativeFrameTick,
-      );
+      _tickCallable = ffi.NativeCallable<FrameTickCallbackFunction>.listener((
+        int timestamp,
+      ) {
+        if (generation == _sourceGeneration) _handleNativeFrameTick(timestamp);
+      });
       FrameScheduler_startWithCallback(_tickCallable!.nativeFunction, 60);
     }
   }
@@ -127,6 +133,7 @@ class FrameScheduler {
     _active = true;
     _flutterSynced = true;
     _flutterTargetFps = targetFps;
+    _flutterClockOffsetUs = null;
     _flutterAppliedFpsLimit = 0;
     _nextFlutterFrameUs = 0;
 
@@ -149,6 +156,7 @@ class FrameScheduler {
   /// after hot restart the native scheduler may still be running with a
   /// dangling pointer from the previous isolate.
   void stop() {
+    ++_sourceGeneration;
     _active = false;
     _flutterSynced = false;
     _flutterTargetFps = null;
@@ -170,6 +178,7 @@ class FrameScheduler {
   void reset() {
     stop();
     _paused = false;
+    ++_handlerGeneration;
     _rendering = false;
     _frameHandler = null;
   }
@@ -234,13 +243,13 @@ class FrameScheduler {
     // Framerate throttling for this path happens at the native source
     // (handleSourceTick skips rejected ticks before this is even called), so no
     // Dart-side gate here — only the handler in-flight guard below.
-    _tryDispatchFrame();
+    _tryDispatchFrame(frameTimeNanos);
   }
 
   /// Applies the common active, pause, handler, and in-flight gates, then
   /// dispatches one frame handler. An optional source-specific gate can reject
   /// the tick before work starts (Linux uses it for target-FPS pacing).
-  bool _tryDispatchFrame({bool Function()? sourceGate}) {
+  bool _tryDispatchFrame(int frameTimeNanos, {bool Function()? sourceGate}) {
     if (!_active || _paused) return false;
     if (_rendering) {
       // Keep only one handler/render in flight. Ticks arriving while Dart
@@ -256,53 +265,68 @@ class FrameScheduler {
     }
     if (sourceGate != null && !sourceGate()) return false;
 
-    _runFrameHandler(handler);
+    unawaited(_runFrameHandler(handler, frameTimeNanos));
     return true;
   }
 
   /// Runs a dispatched frame handler and records diagnostics.
-  void _runFrameHandler(Future<void> Function() handler) {
+  Future<void> _runFrameHandler(
+    Future<void> Function(int) handler,
+    int frameTimeNanos,
+  ) async {
+    final generation = _handlerGeneration;
     _rendering = true;
     _dispatchedFrameCount++;
     _diagStopwatch
       ..reset()
       ..start();
-    handler()
-        .then((_) {
-          _diagStopwatch.stop();
-          _rendering = false;
-          final frameMs = _diagStopwatch.elapsedMicroseconds / 1000.0;
-          _diagFrameCount++;
-          _diagSumFrameMs += frameMs;
-          if (frameMs > _diagMaxFrameMs) _diagMaxFrameMs = frameMs;
-          if (frameMs > 20.0) {
-            _diagJankCount++;
-            _logger.warning(
-              '#$_diagFrameCount JANK renderFrame=${frameMs.toStringAsFixed(1)}ms',
-            );
-          }
-          if (_diagFrameCount % 120 == 0) {
-            final avgMs = _diagSumFrameMs / 120.0;
-            _logger.info(
-              '120-frame avg=${avgMs.toStringAsFixed(1)}ms '
-              'max=${_diagMaxFrameMs.toStringAsFixed(1)}ms '
-              'jank=$_diagJankCount drop=$_diagDropCount',
-            );
-            _diagJankCount = 0;
-            _diagDropCount = 0;
-            _diagMaxFrameMs = 0;
-            _diagSumFrameMs = 0;
-          }
-        })
-        .catchError((error) {
-          _logger.warning('Frame render error: $error');
-          _rendering = false;
-        });
+    try {
+      await handler(frameTimeNanos);
+      if (generation != _handlerGeneration) return;
+      final frameMs = _diagStopwatch.elapsedMicroseconds / 1000.0;
+      _diagFrameCount++;
+      _diagSumFrameMs += frameMs;
+      if (frameMs > _diagMaxFrameMs) _diagMaxFrameMs = frameMs;
+      if (frameMs > 20.0) {
+        _diagJankCount++;
+        _logger.warning(
+          '#$_diagFrameCount JANK renderFrame=${frameMs.toStringAsFixed(1)}ms',
+        );
+      }
+      if (_diagFrameCount % 120 == 0) {
+        final avgMs = _diagSumFrameMs / 120.0;
+        _logger.info(
+          '120-frame avg=${avgMs.toStringAsFixed(1)}ms '
+          'max=${_diagMaxFrameMs.toStringAsFixed(1)}ms '
+          'jank=$_diagJankCount drop=$_diagDropCount',
+        );
+        _diagJankCount = 0;
+        _diagDropCount = 0;
+        _diagMaxFrameMs = 0;
+        _diagSumFrameMs = 0;
+      }
+    } catch (error, stack) {
+      _logger.warning('Frame render error: $error', error, stack);
+    } finally {
+      // reset() can install and dispatch a new handler before this one ends.
+      if (generation == _handlerGeneration) {
+        _diagStopwatch.stop();
+        _rendering = false;
+      }
+    }
   }
 
   void _handleFlutterFrameTick(Duration timeStamp) {
     if (!_active || !_flutterSynced || _paused) return;
+    // Flutter timestamps are relative to its own epoch. Calibrate once per
+    // start, then preserve the frame clock's deltas instead of sampling Dart
+    // callback delivery time on every frame.
+    _flutterClockOffsetUs ??=
+        FrameScheduler_steadyClockUs() - timeStamp.inMicroseconds;
+    final frameTimeNanos =
+        (timeStamp.inMicroseconds + _flutterClockOffsetUs!) * 1000;
     _tryDispatchFrame(
+      frameTimeNanos,
       sourceGate: () => _admitFlutterTickAtTargetFps(timeStamp),
     );
     SchedulerBinding.instance.scheduleFrame();

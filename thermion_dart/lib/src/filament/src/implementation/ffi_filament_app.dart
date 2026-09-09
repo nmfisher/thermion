@@ -837,7 +837,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   //
   @override
-  Future render() async {
+  Future render({int? frameTimeInNanos}) async {
     _processingRenderHooks = true;
     try {
       for (final hook in _hooks) {
@@ -848,7 +848,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
     _processingRenderHooks = false;
 
-    await renderManager.render();
+    await renderManager.render(frameTimeInNanos: frameTimeInNanos);
   }
 
   int _targetFramerate = 0;

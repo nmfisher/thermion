@@ -277,7 +277,9 @@ abstract class FilamentApp<T> {
   // by one timestep and call out to all plugins to perform their own updates.
   //
   // The returned [Future] will complete when the pipeline step is complete.
-  Future render();
+  /// Renders at a frame timestamp in the native steady-clock time base.
+  /// When omitted, rendering uses the current native steady-clock time.
+  Future render({int? frameTimeInNanos});
 
   /// Caps the continuous-render framerate to [fps].
   ///

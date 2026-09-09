@@ -16,7 +16,9 @@ abstract class RenderManager<T> extends NativeHandle<T> {
   Iterable<View> getAttachedViews(SwapChain swapChain);
   Iterable<SwapChain> getAttachedSwapChains(View view);
 
-  Future render();
+  /// Renders at a frame timestamp in the native steady-clock time base.
+  /// When omitted, rendering uses the current native steady-clock time.
+  Future render({int? frameTimeInNanos});
 
   void destroy();
 }

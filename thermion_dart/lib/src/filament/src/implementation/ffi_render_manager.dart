@@ -214,7 +214,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
     RenderManager_destroy(pointer);
   }
 
-  Future render() async {
+  Future render({int? frameTimeInNanos}) async {
     if (FILAMENT_SINGLE_THREADED) {
       // Web: fire-and-forget. The render completes across the next N rAF
       // cycles (N = number of swapchains) driven by RenderThread::iter()
@@ -223,10 +223,13 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
       // and pre-refactor web was already fire-and-forget via requestFrame.
       RenderManager_requestRender(pointer);
     } else {
-      final frameTimeInNanos = DateTime.now().microsecondsSinceEpoch * 1000;
+      // Frame timestamps share one clock: the native steady clock that the
+      // frame schedulers and Filament's beginFrame already use.
+      final timestamp =
+          frameTimeInNanos ?? FrameScheduler_steadyClockUs().toInt() * 1000;
 
       await withVoidCallback((requestId, cb) {
-        RenderManager_renderRenderThread(pointer, frameTimeInNanos.toBigInt, requestId, cb);
+        RenderManager_renderRenderThread(pointer, timestamp.toBigInt, requestId, cb);
       });
     }
   }
