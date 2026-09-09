@@ -272,36 +272,36 @@ class ThermionViewerFFI extends ThermionViewer {
 
     var data = await _app.loadResource(skyboxPath);
 
-    final completer = Completer<void>();
-    FFIKtx1Bundle? bundle;
-    late FFISkybox skybox;
-
-    final uploadFuture = withVoidCallback((requestId, onTextureUploadComplete) async {
-      bundle = await FFIKtx1Bundle.create(_app, data) as FFIKtx1Bundle;
-
-      _skyboxTexture =
-          await bundle!.createTexture(
-                onTextureUploadComplete: onTextureUploadComplete,
-                textureUploadCompleteRequestId: requestId,
-              )
-              as FFITexture;
-
-      skybox = await _app.buildSkybox(texture: _skyboxTexture) as FFISkybox;
-
-      await scene.setSkybox(skybox);
-
-      completer.complete();
+    final bundle = await FFIKtx1Bundle.create(_app, data) as FFIKtx1Bundle;
+    late Future<Texture> textureReady;
+    final uploadFuture = withVoidCallback((requestId, onTextureUploadComplete) {
+      textureReady = bundle.createTexture(
+        onTextureUploadComplete: onTextureUploadComplete,
+        textureUploadCompleteRequestId: requestId,
+      );
+      return textureReady.then<void>((_) {});
     });
 
     late final Future<void> trackedUploadFuture;
     trackedUploadFuture = uploadFuture.whenComplete(() async {
-      await bundle?.destroy();
+      await bundle.destroy();
       if (identical(_skyboxTextureUploadComplete, trackedUploadFuture)) {
         _skyboxTextureUploadComplete = null;
       }
     });
     _skyboxTextureUploadComplete = trackedUploadFuture;
-    await completer.future;
+    unawaited(
+      trackedUploadFuture.then<void>(
+        (_) {},
+        onError: (Object error, StackTrace stack) {
+          _logger.warning('Skybox texture upload failed', error, stack);
+        },
+      ),
+    );
+    // The bundle remains owned by the upload even if later scene setup fails.
+    _skyboxTexture = await textureReady as FFITexture;
+    final skybox = await _app.buildSkybox(texture: _skyboxTexture) as FFISkybox;
+    await scene.setSkybox(skybox);
     return skybox;
   }
 
@@ -315,46 +315,45 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<void> _loadIbl(String lightingPath, {double intensity = 30000, bool destroyExisting = true}) async {
     await _removeIbl(destroy: destroyExisting);
 
-    final completer = Completer<void>();
-    FFIKtx1Bundle? bundle;
-    final uploadFuture = withVoidCallback((requestId, onTextureUploadComplete) async {
-      var data = await _app.loadResource(lightingPath);
-
-      bundle = await FFIKtx1Bundle.create(_app, data) as FFIKtx1Bundle;
-
-      final texture = await bundle!.createTexture(
+    final data = await _app.loadResource(lightingPath);
+    final bundle = await FFIKtx1Bundle.create(_app, data) as FFIKtx1Bundle;
+    final harmonics = bundle.getSphericalHarmonics();
+    late Future<Texture> textureReady;
+    final uploadFuture = withVoidCallback((requestId, onTextureUploadComplete) {
+      textureReady = bundle.createTexture(
         onTextureUploadComplete: onTextureUploadComplete,
         textureUploadCompleteRequestId: requestId,
       );
-      final harmonics = bundle!.getSphericalHarmonics();
-
-      final ibl = await FFIIndirectLight.fromIrradianceHarmonics(
-        _app,
-        harmonics,
-        reflectionsTexture: texture,
-        intensity: intensity,
-      );
-
-      await scene.setIndirectLight(ibl);
-
-      if (FILAMENT_WASM) {
-        data.free();
-      }
-
-      completer.complete();
-      _logger.info("IBL texture ready");
+      return textureReady.then<void>((_) {});
     });
 
     late final Future<void> trackedUploadFuture;
     trackedUploadFuture = uploadFuture.whenComplete(() async {
-      await bundle?.destroy();
+      await bundle.destroy();
+      if (FILAMENT_WASM) data.free();
       if (identical(_iblTextureUploadComplete, trackedUploadFuture)) {
         _iblTextureUploadComplete = null;
       }
       _logger.info("IBL texture upload complete");
     });
     _iblTextureUploadComplete = trackedUploadFuture;
-    await completer.future;
+    unawaited(
+      trackedUploadFuture.then<void>(
+        (_) {},
+        onError: (Object error, StackTrace stack) {
+          _logger.warning('IBL texture upload failed', error, stack);
+        },
+      ),
+    );
+    final texture = await textureReady;
+    final ibl = await FFIIndirectLight.fromIrradianceHarmonics(
+      _app,
+      harmonics,
+      reflectionsTexture: texture,
+      intensity: intensity,
+    );
+    await scene.setIndirectLight(ibl);
+    _logger.info("IBL texture ready");
   }
 
   Future<void> _loadIblFromTexture(
