@@ -2,7 +2,7 @@
 
 Run from the repository root with CMake 3.22+ and a C++17 compiler. The suite
 needs no Filament, Dart, or Flutter installation. It targets desktop Linux,
-macOS, and Windows and runs on all three in `native-scheduling.yml`.
+macOS, and Windows. Run it manually using the commands below.
 
 ```sh
 cmake -S thermion_dart/native/test/rendering -B /tmp/thermion-scheduling
