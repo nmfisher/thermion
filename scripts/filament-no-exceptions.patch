@@ -67,7 +67,7 @@ index 59058ee43..ac97f10ce 100644
  if ((NOT CMAKE_CROSSCOMPILING AND NOT FILAMENT_IMPORT_PREBUILT_EXECUTABLES) OR FILAMENT_EXPORT_PREBUILT_EXECUTABLES)
      export(TARGETS matc cmgen filamesh mipgen resgen uberz glslminifier FILE ${IMPORT_EXECUTABLES})
 diff --git a/build.sh b/build.sh
-index b9f29ad11..149c88aa4 100755
+index b9f29ad11..db9d38a10 100755
 --- a/build.sh
 +++ b/build.sh
 @@ -283,7 +283,8 @@ function build_tools_for_split_build {
@@ -103,6 +103,17 @@ index b9f29ad11..149c88aa4 100755
      local root_dir=$(pwd)
 
      pushd android > /dev/null
+@@ -756,7 +764,9 @@ function build_ios {
+     local old_install_command=${INSTALL_COMMAND}
+     INSTALL_COMMAND=
+
+-    build_desktop "${MOBILE_HOST_TOOLS}"
++    if [[ "${ISSUE_SPLIT_BUILD}" != "true" ]]; then
++        build_desktop "${MOBILE_HOST_TOOLS}"
++    fi
+
+     INSTALL_COMMAND=${old_install_command}
+
 diff --git a/libs/fgviewer/src/ApiHandler.cpp b/libs/fgviewer/src/ApiHandler.cpp
 index b07d9238a..d3e56ce29 100644
 --- a/libs/fgviewer/src/ApiHandler.cpp

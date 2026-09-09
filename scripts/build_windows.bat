@@ -100,8 +100,10 @@ call git checkout %FILAMENT_VERSION% || (
 )
 
 REM Build host tools separately; only runtime libraries are packaged below.
+REM Export only Release tools so Debug runtime builds reuse those executables
+REM without globally remapping unrelated imported targets such as Python.
 call git apply "%SCRIPT_DIR%filament-no-exceptions.patch" || exit /b 1
-cmake -S . -B out/host-tools -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=ON -DFILAMENT_EXPORT_PREBUILT_EXECUTABLES_DIR=out/host-tools || exit /b 1
+cmake -S . -B out/host-tools -DCMAKE_CONFIGURATION_TYPES=Release -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=ON -DFILAMENT_EXPORT_PREBUILT_EXECUTABLES_DIR=out/host-tools || exit /b 1
 cmake --build out/host-tools --config Release --target matc cmgen filamesh mipgen resgen uberz glslminifier || exit /b 1
 
 REM Patch FFilamentAsset.h to allow overriding GLTFIO_USE_FILESYSTEM at compile time
@@ -119,7 +121,7 @@ cd /d "%FILAMENT_BASE_DIR%\out\runtime" || exit /b 1
 
 REM Run CMake configuration
 echo Configuring Filament for Windows...
-cmake -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_SUPPORTS_VULKAN=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SHORTEN_MSVC_COMPILATION=OFF -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=OFF -DFILAMENT_IMPORT_PREBUILT_EXECUTABLES_DIR=out/host-tools -DCMAKE_MAP_IMPORTED_CONFIG_DEBUG=Release ../.. || (
+cmake -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_SUPPORTS_VULKAN=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SHORTEN_MSVC_COMPILATION=OFF -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=OFF -DFILAMENT_IMPORT_PREBUILT_EXECUTABLES_DIR=out/host-tools ../.. || (
   echo Error: CMake configuration failed
   exit /b 1
 )
