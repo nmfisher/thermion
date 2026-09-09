@@ -1,19 +1,22 @@
 import 'dart:async';
 
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:thermion_flutter/src/platform/src/frame_scheduler.dart';
 
 /// Headless coverage for the Dart side of the Flutter-synchronized Linux
 /// frame source.
 ///
-/// This remains one test because Flutter persistent frame callbacks cannot be
-/// unregistered from the shared test binding.
 void main() {
   testWidgets('FrameScheduler dispatches handlers for accepted Linux ticks', (
     tester,
   ) async {
-    final scheduler = FrameScheduler.instance;
-    scheduler.reset();
+    int frameUs() =>
+        SchedulerBinding.instance.currentSystemFrameTimeStamp.inMicroseconds;
+    final scheduler = FrameScheduler.forTesting(
+      sourceClockUs: frameUs,
+      steadyClockUs: () => frameUs() + 1000000,
+    );
     final dispatchedAtStart = scheduler.dispatchedFrameCount;
 
     addTearDown(scheduler.reset);

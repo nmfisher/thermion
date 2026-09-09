@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'dart:developer' show Timeline;
 import 'dart:ffi' as ffi;
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
 import 'package:flutter/scheduler.dart';
 import 'package:logging/logging.dart';
 // ignore: implementation_imports
@@ -27,18 +28,36 @@ import 'package:thermion_dart/src/bindings/src/thermion_dart_ffi.g.dart'
 /// - **Flutter-synced** (Linux): Flutter's persistent frame callback drives
 ///   the same Dart callback pipeline as the native display-link sources.
 class FrameScheduler {
-  FrameScheduler._();
+  FrameScheduler._({
+    int Function()? sourceClockUs,
+    int Function()? steadyClockUs,
+  }) : _sourceClockUs = sourceClockUs ?? _timelineNowUs,
+       _steadyClockUs = steadyClockUs ?? FrameScheduler_steadyClockUs;
+
+  /// Supplies clocks that advance with the widget test binding's frame clock.
+  @visibleForTesting
+  FrameScheduler.forTesting({
+    required int Function() sourceClockUs,
+    required int Function() steadyClockUs,
+  }) : this._(sourceClockUs: sourceClockUs, steadyClockUs: steadyClockUs);
+
+  static int _timelineNowUs() => Timeline.now;
+  final int Function() _sourceClockUs;
+  final int Function() _steadyClockUs;
 
   static final FrameScheduler _instance = FrameScheduler._();
 
   /// Returns the process-wide singleton.
   static FrameScheduler get instance => _instance;
 
-  /// Work dispatched once for each accepted timing tick.
+  /// Work dispatched once for each accepted timing tick, with a timestamp in
+  /// nanoseconds on the native steady clock (not a date or wall-clock time).
   Future<void> Function(int frameTimeNanos)? _frameHandler;
 
   /// Bind the work dispatched for each accepted tick. Must be called before
   /// [start] or [startFlutterSynced].
+  /// The handler receives nanoseconds on the native steady clock, suitable for
+  /// passing directly to Thermion's render call.
   void setFrameHandler(Future<void> Function(int frameTimeNanos) handler) {
     _frameHandler = handler;
   }
@@ -66,7 +85,7 @@ class FrameScheduler {
   int Function()? _flutterTargetFps;
   int _flutterAppliedFpsLimit = 0;
   int _nextFlutterFrameUs = 0;
-  int? _flutterClockOffsetUs;
+  int _lastFlutterFrameUs = 0;
 
   int _diagFrameCount = 0;
   int _diagDropCount = 0;
@@ -133,7 +152,7 @@ class FrameScheduler {
     _active = true;
     _flutterSynced = true;
     _flutterTargetFps = targetFps;
-    _flutterClockOffsetUs = null;
+    _lastFlutterFrameUs = 0;
     _flutterAppliedFpsLimit = 0;
     _nextFlutterFrameUs = 0;
 
@@ -316,17 +335,32 @@ class FrameScheduler {
     }
   }
 
-  void _handleFlutterFrameTick(Duration timeStamp) {
+  void _handleFlutterFrameTick(Duration _) {
     if (!_active || !_flutterSynced || _paused) return;
-    // Flutter timestamps are relative to its own epoch. Calibrate once per
-    // start, then preserve the frame clock's deltas instead of sampling Dart
-    // callback delivery time on every frame.
-    _flutterClockOffsetUs ??=
-        FrameScheduler_steadyClockUs() - timeStamp.inMicroseconds;
-    final frameTimeNanos =
-        (timeStamp.inMicroseconds + _flutterClockOffsetUs!) * 1000;
+    // The callback argument is Flutter's animation clock: timeDilation and
+    // resetEpoch change its rate/epoch. Rendering and FPS pacing need the raw
+    // engine timestamp instead.
+    final timeStamp = SchedulerBinding.instance.currentSystemFrameTimeStamp;
+    final sourceFrameUs = timeStamp.inMicroseconds;
+
+    // On the VM, Flutter's engine frame clock and Timeline.now both use
+    // Dart_TimelineGetMicros. Sample that clock alongside native steady time
+    // and subtract the frame's age, including time spent waiting for Dart.
+    // Sampling each tick avoids retaining a delayed first callback's offset
+    // and accounts for clock offsets that change across suspend/resume.
+    final sourceNowUs = _sourceClockUs();
+    final steadyNowUs = _steadyClockUs();
+    var frameTimeUs = steadyNowUs;
+    if (sourceFrameUs > 0 && sourceFrameUs <= sourceNowUs) {
+      final ageUs = sourceNowUs - sourceFrameUs;
+      if (ageUs <= steadyNowUs) frameTimeUs -= ageUs;
+    }
+    // A missing/future timestamp falls back to now, as in native FrameTimeMapper.
+    // Clock sampling and recovery must never make animation time go backwards.
+    frameTimeUs = math.max(_lastFlutterFrameUs, frameTimeUs);
+    _lastFlutterFrameUs = frameTimeUs;
     _tryDispatchFrame(
-      frameTimeNanos,
+      frameTimeUs * 1000,
       sourceGate: () => _admitFlutterTickAtTargetFps(timeStamp),
     );
     SchedulerBinding.instance.scheduleFrame();
