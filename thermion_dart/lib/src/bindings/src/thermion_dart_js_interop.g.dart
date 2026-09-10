@@ -1897,6 +1897,26 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     size_t stride,
   );
   external void _SurfaceOrientationBuilder_vertexCount(Pointer<TSurfaceOrientationBuilder> builder, size_t count);
+  external Pointer<TSurfaceOrientation> _SurfaceOrientation_build(
+    size_t vertexCount,
+    Pointer<Float32> normals,
+    size_t normalsLength,
+    size_t normalStride,
+    Pointer<Float32> tangents,
+    size_t tangentsLength,
+    size_t tangentStride,
+    Pointer<Float32> uvs,
+    size_t uvsLength,
+    size_t uvStride,
+    Pointer<Float32> positions,
+    size_t positionsLength,
+    size_t positionStride,
+    size_t triangleCount,
+    Pointer<Uint32> triangles32,
+    size_t triangles32Length,
+    Pointer<Uint16> triangles16,
+    size_t triangles16Length,
+  );
   external void _SurfaceOrientation_destroy(Pointer<TSurfaceOrientation> orientation);
   external void _SurfaceOrientation_getQuats_float4(
     Pointer<TSurfaceOrientation> orientation,
@@ -7564,6 +7584,49 @@ void SurfaceOrientationBuilder_uvs(
 void SurfaceOrientationBuilder_vertexCount(Pointer<TSurfaceOrientationBuilder> builder, Dartsize_t count) {
   final result = GeneratedBindings.instance._SurfaceOrientationBuilder_vertexCount(builder.cast(), count);
   return result;
+}
+
+Pointer<TSurfaceOrientation> SurfaceOrientation_build(
+  Dartsize_t vertexCount,
+  Pointer<Float32> normals,
+  Dartsize_t normalsLength,
+  Dartsize_t normalStride,
+  Pointer<Float32> tangents,
+  Dartsize_t tangentsLength,
+  Dartsize_t tangentStride,
+  Pointer<Float32> uvs,
+  Dartsize_t uvsLength,
+  Dartsize_t uvStride,
+  Pointer<Float32> positions,
+  Dartsize_t positionsLength,
+  Dartsize_t positionStride,
+  Dartsize_t triangleCount,
+  Pointer<Uint32> triangles32,
+  Dartsize_t triangles32Length,
+  Pointer<Uint16> triangles16,
+  Dartsize_t triangles16Length,
+) {
+  final result = GeneratedBindings.instance._SurfaceOrientation_build(
+    vertexCount,
+    normals,
+    normalsLength,
+    normalStride,
+    tangents,
+    tangentsLength,
+    tangentStride,
+    uvs,
+    uvsLength,
+    uvStride,
+    positions,
+    positionsLength,
+    positionStride,
+    triangleCount,
+    triangles32,
+    triangles32Length,
+    triangles16,
+    triangles16Length,
+  );
+  return Pointer<TSurfaceOrientation>(result);
 }
 
 void SurfaceOrientation_destroy(Pointer<TSurfaceOrientation> orientation) {
