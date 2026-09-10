@@ -4,7 +4,9 @@
 #include <condition_variable>
 #include <deque>
 #include <functional>
-#include <future>
+#if defined(__cpp_exceptions)
+#include <exception>
+#endif
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -384,22 +386,49 @@ private:
     }
 
     void RunOnEglThread(std::function<void()> task) {
-        auto completed = std::make_shared<std::promise<void>>();
-        auto result = completed->get_future();
+        // This call waits for the task, so its completion state can live on
+        // the stack. The wrapper signals completion even when a task returns
+        // early after reporting an EGL/GBM error through its result or _lastError.
+        std::mutex completionMutex;
+        std::condition_variable completionReady;
+        bool completed = false;
+#if defined(__cpp_exceptions)
+        // Preserve forwarding to the caller while exceptions are enabled.
+        // Builds without exceptions report EGL/GBM failures via results instead.
+        std::exception_ptr error;
+#endif
         {
             std::lock_guard<std::mutex> lock(_taskMutex);
             _tasks.emplace_back(
-                [task = std::move(task), completed = std::move(completed)]() {
+                [task = std::move(task), &completionMutex, &completionReady, &completed
+#if defined(__cpp_exceptions)
+                 , &error
+#endif
+                ]() {
+#if defined(__cpp_exceptions)
                     try {
                         task();
-                        completed->set_value();
                     } catch (...) {
-                        completed->set_exception(std::current_exception());
+                        error = std::current_exception();
                     }
+#else
+                    task();
+#endif
+                    std::lock_guard<std::mutex> lock(completionMutex);
+                    completed = true;
+                    // Notify while holding the lock: the caller must not
+                    // destroy completionReady before notify_one finishes.
+                    completionReady.notify_one();
                 });
         }
         _taskReady.notify_one();
-        result.get();
+        std::unique_lock<std::mutex> lock(completionMutex);
+        completionReady.wait(lock, [&completed]() { return completed; });
+#if defined(__cpp_exceptions)
+        if (error) {
+            std::rethrow_exception(error);
+        }
+#endif
     }
 
     void StopEglThread() {

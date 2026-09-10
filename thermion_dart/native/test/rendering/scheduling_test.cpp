@@ -5,14 +5,17 @@
 #include <chrono>
 #include <iostream>
 #include <limits>
-#include <stdexcept>
+#include <cstdlib>
 #include <utility>
 
 using namespace thermion;
 using namespace std::chrono_literals;
 
 static void require(bool condition, const char* message) {
-    if (!condition) throw std::runtime_error(message);
+    if (!condition) {
+        std::cerr << message << std::endl;
+        std::abort();
+    }
 }
 
 static void testRateGate() {

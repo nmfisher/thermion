@@ -1,7 +1,8 @@
+#include <utils/Panic.h>
+
 #include <iostream>
 #include <vector>
 #include <string>
-#include <stdexcept>
 #include <cstring>
 #include <drm/drm_fourcc.h>
 
@@ -53,7 +54,7 @@ uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, V
         }
     }
 
-    throw std::runtime_error("Failed to find suitable memory type");
+    PANIC_POSTCONDITION("Failed to find suitable memory type");
 }
 
 // Modified memory type selection function with more detailed requirements checking
@@ -203,7 +204,7 @@ uint32_t findGraphicsQueueFamily(VkPhysicalDevice physicalDevice) {
         }
     }
 
-    throw std::runtime_error("Failed to find graphics queue family");
+    PANIC_POSTCONDITION("Failed to find graphics queue family");
 }
 
 CommandResources createCommandResources(VkDevice device, VkPhysicalDevice physicalDevice) {
@@ -241,7 +242,7 @@ CommandResources createCommandResources(VkDevice device, VkPhysicalDevice physic
     poolInfo.queueFamilyIndex = resources.queueFamilyIndex;
 
     if (vkCreateCommandPool(device, &poolInfo, nullptr, &resources.commandPool) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create command pool");
+        PANIC_POSTCONDITION("Failed to create command pool");
     }
 
     return resources;

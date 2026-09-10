@@ -1,3 +1,5 @@
+#include <utils/Panic.h>
+
 
 #include "d3d/D3DContext.h"
 
@@ -637,7 +639,7 @@ class WindowsVulkanContext::Impl {
 
             VkResult result = bluevk::vkCreateBuffer(device, &bufferInfo, nullptr, &stagingBuffer);
             if (result != VK_SUCCESS) {
-                throw std::runtime_error("Failed to create staging buffer");
+                PANIC_POSTCONDITION("Failed to create staging buffer");
             }
 
             // Get memory requirements and allocate
@@ -656,14 +658,14 @@ class WindowsVulkanContext::Impl {
             result = bluevk::vkAllocateMemory(device, &allocInfo, nullptr, &stagingBufferMemory);
             if (result != VK_SUCCESS) {
                 bluevk::vkDestroyBuffer(device, stagingBuffer, nullptr);
-                throw std::runtime_error("Failed to allocate staging buffer memory");
+                PANIC_POSTCONDITION("Failed to allocate staging buffer memory");
             }
 
             result = bluevk::vkBindBufferMemory(device, stagingBuffer, stagingBufferMemory, 0);
             if (result != VK_SUCCESS) {
                 vkFreeMemory(device, stagingBufferMemory, nullptr);
                 vkDestroyBuffer(device, stagingBuffer, nullptr);
-                throw std::runtime_error("Failed to bind buffer memory");
+                PANIC_POSTCONDITION("Failed to bind buffer memory");
             }
 
             // Create command buffer
@@ -676,7 +678,7 @@ class WindowsVulkanContext::Impl {
             VkCommandBuffer commandBuffer;
             result = bluevk::vkAllocateCommandBuffers(device, &cmdBufAllocInfo, &commandBuffer);
             if (result != VK_SUCCESS) {
-                throw std::runtime_error("Failed to allocate command buffer");
+                PANIC_POSTCONDITION("Failed to allocate command buffer");
             }
 
             // Begin command buffer
@@ -686,7 +688,7 @@ class WindowsVulkanContext::Impl {
 
             result = bluevk::vkBeginCommandBuffer(commandBuffer, &beginInfo);
             if (result != VK_SUCCESS) {
-                throw std::runtime_error("Failed to begin command buffer");
+                PANIC_POSTCONDITION("Failed to begin command buffer");
             }
 
             // Transition image layout for transfer with proper sync
@@ -754,7 +756,7 @@ class WindowsVulkanContext::Impl {
 
             result = bluevk::vkEndCommandBuffer(commandBuffer);
             if (result != VK_SUCCESS) {
-                throw std::runtime_error("Failed to end command buffer");
+                PANIC_POSTCONDITION("Failed to end command buffer");
             }
 
             // Submit command buffer with fence for synchronization
@@ -764,7 +766,7 @@ class WindowsVulkanContext::Impl {
             VkFence fence;
             result = bluevk::vkCreateFence(device, &fenceInfo, nullptr, &fence);
             if (result != VK_SUCCESS) {
-                throw std::runtime_error("Failed to create fence");
+                PANIC_POSTCONDITION("Failed to create fence");
             }
 
             VkSubmitInfo submitInfo{};
@@ -775,21 +777,21 @@ class WindowsVulkanContext::Impl {
             result = bluevk::vkQueueSubmit(queue, 1, &submitInfo, fence);
             if (result != VK_SUCCESS) {
                 bluevk::vkDestroyFence(device, fence, nullptr);
-                throw std::runtime_error("Failed to submit queue");
+                PANIC_POSTCONDITION("Failed to submit queue");
             }
 
             // Wait for the command buffer to complete with timeout
             result = bluevk::vkWaitForFences(device, 1, &fence, VK_TRUE, 5000000000); // 5 second timeout
             if (result != VK_SUCCESS) {
                 bluevk::vkDestroyFence(device, fence, nullptr);
-                throw std::runtime_error("Failed to wait for fence");
+                PANIC_POSTCONDITION("Failed to wait for fence");
             }
 
             // Map memory and copy data
             void* data;
             result = bluevk::vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
             if (result != VK_SUCCESS) {
-                throw std::runtime_error("Failed to map memory");
+                PANIC_POSTCONDITION("Failed to map memory");
             }
 
             outPixels.resize(bufferSize);
