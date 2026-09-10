@@ -2910,10 +2910,13 @@ extern "C"
       VoidCallback onComplete)
   {
     auto *rt = RT(tRenderableManager);
+    // Snapshot borrowed FFI storage before returning to Dart. The task owns it.
+    std::vector<float> owned;
+    if (boneCount != 0) owned.assign(transforms, transforms + boneCount * 16);
     std::packaged_task<void()> lambda(
-        [=]() mutable
+        [=, owned = std::move(owned)]() mutable
         {
-          RenderableManager_setBonesFromMat4(tRenderableManager, entityId, transforms, boneCount, offset);
+          RenderableManager_setBonesFromMat4(tRenderableManager, entityId, owned.data(), boneCount, offset);
           PROXY(onComplete(requestId));
         });
     auto fut = rt->addTask(lambda);
@@ -2929,10 +2932,13 @@ extern "C"
       VoidCallback onComplete)
   {
     auto *rt = RT(tRenderableManager);
+    // Snapshot borrowed FFI storage before returning to Dart. The task owns it.
+    std::vector<float> owned;
+    if (boneCount != 0) owned.assign(bones, bones + boneCount * 8);
     std::packaged_task<void()> lambda(
-        [=]() mutable
+        [=, owned = std::move(owned)]() mutable
         {
-          RenderableManager_setBonesFromBone(tRenderableManager, entityId, bones, boneCount, offset);
+          RenderableManager_setBonesFromBone(tRenderableManager, entityId, owned.data(), boneCount, offset);
           PROXY(onComplete(requestId));
         });
     auto fut = rt->addTask(lambda);
