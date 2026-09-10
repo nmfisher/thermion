@@ -2,8 +2,6 @@
 
 #include "c_api/TGltfResourceLoader.h"
 
-#include <vector>
-
 #include <filament/Engine.h>
 #include <filament/Fence.h>
 #include <filament/Material.h>
@@ -56,15 +54,12 @@ EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroy(TEngine *tEngine, TGltfReso
     delete gltfResourceLoader;
 }
 
-EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceData(TGltfResourceLoader *tGltfResourceLoader, const char *uri, uint8_t *data, size_t length) {
+EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceData(
+    TGltfResourceLoader *loader, const char *uri, uint8_t *data, size_t length,
+    void (*onRelease)(void *, size_t, void *), void *userData) {
     TRACE("Adding data (length %d) for glTF resource URI %s", length, uri);
-    auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
-    auto *vec = new std::vector<uint8_t>(data, data + length);
-    gltfResourceLoader->addResourceData(uri, {
-        vec->data(),
-        vec->size(),
-        [](void *, size_t, void *user) { delete static_cast<std::vector<uint8_t>*>(user); },
-        vec});
+    auto *gltfResourceLoader = reinterpret_cast<filament::gltfio::ResourceLoader *>(loader);
+    gltfResourceLoader->addResourceData(uri, {data, length, onRelease, userData});
 }
 
 EMSCRIPTEN_KEEPALIVE bool GltfResourceLoader_loadResources(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset) {    

@@ -739,6 +739,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Char> uri,
     Pointer<Uint8> data,
     size_t length,
+    Pointer<NativeFunction<void Function(PointerClass<Void> buffer, size_t length, PointerClass<Void> userData)>>
+    onRelease,
+    Pointer<Void> userData,
   );
   external void _GltfResourceLoader_addResourceDataRenderThread(
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
@@ -4504,12 +4507,16 @@ void GltfResourceLoader_addResourceData(
   Pointer<Char> uri,
   Pointer<Uint8> data,
   Dartsize_t length,
+  Pointer<NativeFunction<void Function(Pointer<Void> buffer, size_t length, Pointer<Void> userData)>> onRelease,
+  Pointer<Void> userData,
 ) {
   final result = GeneratedBindings.instance._GltfResourceLoader_addResourceData(
     tGltfResourceLoader.cast(),
     uri,
     data,
     length,
+    onRelease.cast(),
+    userData,
   );
   return result;
 }
@@ -12037,7 +12044,7 @@ extension NativeFunctionPointer18<T extends NativeType> on void Function(DartEnt
   }
 }
 
-extension NativeFunctionPointer24<T extends NativeType> on void Function(double) {
+extension NativeFunctionPointer25<T extends NativeType> on void Function(double) {
   Pointer<NativeFunction<void Function(double)>> addFunction() {
     return Pointer<NativeFunction<void Function(double)>>(
       NativeLibrary.instance.addFunction<void Function(double)>(this.toJS, 'vf'),
@@ -12045,7 +12052,7 @@ extension NativeFunctionPointer24<T extends NativeType> on void Function(double)
   }
 }
 
-extension NativeFunctionPointer47<T extends NativeType> on void Function() {
+extension NativeFunctionPointer48<T extends NativeType> on void Function() {
   Pointer<NativeFunction<void Function()>> addFunction() {
     return Pointer<NativeFunction<void Function()>>(
       NativeLibrary.instance.addFunction<void Function()>(this.toJS, 'v'),

@@ -2289,10 +2289,20 @@ extern "C"
       uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tGltfResourceLoader);
+    // Copy borrowed Dart bytes before returning from this FFI call.
+    std::vector<uint8_t> owned(data, data + length);
+    std::string ownedUri(uri);
     std::packaged_task<void()> lambda(
-        [=]() mutable
+        [=, owned = std::move(owned), ownedUri = std::move(ownedUri)]() mutable
         {
-          GltfResourceLoader_addResourceData(tGltfResourceLoader, uri, data, length);
+          // Move the snapshot into storage that outlives this task. Filament's
+          // release callback deletes it when Filament releases the resource bytes.
+          auto *buffer = new std::vector<uint8_t>(std::move(owned));
+          GltfResourceLoader_addResourceData(
+              tGltfResourceLoader, ownedUri.c_str(), buffer->data(), buffer->size(),
+              [](void *, size_t, void *userData) {
+                delete static_cast<std::vector<uint8_t>*>(userData);
+              }, buffer);
           PROXY(onComplete(requestId));
         });
     auto fut = rt->addTask(lambda);
