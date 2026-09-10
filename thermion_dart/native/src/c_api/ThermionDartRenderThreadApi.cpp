@@ -2348,10 +2348,13 @@ extern "C"
       void (*callback)(TFilamentAsset *))
   {
     auto *rt = RT(tEngine);
+    // Snapshot borrowed FFI storage before returning to Dart. The task owns it.
+    std::vector<uint8_t> owned;
+    if (length != 0) owned.assign(data, data + length);
     std::packaged_task<void()> lambda(
-        [=]() mutable
+        [=, owned = std::move(owned)]() mutable
         {
-          auto loader = GltfAssetLoader_load(tEngine, tAssetLoader, data, length, numInstances);
+          auto loader = GltfAssetLoader_load(tEngine, tAssetLoader, owned.data(), length, numInstances);
 
           setOwner(loader, rt);          PROXY(callback(loader));
         });
