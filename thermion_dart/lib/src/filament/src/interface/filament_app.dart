@@ -125,7 +125,20 @@ abstract class FilamentApp<T> {
 
   Future<Material> createBoneOverlayMaterial();
 
-  //
+  /// Material package format version expected by the loaded native build.
+  ///
+  /// This is the number reported by `matc --version`, distinct from the
+  /// Filament release version.
+  int get materialVersion;
+
+  /// Creates a material from a compiled `.filamat` package, copying [data].
+  ///
+  /// Throws [FormatException] for malformed chunk boundaries, missing or invalid
+  /// version metadata, or a format version different from [materialVersion].
+  /// Compile materials with `matc` from the same Filament release as the application.
+  ///
+  /// This checks the package layout and version, not every payload or backend
+  /// requirement. Other invalid packages can still cause a native Filament panic.
   Future<Material> createMaterial(Uint8List data);
 
   //

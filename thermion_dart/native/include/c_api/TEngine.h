@@ -57,6 +57,8 @@ EMSCRIPTEN_KEEPALIVE void Engine_destroyFence(TEngine *tEngine, TFence *tFence);
 EMSCRIPTEN_KEEPALIVE void Engine_flushAndWait(TEngine *tEngine);
 EMSCRIPTEN_KEEPALIVE void Engine_execute(TEngine *tEngine);
     
+/// Returns null for an invalid chunk layout or incompatible material version.
+/// Matching versions do not guarantee valid payloads or backend compatibility.
 EMSCRIPTEN_KEEPALIVE TMaterial *Engine_buildMaterial(TEngine *tEngine, const uint8_t* materialData, size_t length);
 EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterial(TEngine *tEngine, TMaterial *tMaterial);
 EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstance(TEngine *tEngine, TMaterialInstance *tMaterialInstance);
@@ -87,4 +89,3 @@ EMSCRIPTEN_KEEPALIVE bool DebugRegistry_getProperty_float(TDebugRegistry *tDebug
 #ifdef __cplusplus
 }
 #endif
-
