@@ -155,7 +155,7 @@ class LinuxVulkanContext::Impl {
             _sharedContext.logicalDevice = device;
             _sharedContext.graphicsQueueFamilyIndex = queueFamilyIndex;
             _sharedContext.graphicsQueueIndex = 0;
-            _sharedContext.debugUtilsSupported = false;
+            _sharedContext.debugUtilsEnabled = false;
             _sharedContext.debugMarkersSupported = false;
             _sharedContext.multiviewSupported = false;
 
