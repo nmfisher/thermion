@@ -1,3 +1,4 @@
+#include <array>
 #include <atomic>
 #include <math/mat4.h>
 #include <functional>
@@ -752,10 +753,14 @@ extern "C"
     float intensity,
     void (*onComplete)(TIndirectLight *)) {
     auto *rt = RT(tEngine);
+      // Nine RGB coefficients fit in the task itself; no heap buffer is needed.
+      std::array<float, 27> owned{};
+      const bool hasHarmonics = harmonics != nullptr;
+      if (hasHarmonics) std::copy_n(harmonics, owned.size(), owned.data());
       std::packaged_task<void()> lambda(
           [=]() mutable
           {
-            auto *indirectLight = Engine_buildIndirectLightFromIrradianceHarmonics(tEngine, tReflectionsTexture, harmonics, intensity);
+            auto *indirectLight = Engine_buildIndirectLightFromIrradianceHarmonics(tEngine, tReflectionsTexture, hasHarmonics ? owned.data() : nullptr, intensity);
             PROXY(onComplete(indirectLight));
           });
       auto fut = rt->addTask(lambda);
