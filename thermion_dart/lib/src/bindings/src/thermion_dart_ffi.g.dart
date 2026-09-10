@@ -3205,6 +3205,9 @@ external void Renderer_beginFrameRenderThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Uint8>, ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
+external void Renderer_copyPixelsAndRelease(ffi.Pointer<ffi.Uint8> pixels, ffi.Pointer<ffi.Uint8> out, int length);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TRenderer>)>(isLeaf: true)
 external void Renderer_endFrame(ffi.Pointer<TRenderer> tRenderer);
 
@@ -3221,8 +3224,8 @@ external void Renderer_endFrameRenderThread(ffi.Pointer<TRenderer> tRenderer, in
     ffi.Pointer<TRenderTarget>,
     ffi.UnsignedInt,
     ffi.UnsignedInt,
-    ffi.Pointer<ffi.Uint8>,
     ffi.Size,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Uint8>)>>,
   )
 >(isLeaf: true)
 external void Renderer_readPixels(
@@ -3234,8 +3237,8 @@ external void Renderer_readPixels(
   ffi.Pointer<TRenderTarget> tRenderTarget,
   int tPixelBufferFormat,
   int tPixelDataType,
-  ffi.Pointer<ffi.Uint8> out,
   int outLength,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Uint8>)>> onComplete,
 );
 
 @ffi.Native<
@@ -3248,10 +3251,8 @@ external void Renderer_readPixels(
     ffi.Pointer<TRenderTarget>,
     ffi.UnsignedInt,
     ffi.UnsignedInt,
-    ffi.Pointer<ffi.Uint8>,
     ffi.Size,
-    ffi.Uint32,
-    VoidCallback,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Uint8>)>>,
   )
 >(isLeaf: true)
 external void Renderer_readPixelsRenderThread(
@@ -3263,10 +3264,8 @@ external void Renderer_readPixelsRenderThread(
   ffi.Pointer<TRenderTarget> tRenderTarget,
   int tPixelBufferFormat,
   int tPixelDataType,
-  ffi.Pointer<ffi.Uint8> out,
   int outLength,
-  int requestId,
-  VoidCallback onComplete,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Uint8>)>> onComplete,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TRenderer>, ffi.Pointer<TView>)>(isLeaf: true)

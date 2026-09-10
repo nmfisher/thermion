@@ -1,3 +1,4 @@
+#include "ReadPixels.hpp"
 #include <atomic>
 #include <math/mat4.h>
 #include <functional>
@@ -835,16 +836,16 @@ extern "C"
       TRenderTarget *tRenderTarget,
       TPixelDataFormat tPixelBufferFormat,
       TPixelDataType tPixelDataType,
-      uint8_t *out,
       size_t outLength,
-      uint32_t requestId, VoidCallback onComplete)
+      void (*onComplete)(uint8_t*))
   {
     auto *rt = RT(tRenderer);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          Renderer_readPixels(tRenderer, width, height, xOffset, yOffset, tRenderTarget, tPixelBufferFormat, tPixelDataType, out, outLength);
-          PROXY(onComplete(requestId));
+          Renderer_readPixelsOwned(tRenderer, width, height, xOffset, yOffset,
+              tRenderTarget, tPixelBufferFormat, tPixelDataType, outLength,
+              [rt, onComplete](uint8_t *pixels) { PROXY(onComplete(pixels)); });
         });
     auto fut = rt->addTask(lambda);
   }

@@ -101,15 +101,16 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Renderer_endFrameRenderThread(TRenderer *tRenderer, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Renderer_renderRenderThread(TRenderer *tRenderer, TView *tView, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneViewRenderThread(TRenderer *tRenderer, TView *tView, uint32_t requestId,  VoidCallback onComplete);
+        // Completion transfers native-owned pixels after the GPU read completes.
+        // End and flush the frame before awaiting it; copy/release via Renderer_copyPixelsAndRelease.
         EMSCRIPTEN_KEEPALIVE void Renderer_readPixelsRenderThread(
             TRenderer *tRenderer,
             uint32_t width, uint32_t height, uint32_t xOffset, uint32_t yOffset,
             TRenderTarget *tRenderTarget,
             TPixelDataFormat tPixelBufferFormat,
             TPixelDataType tPixelDataType,
-            uint8_t *out,
             size_t outLength,
-            uint32_t requestId,  VoidCallback onComplete);
+            void (*onComplete)(uint8_t*));
 
         EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *));
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterTextureRenderThread(TMaterialInstance *tMaterialInstance, const char *propertyName, TTexture* tTexture, TTextureSampler* tSampler, uint32_t requestId, VoidCallback onComplete);

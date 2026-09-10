@@ -1,3 +1,5 @@
+#include <cstring>
+#include "ReadPixels.hpp"
 #ifdef _WIN32
 #include "ThermionWin32.h"
 #endif
@@ -77,57 +79,62 @@ EMSCRIPTEN_KEEPALIVE void Renderer_setFrameRateOptions(
     renderer->setFrameRateOptions(fro);
 }
 
-class CaptureCallbackHandler : public filament::backend::CallbackHandler
-{
-  void post(void *user, Callback callback)
-  {
-    callback(user);
-    delete this;
-  }
+EMSCRIPTEN_KEEPALIVE void Renderer_readPixels(
+    TRenderer *renderer,
+    uint32_t width, uint32_t height, uint32_t x, uint32_t y,
+    TRenderTarget *target, TPixelDataFormat format, TPixelDataType type,
+    size_t length, void (*onComplete)(uint8_t*)) {
+    Renderer_readPixelsOwned(renderer, width, height, x, y, target, format, type,
+        length, onComplete);
+}
+
+EMSCRIPTEN_KEEPALIVE void Renderer_copyPixelsAndRelease(uint8_t *pixels, uint8_t *out, size_t length) {
+    // The only write into Dart storage occurs synchronously in this FFI call.
+    std::memcpy(out, pixels, length);
+    delete[] pixels;
+}
+
+} // extern "C"
+
+class PixelReadback : public filament::backend::CallbackHandler {
+public:
+    explicit PixelReadback(size_t length, std::function<void(uint8_t*)> completion)
+        : pixels(new uint8_t[length]), onComplete(std::move(completion)) {}
+    uint8_t *pixels;
+    std::function<void(uint8_t*)> onComplete;
+
+    void post(void *user, Callback callback) override {
+        callback(user);
+        delete this;
+    }
 };
 
-
-EMSCRIPTEN_KEEPALIVE void Renderer_readPixels(
+void Renderer_readPixelsOwned(
     TRenderer *tRenderer,
-    uint32_t width, uint32_t height, uint32_t xOffset, uint32_t yOffset,
-    TRenderTarget *tRenderTarget,
-    TPixelDataFormat tPixelBufferFormat,
-    TPixelDataType tPixelDataType,
-    uint8_t *out, 
-    size_t outLength) {
-    
+    uint32_t width, uint32_t height, uint32_t x, uint32_t y,
+    TRenderTarget *tRenderTarget, TPixelDataFormat format, TPixelDataType type,
+    size_t length, std::function<void(uint8_t*)> onComplete) {
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
-    auto *renderTarget = reinterpret_cast<filament::RenderTarget *>(tRenderTarget);
-
-    filament::backend::PixelDataFormat pixelBufferFormat = static_cast<filament::backend::PixelDataFormat>(tPixelBufferFormat);
-    filament::backend::PixelDataType pixelDataType = static_cast<filament::backend::PixelDataType>(tPixelDataType);
-
-    auto *dispatcher = new CaptureCallbackHandler();
-    auto callback = [](void *buf, size_t size, void *data)
-    {
-      
-    };
-
-
-    auto pbd = filament::Texture::PixelBufferDescriptor(
-        out, outLength,
-        pixelBufferFormat,
-        pixelDataType,
-        dispatcher,
-        callback,
-        out
-    );
-
-    if(renderTarget) {
-        renderer->readPixels(renderTarget, xOffset, yOffset, width, height, std::move(pbd));
+    auto *target = reinterpret_cast<filament::RenderTarget *>(tRenderTarget);
+    auto *readback = new PixelReadback(length, std::move(onComplete));
+    filament::Texture::PixelBufferDescriptor pbd(
+        readback->pixels, length,
+        static_cast<filament::backend::PixelDataFormat>(format),
+        static_cast<filament::backend::PixelDataType>(type),
+        1, 0, 0, 0, // tightly packed rows, including odd-width RGB captures
+        readback,
+        [](void*, size_t, void *user) {
+            auto *readback = static_cast<PixelReadback*>(user);
+            // The consumer now owns pixels; the handler releases only its context.
+            readback->onComplete(readback->pixels);
+        }, readback);
+    if (target) {
+        renderer->readPixels(target, x, y, width, height, std::move(pbd));
     } else {
-        renderer->readPixels(xOffset, yOffset, width, height, std::move(pbd));
+        renderer->readPixels(x, y, width, height, std::move(pbd));
     }
-
 }
-
 
 #ifdef __cplusplus
-    }
-}
+} // namespace thermion
 #endif

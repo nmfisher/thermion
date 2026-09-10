@@ -959,7 +959,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to begin frame");
     }
 
-    final pixelBuffers = <(View, Uint8List)>[];
+    final pendingReadbacks = <Future<(View, Uint8List)>>[];
 
     final views = <View>[];
     if (view != null) {
@@ -980,17 +980,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
 
     _logger.finest("Starting capture for ${views.length} views");
-
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-
-    // Per-view "was this read as UBYTE for a FLOAT request?" flags. The
-    // downgrade-on-web rule depends on the framebuffer being read from
-    // (RGBA8 swapchain/RT → must use UBYTE; FLOAT RT → must use FLOAT),
-    // so we compute it per-view and inflate back to FLOAT in the return.
-    final inflateFromUByte = <bool>[];
 
     for (var viewIndex = 0; viewIndex < views.length; viewIndex++) {
       final view = views[viewIndex];
@@ -1015,7 +1004,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
       final readAsUByteForFloat = FILAMENT_SINGLE_THREADED && pixelDataType == PixelDataType.FLOAT && !rtIsFloat;
       final readType = readAsUByteForFloat ? PixelDataType.UBYTE : pixelDataType;
-      inflateFromUByte.add(readAsUByteForFloat);
 
       beforeRender?.call(view);
 
@@ -1042,7 +1030,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
 
       final numBytes = viewport.width * viewport.height * numChannels * channelSizeInBytes;
-      final pixelBuffer = makeUint8List(numBytes);
 
       if (render) {
         await withVoidCallback((requestId, cb) {
@@ -1057,23 +1044,49 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         );
       }
 
-      await withVoidCallback((requestId, cb) {
-        Renderer_readPixelsRenderThread(
-          renderer,
-          viewport.width,
-          viewport.height,
-          0,
-          0,
-          renderTarget == null ? nullptr : renderTarget.getNativeHandle(),
-          pixelDataFormat.value,
-          readType.value,
-          pixelBuffer.address,
-          pixelBuffer.length,
-          requestId,
-          cb,
-        );
-      });
-      pixelBuffers.add((view, pixelBuffer));
+      // Keep submitting the frame: waiting here would prevent the GPU from
+      // receiving the endFrame/flush needed to finish this readback.
+      pendingReadbacks.add(
+        withPointerCallback<Uint8>((cb) {
+          Renderer_readPixelsRenderThread(
+            renderer,
+            viewport.width,
+            viewport.height,
+            0,
+            0,
+            renderTarget == null ? nullptr : renderTarget.getNativeHandle(),
+            pixelDataFormat.value,
+            readType.value,
+            numBytes,
+            cb,
+          );
+        }).then((pixels) {
+          // Allocate the final output only after Filament has finished. On web,
+          // makeUint8List may use the WASM stack: finish copying/converting it
+          // synchronously, before any await can restore or reuse that stack.
+          final stack = FILAMENT_WASM ? stackSave() : null;
+          final pixelBuffer = makeUint8List(numBytes);
+          try {
+            Renderer_copyPixelsAndRelease(pixels, pixelBuffer.address, numBytes);
+            if (!FILAMENT_WASM) return (view, pixelBuffer);
+            if (readAsUByteForFloat) {
+              // Existing WebGL RGBA8 -> FLOAT result conversion.
+              final floats = Float32List(numBytes);
+              for (var j = 0; j < numBytes; j++) {
+                floats[j] = pixelBuffer[j] / 255.0;
+              }
+              return (view, Uint8List.view(floats.buffer));
+            }
+            // Transfer the WASM result into managed browser storage.
+            return (view, Uint8List.fromList(pixelBuffer));
+          } finally {
+            if (FILAMENT_WASM) {
+              pixelBuffer.free();
+              stackRestore(stack!);
+            }
+          }
+        }),
+      );
     }
 
     await withVoidCallback((requestId, cb) {
@@ -1082,13 +1095,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     await flush();
 
-    // on web/WebGL backend, the callback in readPixels isn't actually
-    // fired until a subsequent render call (and possibly the presentation to
-    // the canvas when the render thread yields).
-    // We need to wait at least one frame before the pixel buffer is populated;
-    // by this point, we've called setRendering(true), but this is actually
-    // synchronous, so we'll add a ~2 frame delay to wait for this to be
-    // available.
+    // WebGL needs another frame to poll readback fences. Completion below,
+    // rather than a timed delay, determines when the bytes are ready.
     if (FILAMENT_SINGLE_THREADED) {
       await withBoolCallback(
         (cb) => Renderer_beginFrameRenderThread(renderer, swapChain!.getNativeHandle(), 0.toBigInt, cb),
@@ -1102,42 +1110,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         Renderer_endFrameRenderThread(renderer, requestId, cb);
       });
       await flush();
-
-      await Future.delayed(Duration(milliseconds: 33));
-
-      // now copy the pixel buffer into a GC'd Uint8List and destroy the
-      // manually allocated buffer so invokers don't have to worry about taking
-      // ownership of malloc memory
-      final result = <(View, Uint8List)>[];
-      for (var i = 0; i < pixelBuffers.length; i++) {
-        final (view, raw) = pixelBuffers[i];
-        final Uint8List out;
-        if (inflateFromUByte[i]) {
-          // Inflate the 8-bit readback to the float buffer callers expect:
-          // one float32 in [0,1] per source byte.
-          final floats = Float32List(raw.length);
-          for (var j = 0; j < raw.length; j++) {
-            floats[j] = raw[j] / 255.0;
-          }
-          out = floats.asUint8List();
-        } else {
-          out = Uint8List.fromList(raw);
-        }
-        raw.free();
-        result.add((view, out));
-      }
-
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
-      return result;
     }
 
-    if (pauseTicking) {
-      RenderManager_setPaused(renderManager.getNativeHandle(), false);
+    try {
+      return await Future.wait(pendingReadbacks);
+    } finally {
+      if (pauseTicking) {
+        RenderManager_setPaused(renderManager.getNativeHandle(), false);
+      }
     }
-
-    return pixelBuffers;
   }
 
   //
