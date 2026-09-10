@@ -16,6 +16,20 @@ extern "C"
     // Create a surface orientation builder
     EMSCRIPTEN_KEEPALIVE TSurfaceOrientationBuilder* SurfaceOrientationBuilder_create();
 
+    // Configure and build synchronously. Input lengths are scalar element counts;
+    // a zero length omits that input. Strides are in bytes. No input pointers are
+    // retained after this call returns, so Dart can borrow them with .address.
+    EMSCRIPTEN_KEEPALIVE TSurfaceOrientation* SurfaceOrientation_build(
+        size_t vertexCount,
+        const float* normals, size_t normalsLength, size_t normalStride,
+        const float* tangents, size_t tangentsLength, size_t tangentStride,
+        const float* uvs, size_t uvsLength, size_t uvStride,
+        const float* positions, size_t positionsLength, size_t positionStride,
+        size_t triangleCount,
+        const uint32_t* triangles32, size_t triangles32Length,
+        const uint16_t* triangles16, size_t triangles16Length
+    );
+
     // Configure the builder
     EMSCRIPTEN_KEEPALIVE void SurfaceOrientationBuilder_vertexCount(TSurfaceOrientationBuilder* builder, size_t count);
     EMSCRIPTEN_KEEPALIVE void SurfaceOrientationBuilder_normals(

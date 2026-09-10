@@ -21,6 +21,28 @@ namespace thermion
             return reinterpret_cast<TSurfaceOrientationBuilder*>(builder);
         }
 
+        EMSCRIPTEN_KEEPALIVE TSurfaceOrientation* SurfaceOrientation_build(
+            size_t vertexCount,
+            const float* normals, size_t normalsLength, size_t normalStride,
+            const float* tangents, size_t tangentsLength, size_t tangentStride,
+            const float* uvs, size_t uvsLength, size_t uvStride,
+            const float* positions, size_t positionsLength, size_t positionStride,
+            size_t triangleCount,
+            const uint32_t* triangles32, size_t triangles32Length,
+            const uint16_t* triangles16, size_t triangles16Length
+        ) {
+            SurfaceOrientation::Builder builder;
+            builder.vertexCount(vertexCount).triangleCount(triangleCount);
+            if (normalsLength) builder.normals(reinterpret_cast<const float3*>(normals), normalStride);
+            if (tangentsLength) builder.tangents(reinterpret_cast<const float4*>(tangents), tangentStride);
+            if (uvsLength) builder.uvs(reinterpret_cast<const float2*>(uvs), uvStride);
+            if (positionsLength) builder.positions(reinterpret_cast<const float3*>(positions), positionStride);
+            if (triangles32Length) builder.triangles(reinterpret_cast<const uint3*>(triangles32));
+            if (triangles16Length) builder.triangles(reinterpret_cast<const ushort3*>(triangles16));
+            // Filament consumes the borrowed inputs while this FFI call is active.
+            return reinterpret_cast<TSurfaceOrientation*>(builder.build());
+        }
+
         EMSCRIPTEN_KEEPALIVE void SurfaceOrientationBuilder_vertexCount(TSurfaceOrientationBuilder* tBuilder, size_t count) {
             auto* builder = reinterpret_cast<SurfaceOrientation::Builder*>(tBuilder);
             builder->vertexCount(count);
