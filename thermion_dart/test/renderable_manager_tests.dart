@@ -444,7 +444,10 @@ void main() async {
           await camera.lookAt(Vector3(0, 0, 2), focus: Vector3.zero(), up: Vector3(0, 1, 0));
 
           // Initial pose: both bones identity.
-          final initial = await testHelper.capture(result.viewer.view, "skinned_initial_pose_$inputType");
+          final initial = await testHelper.capture(
+            result.viewer.view,
+            inputType == 'matrices' ? "skinned_initial_pose" : null,
+          );
           int foregroundPixelCount(Uint8List buffer) {
             final pixels = buffer.buffer.asFloat32List(buffer.offsetInBytes, buffer.lengthInBytes ~/ 4);
             var count = 0;
