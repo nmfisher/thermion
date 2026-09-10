@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <atomic>
 #include <math/mat4.h>
 #include <functional>
@@ -1975,20 +1976,24 @@ extern "C"
       void (*onComplete)(bool))
   {
     auto *rt = RT(tEngine);
-    // Copy borrowed Dart pixels before returning from this FFI call.
-    std::vector<uint8_t> owned(data, data + size);
+    // This stack-only guard frees the pixels if constructing or enqueueing the
+    // task fails. Accepted tasks are drained before the render thread shuts down.
+    struct PendingPixels {
+      uint8_t *data;
+      ~PendingPixels() { delete[] data; }
+    } pending{new uint8_t[size]};
+    auto *buffer = pending.data;
+    // Copy borrowed Dart pixels once, before returning from this FFI call.
+    if (size != 0) std::copy_n(data, size, buffer);
     std::packaged_task<void()> lambda(
-        [=, owned = std::move(owned)]() mutable
+        [=]() mutable
         {
-          // Move the snapshot into storage that outlives this task. Filament's
-          // release callback deletes it when the upload buffer is no longer needed.
-          auto *buffer = new std::vector<uint8_t>(std::move(owned));
           bool result = Texture_setImage(
               tEngine,
               tTexture,
               level,
-              buffer->data(),
-              buffer->size(),
+              buffer,
+              size,
               x_offset,
               y_offset,
               z_offset,
@@ -1997,12 +2002,14 @@ extern "C"
               depth,
               bufferFormat,
               pixelDataType,
-              [](void *, size_t, void *userData) {
-                delete static_cast<std::vector<uint8_t>*>(userData);
-              }, buffer);
+              [](void *pixels, size_t, void *) {
+                delete[] static_cast<uint8_t*>(pixels);
+              }, nullptr);
           PROXY(onComplete(result));
         });
     auto fut = rt->addTask(lambda);
+    // The queued task now hands the allocation to Filament's release callback.
+    pending.data = nullptr;
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderTarget_getColorTextureRenderThread(TRenderTarget *tRenderTarget, void (*onComplete)(TTexture *))
