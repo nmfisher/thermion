@@ -1026,14 +1026,17 @@ extern "C"
       void (*callback)(TSceneAsset *))
   {
     auto *rt = RT(tEngine);
+    // Copy the handle array; the native objects retain their existing lifetimes.
+    std::vector<TMaterialInstance*> owned;
+    if (materialInstanceCount > 0) owned.assign(materialInstances, materialInstances + materialInstanceCount);
     std::packaged_task<void()> lambda(
-        [=]
+        [=, owned = std::move(owned)]() mutable
         {
           auto sceneAsset = SceneAsset_createFromBuffers(
               tEngine,
               tVertexBuffer,
               tIndexBuffer,
-              materialInstances,
+              owned.data(),
               materialInstanceCount,
               tPrimitiveType,
               vertexBufferStorageMode,
@@ -1050,10 +1053,13 @@ extern "C"
       void (*callback)(TSceneAsset *))
   {
     auto *rt = RT(asset);
+    // Copy the handle array; the native objects retain their existing lifetimes.
+    std::vector<TMaterialInstance*> owned;
+    if (materialInstanceCount > 0) owned.assign(tMaterialInstances, tMaterialInstances + materialInstanceCount);
     std::packaged_task<void()> lambda(
-        [=]
+        [=, owned = std::move(owned)]() mutable
         {
-          auto instanceAsset = SceneAsset_createInstance(asset, tMaterialInstances, materialInstanceCount);
+          auto instanceAsset = SceneAsset_createInstance(asset, owned.data(), materialInstanceCount);
 
           setOwner(instanceAsset, rt);          PROXY(callback(instanceAsset));
         });
