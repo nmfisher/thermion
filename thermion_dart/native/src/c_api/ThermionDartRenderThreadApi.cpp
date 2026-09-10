@@ -1,4 +1,5 @@
 #include <array>
+#include <algorithm>
 #include <atomic>
 #include <math/mat4.h>
 #include <functional>
@@ -1980,6 +1981,9 @@ extern "C"
       void (*onComplete)(bool))
   {
     auto *rt = RT(tEngine);
+    // Copy borrowed Dart pixels once, before returning from this FFI call.
+    auto *buffer = new uint8_t[size];
+    if (size != 0) std::copy_n(data, size, buffer);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1987,7 +1991,7 @@ extern "C"
               tEngine,
               tTexture,
               level,
-              data,
+              buffer,
               size,
               x_offset,
               y_offset,
@@ -1996,7 +2000,10 @@ extern "C"
               height,
               depth,
               bufferFormat,
-              pixelDataType);
+              pixelDataType,
+              [](void *pixels, size_t, void *) {
+                delete[] static_cast<uint8_t*>(pixels);
+              }, nullptr);
           PROXY(onComplete(result));
         });
     auto fut = rt->addTask(lambda);
@@ -2294,10 +2301,20 @@ extern "C"
       uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tGltfResourceLoader);
+    // Copy borrowed Dart bytes before returning from this FFI call.
+    std::vector<uint8_t> owned(data, data + length);
+    std::string ownedUri(uri);
     std::packaged_task<void()> lambda(
-        [=]() mutable
+        [=, owned = std::move(owned), ownedUri = std::move(ownedUri)]() mutable
         {
-          GltfResourceLoader_addResourceData(tGltfResourceLoader, uri, data, length);
+          // Move the snapshot into storage that outlives this task. Filament's
+          // release callback deletes it when Filament releases the resource bytes.
+          auto *buffer = new std::vector<uint8_t>(std::move(owned));
+          GltfResourceLoader_addResourceData(
+              tGltfResourceLoader, ownedUri.c_str(), buffer->data(), buffer->size(),
+              [](void *, size_t, void *userData) {
+                delete static_cast<std::vector<uint8_t>*>(userData);
+              }, buffer);
           PROXY(onComplete(requestId));
         });
     auto fut = rt->addTask(lambda);
@@ -2353,10 +2370,13 @@ extern "C"
       void (*callback)(TFilamentAsset *))
   {
     auto *rt = RT(tEngine);
+    // Snapshot borrowed FFI storage before returning to Dart. The task owns it.
+    std::vector<uint8_t> owned;
+    if (length != 0) owned.assign(data, data + length);
     std::packaged_task<void()> lambda(
-        [=]() mutable
+        [=, owned = std::move(owned)]() mutable
         {
-          auto loader = GltfAssetLoader_load(tEngine, tAssetLoader, data, length, numInstances);
+          auto loader = GltfAssetLoader_load(tEngine, tAssetLoader, owned.data(), length, numInstances);
 
           setOwner(loader, rt);          PROXY(callback(loader));
         });

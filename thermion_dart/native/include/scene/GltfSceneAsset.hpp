@@ -72,7 +72,7 @@ namespace thermion
 
         MaterialInstance **getMaterialInstances() override
         {
-            return _materialInstances;
+            return _materialInstances.data();
         }
 
         size_t getMaterialInstanceCount() override
@@ -209,7 +209,8 @@ namespace thermion
         gltfio::AssetLoader *_assetLoader;
         Engine *_engine;
         utils::NameComponentManager *_ncm;
-        MaterialInstance **_materialInstances = nullptr;
+        // Own the handle array; the material objects remain caller-owned.
+        std::vector<MaterialInstance*> _materialInstances;
         size_t _materialInstanceCount = 0;
         std::vector<std::unique_ptr<GltfSceneAssetInstance>> _instances;
 

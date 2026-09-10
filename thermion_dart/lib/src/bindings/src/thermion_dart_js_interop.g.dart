@@ -739,6 +739,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Char> uri,
     Pointer<Uint8> data,
     size_t length,
+    Pointer<NativeFunction<void Function(PointerClass<Void> buffer, size_t length, PointerClass<Void> userData)>>
+    onRelease,
+    Pointer<Void> userData,
   );
   external void _GltfResourceLoader_addResourceDataRenderThread(
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
@@ -2069,6 +2072,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int depth,
     int bufferFormat,
     int pixelDataType,
+    Pointer<NativeFunction<void Function(PointerClass<Void> buffer, size_t size, PointerClass<Void> userData)>>
+    onRelease,
+    Pointer<Void> userData,
   );
   external void _Texture_setImageRenderThread(
     Pointer<TEngine> tEngine,
@@ -4504,12 +4510,16 @@ void GltfResourceLoader_addResourceData(
   Pointer<Char> uri,
   Pointer<Uint8> data,
   Dartsize_t length,
+  Pointer<NativeFunction<void Function(Pointer<Void> buffer, size_t length, Pointer<Void> userData)>> onRelease,
+  Pointer<Void> userData,
 ) {
   final result = GeneratedBindings.instance._GltfResourceLoader_addResourceData(
     tGltfResourceLoader.cast(),
     uri,
     data,
     length,
+    onRelease.cast(),
+    userData,
   );
   return result;
 }
@@ -8008,6 +8018,8 @@ bool Texture_setImage(
   int depth,
   int bufferFormat,
   int pixelDataType,
+  Pointer<NativeFunction<void Function(Pointer<Void> buffer, size_t size, Pointer<Void> userData)>> onRelease,
+  Pointer<Void> userData,
 ) {
   final result = GeneratedBindings.instance._Texture_setImage(
     tEngine.cast(),
@@ -8023,6 +8035,8 @@ bool Texture_setImage(
     depth,
     bufferFormat,
     pixelDataType,
+    onRelease.cast(),
+    userData,
   );
   return result == 1;
 }
@@ -12037,7 +12051,7 @@ extension NativeFunctionPointer18<T extends NativeType> on void Function(DartEnt
   }
 }
 
-extension NativeFunctionPointer24<T extends NativeType> on void Function(double) {
+extension NativeFunctionPointer25<T extends NativeType> on void Function(double) {
   Pointer<NativeFunction<void Function(double)>> addFunction() {
     return Pointer<NativeFunction<void Function(double)>>(
       NativeLibrary.instance.addFunction<void Function(double)>(this.toJS, 'vf'),
@@ -12045,7 +12059,7 @@ extension NativeFunctionPointer24<T extends NativeType> on void Function(double)
   }
 }
 
-extension NativeFunctionPointer47<T extends NativeType> on void Function() {
+extension NativeFunctionPointer48<T extends NativeType> on void Function() {
   Pointer<NativeFunction<void Function()>> addFunction() {
     return Pointer<NativeFunction<void Function()>>(
       NativeLibrary.instance.addFunction<void Function()>(this.toJS, 'v'),

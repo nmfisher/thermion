@@ -623,7 +623,9 @@ namespace thermion
             uint32_t height,
             uint32_t depth,
             uint32_t tBufferFormat,
-            uint32_t tPixelDataType)
+            uint32_t tPixelDataType,
+            void (*onRelease)(void *, size_t, void *),
+            void *userData)
         {
             auto engine = reinterpret_cast<filament::Engine *>(tEngine);
 
@@ -632,18 +634,8 @@ namespace thermion
             auto pixelDataType = static_cast<PixelBufferDescriptor::PixelDataType>(tPixelDataType);
             TRACE("Setting texture image for level %d, offset %dx%dx%d, depth %d", level, x_offset, y_offset, z_offset, depth);
 
-            // the texture upload is async, so we need to copy the buffer
-            auto *buffer = new std::vector<uint8_t>(size);
-            std::copy(data, data + size, buffer->begin());
-
-            filament::Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
-                                                                                 void *data)
-            {
-                delete reinterpret_cast<std::vector<uint8_t> *>(data);
-            };
-
             filament::Texture::PixelBufferDescriptor pbd(
-                buffer->data(),
+                data,
                 size,
                 bufferFormat,
                 pixelDataType,
@@ -651,8 +643,8 @@ namespace thermion
                 0, // left
                 0, // top
                 0, // stride
-                freeCallback,
-                buffer);
+                onRelease,
+                userData);
 
             texture->setImage(
                 *engine,

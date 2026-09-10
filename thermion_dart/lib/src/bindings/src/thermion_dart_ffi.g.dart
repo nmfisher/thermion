@@ -1477,13 +1477,29 @@ external int GltfParser_parseBuffer(
 );
 
 @ffi.Native<
-  ffi.Void Function(ffi.Pointer<TGltfResourceLoader>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Uint8>, ffi.Size)
+  ffi.Void Function(
+    ffi.Pointer<TGltfResourceLoader>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Uint8>,
+    ffi.Size,
+    ffi.Pointer<
+      ffi.NativeFunction<
+        ffi.Void Function(ffi.Pointer<ffi.Void> buffer, ffi.Size length, ffi.Pointer<ffi.Void> userData)
+      >
+    >,
+    ffi.Pointer<ffi.Void>,
+  )
 >(isLeaf: true)
 external void GltfResourceLoader_addResourceData(
   ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
   ffi.Pointer<ffi.Char> uri,
   ffi.Pointer<ffi.Uint8> data,
   int length,
+  ffi.Pointer<
+    ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> buffer, ffi.Size length, ffi.Pointer<ffi.Void> userData)>
+  >
+  onRelease,
+  ffi.Pointer<ffi.Void> userData,
 );
 
 @ffi.Native<
@@ -4069,6 +4085,10 @@ external void Texture_setExternalImageRenderThread(
     ffi.Uint32,
     ffi.Uint32,
     ffi.Uint32,
+    ffi.Pointer<
+      ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> buffer, ffi.Size size, ffi.Pointer<ffi.Void> userData)>
+    >,
+    ffi.Pointer<ffi.Void>,
   )
 >(isLeaf: true)
 external bool Texture_setImage(
@@ -4085,6 +4105,11 @@ external bool Texture_setImage(
   int depth,
   int bufferFormat,
   int pixelDataType,
+  ffi.Pointer<
+    ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> buffer, ffi.Size size, ffi.Pointer<ffi.Void> userData)>
+  >
+  onRelease,
+  ffi.Pointer<ffi.Void> userData,
 );
 
 @ffi.Native<

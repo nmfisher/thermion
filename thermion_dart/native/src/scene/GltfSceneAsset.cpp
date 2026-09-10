@@ -43,9 +43,13 @@ namespace thermion
                                         _assetLoader(assetLoader),
                                         _engine(engine),
                                         _ncm(ncm),
-                                        _materialInstances(materialInstances),
+                                        // Create materialInstanceCount null pointer slots for copy_n below.
+                                        // Our own array stays valid after the caller releases theirs.
+                                        // No MaterialInstance objects are created or owned here.
+                                        _materialInstances(materialInstanceCount),
                                         _materialInstanceCount(materialInstanceCount)
     {
+        if (materialInstanceCount) std::copy_n(materialInstances, materialInstanceCount, _materialInstances.data());
         const bool requiresUnwelded =
             (requiredGeometryCapabilities &
              (SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
