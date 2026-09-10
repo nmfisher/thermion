@@ -353,94 +353,144 @@ void main() async {
       );
     });
 
-    test('create skinned geometry with two bones', () async {
-      await ViewerBuilder(testHelper).setRenderTargetEnabled(true).setBackgroundColor(kGrey).execute((result) async {
-        final app = FilamentApp.instance!;
-        final renderableManager = app.renderableManager;
+    for (final inputType in ['matrices', 'bones', 'both']) {
+      test('create skinned geometry with two bones ($inputType)', () async {
+        await ViewerBuilder(testHelper).setRenderTargetEnabled(true).setBackgroundColor(kGrey).execute((result) async {
+          final app = FilamentApp.instance!;
+          final renderableManager = app.renderableManager;
 
-        // Build a skinned quad: bone 0 owns the bottom half (verts 0,1),
-        // bone 1 owns the top half (verts 2,3).
-        final vertexBuffer =
-            await (renderableManager.createVertexBufferBuilder()
-                  ..bufferCount(3)
-                  ..vertexCount(4)
-                  ..attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3)
-                  ..attribute(VertexAttribute.BONE_INDICES, 1, VertexAttributeType.UBYTE4)
-                  ..attribute(VertexAttribute.BONE_WEIGHTS, 2, VertexAttributeType.FLOAT4))
-                .build();
+          // Build a skinned quad: bone 0 owns the bottom half (verts 0,1),
+          // bone 1 owns the top half (verts 2,3).
+          final vertexBuffer =
+              await (renderableManager.createVertexBufferBuilder()
+                    ..bufferCount(3)
+                    ..vertexCount(4)
+                    ..attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3)
+                    ..attribute(VertexAttribute.BONE_INDICES, 1, VertexAttributeType.UBYTE4)
+                    ..attribute(VertexAttribute.BONE_WEIGHTS, 2, VertexAttributeType.FLOAT4))
+                  .build();
 
-        final indexBuffer =
-            await (renderableManager.createIndexBufferBuilder()
-                  ..indexCount(6)
-                  ..bufferType(IndexType.USHORT))
-                .build();
+          final indexBuffer =
+              await (renderableManager.createIndexBufferBuilder()
+                    ..indexCount(6)
+                    ..bufferType(IndexType.USHORT))
+                  .build();
 
-        final positions = Float32List.fromList([
-          -0.5, -0.5, 0.0, // vertex 0 (bottom-left)
-          0.5, -0.5, 0.0, // vertex 1 (bottom-right)
-          0.5, 0.5, 0.0, // vertex 2 (top-right)
-          -0.5, 0.5, 0.0, // vertex 3 (top-left)
-        ]);
-        await vertexBuffer.setBufferAt(0, positions);
+          final positions = Float32List.fromList([
+            -0.5, -0.5, 0.0, // vertex 0 (bottom-left)
+            0.5, -0.5, 0.0, // vertex 1 (bottom-right)
+            0.5, 0.5, 0.0, // vertex 2 (top-right)
+            -0.5, 0.5, 0.0, // vertex 3 (top-left)
+          ]);
+          await vertexBuffer.setBufferAt(0, positions);
 
-        final boneIndices = Uint8List.fromList([
-          0, 0, 0, 0, // vertex 0: bone 0
-          0, 0, 0, 0, // vertex 1: bone 0
-          1, 0, 0, 0, // vertex 2: bone 1
-          1, 0, 0, 0, // vertex 3: bone 1
-        ]);
-        await vertexBuffer.setBufferAt(1, boneIndices);
+          final boneIndices = Uint8List.fromList([
+            0, 0, 0, 0, // vertex 0: bone 0
+            0, 0, 0, 0, // vertex 1: bone 0
+            1, 0, 0, 0, // vertex 2: bone 1
+            1, 0, 0, 0, // vertex 3: bone 1
+          ]);
+          // Use a supported typed-data view on web; the UBYTE4 bytes are unchanged.
+          await vertexBuffer.setBufferAt(1, boneIndices.buffer.asUint16List());
 
-        final boneWeights = Float32List.fromList([
-          1.0, 0.0, 0.0, 0.0, // vertex 0: 100% bone 0
-          1.0, 0.0, 0.0, 0.0, // vertex 1: 100% bone 0
-          1.0, 0.0, 0.0, 0.0, // vertex 2: 100% bone 1
-          1.0, 0.0, 0.0, 0.0, // vertex 3: 100% bone 1
-        ]);
-        await vertexBuffer.setBufferAt(2, boneWeights);
+          final boneWeights = Float32List.fromList([
+            1.0, 0.0, 0.0, 0.0, // vertex 0: 100% bone 0
+            1.0, 0.0, 0.0, 0.0, // vertex 1: 100% bone 0
+            1.0, 0.0, 0.0, 0.0, // vertex 2: 100% bone 1
+            1.0, 0.0, 0.0, 0.0, // vertex 3: 100% bone 1
+          ]);
+          await vertexBuffer.setBufferAt(2, boneWeights);
 
-        await indexBuffer.setBuffer(Uint16List.fromList([0, 1, 2, 2, 3, 0]));
+          await indexBuffer.setBuffer(Uint16List.fromList([0, 1, 2, 2, 3, 0]));
 
-        final material = await app.createUnlitMaterialInstance();
-        await material.setParameterFloat4("baseColorFactor", 1.0, 0.5, 0.0, 1.0); // Orange
+          final material = await app.createUnlitMaterialInstance();
+          await material.setParameterFloat4("baseColorFactor", 1.0, 0.5, 0.0, 1.0); // Orange
 
-        final entity = await app.createEntity();
-        final renderableBuilder = renderableManager.createBuilder(1)
-          ..boundingBox(Aabb3.minMax(Vector3(-0.5, -0.5, 0.0), Vector3(0.5, 0.5, 0.0)))
-          ..geometry(0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, 6)
-          ..material(0, material)
-          ..skinning(2, [Matrix4.identity(), Matrix4.identity()]);
+          final entity = await app.createEntity();
+          final renderableBuilder = renderableManager.createBuilder(1)
+            ..boundingBox(Aabb3.minMax(Vector3(-0.5, -0.5, 0.0), Vector3(0.5, 0.5, 0.0)))
+            ..geometry(0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, 6)
+            ..material(0, material);
 
-        final success = await renderableBuilder.build(entity);
-        expect(success, true);
+          final transforms = [Matrix4.identity(), Matrix4.identity()];
+          final initialBones = [BoneData.identity(), BoneData.identity()];
+          if (inputType == 'matrices') {
+            renderableBuilder.skinning(2, transforms);
+          } else {
+            renderableBuilder.skinningFromBone(2, initialBones);
+          }
+          // The setters must preserve their values until build(), even when the
+          // caller changes the original objects and yields before building.
+          for (final transform in transforms) {
+            transform.setTranslation(Vector3(100, 0, 0));
+          }
+          for (final bone in initialBones) {
+            bone.translation.x = 100;
+          }
+          if (inputType == 'both') {
+            // Preserve Filament's Bone-over-matrix precedence, even when the
+            // matrix setter is called last with a pose outside the camera view.
+            renderableBuilder.skinning(2, transforms);
+          }
+          await Future<void>.delayed(Duration.zero);
 
-        final scene = await result.viewer.view.getScene();
-        await scene.addEntity(entity);
+          final success = await renderableBuilder.build(entity);
+          expect(success, true);
 
-        final camera = await result.viewer.view.getCamera();
-        await camera.lookAt(Vector3(0, 0, 2), focus: Vector3.zero(), up: Vector3(0, 1, 0));
+          final scene = await result.viewer.view.getScene();
+          await scene.addEntity(entity);
 
-        // Initial pose: both bones identity.
-        await testHelper.capture(result.viewer.view, "skinned_initial_pose");
+          final camera = await result.viewer.view.getCamera();
+          await camera.lookAt(Vector3(0, 0, 2), focus: Vector3.zero(), up: Vector3(0, 1, 0));
 
-        // Rotate bone 1 (top half) ~45 degrees around Z.
-        await renderableManager.setBonesFromMat4(entity, [Matrix4.identity(), Matrix4.rotationZ(0.78)]);
-        await testHelper.capture(result.viewer.view, "skinned_after_bone_rotation");
+          // Initial pose: both bones identity.
+          final initial = await testHelper.capture(result.viewer.view, "skinned_initial_pose_$inputType");
+          int foregroundPixelCount(Uint8List buffer) {
+            final pixels = buffer.buffer.asFloat32List(buffer.offsetInBytes, buffer.lengthInBytes ~/ 4);
+            var count = 0;
+            for (var i = 0; i < pixels.length; i += 4) {
+              // Compare against the grey background in the corner, independently
+              // of the material's colour or the backend's colour conversion.
+              final difference =
+                  (pixels[i] - pixels[0]).abs() + (pixels[i + 1] - pixels[1]).abs() + (pixels[i + 2] - pixels[2]).abs();
+              if (difference > 0.2) count++;
+            }
+            return count;
+          }
 
-        expect(renderableManager.isRenderable(entity), true);
+          expect(
+            foregroundPixelCount(initial[result.viewer.view]!),
+            greaterThan(100),
+            reason: 'The original identity pose must remain visible',
+          );
 
-        // Same update via BoneData (quaternion+translation) path.
-        final boneData = [
-          BoneData(rotation: Quaternion.identity(), translation: Vector3.zero()),
-          BoneData(rotation: Quaternion.axisAngle(Vector3(0, 0, 1), 1.57), translation: Vector3(0.0, 0.5, 0.0)),
-        ];
-        await renderableManager.setBonesFromBone(entity, boneData);
-        await testHelper.capture(result.viewer.view, "skinned_after_bonedata_update");
+          // Rotate bone 1 (top half) ~45 degrees around Z.
+          await renderableManager.setBonesFromMat4(entity, [Matrix4.identity(), Matrix4.rotationZ(0.78)]);
+          await testHelper.capture(result.viewer.view, "skinned_after_bone_rotation");
 
-        await vertexBuffer.destroy();
-        await indexBuffer.destroy();
+          expect(renderableManager.isRenderable(entity), true);
+
+          // Same update via BoneData (quaternion+translation) path.
+          final boneData = [
+            BoneData(rotation: Quaternion.identity(), translation: Vector3.zero()),
+            BoneData(rotation: Quaternion.axisAngle(Vector3(0, 0, 1), 1.57), translation: Vector3(0.0, 0.5, 0.0)),
+          ];
+          await renderableManager.setBonesFromBone(entity, boneData);
+          await testHelper.capture(result.viewer.view, "skinned_after_bonedata_update");
+
+          await renderableManager.setBonesFromMat4(entity, transforms);
+          final moved = await testHelper.capture(result.viewer.view, null);
+          expect(
+            foregroundPixelCount(moved[result.viewer.view]!),
+            0,
+            reason: 'Using the mutated transforms must move the mesh outside the view',
+          );
+
+          await vertexBuffer.destroy();
+          await indexBuffer.destroy();
+        });
       });
-    });
+    }
 
     test('morph target operations', () async {
       // Note: This test uses a cube which doesn't have morph targets,

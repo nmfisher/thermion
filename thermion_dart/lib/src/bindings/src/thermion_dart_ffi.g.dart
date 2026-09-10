@@ -2745,6 +2745,27 @@ external void RenderableBuilder_buildRenderThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int)>> onComplete,
 );
 
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TRenderableBuilder>,
+    ffi.Pointer<TEngine>,
+    EntityId,
+    ffi.Size,
+    ffi.Pointer<ffi.Float>,
+    ffi.Bool,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int)>>,
+  )
+>(isLeaf: true)
+external void RenderableBuilder_buildWithSkinningRenderThread(
+  ffi.Pointer<TRenderableBuilder> tBuilder,
+  ffi.Pointer<TEngine> tEngine,
+  int entityId,
+  int boneCount,
+  ffi.Pointer<ffi.Float> data,
+  bool boneData,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int)>> onComplete,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Bool)>(isLeaf: true)
 external void RenderableBuilder_castShadows(ffi.Pointer<TRenderableBuilder> builder, bool enabled);
 
