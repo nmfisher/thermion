@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <atomic>
 #include <math/mat4.h>
 #include <functional>
@@ -1975,6 +1976,9 @@ extern "C"
       void (*onComplete)(bool))
   {
     auto *rt = RT(tEngine);
+    // Copy borrowed Dart pixels once, before returning from this FFI call.
+    auto *buffer = new uint8_t[size];
+    if (size != 0) std::copy_n(data, size, buffer);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1982,7 +1986,7 @@ extern "C"
               tEngine,
               tTexture,
               level,
-              data,
+              buffer,
               size,
               x_offset,
               y_offset,
@@ -1991,7 +1995,10 @@ extern "C"
               height,
               depth,
               bufferFormat,
-              pixelDataType);
+              pixelDataType,
+              [](void *pixels, size_t, void *) {
+                delete[] static_cast<uint8_t*>(pixels);
+              }, nullptr);
           PROXY(onComplete(result));
         });
     auto fut = rt->addTask(lambda);
