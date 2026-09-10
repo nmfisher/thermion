@@ -5,6 +5,7 @@
 #endif
 
 #include "c_api/TEngine.h"
+#include "c_api/TMaterialPackage.h"
 
 #include <filament/Camera.h>
 #include <backend/DriverEnums.h>
@@ -281,6 +282,12 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Engine_buildMaterial(TEngine *tEngine, const uint8_t *materialData, size_t length)
         {
+            // Reject stale packages before Filament's parser can panic. Keep
+            // this check for native callers as well as Dart's preflight check.
+            if (Material_getPackageVersion(materialData, length) != Material_getSupportedVersion()) {
+                Log("Invalid material package layout or incompatible material version");
+                return nullptr;
+            }
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *material = Material::Builder()
                                  .package(materialData, length)

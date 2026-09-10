@@ -634,15 +634,40 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return _boneOverlayMaterial!;
   }
 
-  //
+  @override
+  int get materialVersion => Material_getSupportedVersion();
+
+  @override
   Future<Material> createMaterial(Uint8List data) async {
-    var ptr = await withPointerCallback<TMaterial>((cb) {
-      Engine_buildMaterialRenderThread(engine, data.address, data.length, cb);
-    });
-    if (FILAMENT_WASM) {
-      data.free();
+    if (data.isEmpty) {
+      throw const FormatException('Material package is empty.');
     }
-    return FFIMaterial(ptr, this);
+    // Validate and build the same snapshot. The caller may reuse its Dart data
+    // while the render-thread task is pending; keep this copy until completion.
+    final package = allocate<Uint8>(data.length);
+    try {
+      package.asTypedList(data.length).setAll(0, data);
+      final actualVersion = Material_getPackageVersion(package, data.length).toInt();
+      if (actualVersion < 0) {
+        throw const FormatException('Invalid material package chunk layout or version metadata.');
+      }
+      final expectedVersion = materialVersion;
+      if (actualVersion != expectedVersion) {
+        throw FormatException(
+          'Material format version $actualVersion is incompatible with expected '
+          'version $expectedVersion. Recompile using matc from the same Filament release as this application.',
+        );
+      }
+      final ptr = await withPointerCallback<TMaterial>((cb) {
+        Engine_buildMaterialRenderThread(engine, package, data.length, cb);
+      });
+      if (ptr == nullptr) {
+        throw StateError('Filament could not create the material.');
+      }
+      return FFIMaterial(ptr, this);
+    } finally {
+      free(package);
+    }
   }
 
   //

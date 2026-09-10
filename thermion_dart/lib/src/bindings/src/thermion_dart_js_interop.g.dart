@@ -456,6 +456,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     double intensity,
     Pointer<NativeFunction<void Function(PointerClass<TIndirectLight>)>> onComplete,
   );
+
+  /// Returns null for an invalid chunk layout or incompatible material version.
+  /// Matching versions do not guarantee valid payloads or backend compatibility.
   external Pointer<TMaterial> _Engine_buildMaterial(
     Pointer<TEngine> tEngine,
     Pointer<Uint8> materialData,
@@ -1249,6 +1252,17 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external int _Material_getBlendingMode(Pointer<TMaterial> material);
   external int _Material_getFeatureLevel(Pointer<TMaterial> tMaterial);
+
+  /// Reads the material format version, or returns -1 for an invalid chunk layout
+  /// or a missing, duplicate, or incorrectly sized MAT_VERS chunk.
+  /// Checks chunk boundaries without parsing their payloads. A nonnegative result
+  /// does not establish that the package is complete or valid for a given backend.
+  /// Reads synchronously and does not retain data. No engine is required.
+  external JSBigInt _Material_getPackageVersion(Pointer<Uint8> data, size_t length);
+
+  /// Material package format version expected by the linked Filament build.
+  /// This is distinct from the Filament release version.
+  external int _Material_getSupportedVersion();
   external int _Material_hasParameter(Pointer<TMaterial> tMaterial, Pointer<Char> propertyName);
   external void _MeshData_dispose(Pointer<TMeshData> meshData);
   external void _MovementIntentExecutor_destroy(Pointer<TMovementIntentExecutor> executor);
@@ -3676,6 +3690,8 @@ void Engine_buildIndirectLightFromIrradianceTextureRenderThread(
   return result;
 }
 
+/// Returns null for an invalid chunk layout or incompatible material version.
+/// Matching versions do not guarantee valid payloads or backend compatibility.
 Pointer<TMaterial> Engine_buildMaterial(Pointer<TEngine> tEngine, Pointer<Uint8> materialData, Dartsize_t length) {
   final result = GeneratedBindings.instance._Engine_buildMaterial(tEngine.cast(), materialData, length);
   return Pointer<TMaterial>(result);
@@ -5804,6 +5820,23 @@ int Material_getBlendingMode(Pointer<TMaterial> material) {
 
 int Material_getFeatureLevel(Pointer<TMaterial> tMaterial) {
   final result = GeneratedBindings.instance._Material_getFeatureLevel(tMaterial.cast());
+  return result;
+}
+
+/// Reads the material format version, or returns -1 for an invalid chunk layout
+/// or a missing, duplicate, or incorrectly sized MAT_VERS chunk.
+/// Checks chunk boundaries without parsing their payloads. A nonnegative result
+/// does not establish that the package is complete or valid for a given backend.
+/// Reads synchronously and does not retain data. No engine is required.
+BigInt Material_getPackageVersion(Pointer<Uint8> data, Dartsize_t length) {
+  final result = GeneratedBindings.instance._Material_getPackageVersion(data, length);
+  return result.toDart;
+}
+
+/// Material package format version expected by the linked Filament build.
+/// This is distinct from the Filament release version.
+int Material_getSupportedVersion() {
+  final result = GeneratedBindings.instance._Material_getSupportedVersion();
   return result;
 }
 
