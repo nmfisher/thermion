@@ -1362,6 +1362,15 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     EntityId entityId,
     Pointer<NativeFunction<void Function(int)>> onComplete,
   );
+  external void _RenderableBuilder_buildWithSkinningRenderThread(
+    Pointer<TRenderableBuilder> tBuilder,
+    Pointer<TEngine> tEngine,
+    EntityId entityId,
+    size_t boneCount,
+    Pointer<Float32> data,
+    bool boneData,
+    Pointer<NativeFunction<void Function(int)>> onComplete,
+  );
   external void _RenderableBuilder_castShadows(Pointer<TRenderableBuilder> builder, bool enabled);
   external void _RenderableBuilder_channel(Pointer<TRenderableBuilder> builder, int channel);
   external Pointer<TRenderableBuilder> _RenderableBuilder_create(size_t primitiveCount);
@@ -6135,6 +6144,27 @@ void RenderableBuilder_buildRenderThread(
     tBuilder.cast(),
     tEngine.cast(),
     entityId,
+    onComplete.cast(),
+  );
+  return result;
+}
+
+void RenderableBuilder_buildWithSkinningRenderThread(
+  Pointer<TRenderableBuilder> tBuilder,
+  Pointer<TEngine> tEngine,
+  DartEntityId entityId,
+  Dartsize_t boneCount,
+  Pointer<Float32> data,
+  bool boneData,
+  Pointer<NativeFunction<void Function(int)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._RenderableBuilder_buildWithSkinningRenderThread(
+    tBuilder.cast(),
+    tEngine.cast(),
+    entityId,
+    boneCount,
+    data,
+    boneData,
     onComplete.cast(),
   );
   return result;

@@ -1,6 +1,7 @@
 #include <array>
 #include <algorithm>
 #include <atomic>
+#include <cstring>
 #include <math/mat4.h>
 #include <functional>
 #include <mutex>
@@ -2738,6 +2739,38 @@ extern "C"
 
           auto result = builder->build(*engine, entity);
           PROXY(onComplete(static_cast<int>(result)));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderableBuilder_buildWithSkinningRenderThread(
+      TRenderableBuilder *tBuilder,
+      TEngine *tEngine,
+      EntityId entityId,
+      size_t boneCount,
+      const float *data,
+      bool boneData,
+      void (*onComplete)(int))
+  {
+    auto *rt = RT(tEngine);
+    // Use typed storage for Filament's alignment requirements. Only the selected
+    // representation allocates; Dart's borrowed pointer is consumed here.
+    std::vector<filament::math::mat4f> matrices(boneData ? 0 : boneCount);
+    std::vector<filament::RenderableManager::Bone> bones(boneData ? boneCount : 0);
+    if (!matrices.empty()) std::memcpy(matrices.data(), data, matrices.size() * sizeof(matrices[0]));
+    if (!bones.empty()) std::memcpy(bones.data(), data, bones.size() * sizeof(bones[0]));
+    std::packaged_task<void()> lambda(
+        [=, matrices = std::move(matrices), bones = std::move(bones)]() mutable
+        {
+          auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+          if (boneData) {
+            builder->skinning(boneCount, bones.data());
+          } else {
+            builder->skinning(boneCount, matrices.data());
+          }
+          // Filament reads the pointers during build(), while the task owns them.
+          auto result = RenderableBuilder_build(tBuilder, tEngine, entityId);
+          PROXY(onComplete(result));
         });
     auto fut = rt->addTask(lambda);
   }

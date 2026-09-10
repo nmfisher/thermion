@@ -476,6 +476,20 @@ namespace thermion
             void (*onComplete)(int)
         );
 
+        // Copy skinning data before returning, then apply it and build in one
+        // render-thread task. data contains boneCount * 8 floats for Bone data,
+        // or boneCount * 16 floats for matrices. The task releases the copy.
+        // Keep tBuilder alive until onComplete, as with buildRenderThread.
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_buildWithSkinningRenderThread(
+            TRenderableBuilder *tBuilder,
+            TEngine *tEngine,
+            EntityId entityId,
+            size_t boneCount,
+            const float *data,
+            bool boneData,
+            void (*onComplete)(int)
+        );
+
         EMSCRIPTEN_KEEPALIVE void EntityManager_createEntityRenderThread(TEntityManager *tEntityManager, void (*onComplete)(EntityId));
         EMSCRIPTEN_KEEPALIVE void EntityManager_destroyEntityRenderThread(TEntityManager *tEntityManager, EntityId entityId, uint32_t requestId, VoidCallback onComplete);
 
