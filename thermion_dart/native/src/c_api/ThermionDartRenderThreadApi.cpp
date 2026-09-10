@@ -1976,14 +1976,8 @@ extern "C"
       void (*onComplete)(bool))
   {
     auto *rt = RT(tEngine);
-    // This stack-only guard frees the pixels if constructing or enqueueing the
-    // task fails. Accepted tasks are drained before the render thread shuts down.
-    struct PendingPixels {
-      uint8_t *data;
-      ~PendingPixels() { delete[] data; }
-    } pending{new uint8_t[size]};
-    auto *buffer = pending.data;
     // Copy borrowed Dart pixels once, before returning from this FFI call.
+    auto *buffer = new uint8_t[size];
     if (size != 0) std::copy_n(data, size, buffer);
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -2008,8 +2002,6 @@ extern "C"
           PROXY(onComplete(result));
         });
     auto fut = rt->addTask(lambda);
-    // The queued task now hands the allocation to Filament's release callback.
-    pending.data = nullptr;
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderTarget_getColorTextureRenderThread(TRenderTarget *tRenderTarget, void (*onComplete)(TTexture *))
