@@ -389,7 +389,9 @@ jobs:
           github-token: ${{ github.token }}
           # To refresh every baseline, first push a capture-only commit,
           # inspect its dart-*-output-* artifacts, then update this run ID.
-          run-id: 32812764648
+          # Filament 1.76: reviewed all 631 images; only the Linux/Windows
+          # PCSS per-light shadow edges changed, identically across two runs.
+          run-id: 34490792201
           name: ${{ matrix.artifact }}
           path: thermion_dart/test/golden-baseline
 
