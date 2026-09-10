@@ -22,7 +22,19 @@
 - camera/entity manipulation with mouse (desktop) and gestures (mobile)
 - skinning + morph animations
 
-Uses the Filament PBR engine (currently v1.69.1).
+Uses the Filament PBR engine.
+
+### Custom material compatibility
+
+After initializing Filament, `FilamentApp.instance!.materialVersion` gives the
+material format number reported by `matc --version`. This number is distinct
+from the Filament release version. Compile custom materials with `matc` from
+the same Filament release as the application.
+
+`createMaterial` rejects incompatible format versions and malformed chunk
+layouts with a Dart `FormatException` before calling Filament's material
+builder. It does not validate every payload or backend requirement; other
+invalid packages can still cause a native panic.
 
 ### Quickstart (Flutter)
 

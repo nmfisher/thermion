@@ -888,6 +888,8 @@ external void Engine_buildIndirectLightFromIrradianceTextureRenderThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TIndirectLight>)>> onComplete,
 );
 
+/// Returns null for an invalid chunk layout or incompatible material version.
+/// Matching versions do not guarantee valid payloads or backend compatibility.
 @ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>, ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
 external ffi.Pointer<TMaterial> Engine_buildMaterial(
   ffi.Pointer<TEngine> tEngine,
@@ -2506,6 +2508,19 @@ external int Material_getBlendingMode(ffi.Pointer<TMaterial> material);
 
 @ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TMaterial>)>(isLeaf: true)
 external int Material_getFeatureLevel(ffi.Pointer<TMaterial> tMaterial);
+
+/// Reads the material format version, or returns -1 for an invalid chunk layout
+/// or a missing, duplicate, or incorrectly sized MAT_VERS chunk.
+/// Checks chunk boundaries without parsing their payloads. A nonnegative result
+/// does not establish that the package is complete or valid for a given backend.
+/// Reads synchronously and does not retain data. No engine is required.
+@ffi.Native<ffi.Int64 Function(ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
+external int Material_getPackageVersion(ffi.Pointer<ffi.Uint8> data, int length);
+
+/// Material package format version expected by the linked Filament build.
+/// This is distinct from the Filament release version.
+@ffi.Native<ffi.Uint32 Function()>(isLeaf: true)
+external int Material_getSupportedVersion();
 
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TMaterial>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
 external bool Material_hasParameter(ffi.Pointer<TMaterial> tMaterial, ffi.Pointer<ffi.Char> propertyName);

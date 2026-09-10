@@ -607,7 +607,10 @@ extern "C"
         {
           auto material = Engine_buildMaterial(tEngine, owned.data(), length);
 
-          setOwner(material, rt);          PROXY(onComplete(material));
+          if (material) {
+            setOwner(material, rt);
+          }
+          PROXY(onComplete(material));
         });
     auto fut = rt->addTask(lambda);
   }
