@@ -1,3 +1,5 @@
+#include <utils/Panic.h>
+
 #include "vulkan/VulkanUtils.h"
 
 #include "Log.hpp"
@@ -184,7 +186,7 @@ uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, V
         }
     }
     
-    throw std::runtime_error("Failed to find suitable memory type");
+    PANIC_POSTCONDITION("Failed to find suitable memory type");
 }
 
 
@@ -263,7 +265,7 @@ uint32_t findGraphicsQueueFamily(VkPhysicalDevice physicalDevice) {
         }
     }
 
-    throw std::runtime_error("Failed to find graphics queue family");
+    PANIC_POSTCONDITION("Failed to find graphics queue family");
 }
 
 
@@ -303,7 +305,7 @@ CommandResources createCommandResources(VkDevice device, VkPhysicalDevice physic
     poolInfo.queueFamilyIndex = resources.queueFamilyIndex;
 
     if (vkCreateCommandPool(device, &poolInfo, nullptr, &resources.commandPool) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create command pool");
+        PANIC_POSTCONDITION("Failed to create command pool");
     }
 
     return resources;
@@ -329,7 +331,7 @@ void readVkImageToBitmap(
     VkBuffer stagingBuffer;
     VkResult result = vkCreateBuffer(device, &bufferInfo, nullptr, &stagingBuffer);
     if (result != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create staging buffer");
+        PANIC_POSTCONDITION("Failed to create staging buffer");
     }
 
     // Get memory requirements and properties
@@ -354,7 +356,7 @@ void readVkImageToBitmap(
 
     if (memoryTypeIndex == -1) {
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to find suitable memory type");
+        PANIC_POSTCONDITION("Failed to find suitable memory type");
     }
 
     // Allocate memory
@@ -367,7 +369,7 @@ void readVkImageToBitmap(
     result = vkAllocateMemory(device, &allocInfo, nullptr, &stagingMemory);
     if (result != VK_SUCCESS) {
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to allocate staging memory");
+        PANIC_POSTCONDITION("Failed to allocate staging memory");
     }
 
     // Bind memory to buffer
@@ -375,7 +377,7 @@ void readVkImageToBitmap(
     if (result != VK_SUCCESS) {
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to bind buffer memory");
+        PANIC_POSTCONDITION("Failed to bind buffer memory");
     }
 
     // Create command buffer
@@ -390,7 +392,7 @@ void readVkImageToBitmap(
     if (result != VK_SUCCESS) {
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to allocate command buffer");
+        PANIC_POSTCONDITION("Failed to allocate command buffer");
     }
 
     // Begin command buffer
@@ -403,7 +405,7 @@ void readVkImageToBitmap(
         vkFreeCommandBuffers(device, commandPool, 1, &cmdBuffer);
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to begin command buffer");
+        PANIC_POSTCONDITION("Failed to begin command buffer");
     }
 
     // Transition image layout for transfer
@@ -475,7 +477,7 @@ void readVkImageToBitmap(
         vkFreeCommandBuffers(device, commandPool, 1, &cmdBuffer);
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to end command buffer");
+        PANIC_POSTCONDITION("Failed to end command buffer");
     }
 
     // Submit command buffer
@@ -494,7 +496,7 @@ void readVkImageToBitmap(
         vkFreeCommandBuffers(device, commandPool, 1, &cmdBuffer);
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to create fence");
+        PANIC_POSTCONDITION("Failed to create fence");
     }
 
     // Submit with fence
@@ -504,7 +506,7 @@ void readVkImageToBitmap(
         vkFreeCommandBuffers(device, commandPool, 1, &cmdBuffer);
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to submit queue");
+        PANIC_POSTCONDITION("Failed to submit queue");
     }
 
     // Wait for the command buffer to complete execution
@@ -514,7 +516,7 @@ void readVkImageToBitmap(
         vkFreeCommandBuffers(device, commandPool, 1, &cmdBuffer);
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to wait for fence");
+        PANIC_POSTCONDITION("Failed to wait for fence");
     }
 
     // Now safe to map memory and read data
@@ -525,7 +527,7 @@ void readVkImageToBitmap(
         vkFreeCommandBuffers(device, commandPool, 1, &cmdBuffer);
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to map memory");
+        PANIC_POSTCONDITION("Failed to map memory");
     }
 
     // Create bitmap header
@@ -550,7 +552,7 @@ void readVkImageToBitmap(
         vkFreeCommandBuffers(device, commandPool, 1, &cmdBuffer);
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to open output file");
+        PANIC_POSTCONDITION("Failed to open output file");
     }
 
     file.write(reinterpret_cast<char*>(&header), sizeof(header));
@@ -666,7 +668,7 @@ void createDeviceWithGraphicsQueue(VkPhysicalDevice physicalDevice, uint32_t& qu
     createInfo.pEnabledFeatures = &deviceFeatures;
     
     if (vkCreateDevice(physicalDevice, &createInfo, nullptr, device) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create logical device");
+        PANIC_POSTCONDITION("Failed to create logical device");
     }
 }
 
