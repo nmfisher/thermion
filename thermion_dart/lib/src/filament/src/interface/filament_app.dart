@@ -131,7 +131,8 @@ abstract class FilamentApp<T> {
   /// Filament release version.
   int get materialVersion;
 
-  /// Creates a material from a compiled `.filamat` package, copying [data].
+  /// Creates a material from a compiled `.filamat` package. Native code copies
+  /// [data] before queuing the build, so the caller can reuse it after this call.
   ///
   /// Throws [FormatException] for malformed chunk boundaries, missing or invalid
   /// version metadata, or a format version different from [materialVersion].

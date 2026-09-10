@@ -642,12 +642,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (data.isEmpty) {
       throw const FormatException('Material package is empty.');
     }
-    // Validate and build the same snapshot. The caller may reuse its Dart data
-    // while the render-thread task is pending; keep this copy until completion.
-    final package = allocate<Uint8>(data.length);
     try {
-      package.asTypedList(data.length).setAll(0, data);
-      final actualVersion = Material_getPackageVersion(package, data.length).toInt();
+      // Each .address is a separate synchronous borrow. The render-thread
+      // entry point snapshots in native code before returning, and the native
+      // builder checks that snapshot again before passing it to Filament.
+      final actualVersion = Material_getPackageVersion(data.address, data.length).toInt();
       if (actualVersion < 0) {
         throw const FormatException('Invalid material package chunk layout or version metadata.');
       }
@@ -659,14 +658,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         );
       }
       final ptr = await withPointerCallback<TMaterial>((cb) {
-        Engine_buildMaterialRenderThread(engine, package, data.length, cb);
+        Engine_buildMaterialRenderThread(engine, data.address, data.length, cb);
       });
       if (ptr == nullptr) {
         throw StateError('Filament could not create the material.');
       }
       return FFIMaterial(ptr, this);
     } finally {
-      free(package);
+      if (FILAMENT_WASM) data.free();
     }
   }
 

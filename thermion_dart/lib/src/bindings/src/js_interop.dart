@@ -171,7 +171,6 @@ Pointer<T> allocate<T extends NativeType>(int byteCount) {
   switch (T) {
     case PointerClass:
     case Char:
-    case Uint8:
       return malloc(byteCount);
     default:
       throw Exception(T.toString());

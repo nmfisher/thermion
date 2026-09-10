@@ -5,12 +5,10 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.d
 import 'src/test_io.dart';
 
 int readPackageVersion(Uint8List bytes) {
-  final data = allocate<Uint8>(bytes.length);
   try {
-    data.asTypedList(bytes.length).setAll(0, bytes);
-    return Material_getPackageVersion(data, bytes.length).toInt();
+    return Material_getPackageVersion(bytes.address, bytes.length).toInt();
   } finally {
-    free(data);
+    if (FILAMENT_WASM) bytes.free();
   }
 }
 
@@ -127,15 +125,13 @@ void main() {
 
     test('native render-thread path completes with null for rejected packages', () async {
       for (final bytes in [withVersion(69), ...malformedPackages().values.where((bytes) => bytes.isNotEmpty)]) {
-        final data = allocate<Uint8>(bytes.length);
         try {
-          data.asTypedList(bytes.length).setAll(0, bytes);
           final material = await withPointerCallback<TMaterial>((callback) {
-            Engine_buildMaterialRenderThread(app.engine, data, bytes.length, callback);
+            Engine_buildMaterialRenderThread(app.engine, bytes.address, bytes.length, callback);
           }).timeout(const Duration(seconds: 5));
           expect(material, nullptr);
         } finally {
-          free(data);
+          if (FILAMENT_WASM) bytes.free();
         }
       }
       final material = await app.createMaterial(validPackage).timeout(const Duration(seconds: 5));
