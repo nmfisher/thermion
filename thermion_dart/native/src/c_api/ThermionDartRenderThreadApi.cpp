@@ -1,3 +1,4 @@
+#include "ResourceUpload.hpp"
 #include <atomic>
 #include <math/mat4.h>
 #include <functional>
@@ -2289,10 +2290,12 @@ extern "C"
       uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tGltfResourceLoader);
+    std::vector<uint8_t> owned(data, data + length);
+    std::string ownedUri(uri);
     std::packaged_task<void()> lambda(
-        [=]() mutable
+        [=, owned = std::move(owned), ownedUri = std::move(ownedUri)]() mutable
         {
-          GltfResourceLoader_addResourceData(tGltfResourceLoader, uri, data, length);
+          GltfResourceLoader_addResourceDataOwned(tGltfResourceLoader, ownedUri.c_str(), std::move(owned));
           PROXY(onComplete(requestId));
         });
     auto fut = rt->addTask(lambda);

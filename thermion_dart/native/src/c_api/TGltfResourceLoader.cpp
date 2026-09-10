@@ -1,3 +1,4 @@
+#include "ResourceUpload.hpp"
  
 
 #include "c_api/TGltfResourceLoader.h"
@@ -56,16 +57,21 @@ EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroy(TEngine *tEngine, TGltfReso
     delete gltfResourceLoader;
 }
 
-EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceData(TGltfResourceLoader *tGltfResourceLoader, const char *uri, uint8_t *data, size_t length) {
-    TRACE("Adding data (length %d) for glTF resource URI %s", length, uri);
-    auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
-    auto *vec = new std::vector<uint8_t>(data, data + length);
+EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceData(TGltfResourceLoader *loader, const char *uri, uint8_t *data, size_t length) {
+    GltfResourceLoader_addResourceDataOwned(loader, uri, std::vector<uint8_t>(data, data + length));
+}
+
+} // extern "C"
+void GltfResourceLoader_addResourceDataOwned(TGltfResourceLoader *loader, const char *uri, std::vector<uint8_t>&& data) {
+    TRACE("Adding data (length %d) for glTF resource URI %s", data.size(), uri);
+    auto *gltfResourceLoader = reinterpret_cast<filament::gltfio::ResourceLoader *>(loader);
+    auto *vec = new std::vector<uint8_t>(std::move(data));
     gltfResourceLoader->addResourceData(uri, {
-        vec->data(),
-        vec->size(),
+        vec->data(), vec->size(),
         [](void *, size_t, void *user) { delete static_cast<std::vector<uint8_t>*>(user); },
         vec});
 }
+extern "C" {
 
 EMSCRIPTEN_KEEPALIVE bool GltfResourceLoader_loadResources(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset) {    
     auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
