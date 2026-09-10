@@ -1,3 +1,4 @@
+#include "TextureUpload.hpp"
 #include <atomic>
 #include <math/mat4.h>
 #include <functional>
@@ -1975,15 +1976,15 @@ extern "C"
       void (*onComplete)(bool))
   {
     auto *rt = RT(tEngine);
+    std::vector<uint8_t> owned(data, data + size);
     std::packaged_task<void()> lambda(
-        [=]() mutable
+        [=, owned = std::move(owned)]() mutable
         {
-          bool result = Texture_setImage(
+          bool result = Texture_setImageOwned(
               tEngine,
               tTexture,
               level,
-              data,
-              size,
+              std::move(owned),
               x_offset,
               y_offset,
               z_offset,
