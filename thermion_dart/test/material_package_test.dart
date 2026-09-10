@@ -102,7 +102,11 @@ void main() {
             isA<FormatException>()
                 .having((e) => e.message, 'actual version', contains('$version'))
                 .having((e) => e.message, 'expected version', contains('${app.materialVersion}'))
-                .having((e) => e.message, 'matching compiler', contains('Recompile using matc from the same Filament release')),
+                .having(
+                  (e) => e.message,
+                  'matching compiler',
+                  contains('Recompile using matc from the same Filament release'),
+                ),
           ),
         );
       }
