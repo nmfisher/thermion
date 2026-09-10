@@ -1631,6 +1631,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     JSBigInt frameTimeInNanos,
     Pointer<NativeFunction<void Function(bool)>> onComplete,
   );
+  external void _Renderer_copyPixelsAndRelease(Pointer<Uint8> pixels, Pointer<Uint8> out, size_t length);
   external void _Renderer_endFrame(Pointer<TRenderer> tRenderer);
   external void _Renderer_endFrameRenderThread(Pointer<TRenderer> tRenderer, int requestId, VoidCallback onComplete);
   external void _Renderer_readPixels(
@@ -1642,8 +1643,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TRenderTarget> tRenderTarget,
     int tPixelBufferFormat,
     int tPixelDataType,
-    Pointer<Uint8> out,
     size_t outLength,
+    Pointer<NativeFunction<void Function(PointerClass<Uint8>)>> onComplete,
   );
   external void _Renderer_readPixelsRenderThread(
     Pointer<TRenderer> tRenderer,
@@ -1654,10 +1655,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TRenderTarget> tRenderTarget,
     int tPixelBufferFormat,
     int tPixelDataType,
-    Pointer<Uint8> out,
     size_t outLength,
-    int requestId,
-    VoidCallback onComplete,
+    Pointer<NativeFunction<void Function(PointerClass<Uint8>)>> onComplete,
   );
   external void _Renderer_render(Pointer<TRenderer> tRenderer, Pointer<TView> tView);
   external void _Renderer_renderRenderThread(
@@ -6827,6 +6826,11 @@ void Renderer_beginFrameRenderThread(
   return result;
 }
 
+void Renderer_copyPixelsAndRelease(Pointer<Uint8> pixels, Pointer<Uint8> out, Dartsize_t length) {
+  final result = GeneratedBindings.instance._Renderer_copyPixelsAndRelease(pixels, out, length);
+  return result;
+}
+
 void Renderer_endFrame(Pointer<TRenderer> tRenderer) {
   final result = GeneratedBindings.instance._Renderer_endFrame(tRenderer.cast());
   return result;
@@ -6850,8 +6854,8 @@ void Renderer_readPixels(
   Pointer<TRenderTarget> tRenderTarget,
   int tPixelBufferFormat,
   int tPixelDataType,
-  Pointer<Uint8> out,
   Dartsize_t outLength,
+  Pointer<NativeFunction<void Function(Pointer<Uint8>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Renderer_readPixels(
     tRenderer.cast(),
@@ -6862,8 +6866,8 @@ void Renderer_readPixels(
     tRenderTarget.cast(),
     tPixelBufferFormat,
     tPixelDataType,
-    out,
     outLength,
+    onComplete.cast(),
   );
   return result;
 }
@@ -6877,10 +6881,8 @@ void Renderer_readPixelsRenderThread(
   Pointer<TRenderTarget> tRenderTarget,
   int tPixelBufferFormat,
   int tPixelDataType,
-  Pointer<Uint8> out,
   Dartsize_t outLength,
-  int requestId,
-  DartVoidCallback onComplete,
+  Pointer<NativeFunction<void Function(Pointer<Uint8>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Renderer_readPixelsRenderThread(
     tRenderer.cast(),
@@ -6891,10 +6893,8 @@ void Renderer_readPixelsRenderThread(
     tRenderTarget.cast(),
     tPixelBufferFormat,
     tPixelDataType,
-    out,
     outLength,
-    requestId,
-    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+    onComplete.cast(),
   );
   return result;
 }
