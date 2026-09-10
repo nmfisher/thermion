@@ -229,6 +229,10 @@ EMSCRIPTEN_KEEPALIVE bool Texture_loadImage(
     TPixelDataType pixelDataType,
     int level
 );
+// Submits pixels without copying. Filament retains them after this call returns.
+// onRelease(data, size, userData) is responsible for releasing their storage;
+// keep the buffer and any callback context valid until that callback runs.
+// The release callback may run on a native thread.
 EMSCRIPTEN_KEEPALIVE bool Texture_setImage(
     TEngine *tEngine,
     TTexture *tTexture,
@@ -242,7 +246,9 @@ EMSCRIPTEN_KEEPALIVE bool Texture_setImage(
     uint32_t height,
     uint32_t depth,
     uint32_t bufferFormat,
-    uint32_t pixelDataType
+    uint32_t pixelDataType,
+    void (*onRelease)(void *buffer, size_t size, void *userData),
+    void *userData
 );
 EMSCRIPTEN_KEEPALIVE uint32_t Texture_getWidth(TTexture *tTexture, uint32_t level);
 EMSCRIPTEN_KEEPALIVE uint32_t Texture_getHeight(TTexture *tTexture, uint32_t level);

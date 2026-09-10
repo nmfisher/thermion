@@ -1,4 +1,3 @@
-#include "TextureUpload.hpp"
 #include <atomic>
 #include <math/mat4.h>
 #include <functional>
@@ -1976,15 +1975,20 @@ extern "C"
       void (*onComplete)(bool))
   {
     auto *rt = RT(tEngine);
+    // Copy borrowed Dart pixels before returning from this FFI call.
     std::vector<uint8_t> owned(data, data + size);
     std::packaged_task<void()> lambda(
         [=, owned = std::move(owned)]() mutable
         {
-          bool result = Texture_setImageOwned(
+          // Move the snapshot into storage that outlives this task. Filament's
+          // release callback deletes it when the upload buffer is no longer needed.
+          auto *buffer = new std::vector<uint8_t>(std::move(owned));
+          bool result = Texture_setImage(
               tEngine,
               tTexture,
               level,
-              std::move(owned),
+              buffer->data(),
+              buffer->size(),
               x_offset,
               y_offset,
               z_offset,
@@ -1992,7 +1996,10 @@ extern "C"
               height,
               depth,
               bufferFormat,
-              pixelDataType);
+              pixelDataType,
+              [](void *, size_t, void *userData) {
+                delete static_cast<std::vector<uint8_t>*>(userData);
+              }, buffer);
           PROXY(onComplete(result));
         });
     auto fut = rt->addTask(lambda);

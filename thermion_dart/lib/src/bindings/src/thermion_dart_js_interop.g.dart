@@ -2069,6 +2069,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int depth,
     int bufferFormat,
     int pixelDataType,
+    Pointer<NativeFunction<void Function(PointerClass<Void> buffer, size_t size, PointerClass<Void> userData)>>
+    onRelease,
+    Pointer<Void> userData,
   );
   external void _Texture_setImageRenderThread(
     Pointer<TEngine> tEngine,
@@ -8008,6 +8011,8 @@ bool Texture_setImage(
   int depth,
   int bufferFormat,
   int pixelDataType,
+  Pointer<NativeFunction<void Function(Pointer<Void> buffer, size_t size, Pointer<Void> userData)>> onRelease,
+  Pointer<Void> userData,
 ) {
   final result = GeneratedBindings.instance._Texture_setImage(
     tEngine.cast(),
@@ -8023,6 +8028,8 @@ bool Texture_setImage(
     depth,
     bufferFormat,
     pixelDataType,
+    onRelease.cast(),
+    userData,
   );
   return result == 1;
 }

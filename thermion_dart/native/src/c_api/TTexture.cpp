@@ -1,4 +1,3 @@
-#include "TextureUpload.hpp"
 
 
 #include <chrono>
@@ -624,27 +623,9 @@ namespace thermion
             uint32_t height,
             uint32_t depth,
             uint32_t tBufferFormat,
-            uint32_t tPixelDataType)
-        {
-            return Texture_setImageOwned(tEngine, tTexture, level,
-                std::vector<uint8_t>(data, data + size), x_offset, y_offset, z_offset,
-                width, height, depth, tBufferFormat, tPixelDataType);
-        }
-
-    } // extern "C"
-        bool Texture_setImageOwned(
-            TEngine *tEngine,
-            TTexture *tTexture,
-            uint32_t level,
-            std::vector<uint8_t>&& data,
-            uint32_t x_offset,
-            uint32_t y_offset,
-            uint32_t z_offset,
-            uint32_t width,
-            uint32_t height,
-            uint32_t depth,
-            uint32_t tBufferFormat,
-            uint32_t tPixelDataType)
+            uint32_t tPixelDataType,
+            void (*onRelease)(void *, size_t, void *),
+            void *userData)
         {
             auto engine = reinterpret_cast<filament::Engine *>(tEngine);
 
@@ -653,26 +634,17 @@ namespace thermion
             auto pixelDataType = static_cast<PixelBufferDescriptor::PixelDataType>(tPixelDataType);
             TRACE("Setting texture image for level %d, offset %dx%dx%d, depth %d", level, x_offset, y_offset, z_offset, depth);
 
-            // Transfer the snapshot to the upload descriptor until Filament releases it.
-            auto *buffer = new std::vector<uint8_t>(std::move(data));
-
-            filament::Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
-                                                                                 void *data)
-            {
-                delete reinterpret_cast<std::vector<uint8_t> *>(data);
-            };
-
             filament::Texture::PixelBufferDescriptor pbd(
-                buffer->data(),
-                buffer->size(),
+                data,
+                size,
                 bufferFormat,
                 pixelDataType,
                 1, // alignment
                 0, // left
                 0, // top
                 0, // stride
-                freeCallback,
-                buffer);
+                onRelease,
+                userData);
 
             texture->setImage(
                 *engine,
@@ -688,7 +660,6 @@ namespace thermion
             return true;
         }
 
-    extern "C" {
         EMSCRIPTEN_KEEPALIVE uint32_t Texture_getWidth(TTexture *tTexture, uint32_t level)
         {
             auto *texture = reinterpret_cast<filament::Texture *>(tTexture);

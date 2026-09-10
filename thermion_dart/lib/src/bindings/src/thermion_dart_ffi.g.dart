@@ -4069,6 +4069,10 @@ external void Texture_setExternalImageRenderThread(
     ffi.Uint32,
     ffi.Uint32,
     ffi.Uint32,
+    ffi.Pointer<
+      ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> buffer, ffi.Size size, ffi.Pointer<ffi.Void> userData)>
+    >,
+    ffi.Pointer<ffi.Void>,
   )
 >(isLeaf: true)
 external bool Texture_setImage(
@@ -4085,6 +4089,11 @@ external bool Texture_setImage(
   int depth,
   int bufferFormat,
   int pixelDataType,
+  ffi.Pointer<
+    ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> buffer, ffi.Size size, ffi.Pointer<ffi.Void> userData)>
+  >
+  onRelease,
+  ffi.Pointer<ffi.Void> userData,
 );
 
 @ffi.Native<
