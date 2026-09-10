@@ -598,10 +598,13 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *))
   {
     auto *rt = RT(tEngine);
+    // Snapshot borrowed FFI storage before returning to Dart. The task owns it.
+    std::vector<uint8_t> owned;
+    if (length != 0) owned.assign(materialData, materialData + length);
     std::packaged_task<void()> lambda(
-        [=]() mutable
+        [=, owned = std::move(owned)]() mutable
         {
-          auto material = Engine_buildMaterial(tEngine, materialData, length);
+          auto material = Engine_buildMaterial(tEngine, owned.data(), length);
 
           setOwner(material, rt);          PROXY(onComplete(material));
         });
