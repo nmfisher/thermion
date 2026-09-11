@@ -1291,6 +1291,11 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _RenderManager_attachToRenderThread(Pointer<TRenderManager> tRenderer);
   external Pointer<TRenderManager> _RenderManager_create(Pointer<TEngine> tEngine, Pointer<TRenderer> tRenderer);
   external void _RenderManager_destroy(Pointer<TRenderManager> tRenderer);
+  external void _RenderManager_destroyRenderThread(
+    Pointer<TRenderManager> manager,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _RenderManager_detachFromRenderThread(Pointer<TRenderManager> tRenderManager);
   external void _RenderManager_removeAnimationManager(
     Pointer<TRenderManager> tRenderer,
@@ -5955,6 +5960,15 @@ Pointer<TRenderManager> RenderManager_create(Pointer<TEngine> tEngine, Pointer<T
 
 void RenderManager_destroy(Pointer<TRenderManager> tRenderer) {
   final result = GeneratedBindings.instance._RenderManager_destroy(tRenderer.cast());
+  return result;
+}
+
+void RenderManager_destroyRenderThread(Pointer<TRenderManager> manager, int requestId, DartVoidCallback onComplete) {
+  final result = GeneratedBindings.instance._RenderManager_destroyRenderThread(
+    manager.cast(),
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
   return result;
 }
 

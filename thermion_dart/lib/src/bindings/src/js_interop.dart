@@ -14,12 +14,6 @@ const FILAMENT_SINGLE_THREADED = true;
 const FILAMENT_WASM = true;
 const IS_WINDOWS = false;
 
-extension type _NativeLibrary(NativeLibrary _) implements JSObject {
-  static _NativeLibrary get instance => NativeLibrary.instance as _NativeLibrary;
-
-  external void _execute_queue();
-}
-
 typedef IntPtrList = Int32List;
 typedef Utf8 = Char;
 typedef Float = Float32;
@@ -87,10 +81,6 @@ Future<void> withVoidCallback(Function(int, Pointer<NativeFunction<Void Function
     _completers.remove(requestId);
     rethrow;
   }
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
-  }
   await completer.future;
 }
 
@@ -106,11 +96,6 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
   final onComplete_interopFnPtr = callback.addFunction();
 
   func.call(onComplete_interopFnPtr.cast());
-
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
-  }
 
   var ptr = await completer.future;
   onComplete_interopFnPtr.dispose();
@@ -129,11 +114,6 @@ Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool
 
   func.call(onComplete_interopFnPtr.cast());
 
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
-  }
-
   return completer.future;
 }
 
@@ -145,10 +125,6 @@ Future<double> withFloatCallback(void Function(Pointer<NativeFunction<void Funct
   };
   var ptr = callback.addFunction();
   func.call(ptr);
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
-  }
   return completer.future;
 }
 
@@ -160,10 +136,6 @@ Future<int> withIntCallback(Function(Pointer<NativeFunction<void Function(int)>>
   };
   var ptr = callback.addFunction();
   func.call(ptr);
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
-  }
   return completer.future;
 }
 

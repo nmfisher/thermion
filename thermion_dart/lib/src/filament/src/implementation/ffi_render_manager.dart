@@ -209,18 +209,17 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
     });
   }
 
-  void destroy() {
+  Future<void> destroy() => _serialize(() async {
+    await withVoidCallback((requestId, callback) {
+      RenderManager_destroyRenderThread(pointer, requestId, callback);
+    });
     _attachmentState.clear();
-    RenderManager_destroy(pointer);
-  }
+  });
 
   Future render({int? frameTimeInNanos}) async {
     if (FILAMENT_SINGLE_THREADED) {
-      // Web: fire-and-forget. The render completes across the next N rAF
-      // cycles (N = number of swapchains) driven by RenderThread::iter()
-      // calling RenderManager::tick(). We cannot await completion without
-      // deadlocking the worker's main loop from the main browser thread,
-      // and pre-refactor web was already fire-and-forget via requestFrame.
+      // Web drawing belongs to RenderManager::tick() on
+      // the worker. This future acknowledges the request, not a drawn frame.
       RenderManager_requestRender(pointer);
     } else {
       // Frame timestamps share one clock: the native steady clock that the

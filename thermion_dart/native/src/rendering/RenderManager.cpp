@@ -249,16 +249,21 @@ namespace thermion
     mRenderPaused = paused;
   }
 
+  void RenderManager::executePendingCommands()
+  {
+#ifdef __EMSCRIPTEN__
+    std::lock_guard<std::mutex> lock(mMutex);
+    mEngine->execute();
+    mEngine->pumpMessageQueues();
+#endif
+  }
+
   bool RenderManager::tick(uint64_t frameTimeInNanos)
   {
     std::lock_guard<std::mutex> lock(mMutex);
 
-    // Render unconditionally on every worker rAF. The mRenderRequested flag
-    // is kept in the API for symmetry with the native path but is not
-    // gating on web: Dart's main-thread _tick and this worker's mainLoop
-    // are independent 60Hz rAFs that aren't phase-locked. Gating on the flag
-    // drops ~5-10 fps whenever the worker rAF fires before Dart has had a
-    // chance to set it.
+    // Dart's independent hook loop cannot reliably set a request flag before
+    // every worker tick, so that flag does not gate drawing.
     (void)mRenderRequested;
 
     // Match pre-refactor RenderTicker semantics: render all swapchains

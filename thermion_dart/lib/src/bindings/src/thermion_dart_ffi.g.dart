@@ -2583,6 +2583,13 @@ external ffi.Pointer<TRenderManager> RenderManager_create(
 @ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>)>(isLeaf: true)
 external void RenderManager_destroy(ffi.Pointer<TRenderManager> tRenderer);
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void RenderManager_destroyRenderThread(
+  ffi.Pointer<TRenderManager> manager,
+  int requestId,
+  VoidCallback onComplete,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>)>(isLeaf: true)
 external void RenderManager_detachFromRenderThread(ffi.Pointer<TRenderManager> tRenderManager);
 
