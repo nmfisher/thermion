@@ -1,5 +1,10 @@
 #include "rendering/RenderThread.hpp"
+// Web only: iter() calls into RenderManager. The native worker never touches
+// the manager, so the standalone queue test can compile this file without
+// Filament headers.
+#ifdef __EMSCRIPTEN__
 #include "rendering/RenderManager.hpp"
+#endif
 
 #include <functional>
 #include <stdlib.h>
@@ -73,35 +78,38 @@ static void *startHelper(void * parm) {
 
 #endif
 
-RenderThread::RenderThread(const char *canvasSelector)
+RenderThread::RenderThread(const char* canvasSelector)
     : _canvasSelector(canvasSelector != nullptr ? canvasSelector : "#thermion_canvas")
 {
     srand(time(NULL));
-    _lastFrameTime = std::chrono::high_resolution_clock::now();
     #ifdef __EMSCRIPTEN__
     Log("Starting RenderThread")
     outer = pthread_self();
+    startWebWorker(canvasSelector);
+    #else
+    _thread = new std::thread([this]() { runNativeLoop(); });
+    #endif
+}
+
+#ifdef __EMSCRIPTEN__
+// Start the worker pthread and transfer the canvas to it. On failure,
+// _creationFailed lets the C API return a null handle instead of a worker
+// that would hang every queued task forever.
+void RenderThread::startWebWorker(const char* canvasSelector) {
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     emscripten_pthread_attr_settransferredcanvases(&attr, canvasSelector);
     auto *workerArg = new WorkerArg{this, _stop};
-    int rc = pthread_create(&t, &attr, startHelper, workerArg);
+    int rc = pthread_create(&_thread, &attr, startHelper, workerArg);
     if (rc != 0) {
-      // The worker never started, so tasks queued for this thread will never
-      // run — every caller would hang forever. Surface it: the C API returns
-      // a null handle and Dart throws "Failed to create render thread".
       Log("SEVERE - pthread_create failed with code %d; worker did not start "
           "(canvas selector %s, pool exhausted?)",
           rc, canvasSelector);
       _creationFailed = true;
       delete workerArg;
     }
-    #else
-    t = new std::thread([this]() { runNativeLoop(); });
-    #endif
 }
-
-
+#endif
 
 RenderThread::~RenderThread()
 {
@@ -111,7 +119,7 @@ RenderThread::~RenderThread()
         pendingTaskCount = _tasks.size();
     }
     TRACE("Destroying RenderThread (%zu tasks remaining)", pendingTaskCount);
-    _stop->value.store(true, std::memory_order_release);
+    shutdown();
 
     #ifdef __EMSCRIPTEN__
     // The web worker cannot be synchronously joined from the browser main
@@ -144,27 +152,42 @@ RenderThread::~RenderThread()
     // without blocking. Callers that need to wait for the worker to actually
     // finish exiting (e.g. before constructing a replacement RenderThread)
     // should poll mLiveWorkerCount from Dart.
-    pthread_detach(t);
+    pthread_detach(_thread);
     #else
-    // The worker owns and drains the queue. This preserves render-thread
-    // affinity and avoids racing the destructor against a concurrent pop.
-    _cv.notify_all();
     TRACE("Joining RenderThread thread..");
-    t->join();
-    delete t;
+    _thread->join();
+    delete _thread;
     #endif
 
     TRACE("RenderThread destructor complete");
 }
 
-#ifdef __EMSCRIPTEN__
-void RenderThread::iter() {
-    // FPS measurement
-    auto now = std::chrono::high_resolution_clock::now();
+void RenderThread::shutdown()
+{
+    _stop->value.store(true, std::memory_order_release);
+    #ifndef __EMSCRIPTEN__
+    _cv.notify_all();
+    #endif
+}
 
+void RenderThread::enqueue(std::function<void()> task) {
+    {
+        std::lock_guard<std::mutex> lock(_taskMutex);
+        _tasks.push_back(std::move(task));
+    }
+    #ifndef __EMSCRIPTEN__
+    _cv.notify_one();
+    #endif
+}
+
+#ifdef __EMSCRIPTEN__
+// Drain every queued task without yielding to the browser. Called from
+// iter() on the worker, so Filament calls keep their thread affinity; the
+// queue mutex is released while each task executes so tasks may queue
+// further work.
+void RenderThread::pumpTasks() {
     std::unique_lock<std::mutex> taskLock(_taskMutex);
 
-    // On Emscripten, drain all queued tasks then yield to browser.
     while (!_tasks.empty())
     {
         auto task = std::move(_tasks.front());
@@ -174,14 +197,21 @@ void RenderThread::iter() {
         taskLock.lock();
     }
     taskLock.unlock();
+}
+
+void RenderThread::iter() {
+    // FPS measurement
+    auto now = std::chrono::high_resolution_clock::now();
+
+    pumpTasks();
 
     // Render at most one swapchain per rAF so Filament's WebGL backend can
     // commit the frame between iterations. When no render has been requested,
     // tick() is a cheap flag-check and returns immediately.
-    if (mRenderManager) {
+    if (_renderManager) {
         auto frameTimeInNanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
                                     now.time_since_epoch()).count();
-        mRenderManager->tick(frameTimeInNanos);
+        _renderManager->tick(frameTimeInNanos);
     }
 }
 #else
@@ -190,14 +220,13 @@ void RenderThread::runNativeLoop() {
 
     while (true) {
         _cv.wait(taskLock, [this] {
-            return !_tasks.empty() ||
-                   _stop->value.load(std::memory_order_acquire);
+            return !_tasks.empty() || isStopping();
         });
 
         if (_tasks.empty()) {
             // A stop request only terminates the worker after it has executed
             // every task that was already queued.
-            if (_stop->value.load(std::memory_order_acquire)) {
+            if (isStopping()) {
                 break;
             }
             continue;
