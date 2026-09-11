@@ -4,6 +4,10 @@
 
 ### Changes
 
+- Upgrade Filament from 1.75.0 to 1.76.0 and expose the bundled release through
+  the public Dart `filamentVersion` constant (#327).
+- Include WebGPU-capable `matc` and `resgen` tools in the standard Linux archives
+  for regenerating materials (#327).
 - `ThermionAsset.setCastShadows` / `setReceiveShadows` skip entities without a
   renderable component (bones, empties, attachment nodes) instead of logging
   `Error: invalid renderable` for each one.
@@ -61,6 +65,19 @@
   state in Dart. Asset-owned vertex buffers are explicitly borrowed.
 
 ### Breaking changes
+
+- Disable C++ exceptions in Filament and Thermion runtime builds, in both debug
+  and release modes. Filament panics now abort the process. Dart exceptions and
+  ordinary error results remain available; host tools retain C++ exceptions
+  (#327).
+- Recompile custom materials with `matc` from Filament 1.76.0 to match the bundled
+  runtime (#327).
+- Linux setup now uses Clang/libc++ 18, matching the Filament archive build.
+  Ubuntu 22.04's default libc++ 14 cannot link the new archives. Deployed apps
+  also need a compatible libc++ runtime; see the [Linux setup instructions](docs/src/content/docs/linux.mdx)
+  (#327).
+- Remove `imageio` and its headers from runtime archives. Thermion does not use
+  this library; it is still built for host tools such as `cmgen` (#327).
 - Replace the `rebuildVertices` in `ThermionViewer.loadGltf`,
   `ThermionViewer.loadGltfFromBuffer`, and `FilamentApp.loadGltfFromBuffer` with
   `requiredGeometryCapabilities`. An empty set leaves gltfio geometry untouched;

@@ -3,8 +3,8 @@
 # matching the Filament version pinned in filament.version.
 #
 # Downloads the WebGPU-capable matc + resgen from the version-matched
-# webgpu-suffixed R2 artifact (filament-<tag>-linux-release-webgpu.zip,
-# staged by scripts/build_linux.sh --webgpu) into a per-version cache, so
+# R2 artifact (filament-<tag>-linux-release.zip,
+# staged by scripts/build_linux.sh) into a per-version cache, so
 # repeated runs only pay the download once per bump. The official Filament
 # release matc is built without FILAMENT_SUPPORTS_WEBGPU and cannot compile
 # the _webgpu/_web_combined variants (WGSL); the matc in this artifact
@@ -35,7 +35,7 @@ CACHE_ROOT="${FILAMENT_TOOLS_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/thermion/fil
 TOOLS="$CACHE_ROOT/filament-$TAG-webgpu"
 
 R2_PUBLIC_URL="${R2_PUBLIC_URL:-https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev}"
-ZIP_NAME="filament-$TAG-linux-release-webgpu.zip"
+ZIP_NAME="filament-$TAG-linux-release.zip"
 
 # Smoke test: compile a minimal material with -a webgpu. matc built without
 # FILAMENT_SUPPORTS_WEBGPU fails this, so a bad or wrong-version cache is
@@ -58,7 +58,7 @@ if ! webgpu_matc_ok; then
     mkdir -p "$TOOLS"
     if ! curl -fsSL -o "$CACHE_ROOT/$ZIP_NAME" "$R2_PUBLIC_URL/$ZIP_NAME"; then
         echo "Error: could not download $R2_PUBLIC_URL/$ZIP_NAME" >&2
-        echo "Run the Build Filament workflow with platform=linux webgpu=true" >&2
+        echo "Run the Build Filament workflow with platform=linux" >&2
         echo "upload_to_r2=true for $TAG first, so the artifact carries the tools." >&2
         exit 2
     fi
@@ -67,7 +67,7 @@ if ! webgpu_matc_ok; then
     rm -f "$CACHE_ROOT/$ZIP_NAME"
     if ! webgpu_matc_ok; then
         echo "Error: matc from $ZIP_NAME does not support -a webgpu." >&2
-        echo "Re-run the Build Filament workflow with webgpu=true for $TAG." >&2
+        echo "Re-run the Build Filament workflow for $TAG." >&2
         exit 2
     fi
 fi

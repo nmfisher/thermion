@@ -1,0 +1,177 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 59058ee43..ac97f10ce 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -135,7 +135,18 @@ set(FILAMENT_OSMESA_PATH "" CACHE STRING
+ set(SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS OFF)
+
+ if (NOT FILAMENT_ENABLE_EXCEPTIONS)
+-    add_compile_options(-fno-exceptions)
++    # SDL is only needed by the desktop tools and their tests.
++    set(FILAMENT_SKIP_SDL2 ON)
++    if (MSVC)
++        string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
++        add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/EHs-c->")
++        add_compile_definitions(_HAS_EXCEPTIONS=0)
++    else()
++        add_compile_options("$<$<COMPILE_LANGUAGE:CXX,OBJCXX>:-fno-exceptions>")
++        # Clang still defines __EXCEPTIONS for Objective-C exceptions. Keep
++        # C++ headers (including Panic's layout) consistent with C++ sources.
++        add_compile_options("$<$<COMPILE_LANGUAGE:OBJCXX>:-U__EXCEPTIONS>")
++    endif()
+     set(SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS ON)
+ endif()
+
+@@ -997,7 +1008,7 @@ if (WASM)
+     add_subdirectory(web/examples)
+ endif()
+
+-if (IS_HOST_PLATFORM OR ANDROID)
++if ((IS_HOST_PLATFORM OR ANDROID) AND FILAMENT_ENABLE_EXCEPTIONS)
+    add_subdirectory(${LIBRARIES}/filamentapp)
+ endif()
+
+@@ -1005,16 +1016,18 @@ if (IS_HOST_PLATFORM)
+     if (FILAMENT_SUPPORTS_OPENGL)
+         add_subdirectory(${LIBRARIES}/bluegl)
+     endif()
++endif()
++
++# Desktop tools have their own host build. Runtime builds import those tools
++# so their image encoders and command-line parsers do not enter this build.
++if (IS_HOST_PLATFORM AND FILAMENT_ENABLE_EXCEPTIONS)
+     add_subdirectory(${LIBRARIES}/imageio)
+     add_subdirectory(${LIBRARIES}/filament-matp)
+
+     add_subdirectory(${FILAMENT}/samples)
+
+     add_subdirectory(${EXTERNAL}/libassimp/tnt)
+-    add_subdirectory(${EXTERNAL}/libpng/tnt)
+     add_subdirectory(${EXTERNAL}/libsdl2/tnt)
+-    add_subdirectory(${EXTERNAL}/libz/tnt)
+-    add_subdirectory(${EXTERNAL}/tinyexr/tnt)
+
+     add_subdirectory(${TOOLS}/cmgen)
+     add_subdirectory(${TOOLS}/cso-lut)
+@@ -1036,6 +1049,12 @@ if (IS_HOST_PLATFORM)
+     add_subdirectory(${TOOLS}/specgen)
+ endif()
+
++if (IS_HOST_PLATFORM)
++    add_subdirectory(${EXTERNAL}/libpng/tnt)
++    add_subdirectory(${EXTERNAL}/libz/tnt)
++    add_subdirectory(${EXTERNAL}/tinyexr/tnt)
++endif()
++
+ # Generate exported executables for cross-compiled builds (Android, WASM, and iOS)
+ if ((NOT CMAKE_CROSSCOMPILING AND NOT FILAMENT_IMPORT_PREBUILT_EXECUTABLES) OR FILAMENT_EXPORT_PREBUILT_EXECUTABLES)
+     export(TARGETS matc cmgen filamesh mipgen resgen uberz glslminifier FILE ${IMPORT_EXECUTABLES})
+diff --git a/build.sh b/build.sh
+index b9f29ad11..db9d38a10 100755
+--- a/build.sh
++++ b/build.sh
+@@ -283,7 +283,8 @@ function build_tools_for_split_build {
+         -DCMAKE_BUILD_TYPE="${build_type_arg}" \
+         ${WEBGPU_OPTION} \
+         ${architectures} \
+-        ${EXCEPTIONS_OPTION} \
++        -DFILAMENT_ENABLE_EXCEPTIONS=ON \
++        ${FILAMENT_HOST_TOOLS_OPTIONS:-} \
+         ${MUTEX_DEBUG_OPTION} \
+         ../..
+
+@@ -534,7 +535,9 @@ function build_android {
+     local old_install_command=${INSTALL_COMMAND}
+     INSTALL_COMMAND=
+
+-    build_desktop "${MOBILE_HOST_TOOLS}"
++    if [[ "${ISSUE_SPLIT_BUILD}" != "true" ]]; then
++        build_desktop "${MOBILE_HOST_TOOLS}"
++    fi
+
+     # When building the samples, we need to partially "install" the host tools so Gradle can see
+     # them.
+@@ -577,6 +580,11 @@ function build_android {
+         archive_android "Release"
+     fi
+
++    # Thermion uses the native archives, not Filament's JNI/AAR libraries.
++    if [[ "${EXCEPTIONS_OPTION}" == "-DFILAMENT_ENABLE_EXCEPTIONS=OFF" ]]; then
++        return
++    fi
++
+     local root_dir=$(pwd)
+
+     pushd android > /dev/null
+@@ -756,7 +764,9 @@ function build_ios {
+     local old_install_command=${INSTALL_COMMAND}
+     INSTALL_COMMAND=
+
+-    build_desktop "${MOBILE_HOST_TOOLS}"
++    if [[ "${ISSUE_SPLIT_BUILD}" != "true" ]]; then
++        build_desktop "${MOBILE_HOST_TOOLS}"
++    fi
+
+     INSTALL_COMMAND=${old_install_command}
+
+diff --git a/libs/fgviewer/src/ApiHandler.cpp b/libs/fgviewer/src/ApiHandler.cpp
+index b07d9238a..d3e56ce29 100644
+--- a/libs/fgviewer/src/ApiHandler.cpp
++++ b/libs/fgviewer/src/ApiHandler.cpp
+@@ -15,6 +15,9 @@
+  */
+
+
++#include <cerrno>
++#include <cstdlib>
++
+ #include "ApiHandler.h"
+
+ #include <__chrono/duration.h>
+@@ -153,9 +156,10 @@ bool ApiHandler::handlePostMonitor(struct mg_connection* conn,
+             auto fgidEnd = body.find("\"", fgidStart);
+             if (fgidEnd != std::string_view::npos) {
+                 auto sv = body.substr(fgidStart, fgidEnd - fgidStart);
+-                try {
+-                    fgid = std::stoul(std::string(sv), nullptr, 16);
+-                } catch (...) {
++                errno = 0;
++                auto value = std::strtoul(std::string(sv).c_str(), nullptr, 16);
++                if (errno != ERANGE) {
++                    fgid = static_cast<uint32_t>(value);
+                 }
+             }
+         }
+@@ -168,15 +172,10 @@ bool ApiHandler::handlePostMonitor(struct mg_connection* conn,
+     }
+     auto idEnd = body.find(",", idStart);
+     if (idEnd == std::string_view::npos) idEnd = body.find("}", idStart);
+-    try {
+-        auto sv = body.substr(idStart, idEnd - idStart);
+-        auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), id);
+-        if (ec != std::errc()) {
+-            LOG(ERROR) << "from_chars failed for id. sv=" << sv;
+-        }
+-    } catch (...) {
+-        LOG(ERROR) << "ID extraction threw an exception";
+-        return error(__LINE__, request->local_uri);
++    auto sv = body.substr(idStart, idEnd - idStart);
++    auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), id);
++    if (ec != std::errc()) {
++        LOG(ERROR) << "from_chars failed for id. sv=" << sv;
+     }
+
+     std::string_view name = "Unknown";
+diff --git a/libs/imageio-lite/CMakeLists.txt b/libs/imageio-lite/CMakeLists.txt
+index c3b9ec792..c76f20956 100644
+--- a/libs/imageio-lite/CMakeLists.txt
++++ b/libs/imageio-lite/CMakeLists.txt
+@@ -45,7 +45,7 @@ install(DIRECTORY ${PUBLIC_HDR_DIR}/imageio-lite DESTINATION include)
+ # ==================================================================================================
+ # Tests
+ # ==================================================================================================
+-if (NOT ANDROID AND NOT WASM AND NOT IOS)
++if (FILAMENT_BUILD_TESTING AND NOT ANDROID AND NOT WASM AND NOT IOS)
+     add_executable(test_${TARGET} tests/test_imageio-lite.cpp)
+     target_link_libraries(test_${TARGET} PRIVATE ${TARGET} image gtest)
+     set_target_properties(test_${TARGET} PROPERTIES FOLDER Tests)

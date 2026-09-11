@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.14)
 set(PROJECT_NAME "thermion_vulkan")
 project(${PROJECT_NAME} LANGUAGES C CXX)
 
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>")
+
 cmake_policy(VERSION 3.14...3.25)
 
 add_library(${PROJECT_NAME} SHARED
@@ -16,7 +18,7 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 
 # Set Filament version, library path, and headers (from the version-matched
 # R2 artifact extracted by thermion_dart's build hook under .dart_tool/).
-set(FILAMENT_VERSION "v1.74.0")
+set(FILAMENT_VERSION "v1.76.0")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/linux/debug")
 else()
@@ -74,7 +76,6 @@ target_link_libraries(${PROJECT_NAME}_test PRIVATE
   gltfio
   filament-iblprefilter
   image
-  imageio
   tinyexr
   filaflat
   dracodec

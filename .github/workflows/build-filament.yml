@@ -55,6 +55,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check public Filament version
+        run: python3 scripts/generate-filament-version.py --check
+
       - name: Read Filament version
         id: read-version
         run: |

@@ -110,7 +110,14 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libdrm-dev libegl1 libegl1-mesa-dev libc++-dev libc++abi-dev
+          sudo apt-get install -y ca-certificates wget cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libdrm-dev libegl1 libegl1-mesa-dev
+          # Match the Filament archive toolchain. Jammy's libc++ 14 lacks
+          # __libcpp_verbose_abort, used by the no-exceptions archives.
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 18
+          sudo apt-get install -y libc++-18-dev libc++abi-18-dev
+          echo "/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"
 
       # Same priming as the Windows/macOS unit test steps above: fires the
       # build hooks so the Filament headers are extracted and

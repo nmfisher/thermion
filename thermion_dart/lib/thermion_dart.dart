@@ -1,6 +1,7 @@
 library filament_dart;
 
 export 'dart:typed_data';
+export 'filament_version.dart';
 export 'package:vector_math/vector_math_64.dart' hide Colors;
 export 'src/viewer/viewer.dart';
 export 'src/input/input.dart';

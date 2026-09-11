@@ -1,14 +1,16 @@
+FILAMENT_VERSION := $(word 2,$(shell cat filament.version))
+
 wasm:
-	@if [ ! -f thermion_dart/native/web/lib/release/filament-v1.75.0-web-release.zip ]; then \
-		echo "Downloading filament-v1.75.0-web-release.zip..."; \
+	@if [ ! -f thermion_dart/native/web/lib/release/filament-$(FILAMENT_VERSION)-web-release.zip ]; then \
+		echo "Downloading filament-$(FILAMENT_VERSION)-web-release.zip..."; \
 		mkdir -p thermion_dart/native/web/lib/release; \
-		curl -L -o thermion_dart/native/web/lib/release/filament-v1.75.0-web-release.zip \
-			https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.75.0-web-release.zip; \
+		curl -L -o thermion_dart/native/web/lib/release/filament-$(FILAMENT_VERSION)-web-release.zip \
+			https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-$(FILAMENT_VERSION)-web-release.zip; \
 	fi
-	@echo "Extracting filament-v1.75.0-web-release.zip..."; \
+	@echo "Extracting filament-$(FILAMENT_VERSION)-web-release.zip..."; \
 	cd thermion_dart/native/web/lib/release && \
 	rm -rf include lib && \
-	unzip -o filament-v1.75.0-web-release.zip
+	unzip -o filament-$(FILAMENT_VERSION)-web-release.zip
 	cd thermion_dart/native/web && \
 	mkdir -p build && \
 	cd build && \

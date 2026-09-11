@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.15)
 project(thermion_dart VERSION 1.0.0 LANGUAGES CXX C)
 
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>")
+
 # Configuration variables
-set(FILAMENT_VERSION "v1.74.0")
+set(FILAMENT_VERSION "v1.76.0")
 set(PACKAGE_NAME "thermion_dart")
 set(PLATFORM "macos")
 
@@ -117,7 +119,6 @@ target_link_libraries(thermion_dart PRIVATE
     gltfio
     filament-iblprefilter
     image
-    imageio
     tinyexr
     filaflat
     dracodec

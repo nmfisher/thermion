@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 #define IMAGE_IMAGE_OFFSET 0
-#define IMAGE_IMAGE_SIZE 44933
+#define IMAGE_IMAGE_SIZE 45815
 #define IMAGE_IMAGE_DATA (IMAGE_PACKAGE + IMAGE_IMAGE_OFFSET)
 
 #endif

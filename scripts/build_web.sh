@@ -138,9 +138,12 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
-# Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
+# Keep host tools separate from the runtime archives built below.
+git apply "$SCRIPT_DIR/filament-no-exceptions.patch" || exit 1
+
+# Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
-sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON \\|g' build.sh
+sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF \\|g' build.sh
 
 # Patch libz CMakeLists.txt to fix duplicate libz.a output issue (Emscripten-specific)
 echo "Patching libz CMakeLists.txt for Emscripten..."
@@ -248,12 +251,13 @@ if [ "$BUILD_RELEASE" = true ]; then
   # Configure and build filament
   cmake -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
-    -DFILAMENT_SKIP_SAMPLES=1 \
+    -DFILAMENT_ENABLE_EXCEPTIONS=OFF \
+    -DFILAMENT_SKIP_SAMPLES=1 -DFILAMENT_BUILD_TESTING=OFF \
     -DCMAKE_CXX_STANDARD=20 \
     -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
     -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory" \
-    -DCMAKE_CXX_FLAGS="-pthread -matomics -mbulk-memory" \
+    -DCMAKE_CXX_FLAGS="-fno-exceptions -pthread -matomics -mbulk-memory" \
     -DIS_HOST_PLATFORM=0 \
     -DZ_HAVE_UNISTD_H=1 \
     -DUSE_ZLIB=1 \
@@ -276,36 +280,6 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
-  # Build imageio
-  echo "Building imageio (release)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-webgl-release"
-  mkdir -p libs/imageio
-  cd libs/imageio
-
-  cmake -G Ninja \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DFILAMENT_SKIP_SAMPLES=1 \
-    -DCMAKE_CXX_STANDARD=20 \
-    -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
-    -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
-    -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory" \
-    -DCMAKE_CXX_FLAGS="-pthread -matomics -mbulk-memory -I../../../../libs/image/include -I../../../../libs/utils/include -I../../../../libs/math/include -I../../../../third_party/tinyexr -I../../../../third_party/libpng -I../../../../third_party/basisu/encoder" \
-    -DZ_HAVE_UNISTD_H=1 \
-    -DUSE_ZLIB=1 \
-    -DIMPORT_EXECUTABLES_DIR=out \
-    ../../../../libs/imageio || {
-    echo "Error: imageio release cmake configuration failed"
-    exit 1
-  }
-
-  ninja || {
-    echo "Error: imageio release build failed"
-    exit 1
-  }
-
-  # Build third_party libraries
-  echo "Building third-party libraries (release)..."
-
   # Build libz
   cd "$FILAMENT_BASE_DIR/out/cmake-webgl-release"
   mkdir -p third_party/libz
@@ -316,7 +290,7 @@ if [ "$BUILD_RELEASE" = true ]; then
     -DCMAKE_CXX_STANDARD=20 \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
     -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory" \
-    -DCMAKE_CXX_FLAGS="-pthread -matomics -mbulk-memory" \
+    -DCMAKE_CXX_FLAGS="-fno-exceptions -pthread -matomics -mbulk-memory" \
     ../../../../third_party/libz || {
     echo "Error: libz release cmake configuration failed"
     exit 1
@@ -336,7 +310,7 @@ if [ "$BUILD_RELEASE" = true ]; then
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
     -DCMAKE_C_FLAGS="-pthread -I../libz -I../../../../third_party/libz" \
-    -DCMAKE_CXX_FLAGS="-pthread -I../libz -I../../../../third_party/libz -matomics -mbulk-memory" \
+    -DCMAKE_CXX_FLAGS="-fno-exceptions -pthread -I../libz -I../../../../third_party/libz -matomics -mbulk-memory" \
     -DPNG_SHARED=OFF \
     -DZLIB_ROOT=../../../../third_party/libz \
     -DZLIB_LIBRARY=../../../../third_party/libz/libz.a \
@@ -360,7 +334,7 @@ if [ "$BUILD_RELEASE" = true ]; then
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
     -DCMAKE_C_FLAGS="-pthread -I../libz -I../../../../third_party/libz" \
-    -DCMAKE_CXX_FLAGS="-pthread -I../libz -I../../../../third_party/libz -matomics -mbulk-memory -Wno-reserved-identifier -Wno-tautological-type-limit-compare -Wno-switch-default -Wno-sign-conversion -Wno-unsafe-buffer-usage" \
+    -DCMAKE_CXX_FLAGS="-fno-exceptions -pthread -I../libz -I../../../../third_party/libz -matomics -mbulk-memory -Wno-reserved-identifier -Wno-tautological-type-limit-compare -Wno-switch-default -Wno-sign-conversion -Wno-unsafe-buffer-usage" \
     -DPNG_SHARED=OFF \
     -DZLIB_ROOT=../../../../third_party/libz \
     -DZLIB_LIBRARY=../../../../third_party/libz/libz.a \
@@ -394,12 +368,13 @@ if [ "$BUILD_DEBUG" = true ]; then
   # Configure and build filament
   cmake -G Ninja \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DFILAMENT_SKIP_SAMPLES=1 \
+    -DFILAMENT_ENABLE_EXCEPTIONS=OFF \
+    -DFILAMENT_SKIP_SAMPLES=1 -DFILAMENT_BUILD_TESTING=OFF \
     -DCMAKE_CXX_STANDARD=20 \
     -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
     -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory" \
-    -DCMAKE_CXX_FLAGS="-pthread -matomics -mbulk-memory" \
+    -DCMAKE_CXX_FLAGS="-fno-exceptions -pthread -matomics -mbulk-memory" \
     -DIS_HOST_PLATFORM=0 \
     -DZ_HAVE_UNISTD_H=1 \
     -DUSE_ZLIB=1 \
@@ -422,36 +397,6 @@ if [ "$BUILD_DEBUG" = true ]; then
     exit 1
   }
 
-  # Build imageio for debug
-  echo "Building imageio (debug)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-webgl-debug"
-  mkdir -p libs/imageio
-  cd libs/imageio
-
-  cmake -G Ninja \
-    -DCMAKE_BUILD_TYPE=Debug \
-    -DFILAMENT_SKIP_SAMPLES=1 \
-    -DCMAKE_CXX_STANDARD=20 \
-    -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
-    -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
-    -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory" \
-    -DCMAKE_CXX_FLAGS="-pthread -matomics -mbulk-memory -I../../../../libs/image/include -I../../../../libs/utils/include -I../../../../libs/math/include -I../../../../third_party/tinyexr -I../../../../third_party/libpng -I../../../../third_party/basisu/encoder" \
-    -DZ_HAVE_UNISTD_H=1 \
-    -DUSE_ZLIB=1 \
-    -DIMPORT_EXECUTABLES_DIR=out \
-    ../../../../libs/imageio || {
-    echo "Error: imageio debug cmake configuration failed"
-    exit 1
-  }
-
-  ninja || {
-    echo "Error: imageio debug build failed"
-    exit 1
-  }
-
-  # Build third_party libraries for debug
-  echo "Building third-party libraries (debug)..."
-
   # Build libz for debug
   cd "$FILAMENT_BASE_DIR/out/cmake-webgl-debug"
   mkdir -p third_party/libz
@@ -462,7 +407,7 @@ if [ "$BUILD_DEBUG" = true ]; then
     -DCMAKE_CXX_STANDARD=20 \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
     -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory" \
-    -DCMAKE_CXX_FLAGS="-pthread -matomics -mbulk-memory" \
+    -DCMAKE_CXX_FLAGS="-fno-exceptions -pthread -matomics -mbulk-memory" \
     ../../../../third_party/libz || {
     echo "Error: libz debug cmake configuration failed"
     exit 1
@@ -482,7 +427,7 @@ if [ "$BUILD_DEBUG" = true ]; then
     -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
     -DCMAKE_C_FLAGS="-pthread -I../libz -I../../../../third_party/libz" \
-    -DCMAKE_CXX_FLAGS="-pthread -I../libz -I../../../../third_party/libz -matomics -mbulk-memory" \
+    -DCMAKE_CXX_FLAGS="-fno-exceptions -pthread -I../libz -I../../../../third_party/libz -matomics -mbulk-memory" \
     -DPNG_SHARED=OFF \
     -DZLIB_ROOT=../../../../third_party/libz \
     -DZLIB_LIBRARY=../../../../third_party/libz/libz.a \
@@ -506,7 +451,7 @@ if [ "$BUILD_DEBUG" = true ]; then
     -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
     -DCMAKE_C_FLAGS="-pthread -I../libz -I../../../../third_party/libz" \
-    -DCMAKE_CXX_FLAGS="-pthread -I../libz -I../../../../third_party/libz -matomics -mbulk-memory -Wno-reserved-identifier -Wno-tautological-type-limit-compare -Wno-switch-default -Wno-sign-conversion -Wno-unsafe-buffer-usage" \
+    -DCMAKE_CXX_FLAGS="-fno-exceptions -pthread -I../libz -I../../../../third_party/libz -matomics -mbulk-memory -Wno-reserved-identifier -Wno-tautological-type-limit-compare -Wno-switch-default -Wno-sign-conversion -Wno-unsafe-buffer-usage" \
     -DPNG_SHARED=OFF \
     -DZLIB_ROOT=../../../../third_party/libz \
     -DZLIB_LIBRARY=../../../../third_party/libz/libz.a \
@@ -602,20 +547,13 @@ copy_web_headers() {
     exit 1
   }
 
-  # imageio headers (not part of the main install include dir).
-  # libs/imageio/include/ contains an imageio/ subdir, so copy into $inc/ to
-  # land at include/imageio/ImageDecoder.h (consumers include <imageio/...>).
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include/"* "$inc/" || {
-    echo "Error: Failed to copy imageio headers"
-    exit 1
-  }
-
   # stb_image.h (third-party header used by TTexture.cpp)
   mkdir -p "$inc/third_party/stb"
   cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$inc/third_party/stb/" || {
     echo "Error: Failed to copy stb_image.h"
     exit 1
   }
+
 }
 
 if [ "$BUILD_RELEASE" = true ]; then

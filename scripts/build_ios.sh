@@ -100,9 +100,12 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
-# Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
+# Keep host tools separate from the runtime archives built below.
+git apply "$SCRIPT_DIR/filament-no-exceptions.patch" || exit 1
+
+# Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
-sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
+sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
 
 # Suppress warnings in the vendored tinyexr that trip its own -Weverything -Werror
 # (new in Filament v1.75.0; CLANG_COMPILE_FLAGS are per-source COMPILE_FLAGS,
@@ -119,7 +122,7 @@ fi
 # Run release build (-s adds iOS simulator support, -l builds universal libraries)
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Building Filament for iOS (release)..."
-  ./build.sh -s -l -i -f -p ios release || {
+  ./build.sh -E -s -l -i -f -p ios release || {
     echo "Error: Filament release build failed"
     exit 1
   }
@@ -128,7 +131,7 @@ fi
 # Run debug build (-s adds iOS simulator support, -l builds universal libraries)
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Building Filament for iOS (debug)..."
-  ./build.sh -s -l -i -f -p ios debug || {
+  ./build.sh -E -s -l -i -f -p ios debug || {
     echo "Error: Filament debug build failed"
     exit 1
   }
@@ -202,22 +205,6 @@ if [ "$BUILD_RELEASE" = true ]; then
   cmake -G Ninja -DIOS=1 -DIPHONEOS_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_BUILD_TYPE=Release "$FILAMENT_BASE_DIR/third_party/libz"
   ninja
 
-  # Build imageio for release
-  echo "Building imageio (release)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64-iphoneos/third_party"
-  mkdir -p imageio && cd imageio
-  cmake -G Ninja \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_STANDARD=17 \
-          -DPLATFORM_NAME="iphonesimulator" \
-          -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
-          -DZ_HAVE_UNISTD_H=1 \
-          -DUSE_ZLIB=1 \
-          -DIMPORT_EXECUTABLES_DIR=out \
-          -DCMAKE_CXX_FLAGS="-I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
-          "$FILAMENT_BASE_DIR/libs/imageio"
-  ninja
-
   # Build tinyexr for release
   echo "Building tinyexr (release)..."
   cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64-iphoneos/third_party"
@@ -226,7 +213,7 @@ if [ "$BUILD_RELEASE" = true ]; then
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 \
           -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
           -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out \
-          -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
+          -DCMAKE_CXX_FLAGS="-fno-exceptions -Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
           "$FILAMENT_BASE_DIR/third_party/tinyexr"
   ninja
 
@@ -234,10 +221,6 @@ if [ "$BUILD_RELEASE" = true ]; then
   echo "Copying release third-party libraries..."
   cd "$FILAMENT_BASE_DIR"
   cp out/cmake-ios-release-arm64-iphoneos/third_party/libz/*.a "$TARGET_RELEASE_DIR/" || echo "Warning: No libz libraries found"
-  cp out/cmake-ios-release-arm64-iphoneos/third_party/imageio/*.a "$TARGET_RELEASE_DIR/" || {
-    echo "Error: Failed to copy imageio libraries"
-    exit 1
-  }
   cp out/cmake-ios-release-arm64-iphoneos/third_party/tinyexr/*.a "$TARGET_RELEASE_DIR/" || {
     echo "Error: Failed to copy tinyexr libraries"
     exit 1
@@ -303,22 +286,6 @@ if [ "$BUILD_DEBUG" = true ]; then
   cmake -G Ninja -DIOS=1 -DIPHONEOS_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_BUILD_TYPE=Debug "$FILAMENT_BASE_DIR/third_party/libz"
   ninja
 
-  # Build imageio for debug
-  echo "Building imageio (debug)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64-iphoneos/third_party"
-  mkdir -p imageio && cd imageio
-  cmake -G Ninja \
-          -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_CXX_STANDARD=17 \
-          -DPLATFORM_NAME="iphonesimulator" \
-          -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
-          -DZ_HAVE_UNISTD_H=1 \
-          -DUSE_ZLIB=1 \
-          -DIMPORT_EXECUTABLES_DIR=out \
-          -DCMAKE_CXX_FLAGS="-I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
-          "$FILAMENT_BASE_DIR/libs/imageio"
-  ninja
-
   # Build tinyexr for debug
   echo "Building tinyexr (debug)..."
   cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64-iphoneos/third_party"
@@ -327,7 +294,7 @@ if [ "$BUILD_DEBUG" = true ]; then
           -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 \
           -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
           -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out \
-          -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
+          -DCMAKE_CXX_FLAGS="-fno-exceptions -Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
           "$FILAMENT_BASE_DIR/third_party/tinyexr"
   ninja
 
@@ -335,10 +302,6 @@ if [ "$BUILD_DEBUG" = true ]; then
   echo "Copying debug third-party libraries..."
   cd "$FILAMENT_BASE_DIR"
   cp out/cmake-ios-debug-arm64-iphoneos/third_party/libz/*.a "$TARGET_DEBUG_DIR/" || echo "Warning: No libz libraries found"
-  cp out/cmake-ios-debug-arm64-iphoneos/third_party/imageio/*.a "$TARGET_DEBUG_DIR/" || {
-    echo "Error: Failed to copy imageio libraries"
-    exit 1
-  }
   cp out/cmake-ios-debug-arm64-iphoneos/third_party/tinyexr/*.a "$TARGET_DEBUG_DIR/" || {
     echo "Error: Failed to copy tinyexr libraries"
     exit 1
@@ -357,12 +320,6 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
-  # Copy imageio headers
-  mkdir -p "$TARGET_RELEASE_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/" || {
-    echo "Error: Failed to copy imageio headers to target"
-    exit 1
-  }
 
   # Copy stb_image.h
   mkdir -p "$TARGET_RELEASE_DIR/include/third_party/stb"
@@ -395,12 +352,6 @@ if [ "$BUILD_DEBUG" = true ]; then
     exit 1
   }
 
-  # Copy imageio headers
-  mkdir -p "$TARGET_DEBUG_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_DEBUG_DIR/include/" || {
-    echo "Error: Failed to copy imageio headers to target"
-    exit 1
-  }
 
   # Copy stb_image.h
   mkdir -p "$TARGET_DEBUG_DIR/include/third_party/stb"

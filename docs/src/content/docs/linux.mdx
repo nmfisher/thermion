@@ -12,11 +12,21 @@ mileage may vary.
 
 ## System dependencies
 
-Install the libraries the Linux build links against:
+The Filament 1.76.0 archives are built with LLVM/libc++ 18. Use Clang 18 and
+the matching libc++ development and runtime libraries. Ubuntu 22.04's default
+libc++ 14 cannot link these archives: it lacks `__libcpp_verbose_abort`, which
+is used when C++ exceptions are disabled.
+
+On Ubuntu 22.04, first enable the LLVM 18 packages using the instructions at
+[apt.llvm.org](https://apt.llvm.org/). Then install the build dependencies:
 
 ```bash
-sudo apt install libgtk-3-dev liblzma-dev libdrm-dev
+sudo apt install clang-18 libc++-18-dev libc++abi-18-dev cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libdrm-dev libegl1-mesa-dev
+export PATH="/usr/lib/llvm-18/bin:$PATH"
 ```
+
+Deployed applications also need a compatible libc++ runtime; the documented
+LLVM 18 setup supplies it through `libc++1-18` and `libc++abi1-18`.
 
 ## Running
 

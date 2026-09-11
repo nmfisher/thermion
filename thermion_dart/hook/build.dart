@@ -6,6 +6,7 @@ import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
+import '../lib/filament_version.dart';
 import '../lib/src/hooks/material_backend_resolution.dart';
 import '../lib/src/logging/log.dart';
 
@@ -352,6 +353,7 @@ outputDirectory : ${outputDirectory.path}
     var frameworks = [];
 
     if (targetOS != OS.windows) {
+      flags.add('-fno-exceptions');
       flags.add('-stdlib=libc++');
       if (!flags.any((f) => f.contains("-std=c++"))) {
         flags.add('-std=c++17');
@@ -359,6 +361,7 @@ outputDirectory : ${outputDirectory.path}
     } else {
       defines["WIN32"] = "1";
       defines["_DLL"] = "1";
+      defines["_HAS_EXCEPTIONS"] = "0";
       if (buildMode == BuildMode.debug) {
         defines["_DEBUG"] = "1";
       } else {
@@ -367,6 +370,7 @@ outputDirectory : ${outputDirectory.path}
       }
       flags.addAll([
         "/std:c++20",
+        "/EHs-c-",
         if (buildMode == BuildMode.debug) ...["/MDd", "/Zi"],
         if (buildMode == BuildMode.release) "/MD",
         // /VERBOSE is a linker option, not a compiler one — cl.exe parses it
@@ -555,24 +559,6 @@ outputDirectory : ${outputDirectory.path}
   });
 }
 
-// filament.version lives at the repo root (the parent of this package). We
-// can't derive that from `Platform.script`: when this hook runs as a *compiled
-// build hook* the script URI points at the consuming package's
-// `.dart_tool/hooks_runner/.../hook.dill`, not at this source file, so the old
-// `dirname(dirname(script))` computation landed inside the wrong package and
-// the file was never found (bare `throw Exception()`). Resolve it relative to
-// the package root that getLibDir already has instead.
-String _getFilamentVersion(Uri packageRoot) {
-  final pkgPath = packageRoot.toFilePath(windows: Platform.isWindows);
-  final versionFile = File(path.join(path.dirname(pkgPath), 'filament.version'));
-  if (versionFile.existsSync()) {
-    final parts = versionFile.readAsStringSync().trim().split(RegExp(r'\s+'));
-    // Format: "<repo> <version>" - return the version (second field)
-    return parts.length >= 2 ? parts[1] : parts[0];
-  }
-  throw Exception('filament.version not found at ${versionFile.path}');
-}
-
 String _getLibraryUrl(String version, String platform, String mode) {
   return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${version}-${platform}-${mode}.zip";
 }
@@ -642,7 +628,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
 }) async {
   var platform = targetOS.toString().toLowerCase();
 
-  final version = _getFilamentVersion(packageRoot);
+  final version = filamentVersion;
 
   // Use separate library directory for iOS simulator (arm64 simulator
   // libraries can't be lipo'd with arm64 device libraries).
@@ -678,8 +664,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
       throw Exception("Unsupported architecture : ${targetArchitecture}");
     }
   } else if (platform == "linux") {
-    // Linux x64 keeps the legacy zip URL + cache dir. arm64 consumers fetch
-    // the arch-suffixed zip (filament-<v>-linux-arm64-<mode>.zip) and use an
+    // Linux arm64 consumers fetch their own archive and use an
     // arch-scoped cache dir so the two never collide.
     if (targetArchitecture == Architecture.arm64) {
       platform = "linux-arm64";
