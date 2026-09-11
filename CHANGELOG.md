@@ -4,6 +4,8 @@
 
 ### Changes
 
+- Let Dart isolates exit after their native void callbacks finish, without
+  closing the shared callback listener while requests are still pending.
 - Upgrade Filament from 1.75.0 to 1.76.0 and expose the bundled release through
   the public Dart `filamentVersion` constant (#327).
 - Include WebGPU-capable `matc` and `resgen` tools in the standard Linux archives

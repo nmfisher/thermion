@@ -7,13 +7,17 @@ import 'dart:ffi';
 /// request ID. A single trampoline is retained for the registry lifetime so
 /// concurrent native requests cannot call metadata from a collected
 /// [NativeCallable].
+/// The listener keeps the isolate alive while requests are pending, but lets
+/// it exit after successful completion. Stop native workers before killing
+/// their isolate or closing this registry.
 class VoidCallbackRegistry {
   int _nextRequestId = 0;
   final _requests = <int, Completer<void>>{};
+  bool _dispatchFailed = false;
 
   late final NativeCallable<Void Function(Int32)> _nativeCallable = NativeCallable<Void Function(Int32)>.listener(
     _complete,
-  );
+  )..keepIsolateAlive = false;
 
   int get pendingRequestCount => _requests.length;
 
@@ -32,16 +36,23 @@ class VoidCallbackRegistry {
     _requests[requestId] = completer;
 
     try {
+      _nativeCallable.keepIsolateAlive = true;
       dispatch.call(requestId, _nativeCallable.nativeFunction.cast());
+      await completer.future;
     } catch (_) {
-      _requests.remove(requestId);
+      // Dispatch may have submitted native work before throwing. Without a
+      // completion guarantee, preserve the listener's previous keep-alive
+      // behavior until the caller stops its workers and closes the registry.
+      _dispatchFailed = true;
       rethrow;
+    } finally {
+      _requests.remove(requestId);
+      _nativeCallable.keepIsolateAlive = _requests.isNotEmpty || _dispatchFailed;
     }
-
-    await completer.future;
   }
 
   void close() {
+    if (_requests.isNotEmpty) throw StateError('Cannot close a registry with pending callbacks');
     _nativeCallable.close();
   }
 }
