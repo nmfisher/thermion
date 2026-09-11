@@ -69,6 +69,15 @@ Thermion and obtains Filament.
 
 ## Web command processing and shutdown
 
+`RenderThread.hpp` selects a concrete implementation at compile time:
+`NativeRenderThread` has a blocking queue and joins on destruction;
+`WebRenderThread` has browser wakeups, drawing callbacks, and asynchronous exit.
+There is no virtual interface or extra implementation allocation. Both expose
+`create()` and `destroy()`; destruction consumes the registry's existing unique
+owner. The web implementation handles the ownership transfer internally.
+The native build hook compiles `NativeRenderThread.cpp` from `native/src`;
+web CMake excludes it and selects `native/web/src/cpp/WebRenderThread.cpp`.
+
 Web drawing still runs on animation-frame callbacks. Commands wake the render
 worker independently, so an upload does not have to wait for another frame.
 The worker checks a two-millisecond budget between commands and yields between
@@ -111,7 +120,7 @@ em++ -O1 -g -std=c++17 -pthread -fno-exceptions \
   --pre-js thermion_dart/native/test/rendering/disable_worker_frames.js \
   -I thermion_dart/native/include -I thermion_dart/native/web/lib/release/include \
   thermion_dart/native/test/rendering/web_dispatch_test.cpp \
-  thermion_dart/native/src/rendering/RenderThread.cpp \
+  thermion_dart/native/web/src/cpp/WebRenderThread.cpp \
   -o /tmp/thermion-web-dispatch/test.js
 dart run thermion_dart/native/test/rendering/run_web_dispatch_test.dart /tmp/thermion-web-dispatch
 ```

@@ -15,7 +15,8 @@ int main() {
         int executed = 0;
         const auto caller = std::this_thread::get_id();
         {
-            RenderThread worker;
+            auto owner = RenderThread::create();
+            auto& worker = *owner;
             std::packaged_task<int()> query([caller] {
                 check(std::this_thread::get_id() != caller);
                 return 42;
@@ -32,7 +33,10 @@ int main() {
             worker.addDetachedTask([&] {
                 worker.addDetachedTask([&] { check(executed++ == 200); });
             });
-            // Destruction must drain on the worker and join before returning.
+            // Both implementations consume ownership through the same API.
+            RenderThread::destroy(std::move(owner));
+            check(!owner);
+            check(executed == 201);
         }
         check(executed == 201);
     }

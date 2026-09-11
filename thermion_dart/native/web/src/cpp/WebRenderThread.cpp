@@ -1,24 +1,18 @@
-#include "rendering/RenderThread.hpp"
-#ifdef __EMSCRIPTEN__
+#include "rendering/WebRenderThread.hpp"
 #include "rendering/RenderManager.hpp"
-#endif
 #include "Log.hpp"
-
 #include <cassert>
-#include <cstdlib>
-#include <cstring>
 #include <chrono>
-
-#ifdef __EMSCRIPTEN__
+#include <cstdlib>
 #include <emscripten/emscripten.h>
+#include <emscripten/proxying.h>
+#include <emscripten/eventloop.h>
 #include <mimalloc.h>
-#endif
 
 namespace thermion {
 
-std::atomic<int32_t> RenderThread::mLiveWorkerCount{0};
+std::atomic<int32_t> WebRenderThread::mLiveWorkerCount{0};
 
-#ifdef __EMSCRIPTEN__
 // The queues live until the WASM module is unloaded. A completion posted to the
 // browser must survive destruction of its originating RenderThread. Wakeups
 // share the same lifetime so executing proxy closures never own a dying queue.
@@ -31,69 +25,48 @@ static emscripten::ProxyingQueue& wakeups() {
     return *queue;
 }
 
-#endif
+std::unique_ptr<WebRenderThread> WebRenderThread::create(const char* canvasSelector) {
+    auto thread = std::make_unique<WebRenderThread>(canvasSelector);
+    if (thread->_creationFailed) return nullptr;
+    return thread;
+}
 
-RenderThread::RenderThread(const char* canvasSelector)
+void WebRenderThread::destroy(std::unique_ptr<WebRenderThread> thread) {
+    // Release the caller's owner before the worker can finish and delete itself.
+    if (thread) thread.release()->requestShutdown();
+}
+
+WebRenderThread::WebRenderThread(const char* canvasSelector)
     : _canvasSelector(canvasSelector ? canvasSelector : "#thermion_canvas") {
-#ifdef __EMSCRIPTEN__
     _caller = pthread_self();
-    startWebWorker();
-#else
-    _thread = std::thread([this] { runNativeLoop(); });
-#endif
+    startWorker();
 }
 
-RenderThread::~RenderThread() {
-#ifdef __EMSCRIPTEN__
+WebRenderThread::~WebRenderThread() {
     assert(_creationFailed || _workerFinished);
-#else
-    shutdown();
-    _thread.join();
-#endif
 }
 
-bool RenderThread::isWorkerThread() const {
-#ifdef __EMSCRIPTEN__
-    return pthread_equal(pthread_self(), _thread);
-#else
-    return std::this_thread::get_id() == _thread.get_id();
-#endif
+void WebRenderThread::requestShutdown() {
+    // Unlocking is the final access to this object: the worker may delete it
+    // as soon as it acquires the mutex and finishes draining.
+    std::lock_guard<std::mutex> lock(_taskMutex);
+    _stopping.store(true, std::memory_order_release);
+    scheduleWakeLocked();
 }
 
-void RenderThread::shutdown() {
-    {
-        std::lock_guard<std::mutex> lock(_taskMutex);
-        _stopping.store(true, std::memory_order_release);
-#ifdef __EMSCRIPTEN__
-        if (!_creationFailed) scheduleWakeLocked();
-#endif
+void WebRenderThread::enqueue(std::function<void()> work) {
+    std::unique_lock<std::mutex> lock(_taskMutex);
+    // Accepted work can enqueue its own completion while draining.
+    if (isStopping() && !pthread_equal(pthread_self(), _thread)) {
+        lock.unlock();
+        Log("Cannot submit work after RenderThread shutdown");
+        std::abort();
     }
-#ifndef __EMSCRIPTEN__
-    _cv.notify_one();
-#endif
+    _tasks.push_back(std::move(work));
+    scheduleWakeLocked();
 }
 
-void RenderThread::enqueue(std::function<void()> work) {
-    {
-        std::unique_lock<std::mutex> lock(_taskMutex);
-        // Accepted tasks can enqueue their own completion work while draining.
-        if (isStopping() && !isWorkerThread()) {
-            lock.unlock();
-            Log("Cannot submit work after RenderThread shutdown");
-            std::abort();
-        }
-        _tasks.push_back(std::move(work));
-#ifdef __EMSCRIPTEN__
-        scheduleWakeLocked();
-#endif
-    }
-#ifndef __EMSCRIPTEN__
-    _cv.notify_one();
-#endif
-}
-
-#ifdef __EMSCRIPTEN__
-void RenderThread::startWebWorker() {
+void WebRenderThread::startWorker() {
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
@@ -109,14 +82,14 @@ void RenderThread::startWebWorker() {
     }
 }
 
-void* RenderThread::startHelper(void* arg) {
+void* WebRenderThread::startHelper(void* arg) {
     // simulateInfiniteLoop keeps this pthread's event loop alive for wakeups.
     emscripten_set_main_loop_arg(frameCallback, arg, 0, true);
     return nullptr;
 }
 
-void RenderThread::frameCallback(void* arg) {
-    auto* self = static_cast<RenderThread*>(arg);
+void WebRenderThread::frameCallback(void* arg) {
+    auto* self = static_cast<WebRenderThread*>(arg);
     if (self->isStopping()) return;
     if (self->_renderManager) {
         const auto now = std::chrono::steady_clock::now();
@@ -125,7 +98,7 @@ void RenderThread::frameCallback(void* arg) {
     }
 }
 
-void RenderThread::scheduleWakeLocked() {
+void WebRenderThread::scheduleWakeLocked() {
     if (_wakePending) return;
     _wakePending = true;
     // Coalesce notifications. Shutdown deletes this object only after the
@@ -137,12 +110,12 @@ void RenderThread::scheduleWakeLocked() {
     }
 }
 
-void RenderThread::pumpCallback(void* arg) {
-    auto* self = static_cast<RenderThread*>(arg);
+void WebRenderThread::pumpCallback(void* arg) {
+    auto* self = static_cast<WebRenderThread*>(arg);
     self->pumpTasks();
 }
 
-void RenderThread::pumpTasks() {
+void WebRenderThread::pumpTasks() {
     // Check between tasks: one expensive task or backend execution can exceed
     // this budget. It is a yielding policy, not a hard two-millisecond deadline.
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(2);
@@ -173,43 +146,28 @@ void RenderThread::pumpTasks() {
     }
 }
 
-void RenderThread::finishShutdown(void* arg) {
-    auto* self = static_cast<RenderThread*>(arg);
+void WebRenderThread::finishShutdown(void* arg) {
+    auto* self = static_cast<WebRenderThread*>(arg);
     emscripten_cancel_main_loop();
     self->_workerFinished = true;
-    delete self; // ownership transferred by shutdown(), after registry release
+    delete self; // ownership transferred by destroy(), after registry release
     mi_thread_done();
     mLiveWorkerCount.fetch_sub(1, std::memory_order_relaxed);
     pthread_exit(nullptr);
 }
 
-void RenderThread::dispatchCallback(std::function<void()> callback) const {
+void WebRenderThread::dispatchCallback(std::function<void()> callback) const {
     if (!callbacks().proxyAsync(_caller, std::move(callback))) {
         Log("Failed to post render completion");
         std::abort();
     }
 }
 
-void RenderThread::executeCallbacks() { callbacks().execute(); }
+void WebRenderThread::executeCallbacks() { callbacks().execute(); }
 
-void RenderThread::setRenderManager(RenderManager* manager) {
-    assert(isWorkerThread());
+void WebRenderThread::setRenderManager(RenderManager* manager) {
+    assert(pthread_equal(pthread_self(), _thread));
     _renderManager = manager;
 }
-#else
-void RenderThread::runNativeLoop() {
-    std::unique_lock<std::mutex> lock(_taskMutex);
-    while (true) {
-        _cv.wait(lock, [this] { return !_tasks.empty() || isStopping(); });
-        if (_tasks.empty() && isStopping()) return;
-        auto task = std::move(_tasks.front());
-        _tasks.pop_front();
-        lock.unlock();
-        task();
-        task = {};
-        lock.lock();
-    }
-}
-#endif
 
 } // namespace thermion

@@ -30,7 +30,7 @@ set_tests_properties(scheduling PROPERTIES TIMEOUT 30)
 
 add_executable(worker_queue_test
     worker_queue_test.cpp
-    ../../src/rendering/RenderThread.cpp)
+    ../../src/rendering/NativeRenderThread.cpp)
 target_compile_features(worker_queue_test PRIVATE cxx_std_17)
 target_include_directories(worker_queue_test PRIVATE ../../include)
 target_link_libraries(worker_queue_test PRIVATE Threads::Threads)
