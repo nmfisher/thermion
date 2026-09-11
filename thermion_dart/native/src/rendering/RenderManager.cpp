@@ -239,28 +239,27 @@ namespace thermion
 
   void RenderManager::requestRender()
   {
-    std::lock_guard lock(mMutex);
-    mRenderRequested = true;
+    // Retain the exported API for existing callers. Web tick() already draws
+    // unconditionally. Taking mMutex here could block the browser main thread
+    // while tick() waits for an upload callback to execute on that thread.
   }
 
   void RenderManager::setPaused(bool paused)
   {
-    std::lock_guard lock(mMutex);
-    mRenderPaused = paused;
+    // This flag publishes no other state. A frame already in progress may
+    // finish; subsequent ticks observe the requested pause state.
+    mRenderPaused.store(paused, std::memory_order_relaxed);
   }
 
   bool RenderManager::tick(uint64_t frameTimeInNanos)
   {
     std::lock_guard<std::mutex> lock(mMutex);
 
-    // Render unconditionally on every worker rAF. The mRenderRequested flag
-    // is kept in the API for symmetry with the native path but is not
-    // gating on web: Dart's main-thread _tick and this worker's mainLoop
-    // are independent 60Hz rAFs that aren't phase-locked. Gating on the flag
+    // Render unconditionally on every worker rAF. Dart's main-thread _tick
+    // and this worker's mainLoop are independent rAFs that aren't
+    // phase-locked. Gating on a main-thread request
     // drops ~5-10 fps whenever the worker rAF fires before Dart has had a
     // chance to set it.
-    (void)mRenderRequested;
-
     // Match pre-refactor RenderTicker semantics: render all swapchains
     // synchronously and ALWAYS call mEngine->execute() — even if every
     // beginFrame rejected or we're paused. Filament's WebGL backend queues
@@ -268,7 +267,7 @@ namespace thermion
     // independent of whether a visible frame was produced. Skipping
     // execute() stalls the backend and causes a burst on resume.
     bool anyRendered = false;
-    if (!mRenderPaused) {
+    if (!mRenderPaused.load(std::memory_order_relaxed)) {
       updateAnimationsAndPlugins(frameTimeInNanos);
 
       for (size_t i = 0; i < mViewAttachments.size(); i++)
@@ -283,10 +282,6 @@ namespace thermion
 #ifdef __EMSCRIPTEN__
     mEngine->execute();
 #endif
-
-    if (anyRendered) {
-      mRenderRequested = false;
-    }
 
     return anyRendered;
   }

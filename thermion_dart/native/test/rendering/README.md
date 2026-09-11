@@ -41,6 +41,32 @@ The gate extraction is reused by the web worker in #301. Forwarding scheduler
 timestamps through Flutter into rendering is in #319. Normalizing native scheduler output alone does not replace the existing
 Dart wall-clock render timestamp. Browser dispatch/lifetime fixtures land in #301.
 
+## Nonblocking render controls
+
+The optional render-control tests hold a plugin update inside a frame until
+the caller issues `requestRender()` or `setPaused()`. Neither control may wait
+for the frame to finish: on web, a frame can itself be waiting for an upload
+callback on the browser main thread. Both tests fail against the old locking
+implementation; the pause test also checks subsequent pause/resume behavior.
+
+These tests run natively without a GPU context. They compile the current
+`RenderManager` and use an existing native Thermion library for its Filament
+and animation dependencies. Supply that library and matching Filament headers:
+
+```sh
+cmake -S thermion_dart/native/test/rendering -B /tmp/thermion-render-controls \
+  -DTHERMION_TEST_LIBRARY=/absolute/path/to/libthermion_dart.dylib \
+  -DFILAMENT_TEST_INCLUDE_DIR=/absolute/path/to/filament/include
+cmake --build /tmp/thermion-render-controls --config Release
+ctest --test-dir /tmp/thermion-render-controls -C Release --output-on-failure
+```
+
+For browser validation, run quickstart with its matching web module, set the
+batch size to four, then repeatedly add, remove, and replace the viewers with
+skybox/IBL loading enabled. Verify all four viewers finish loading, and test
+pause/resume while uploads are pending. The native tests isolate the mutex
+cycle; they do not test browser worker reuse or WASM memory capacity.
+
 ## KTX upload lifetime tests
 
 The caller owns the KTX bundle. `destroy()` immediately deletes it and its data;

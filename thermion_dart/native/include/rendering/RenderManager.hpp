@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <mutex>
 #include <vector>
@@ -51,14 +52,16 @@ namespace thermion
         bool render(
             uint64_t frameTimeInNanos);
 
-        /// Flip the "render wanted" flag. Used on web — the actual work is
-        /// driven from RenderThread::iter() on each rAF via tick().
+        /// Compatibility no-op: web drawing is already driven by tick() on
+        /// every worker animation frame, without waiting for a request.
         void requestRender();
 
         /// Web: pause/resume rendering. When paused, tick() skips animation
         /// updates and swapchain rendering but still drains the Filament
         /// backend command buffer (mEngine->execute()) so any state changes
         /// queued before pause complete cleanly and don't burst on resume.
+        /// Takes effect on a subsequent tick; does not wait for an in-flight
+        /// frame or its callbacks to finish.
         void setPaused(bool paused);
 
         /// Web path: called once per rAF from RenderThread::iter().
@@ -107,19 +110,15 @@ namespace thermion
         std::vector<ViewAttachment> mViewAttachments;
         std::chrono::high_resolution_clock::time_point mLastRender;
 
-        // Web: tick() checks this flag and renders if set, then clears it.
-        // Set by Dart via RenderManager_requestRender() on each main-thread
-        // rAF. Rejection retries (beginFrame failing) keep the flag set so
-        // RenderThread's 12ms iter-loop can retry in the same rAF.
-        bool mRenderRequested = false;
-
         // Web: when true, tick() short-circuits animations + swapchain render.
         // mEngine->execute() still runs so the backend command buffer keeps
         // draining (matches native "scheduler keeps ticking" pause semantics).
         // Note: this gates *rendering only* — task queue drain in
         // RenderThread::iter() is outside this flag, so FFI state changes
         // (setTransform, addEntity, etc.) continue to apply while paused.
-        bool mRenderPaused = false;
+        // Main-thread controls must not take mMutex: tick() can hold it while
+        // a Filament upload callback waits for that same main thread.
+        std::atomic<bool> mRenderPaused{false};
     };
 
 }

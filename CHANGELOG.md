@@ -4,6 +4,8 @@
 
 ### Changes
 
+- Prevent web frame requests and pause controls from deadlocking with upload
+  callbacks on the browser main thread.
 - Let Dart isolates exit after their native void callbacks finish, without
   closing the shared callback listener while requests are still pending.
 - Upgrade Filament from 1.75.0 to 1.76.0 and expose the bundled release through
