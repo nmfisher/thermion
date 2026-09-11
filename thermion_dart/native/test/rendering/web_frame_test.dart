@@ -23,7 +23,7 @@ class _Engine {
   final Pointer<TRenderer> renderer;
   final Pointer<TRenderManager> manager;
 
-  static Future<_Engine> create(int slot) async {
+  static Future<_Engine> create(int slot, int fps) async {
     final selector = '#frame_canvas_$slot'.toNativeUtf8().cast<Char>();
     final worker = RenderThread_createForCanvas(selector);
     free(selector);
@@ -34,6 +34,7 @@ class _Engine {
     final renderer = await withPointerCallback<TRenderer>((cb) => Engine_createRendererRenderThread(engine, cb));
     final manager = RenderManager_create(engine, renderer);
     RenderManager_attachToRenderThread(manager);
+    RenderManager_setTargetFps(manager, fps);
     await withVoidCallback((id, cb) => _attachScene(engine.address, manager.address, slot, id, cb.address));
     return _Engine(slot, worker, engine, renderer, manager);
   }
@@ -62,11 +63,18 @@ Future<void> main() async {
   try {
     await (globalContext['__thermionReady'] as JSPromise).toDart;
     NativeLibrary.initBindings('thermion_dart');
-    final first = await _Engine.create(0);
-    final second = await _Engine.create(1);
+    final first = await _Engine.create(0, 30);
+    final second = await _Engine.create(1, 10);
     await Future<void>.delayed(const Duration(milliseconds: 300));
     final initial = await sample(first, second);
-    check(initial[0] > 0 && initial[1] > 0, 'Both engines must draw: $initial');
+    check(initial[0] > initial[1] * 1.5 && initial[1] >= 5, 'Independent 30/10 FPS limits failed: $initial');
+    check(initial[0] <= 34 && initial[1] <= 14, 'FPS limits exceeded: $initial');
+
+    RenderManager_setTargetFps(first.manager, 10);
+    RenderManager_setTargetFps(second.manager, 30);
+    final changed = await sample(first, second);
+    check(changed[1] > changed[0] * 1.5 && changed[0] >= 5, 'Changed 10/30 FPS limits failed: $changed');
+    check(changed[0] <= 14 && changed[1] <= 34, 'Changed FPS limits exceeded: $changed');
 
     RenderManager_setPaused(first.manager, true);
     await Future<void>.delayed(const Duration(milliseconds: 150));
@@ -86,7 +94,8 @@ Future<void> main() async {
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
     check(_liveWorkers() == 0, 'Workers remained alive after teardown');
-    globalContext['testResult'] = 'PASS: two engines drawing, pause/resume, independent teardown and worker exit'.toJS;
+    globalContext['testResult'] =
+        'PASS: real drawing, per-engine FPS $initial / $changed, pause/resume, independent teardown'.toJS;
   } catch (error, stack) {
     globalContext['testResult'] = 'FAIL: $error\n$stack'.toJS;
   }

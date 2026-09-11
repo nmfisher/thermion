@@ -21,6 +21,7 @@ extern "C"
 	// synchronous render (requestRender). Dart branches on FILAMENT_SINGLE_THREADED
 	// and only calls these on the web build.
 	EMSCRIPTEN_KEEPALIVE void RenderManager_requestRender(TRenderManager *tRenderer);
+	EMSCRIPTEN_KEEPALIVE void RenderManager_setTargetFps(TRenderManager *tRenderManager, int fps);
 	EMSCRIPTEN_KEEPALIVE void RenderManager_attachToRenderThread(TRenderManager *tRenderer);
 	EMSCRIPTEN_KEEPALIVE void RenderManager_detachFromRenderThread(TRenderManager *tRenderManager);
 	EMSCRIPTEN_KEEPALIVE void RenderManager_setPaused(TRenderManager *tRenderer, bool paused);

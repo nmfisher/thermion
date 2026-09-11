@@ -246,7 +246,13 @@ namespace thermion
   void RenderManager::setPaused(bool paused)
   {
     std::lock_guard lock(mMutex);
+    if (mRenderPaused != paused) mFrameRateGate.reset();
     mRenderPaused = paused;
+  }
+
+  void RenderManager::setTargetFps(int fps)
+  {
+    mTargetFps.store(fps > 0 ? fps : 0, std::memory_order_relaxed);
   }
 
   void RenderManager::executePendingCommands()
@@ -273,7 +279,7 @@ namespace thermion
     // independent of whether a visible frame was produced. Skipping
     // execute() stalls the backend and causes a burst on resume.
     bool anyRendered = false;
-    if (!mRenderPaused) {
+    if (!mRenderPaused && mFrameRateGate.admit(frameTimeInNanos, mTargetFps.load(std::memory_order_relaxed))) {
       updateAnimationsAndPlugins(frameTimeInNanos);
 
       for (size_t i = 0; i < mViewAttachments.size(); i++)
