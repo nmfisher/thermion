@@ -1337,6 +1337,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _RenderManager_setTargetFps(Pointer<TRenderManager> tRenderManager, int fps);
   external Pointer<TRenderTarget> _RenderTarget_create(
     Pointer<TEngine> tEngine,
     Pointer<TTexture> color,
@@ -6084,6 +6085,11 @@ void RenderManager_setRenderableRenderThread(
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );
+  return result;
+}
+
+void RenderManager_setTargetFps(Pointer<TRenderManager> tRenderManager, int fps) {
+  final result = GeneratedBindings.instance._RenderManager_setTargetFps(tRenderManager.cast(), fps);
   return result;
 }
 

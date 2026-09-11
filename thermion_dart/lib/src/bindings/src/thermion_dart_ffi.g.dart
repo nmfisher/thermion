@@ -2668,6 +2668,9 @@ external void RenderManager_setRenderableRenderThread(
   VoidCallback onComplete,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Int)>(isLeaf: true)
+external void RenderManager_setTargetFps(ffi.Pointer<TRenderManager> tRenderManager, int fps);
+
 @ffi.Native<ffi.Pointer<TRenderTarget> Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>, ffi.Pointer<TTexture>)>(
   isLeaf: true,
 )

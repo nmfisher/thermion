@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <mutex>
 #include <vector>
@@ -22,6 +23,7 @@
 
 #include "scene/AnimationManager.hpp"
 #include "PluginAPI.hpp"
+#include "rendering/FrameRateGate.hpp"
 
 namespace thermion
 {
@@ -61,6 +63,9 @@ namespace thermion
         /// queued before pause complete cleanly and don't burst on resume.
         void setPaused(bool paused);
 
+        /// Limit actual web drawing independently for each engine; zero is unlimited.
+        void setTargetFps(int fps);
+
         /// Web path: called once per rAF from RenderThread's frame callback.
         /// Renders all attached swapchains synchronously (in practice there
         /// is only one on web — see ARCHITECTURE.md), then calls
@@ -92,6 +97,8 @@ namespace thermion
         void removeAnimationManager(AnimationManager *animationManager);
 
     private:
+        std::atomic<int> mTargetFps{0};
+        FrameRateGate mFrameRateGate;
         struct ViewAttachment
         {
             SwapChain *swapChain = nullptr;

@@ -4,6 +4,8 @@
 
 ### Changes
 
+- Apply the web target frame rate to actual worker drawing, independently for each engine.
+
 - Let web commands and upload callbacks progress without animation frames, and
   await render-manager destruction on its worker before tearing down the engine (#301).
 

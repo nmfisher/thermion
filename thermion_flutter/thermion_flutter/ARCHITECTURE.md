@@ -303,7 +303,7 @@ Two things about this loop are load-bearing and easy to break accidentally. Both
 
 The flag was originally intended to gate rendering so Dart could control when frames are produced. In practice, both Dart's main-thread `_tick` and the worker's frame callback run at 60Hz but are **not phase-locked** — they're independent rAFs on different threads. When the worker rAF fires slightly before Dart's has set the flag, the worker finds it clear and skips, losing that frame. Over a second, phase drift costs ~5-10 fps (measured: ~50-55 fps instead of 60).
 
-The fix is to render unconditionally on every worker rAF and let Dart's flag-setting be a no-op. This matches pre-refactor semantics (the `RenderTicker` also ran every worker rAF once it was requested). The flag is kept in the API for symmetry with native but is not gating on the web path.
+The worker decides whether to draw on each animation frame, using its own target FPS gate. Dart's request flag does not gate drawing. Each web engine has an independent limit, and skipped frames do not stop the command pump or backend processing.
 
 ### Pause/resume on web
 
