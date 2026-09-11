@@ -45,6 +45,11 @@ EMSCRIPTEN_KEEPALIVE void RenderManager_render(TRenderManager *tRenderer, uint64
     renderManager->render(frameTimeInNanos);
 }
 
+EMSCRIPTEN_KEEPALIVE void RenderManager_setTargetFps(TRenderManager *tRenderer, int fps) {
+    auto *renderManager = reinterpret_cast<RenderManager *>(tRenderer);
+    renderManager->setTargetFps(fps);
+}
+
 EMSCRIPTEN_KEEPALIVE void RenderManager_setPaused(TRenderManager *tRenderer, bool paused) {
     auto *renderManager = reinterpret_cast<RenderManager *>(tRenderer);
     renderManager->setPaused(paused);

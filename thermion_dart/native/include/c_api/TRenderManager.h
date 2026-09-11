@@ -22,6 +22,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void RenderManager_attachToJobThread(TJobThread *jobThread, TRenderManager *tRenderer);
 	EMSCRIPTEN_KEEPALIVE void RenderManager_detachFromJobThread(TJobThread *jobThread, TRenderManager *tRenderManager);
 	EMSCRIPTEN_KEEPALIVE void RenderManager_setPaused(TRenderManager *tRenderer, bool paused);
+	EMSCRIPTEN_KEEPALIVE void RenderManager_setTargetFps(TRenderManager *tRenderManager, int fps);
 
 #ifdef __cplusplus
 }

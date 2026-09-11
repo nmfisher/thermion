@@ -23,6 +23,7 @@
 
 #include "scene/AnimationManager.hpp"
 #include "PluginAPI.hpp"
+#include "rendering/FrameRateGate.hpp"
 
 namespace thermion
 {
@@ -59,6 +60,9 @@ namespace thermion
         /// Takes effect on a subsequent tick; does not wait for an in-flight
         /// frame or its callbacks to finish.
         void setPaused(bool paused);
+
+        /// Limit web drawing independently for each engine; zero is unlimited.
+        void setTargetFps(int fps);
 
         /// Main-thread mode: submit commands and deliver upload releases
         /// without drawing an intermediate frame.
@@ -109,6 +113,10 @@ namespace thermion
         bool mFrameLoopUsesTimeout = false;
         double mNextFrameTimeMs = 0;
 #endif
+        std::atomic<int> mTargetFps{0};
+        // Only tick() accesses the FPS gate. Pause requests set this flag.
+        std::atomic<bool> mResetFrameRateGate{false};
+        FrameRateGate mFrameRateGate;
         struct ViewAttachment
         {
             SwapChain *swapChain = nullptr;

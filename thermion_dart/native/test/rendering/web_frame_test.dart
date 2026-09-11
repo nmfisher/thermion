@@ -29,7 +29,7 @@ class _Engine {
   final Pointer<TRenderer> renderer;
   final Pointer<TRenderManager> manager;
 
-  static Future<_Engine> create(int slot) async {
+  static Future<_Engine> create(int slot, int fps) async {
     final selector = '#frame_canvas_$slot'.toNativeUtf8().cast<Char>();
     final worker = JobThread_createForCanvas(selector);
     free(selector);
@@ -40,6 +40,7 @@ class _Engine {
     final renderer = await withPointerCallback<TRenderer>((cb) => Engine_createRendererJobThread(worker, engine, cb));
     final manager = RenderManager_create(engine, renderer);
     RenderManager_attachToJobThread(worker, manager);
+    RenderManager_setTargetFps(manager, fps);
     await withVoidCallback(
       (id, cb) => _attachScene(worker.address, engine.address, manager.address, slot, id, cb.address),
     );
@@ -52,7 +53,6 @@ class _Engine {
   Future<void> destroy() async {
     // Intentionally destroy while rAF is active: queued detachment must finish
     // before freeing the view/swapchain/renderer that tick() used to access.
-    RenderManager_detachFromJobThread(worker, manager);
     await withVoidCallback((id, cb) => RenderManager_destroyJobThread(worker, manager, id, cb));
     await withVoidCallback((id, cb) => _destroyScene(worker.address, engine.address, slot, id, cb.address));
     await withVoidCallback((id, cb) => Engine_destroyRendererJobThread(worker, engine, renderer, id, cb));
@@ -66,6 +66,16 @@ Future<List<int>> sample(_Engine first, _Engine second) async {
   await Future<void>.delayed(const Duration(seconds: 1));
   final after = await Future.wait([first.frameId(), second.frameId()]);
   return [after[0] - before[0], after[1] - before[1]];
+}
+
+Future<int> waitForFrameAfter(_Engine engine, int previous, Duration timeout) async {
+  final deadline = DateTime.now().add(timeout);
+  while (true) {
+    final current = await engine.frameId();
+    if (current > previous) return current;
+    check(DateTime.now().isBefore(deadline), 'No new frame before the deadline');
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+  }
 }
 
 Future<void> verifyCanvasRouting() async {
@@ -138,11 +148,18 @@ Future<void> main() async {
     await (globalContext['__thermionReady'] as JSPromise).toDart;
     NativeLibrary.initBindings('thermion_dart');
     await verifyCanvasRouting();
-    final first = await _Engine.create(0);
-    final second = await _Engine.create(1);
+    final first = await _Engine.create(0, 30);
+    final second = await _Engine.create(1, 10);
     await Future<void>.delayed(const Duration(milliseconds: 300));
     final initial = await sample(first, second);
-    check(initial[0] > 0 && initial[1] > 0, 'Both engines must draw: $initial');
+    check(initial[0] > initial[1] * 1.5 && initial[1] >= 5, 'Independent 30/10 FPS limits failed: $initial');
+    check(initial[0] <= 34 && initial[1] <= 14, 'FPS limits exceeded: $initial');
+
+    RenderManager_setTargetFps(first.manager, 10);
+    RenderManager_setTargetFps(second.manager, 30);
+    final changed = await sample(first, second);
+    check(changed[1] > changed[0] * 1.5 && changed[0] >= 5, 'Changed 10/30 FPS limits failed: $changed');
+    check(changed[0] <= 14 && changed[1] <= 34, 'Changed FPS limits exceeded: $changed');
 
     RenderManager_setPaused(first.manager, true);
     await Future<void>.delayed(const Duration(milliseconds: 150));
@@ -165,6 +182,17 @@ Future<void> main() async {
       check(reattached[0] >= 5 && reattached[1] >= 5, 'Reattach failed: $reattached');
     }
 
+    // Start a fresh one-second FPS interval, then pause and resume between
+    // browser callbacks. Resuming must not wait for that interval to expire.
+    RenderManager_setTargetFps(first.manager, 1);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    await waitForFrameAfter(first, await first.frameId(), const Duration(seconds: 2));
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    final beforeQuickPause = await first.frameId();
+    RenderManager_setPaused(first.manager, true);
+    RenderManager_setPaused(first.manager, false);
+    await waitForFrameAfter(first, beforeQuickPause, const Duration(milliseconds: 400));
+
     await first.destroy();
     final before = await second.frameId();
     await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -175,7 +203,8 @@ Future<void> main() async {
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
     check(_liveWorkers() == 0, 'Workers remained alive after teardown');
-    globalContext['testResult'] = 'PASS: independent drawing, pause/resume, detach/reattach and worker exit'.toJS;
+    globalContext['testResult'] =
+        'PASS: real drawing, per-engine FPS $initial / $changed, pause/resume, independent teardown'.toJS;
   } catch (error, stack) {
     globalContext['testResult'] = 'FAIL: $error\n$stack'.toJS;
   }

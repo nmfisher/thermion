@@ -282,6 +282,13 @@ Unlike the native path, Dart on web does **not** await individual renders. `FFIF
 - **Native** queues a `RenderManager_renderJobThread` task and awaits its completion. `RenderManager::render()` runs the whole pipeline (animations + plugins + all swapchains' beginFrame/render/endFrame + `mEngine->execute()`) as one synchronous task.
 - **Web** returns immediately. Drawing runs independently on the worker, so there is no native frame-request call. Completing this Future does not mean a frame has been drawn.
 
+Each web render manager applies its own FPS gate before animation updates and
+drawing. A target of zero is unlimited. Pause changes reset that gate on the
+owning thread so rendering can resume promptly. Backend commands and release callbacks are
+processed even when drawing is paused or `beginFrame` rejects. The command
+pump also flushes backend work after each batch, so uploads can progress when
+browser animation-frame callbacks stop arriving.
+
 `RenderManager::startFrameLoop()` schedules browser `requestAnimationFrame` callbacks on the engine's worker. Each callback calls `tick()` and schedules the next request. Detaching or destroying the manager cancels its pending request on that same worker. Workers without `requestAnimationFrame` support use the previous timer fallback. `JobThread` does not reference `RenderManager`; the C API installs a generic after-batch callback to flush backend commands in main-thread mode. The same callback runs after worker command batches, so uploads can complete without drawing or browser animation frames.
 
 `tick()`:
