@@ -1316,7 +1316,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
-  external void _RenderManager_requestRender(Pointer<TRenderManager> tRenderer);
   external void _RenderManager_setPaused(Pointer<TRenderManager> tRenderer, bool paused);
   external void _RenderManager_setRenderable(
     Pointer<TRenderManager> tRenderer,
@@ -6026,11 +6025,6 @@ void RenderManager_renderRenderThread(
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );
-  return result;
-}
-
-void RenderManager_requestRender(Pointer<TRenderManager> tRenderer) {
-  final result = GeneratedBindings.instance._RenderManager_requestRender(tRenderer.cast());
   return result;
 }
 

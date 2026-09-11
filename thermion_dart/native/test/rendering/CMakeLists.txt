@@ -49,8 +49,7 @@ if(THERMION_TEST_LIBRARY AND FILAMENT_TEST_INCLUDE_DIR)
         ../../include "${FILAMENT_TEST_INCLUDE_DIR}")
     target_link_libraries(render_control_test PRIVATE
         Threads::Threads "${THERMION_TEST_LIBRARY}")
-    add_test(NAME render_request_nonblocking COMMAND render_control_test request)
-    add_test(NAME render_pause_nonblocking COMMAND render_control_test pause)
-    set_tests_properties(render_request_nonblocking render_pause_nonblocking
+    add_test(NAME render_pause_nonblocking COMMAND render_control_test)
+    set_tests_properties(render_pause_nonblocking
         PROPERTIES TIMEOUT 10)
 endif()

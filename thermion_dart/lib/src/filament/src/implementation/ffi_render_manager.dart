@@ -216,12 +216,9 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
 
   Future render({int? frameTimeInNanos}) async {
     if (FILAMENT_SINGLE_THREADED) {
-      // Web: fire-and-forget. The render completes across the next N rAF
-      // cycles (N = number of swapchains) driven by RenderThread::iter()
-      // calling RenderManager::tick(). We cannot await completion without
-      // deadlocking the worker's main loop from the main browser thread,
-      // and pre-refactor web was already fire-and-forget via requestFrame.
-      RenderManager_requestRender(pointer);
+      // Web renders independently on the worker's animation frames. There is
+      // no frame request to submit, and this Future does not await drawing.
+      return;
     } else {
       // Frame timestamps share one clock: the native steady clock that the
       // frame schedulers and Filament's beginFrame already use.

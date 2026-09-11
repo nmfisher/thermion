@@ -237,13 +237,6 @@ namespace thermion
     return rendered;
   }
 
-  void RenderManager::requestRender()
-  {
-    // Retain the exported API for existing callers. Web tick() already draws
-    // unconditionally. Taking mMutex here could block the browser main thread
-    // while tick() waits for an upload callback to execute on that thread.
-  }
-
   void RenderManager::setPaused(bool paused)
   {
     // This flag publishes no other state. A frame already in progress may

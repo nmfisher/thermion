@@ -294,8 +294,9 @@ abstract class FilamentApp<T> {
   /// When omitted, uses the current native steady-clock time. The returned
   /// [Future] completes when the render pipeline step has finished.
   ///
-  /// On web, queues rendering for browser animation frames and returns without
-  /// waiting for completion. [frameTimeInNanos] is ignored on that path.
+  /// On web, rendering runs independently on the worker's animation frames.
+  /// This method returns immediately without requesting or waiting for a frame;
+  /// [frameTimeInNanos] is ignored.
   Future render({int? frameTimeInNanos});
 
   /// Caps the continuous-render framerate to [fps].

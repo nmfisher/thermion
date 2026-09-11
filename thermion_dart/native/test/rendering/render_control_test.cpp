@@ -5,7 +5,6 @@
 #include <condition_variable>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <mutex>
 #include <thread>
 
@@ -33,9 +32,7 @@ public:
     int updates = 0;
 };
 
-int main(int argc, char** argv) {
-    if (argc != 2) return 2;
-    const bool pause = std::strcmp(argv[1], "pause") == 0;
+int main() {
     PendingCallback callback;
     thermion::plugin::RegisterPlugin(callback.getName(), &callback);
     // With no attachments, native tick() needs neither an Engine nor Renderer.
@@ -59,8 +56,7 @@ int main(int argc, char** argv) {
             callback.cv.notify_all();
         }
     });
-    if (pause) manager.setPaused(true);
-    else manager.requestRender();
+    manager.setPaused(true);
     {
         std::lock_guard lock(callback.mutex);
         callback.released = true;
@@ -69,15 +65,13 @@ int main(int argc, char** argv) {
     worker.join();
     watchdog.join();
     if (callback.timedOut) {
-        std::fprintf(stderr, "FAIL: %s waited for the in-flight callback\n", argv[1]);
+        std::fputs("FAIL: pause waited for the in-flight callback\n", stderr);
         return 1;
     }
-    if (pause) {
-        manager.tick(1);
-        if (callback.updates != 1) return 1;
-        manager.setPaused(false);
-        manager.tick(2);
-        if (callback.updates != 2) return 1;
-    }
-    std::printf("PASS: %s returns while a render callback is pending\n", argv[1]);
+    manager.tick(1);
+    if (callback.updates != 1) return 1;
+    manager.setPaused(false);
+    manager.tick(2);
+    if (callback.updates != 2) return 1;
+    std::puts("PASS: pause returns while a render callback is pending");
 }

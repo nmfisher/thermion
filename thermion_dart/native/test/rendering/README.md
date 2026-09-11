@@ -43,14 +43,14 @@ Dart wall-clock render timestamp. Browser dispatch/lifetime fixtures land in #30
 
 ## Nonblocking render controls
 
-The optional render-control tests hold a plugin update inside a frame until
-the caller issues `requestRender()` or `setPaused()`. Neither control may wait
-for the frame to finish: on web, a frame can itself be waiting for an upload
-callback on the browser main thread. Both tests fail against the old locking
-implementation; the pause test also checks subsequent pause/resume behavior.
+The optional render-control test holds a plugin update inside a frame until
+the caller issues `setPaused()`. Pausing must not wait for the frame to finish:
+on web, a frame can itself be waiting for an upload callback on the browser
+main thread. The test fails against the old locking implementation and also
+checks subsequent pause/resume behavior.
 
-These tests run natively without a GPU context. They compile the current
-`RenderManager` and use an existing native Thermion library for its Filament
+This test runs natively without a GPU context. It compiles the current
+`RenderManager` and uses an existing native Thermion library for its Filament
 and animation dependencies. Supply that library and matching Filament headers:
 
 ```sh

@@ -52,10 +52,6 @@ namespace thermion
         bool render(
             uint64_t frameTimeInNanos);
 
-        /// Compatibility no-op: web drawing is already driven by tick() on
-        /// every worker animation frame, without waiting for a request.
-        void requestRender();
-
         /// Web: pause/resume rendering. When paused, tick() skips animation
         /// updates and swapchain rendering but still drains the Filament
         /// backend command buffer (mEngine->execute()) so any state changes
