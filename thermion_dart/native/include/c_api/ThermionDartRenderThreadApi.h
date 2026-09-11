@@ -25,6 +25,9 @@ namespace thermion
         // Creates a RenderThread that transfers the given canvas element
         // (CSS selector) to its worker — one thread per viewer on web.
         EMSCRIPTEN_KEEPALIVE void* RenderThread_createForCanvas(const char *canvasSelector);
+        // Stop accepting external work and drain accepted commands. Native
+        // destruction joins the thread; web returns before the worker exits.
+        // Destroy engine resources first and do not use the handle afterward.
         EMSCRIPTEN_KEEPALIVE void RenderThread_destroy(void *renderThread);
         
         EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)());
@@ -34,6 +37,11 @@ namespace thermion
         // Copies all 16 column-major doubles before returning. The caller may
         // immediately reuse/free matrix16 while the queued task is pending.
         EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformFromBufferRenderThread(TTransformManager *manager, EntityId entity, const double *matrix16, uint32_t requestId, VoidCallback onComplete);
+        // Queue worker detachment and manager deletion as one ordered command.
+        // Stop submitting work to manager before calling. onComplete means it
+        // is deleted; only then may the renderer/engine be destroyed. This does
+        // not stop or wait for the worker itself.
+        EMSCRIPTEN_KEEPALIVE void RenderManager_destroyRenderThread(TRenderManager *manager, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderableRenderThread(TRenderManager *tRenderer, TSwapChain *tSwapChain, TView **tViews, uint8_t numViews, uint32_t requestId, VoidCallback onComplete);
 
         EMSCRIPTEN_KEEPALIVE void RenderManager_renderRenderThread(TRenderManager *tRenderManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete);

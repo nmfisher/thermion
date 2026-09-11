@@ -52,7 +52,7 @@ namespace thermion
             uint64_t frameTimeInNanos);
 
         /// Flip the "render wanted" flag. Used on web — the actual work is
-        /// driven from RenderThread::iter() on each rAF via tick().
+        /// driven from RenderThread's frame callback via tick().
         void requestRender();
 
         /// Web: pause/resume rendering. When paused, tick() skips animation
@@ -61,12 +61,15 @@ namespace thermion
         /// queued before pause complete cleanly and don't burst on resume.
         void setPaused(bool paused);
 
-        /// Web path: called once per rAF from RenderThread::iter().
+        /// Web path: called once per rAF from RenderThread's frame callback.
         /// Renders all attached swapchains synchronously (in practice there
         /// is only one on web — see ARCHITECTURE.md), then calls
         /// mEngine->execute() to drain the Filament WebGL backend command
         /// buffer. Returns true if any swapchain produced a visible frame.
         bool tick(uint64_t frameTimeInNanos);
+
+        /// Drain commands after a web task batch, including when rAF is suspended.
+        void executePendingCommands();
 
         /// @brief
         /// @param swapChain
@@ -107,17 +110,15 @@ namespace thermion
         std::vector<ViewAttachment> mViewAttachments;
         std::chrono::high_resolution_clock::time_point mLastRender;
 
-        // Web: tick() checks this flag and renders if set, then clears it.
-        // Set by Dart via RenderManager_requestRender() on each main-thread
-        // rAF. Rejection retries (beginFrame failing) keep the flag set so
-        // RenderThread's 12ms iter-loop can retry in the same rAF.
+        // Legacy request marker. The worker's frame clock admits frames;
+        // requests from Dart do not gate rendering.
         bool mRenderRequested = false;
 
         // Web: when true, tick() short-circuits animations + swapchain render.
         // mEngine->execute() still runs so the backend command buffer keeps
         // draining (matches native "scheduler keeps ticking" pause semantics).
         // Note: this gates *rendering only* — task queue drain in
-        // RenderThread::iter() is outside this flag, so FFI state changes
+        // RenderThread's event-driven pump is outside this flag, so FFI state changes
         // (setTransform, addEntity, etc.) continue to apply while paused.
         bool mRenderPaused = false;
     };
