@@ -68,6 +68,9 @@ Pointer<T> allocate<T extends NativeType>(int byteCount) {
   return calloc.allocate<T>(byteCount);
 }
 
+// The leaf FFI call borrows Dart storage only for this synchronous call.
+Pointer<TKtx1Bundle> createKtx1BundleFromData(Uint8List data) => Ktx1Bundle_create(data.address, data.length);
+
 void free(Pointer ptr) {
   calloc.free(ptr);
 }

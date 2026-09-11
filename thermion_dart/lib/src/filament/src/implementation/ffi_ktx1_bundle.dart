@@ -44,7 +44,7 @@ class FFIKtx1Bundle extends Ktx1Bundle {
   ///
   ///
   static Future<Ktx1Bundle> create(FFIFilamentApp app, Uint8List data) async {
-    var bundle = Ktx1Bundle_create(data.address, data.length);
+    var bundle = createKtx1BundleFromData(data);
 
     if (bundle == nullptr) {
       throw Exception("Failed to decode KTX texture");

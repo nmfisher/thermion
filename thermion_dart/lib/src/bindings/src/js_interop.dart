@@ -14,6 +14,22 @@ const FILAMENT_SINGLE_THREADED = true;
 const FILAMENT_WASM = true;
 const IS_WINDOWS = false;
 
+Pointer<TKtx1Bundle> createKtx1BundleFromData(Uint8List data) {
+  final marker = stackSave();
+  // .address borrows heap-backed views, but copies ordinary Dart bytes into
+  // WASM. The KTX constructor copies its input synchronously; release only
+  // the temporary copy, never the caller's existing WASM allocation.
+  final borrowed = identical(data.toJS.buffer, NativeLibrary.instance.HEAPU8.buffer);
+  Pointer<Uint8>? pointer;
+  try {
+    pointer = data.address;
+    return Ktx1Bundle_create(pointer, data.length);
+  } finally {
+    if (!borrowed) pointer?.free();
+    stackRestore(marker);
+  }
+}
+
 extension type _NativeLibrary(NativeLibrary _) implements JSObject {
   static _NativeLibrary get instance => NativeLibrary.instance as _NativeLibrary;
 
