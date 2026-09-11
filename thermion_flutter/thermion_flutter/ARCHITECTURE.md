@@ -244,39 +244,52 @@ Web is fundamentally single-swapchain. `emscripten_pthread_attr_settransferredca
 
 ### Threading model
 
-Two threads matter:
+`RenderThread.hpp` selects `NativeRenderThread` or `WebRenderThread` at compile
+time. The native implementation owns a blocking queue and joins during
+destruction. The web implementation owns the browser event loop and exits
+asynchronously. Both provide `create()` and `destroy()`; `destroy()` consumes
+the registry's unique owner, with platform-specific cleanup handled internally.
 
-- **Main browser thread**: where Dart executes (Flutter's engine runs on the main thread on web). All `FilamentApp` method calls originate here.
-- **Render worker**: a pthread spun up at startup by `RenderThread::RenderThread()` via `pthread_create` with `emscripten_pthread_attr_settransferredcanvases(&attr, "#thermion_canvas")`. This transfers ownership of the OffscreenCanvas to the worker, which then owns the WebGL context for the lifetime of the app. The worker's entry point installs `emscripten_set_main_loop_arg(&mainLoop, ...)` so that `RenderThread::iter()` is called on the worker's own `requestAnimationFrame` cadence.
+Two threads matter on web:
 
-Dart and the worker communicate via emscripten's proxying queue + a lock-protected task deque (`RenderThread::_tasks`). Dart never calls Filament directly from the main thread — every call crosses the thread boundary as a packaged task.
+- **Main browser thread**: where Dart executes and submits commands.
+- **Render worker**: a pthread started by `WebRenderThread::create()`. The selected canvas is transferred to this worker, which owns the WebGL context. Its animation-frame callback drives drawing; a separate event-driven pump handles commands.
 
 ### Dart → worker call pattern
 
-Every generated FFI binding that needs to touch Filament takes the `*_RenderThread` shape — e.g. `Renderer_beginFrameRenderThread(..., requestId, onComplete)`. The Dart side wraps these with `withVoidCallback` / `withPointerCallback` / etc., which:
+Operations that require the owning render worker use a `*_RenderThread` C API
+function. Dart registers a completion callback, submits the operation, then
+awaits its Future. Void callbacks use request IDs; typed callbacks return their
+result through a callback registered for that operation.
 
-1. Register a callback port keyed by a fresh `requestId`.
-2. Call the `*_RenderThread` FFI function. The C wrapper packages the target call + a capture of `(requestId, onComplete)` into a `std::packaged_task`, pushes it onto `RenderThread::_tasks`, and returns immediately.
-3. Dart awaits the completer associated with `requestId`.
+The C wrapper puts work into the worker's mutex-protected FIFO queue and wakes
+the worker. `WebRenderThread::pumpTasks()` processes a batch, checking a
+two-millisecond budget between tasks, and yields before continuing. Filament
+backend processing runs after the batch even when animation frames are disabled.
+Drawing can happen between batches; a group of commands is not a transaction.
 
-On the worker side, `RenderThread::iter()` (emscripten branch) drains every queued task synchronously, each of which runs its underlying Filament call and then fires `onComplete(requestId)`. The callback is proxied back to the main thread via `emscripten::ProxyingQueue::proxySync` (the `PROXY(...)` macro in `ThermionDartRenderThreadApi.cpp`), which resolves the Dart future.
-
-The net effect is that Dart code can `await` a Filament call as if it were synchronous, but the actual GL work happens on the worker where the canvas lives.
+Completions use `ProxyingQueue::proxyAsync` to reach the browser thread. That
+queue lives for the WASM module's lifetime, so a posted completion remains
+available after its worker exits. Dart awaits notifications without polling.
 
 ### Render loop
 
-Unlike the native path, Dart on web does **not** await individual renders. `FFIFilamentApp.render()` branches on `FILAMENT_SINGLE_THREADED`:
+Unlike the native path, Dart on web does **not** await individual renders:
 
-- **Native** queues a `RenderManager_renderRenderThread` task and awaits its completion. `RenderManager::render()` runs the whole pipeline (animations + plugins + all swapchains' beginFrame/render/endFrame + `mEngine->execute()`) as one synchronous task.
-- **Web** calls `RenderManager_requestRender(renderManager)` — fire-and-forget. This flips `mRenderRequested = true` but is effectively a no-op (see [Why `mRenderRequested` is bypassed on web](#why-mrenderrequested-is-bypassed-on-web) below).
+- **Native** queues a `RenderManager_renderRenderThread` task and awaits its completion. `RenderManager::render()` runs animations, plugins, and swapchain rendering on the native worker.
+- **Web** calls `RenderManager_requestRender(renderManager)`, acknowledging a request without waiting for a frame. Drawing is driven by `WebRenderThread::frameCallback()`, separately from the command queue.
 
-Rendering is driven entirely from the worker's mainLoop. Each worker rAF, `RenderThread::iter()` drains the task queue and calls `RenderManager::tick(now)`. `tick()`:
+Each worker animation frame calls `RenderManager::tick(now)`. Unless paused,
+it updates animations/plugins and renders the attached swapchains. It then
+calls `mEngine->execute()` even if drawing is paused or `beginFrame` rejects.
+The command pump also executes backend work after each batch, allowing uploads
+to progress without an animation frame.
 
-1. Runs `updateAnimationsAndPlugins(now)`.
-2. For each attached swapchain: `renderSwapChainAt(i)` (beginFrame → render each view → endFrame).
-3. **Always** calls `mEngine->execute()` — even if every `beginFrame` rejected.
-
-All three steps happen in a single `tick()` invocation, matching the pre-refactor `RenderTicker::render()` pattern exactly. One frame per worker rAF = ~60fps at display vsync.
+Render-manager detachment and deletion are queued together. The app awaits
+deletion before destroying its animation manager, renderer, and engine. Finally,
+`WebRenderThread::destroy()` transfers the registry's ownership to the worker;
+the worker drains, cancels drawing, and deletes itself. The browser is never
+blocked waiting for it to join. The worker handle must not be reused afterward.
 
 ### Render loop invariants 
 
@@ -288,7 +301,7 @@ Two things about this loop are load-bearing and easy to break accidentally. Both
 
 ### Why `mRenderRequested` is bypassed on web
 
-The flag was originally intended to gate rendering so Dart could control when frames are produced. In practice, both Dart's main-thread `_tick` and the worker's `mainLoop` run at 60Hz but are **not phase-locked** — they're independent rAFs on different threads. When the worker rAF fires slightly before Dart's has set the flag, the worker finds it clear and skips, losing that frame. Over a second, phase drift costs ~5-10 fps (measured: ~50-55 fps instead of 60).
+The flag was originally intended to gate rendering so Dart could control when frames are produced. In practice, both Dart's main-thread `_tick` and the worker's frame callback run at 60Hz but are **not phase-locked** — they're independent rAFs on different threads. When the worker rAF fires slightly before Dart's has set the flag, the worker finds it clear and skips, losing that frame. Over a second, phase drift costs ~5-10 fps (measured: ~50-55 fps instead of 60).
 
 The fix is to render unconditionally on every worker rAF and let Dart's flag-setting be a no-op. This matches pre-refactor semantics (the `RenderTicker` also ran every worker rAF once it was requested). The flag is kept in the API for symmetry with native but is not gating on the web path.
 
@@ -298,7 +311,9 @@ See [Pause/resume](#pauseresume) in the native lifecycle section — the invaria
 
 ### Key files
 
-- `thermion_dart/native/src/rendering/RenderThread.cpp` — pthread + emscripten mainLoop, task queue.
+- `thermion_dart/native/include/rendering/RenderThread.hpp` — compile-time platform selection.
+- `thermion_dart/native/src/rendering/NativeRenderThread.cpp` — blocking queue and drain/join.
+- `thermion_dart/native/web/src/cpp/WebRenderThread.cpp` — browser command pump, frame callbacks, and asynchronous exit.
 - `thermion_dart/native/src/rendering/RenderManager.cpp` — `render()` (native), `requestRender()`/`tick()` (web).
 - `thermion_dart/native/src/c_api/ThermionDartRenderThreadApi.cpp` — `*_RenderThread` C shims + proxy-back callbacks.
 - `thermion_dart/lib/src/filament/src/implementation/ffi_filament_app.dart` — `FFIFilamentApp.render()` branches on `FILAMENT_SINGLE_THREADED`.

@@ -43,8 +43,9 @@ static void startRound(void*) {
     polls = 0;
     executed = 0;
     yielded = false;
-    auto* raw = new RenderThread("");
-    check(!raw->creationFailed(), "worker failed to start");
+    auto owner = RenderThread::create("");
+    check(owner != nullptr, "worker failed to start");
+    auto* raw = owner.get();
     for (int i = 0; i < 200; ++i) {
         raw->addDetachedTask([i] {
             check(!emscripten_is_main_browser_thread(), "task ran on the browser thread");
@@ -64,7 +65,7 @@ static void startRound(void*) {
             });
         });
     });
-    raw->shutdown(); // transfers ownership; do not access raw again
+    RenderThread::destroy(std::move(owner)); // do not access raw again
     // Keep the browser busy until the worker exits. Completion delivery must
     // still work afterward, without manually executing a proxy queue.
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
