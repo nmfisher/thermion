@@ -268,7 +268,7 @@ The net effect is that Dart code can `await` a Filament call as if it were synch
 Unlike the native path, Dart on web does **not** await individual renders. `FFIFilamentApp.render()` branches on `FILAMENT_SINGLE_THREADED`:
 
 - **Native** queues a `RenderManager_renderRenderThread` task and awaits its completion. `RenderManager::render()` runs the whole pipeline (animations + plugins + all swapchains' beginFrame/render/endFrame + `mEngine->execute()`) as one synchronous task.
-- **Web** calls `RenderManager_requestRender(renderManager)` — fire-and-forget. This flips `mRenderRequested = true` but is effectively a no-op (see [Why `mRenderRequested` is bypassed on web](#why-mrenderrequested-is-bypassed-on-web) below).
+- **Web** returns immediately. Drawing runs independently on the worker, so there is no native frame-request call. Completing this Future does not mean a frame has been drawn.
 
 Rendering is driven entirely from the worker's mainLoop. Each worker rAF, `RenderThread::iter()` drains the task queue and calls `RenderManager::tick(now)`. `tick()`:
 
@@ -286,11 +286,11 @@ Two things about this loop are load-bearing and easy to break accidentally. Both
 
 2. **`beginFrame`, `endFrame`, and `execute` must all happen in the same `tick()` invocation.** Earlier attempts split these across ticks to fit a clean state machine ("tick N renders, tick N+1 executes"), to pipeline across frames (execute previous at top of tick, render next at bottom), or to schedule execute as a `setTimeout(0)` microtask. Every variation either hung, rejected every `beginFrame` after the first, or dropped rendering entirely. The pre-refactor shape — begin/render/end/execute inline under the RenderManager mutex — is the only arrangement empirically shown to work on this combination of emscripten pthreads + OffscreenCanvas + Filament WebGL backend. Don't try to pipeline or split these phases without first understanding why it broke before.
 
-### Why `mRenderRequested` is bypassed on web
+### Why web rendering does not wait for Dart frame requests
 
-The flag was originally intended to gate rendering so Dart could control when frames are produced. In practice, both Dart's main-thread `_tick` and the worker's `mainLoop` run at 60Hz but are **not phase-locked** — they're independent rAFs on different threads. When the worker rAF fires slightly before Dart's has set the flag, the worker finds it clear and skips, losing that frame. Over a second, phase drift costs ~5-10 fps (measured: ~50-55 fps instead of 60).
+Dart's main-thread `_tick` and the worker's `mainLoop` run on independent animation frames. Gating worker rendering on a flag set by Dart could skip a frame whenever the worker ran first. The worker therefore renders on its own animation frames, without a request flag or exported request function.
 
-The fix is to render unconditionally on every worker rAF and let Dart's flag-setting be a no-op. This matches pre-refactor semantics (the `RenderTicker` also ran every worker rAF once it was requested). The flag is kept in the API for symmetry with native but is not gating on the web path.
+The former request call also took the render-manager mutex on the browser main thread. A worker holding that mutex could be waiting for an upload callback on the main thread, creating a circular wait. Removing the unused call eliminates that path; pause uses an atomic flag so it does not wait for the worker either.
 
 ### Pause/resume on web
 
@@ -299,7 +299,7 @@ See [Pause/resume](#pauseresume) in the native lifecycle section — the invaria
 ### Key files
 
 - `thermion_dart/native/src/rendering/RenderThread.cpp` — pthread + emscripten mainLoop, task queue.
-- `thermion_dart/native/src/rendering/RenderManager.cpp` — `render()` (native), `requestRender()`/`tick()` (web).
+- `thermion_dart/native/src/rendering/RenderManager.cpp` — `render()` (native), `tick()` (web).
 - `thermion_dart/native/src/c_api/ThermionDartRenderThreadApi.cpp` — `*_RenderThread` C shims + proxy-back callbacks.
 - `thermion_dart/lib/src/filament/src/implementation/ffi_filament_app.dart` — `FFIFilamentApp.render()` branches on `FILAMENT_SINGLE_THREADED`.
 - `thermion_dart/hook/build.dart` — web artifact download + `THERMION_WEB_LOCAL` override.

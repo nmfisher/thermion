@@ -36,3 +36,20 @@ target_include_directories(worker_queue_test PRIVATE ../../include)
 target_link_libraries(worker_queue_test PRIVATE Threads::Threads)
 add_test(NAME worker_queue COMMAND worker_queue_test)
 set_tests_properties(worker_queue PROPERTIES TIMEOUT 30)
+
+# Optional: the render-control regression uses Filament headers and symbols
+# from an existing native Thermion build, but does not create a GPU context.
+if(THERMION_TEST_LIBRARY AND FILAMENT_TEST_INCLUDE_DIR)
+    add_executable(render_control_test
+        render_control_test.cpp
+        ../../src/rendering/RenderManager.cpp
+        ../../src/PluginRegistry.cpp)
+    target_compile_features(render_control_test PRIVATE cxx_std_17)
+    target_include_directories(render_control_test PRIVATE
+        ../../include "${FILAMENT_TEST_INCLUDE_DIR}")
+    target_link_libraries(render_control_test PRIVATE
+        Threads::Threads "${THERMION_TEST_LIBRARY}")
+    add_test(NAME render_pause_nonblocking COMMAND render_control_test)
+    set_tests_properties(render_pause_nonblocking
+        PROPERTIES TIMEOUT 10)
+endif()

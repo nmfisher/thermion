@@ -2626,9 +2626,6 @@ external void RenderManager_renderRenderThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>)>(isLeaf: true)
-external void RenderManager_requestRender(ffi.Pointer<TRenderManager> tRenderer);
-
 @ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Bool)>(isLeaf: true)
 external void RenderManager_setPaused(ffi.Pointer<TRenderManager> tRenderer, bool paused);
 
