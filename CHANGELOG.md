@@ -4,6 +4,9 @@
 
 ### Changes
 
+- Let web commands and upload callbacks progress without animation frames, and
+  await render-manager destruction on its worker before tearing down the engine (#301).
+
 - Let Dart isolates exit after their native void callbacks finish, without
   closing the shared callback listener while requests are still pending.
 - Upgrade Filament from 1.75.0 to 1.76.0 and expose the bundled release through

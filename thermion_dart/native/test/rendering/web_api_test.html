@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<canvas id="test_canvas_0" width="32" height="32"></canvas>
+<canvas id="test_canvas_1" width="32" height="32"></canvas>
+<canvas id="test_canvas_2" width="32" height="32"></canvas>
+<canvas id="test_canvas_3" width="32" height="32"></canvas>
+<script src="thermion_dart.js"></script>
+<script>
+  globalThis.testResult = 'pending';
+  globalThis.__thermionReady = thermion_dart().then(module => {
+    globalThis.thermion_dart = module;
+  }).catch(error => { globalThis.testResult = 'FAIL: ' + error; throw error; });
+</script>
+<script defer src="test.js"></script>

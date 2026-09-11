@@ -54,11 +54,8 @@ using namespace std::chrono_literals;
 #include <time.h>
 #include <cinttypes>
 
-#if defined __EMSCRIPTEN__
-#define PROXY(call)                                           \
-  auto startTime = std::chrono::high_resolution_clock::now(); \
-  TRACE("PROXYING");                                          \
-  rt->queue.proxySync(rt->outer, [=]() { call; });
+#ifdef __EMSCRIPTEN__
+#define PROXY(call) rt->dispatchCallback([=]() { call; })
 #else
 #define PROXY(call) call
 #endif
@@ -125,13 +122,11 @@ extern "C"
       return;
     }
     std::lock_guard<std::shared_mutex> lock(g_ownerMutex);
-    g_threadByOwner[owner] = rt;
+    if (!rt->isStopping()) g_threadByOwner[owner] = rt;
   }
 
-  // Remove every owner registration that maps to `rt`. Call AFTER the thread's
-  // worker has been joined (otherwise an in-flight creation task on that worker
-  // could re-add an entry pointing at the about-to-be-freed RenderThread, and a
-  // recycled handle address would later resolve to freed memory via RT()).
+  // Remove mappings after requesting shutdown. setOwner() refuses to register
+  // new handles on a stopping worker, including during asynchronous web drain.
   static void unregisterOwnersOf(void *rt)
   {
     if (rt == nullptr)
@@ -188,6 +183,16 @@ extern "C"
     return rt != nullptr ? rt->canvasSelector() : "#thermion_canvas";
   }
 
+  // The registry owns live workers. On web, transfer ownership at shutdown:
+  // only the worker can drain its queue and cancel its frame loop safely.
+  static void disposeThread(std::unique_ptr<RenderThread> thread)
+  {
+#ifdef __EMSCRIPTEN__
+    thread.release()->shutdown();
+#endif
+    // Native destruction drains and joins synchronously.
+  }
+
   EMSCRIPTEN_KEEPALIVE void* RenderThread_create()
   {
     TRACE("RenderThread_create");
@@ -204,11 +209,10 @@ extern "C"
       Log("RenderThread worker failed to start; returning null handle");
       return nullptr;
     }
+    if (_renderThread) disposeThread(std::move(_renderThread));
     _renderThread = std::move(thread);
-    // The move-assignment above destroyed the previous RenderThread (and joined
-    // its worker). Sweep stale owner registrations AFTER the join — the dying
-    // worker's last creation task can't then re-add an entry pointing at freed
-    // memory, and a recycled handle address can't resolve to it via RT().
+    // Native destruction joins; the web worker retains ownership while it
+    // drains. In both cases stopping workers cannot register new owners.
     if (stale != nullptr)
     {
       unregisterOwnersOf(stale);
@@ -243,13 +247,14 @@ extern "C"
     }
     if (renderThread == _renderThread.get())
     {
-      _renderThread = nullptr;
+      disposeThread(std::move(_renderThread));
     }
     else
     {
       auto it = _renderThreads.find(renderThread);
       if (it != _renderThreads.end())
       {
+        disposeThread(std::move(it->second));
         _renderThreads.erase(it);
       }
     }
@@ -257,9 +262,7 @@ extern "C"
     {
       g_activeThread = nullptr;
     }
-    // _renderThread = nullptr / _renderThreads.erase above already destroyed
-    // the RenderThread (and joined its worker), so it's safe to drop any owner
-    // registrations that still point at it.
+    // The worker is stopping and cannot re-add owner registrations.
     unregisterOwnersOf(renderThread);
   }
 
@@ -289,21 +292,20 @@ extern "C"
     auto *rm = reinterpret_cast<RenderManager *>(tRenderManager);
     auto *rt = RT(tRenderManager);
     setOwner(tRenderManager, rt);
-    rt->setRenderManager(rm);
+    rt->addDetachedTask([rt, rm] { rt->setRenderManager(rm); });
 #else
     (void)tRenderManager; // no-op on native
 #endif
   }
 
-  // Inverse of RenderManager_attachToRenderThread. Call before deleting a
-  // RenderManager so the worker's iter() doesn't dereference a freed pointer
-  // on its next tick.
+  // Queues detachment. Callers must await a queue barrier before freeing the
+  // manager; RenderManager_destroyRenderThread combines both operations safely.
   EMSCRIPTEN_KEEPALIVE void RenderManager_detachFromRenderThread(TRenderManager *tRenderManager)
   {
 #ifdef __EMSCRIPTEN__
     auto *rt = RT(tRenderManager);
     if (rt) {
-      rt->setRenderManager(nullptr);
+      rt->addDetachedTask([rt] { rt->setRenderManager(nullptr); });
     }
     {
       std::lock_guard<std::shared_mutex> lock(g_ownerMutex);
@@ -312,6 +314,23 @@ extern "C"
 #else
     (void)tRenderManager; // no-op on native
 #endif
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderManager_destroyRenderThread(
+      TRenderManager* manager, uint32_t requestId, VoidCallback onComplete)
+  {
+    auto* rt = RT(manager);
+    rt->addDetachedTask([=] {
+#ifdef __EMSCRIPTEN__
+      rt->setRenderManager(nullptr);
+#endif
+      RenderManager_destroy(manager);
+      {
+        std::lock_guard<std::shared_mutex> lock(g_ownerMutex);
+        g_threadByOwner.erase(manager);
+      }
+      PROXY(onComplete(requestId));
+    });
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderableRenderThread(
@@ -708,9 +727,8 @@ extern "C"
 
   EMSCRIPTEN_KEEPALIVE void execute_queue()
   {
-    auto *rt = RT(nullptr);
 #ifdef __EMSCRIPTEN__
-    rt->queue.execute();
+    RenderThread::executeCallbacks();
 #endif
   }
 
@@ -1416,7 +1434,15 @@ extern "C"
         [=]
         {
           auto name = View_getName(tView);
+#ifdef __EMSCRIPTEN__
+          // A subsequent rename/destroy can run before the browser receives
+          // this completion. Own the string through callback delivery.
+          rt->dispatchCallback([onComplete, name = std::string(name ? name : "")] {
+            onComplete(name.c_str());
+          });
+#else
           PROXY(onComplete(name));
+#endif
         });
     auto fut = rt->addTask(lambda);
   }

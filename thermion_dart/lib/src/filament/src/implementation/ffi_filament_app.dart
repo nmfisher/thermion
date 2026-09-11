@@ -407,15 +407,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
 
     FilamentApp.instance = null;
-    // Detach the RenderManager from the worker pthread BEFORE deleting it.
-    // The worker's mainLoop/iter() reads `mRenderManager` to drive ticks; once
-    // we delete the RenderManager that pointer dangles, and the next iter()
-    // crashes inside tick() — which is silent in release builds and leaves
-    // the worker pthread effectively dead but with its mimalloc arena still
-    // owned, so every subsequent FilamentApp.create() spawns a fresh worker
-    // on top of the leaked one.
-    RenderManager_detachFromRenderThread(renderManager.getNativeHandle());
-    renderManager.destroy();
+    // Detachment and destruction run together on the worker, ordered after
+    // earlier commands and before engine resource teardown.
+    await renderManager.destroy();
 
     // Filament's contract is: tear down everything created on top of the
     // Engine before destroying the Engine itself. Order matters — the
