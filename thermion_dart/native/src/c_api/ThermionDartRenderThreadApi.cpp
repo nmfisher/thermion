@@ -179,18 +179,12 @@ extern "C"
   // on the right canvas.
   EMSCRIPTEN_KEEPALIVE const char *RenderThread_getActiveCanvasSelector()
   {
+#ifdef __EMSCRIPTEN__
     RenderThread *rt = g_activeThread != nullptr ? g_activeThread : _renderThread.get();
     return rt != nullptr ? rt->canvasSelector() : "#thermion_canvas";
-  }
-
-  // The registry owns live workers. On web, transfer ownership at shutdown:
-  // only the worker can drain its queue and cancel its frame loop safely.
-  static void disposeThread(std::unique_ptr<RenderThread> thread)
-  {
-#ifdef __EMSCRIPTEN__
-    thread.release()->shutdown();
+#else
+    return "#thermion_canvas";
 #endif
-    // Native destruction drains and joins synchronously.
   }
 
   EMSCRIPTEN_KEEPALIVE void* RenderThread_create()
@@ -201,15 +195,15 @@ extern "C"
     {
       Log("WARNING - you are attempting to create a RenderThread when the previous one has not been disposed.");
     }
-    auto thread = std::make_unique<RenderThread>();
-    if (thread->creationFailed())
+    auto thread = RenderThread::create();
+    if (!thread)
     {
       // pthread_create failed on web (e.g. worker pool exhausted); a null
       // handle lets Dart fail loudly instead of hanging on never-run tasks.
       Log("RenderThread worker failed to start; returning null handle");
       return nullptr;
     }
-    if (_renderThread) disposeThread(std::move(_renderThread));
+    if (_renderThread) RenderThread::destroy(std::move(_renderThread));
     _renderThread = std::move(thread);
     // Native destruction joins; the web worker retains ownership while it
     // drains. In both cases stopping workers cannot register new owners.
@@ -225,8 +219,8 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE void* RenderThread_createForCanvas(const char *canvasSelector)
   {
     TRACE("RenderThread_createForCanvas %s", canvasSelector);
-    auto thread = std::make_unique<RenderThread>(canvasSelector);
-    if (thread->creationFailed())
+    auto thread = RenderThread::create(canvasSelector);
+    if (!thread)
     {
       Log("RenderThread worker failed to start for canvas %s; returning null handle", canvasSelector);
       return nullptr;
@@ -247,14 +241,14 @@ extern "C"
     }
     if (renderThread == _renderThread.get())
     {
-      disposeThread(std::move(_renderThread));
+      RenderThread::destroy(std::move(_renderThread));
     }
     else
     {
       auto it = _renderThreads.find(renderThread);
       if (it != _renderThreads.end())
       {
-        disposeThread(std::move(it->second));
+        RenderThread::destroy(std::move(it->second));
         _renderThreads.erase(it);
       }
     }
