@@ -46,6 +46,38 @@ for arg in "$@"; do
   esac
 done
 
+# List the .a slices of an xcframework (NUL-separated), device slices first.
+# Device and simulator slices both contain arm64. The dedup loop below keeps
+# the first slice it sees per architecture, and `find` order is arbitrary, so
+# the simulator slice can win — which is what happened in the published
+# v1.75.0/v1.76.0 ios archives: their arm64 libs were simulator builds and an
+# iOS device build failed to link ("building for 'iOS', but linking in object
+# file ... built for 'iOS-simulator'"). Simulator libs ship separately from
+# build_ios_simulator.sh, so the ios archive's arm64 must be the device slice.
+list_slices_device_first() {
+  find "$1" -name '*.a' -not -path '*simulator*' -print0
+  find "$1" -name '*.a' -path '*simulator*' -print0
+}
+
+# Fail if the arm64 slice of a static library was built for the iOS simulator
+# (LC_BUILD_VERSION platform 7). Device builds carry platform 2 or the older
+# LC_VERSION_MIN_IPHONEOS.
+check_arm64_is_device() {
+  local _lib=$1 _thin
+  _thin=$(mktemp)
+  if [ "$(lipo -archs "$_lib" | wc -w)" -eq 1 ]; then
+    cp "$_lib" "$_thin"
+  else
+    lipo "$_lib" -thin arm64 -output "$_thin" || { rm -f "$_thin"; return 0; }
+  fi
+  if otool -l "$_thin" | grep -q '^ *platform 7$'; then
+    echo "Error: arm64 slice of $_lib is an iOS simulator build, not a device build"
+    rm -f "$_thin"
+    exit 1
+  fi
+  rm -f "$_thin"
+}
+
 # Validate OUTPUT_BASE_DIR exists
 if [ ! -d "$OUTPUT_BASE_DIR" ]; then
   echo "Error: Output base directory does not exist: $OUTPUT_BASE_DIR"
@@ -156,7 +188,7 @@ if [ "$BUILD_RELEASE" = true ]; then
     [ -d "$_xcf" ] || continue
     _name=$(basename "$_xcf" .xcframework)
     _slices=()
-    while IFS= read -r -d '' _a; do _slices+=("$_a"); done < <(find "$_xcf" -name '*.a' -print0)
+    while IFS= read -r -d '' _a; do _slices+=("$_a"); done < <(list_slices_device_first "$_xcf")
     [ "${#_slices[@]}" -gt 0 ] || continue
     if [ "${#_slices[@]}" -eq 1 ]; then
       cp "${_slices[0]}" "$TARGET_RELEASE_DIR/$_name.a"
@@ -165,7 +197,9 @@ if [ "$BUILD_RELEASE" = true ]; then
       # fat (arm64 + x86_64) while the device slices are arm64-only, so
       # lipo -create of all slices fails ("same architectures and can't be
       # in the same fat output file"). Deduplicate by extracting a thin
-      # slice per unique architecture, then combine those.
+      # slice per unique architecture, then combine those. The first slice
+      # seen wins per architecture, so the device slice must come first
+      # (see list_slices_device_first) or arm64 ends up as a simulator build.
       _have=()
       _inputs=()
       _tmpdir=$(mktemp -d)
@@ -194,6 +228,7 @@ if [ "$BUILD_RELEASE" = true ]; then
       }
       rm -rf "$_tmpdir"
     fi
+    check_arm64_is_device "$TARGET_RELEASE_DIR/$_name.a"
   done
   echo "Extracted universal libraries from XCFrameworks into $TARGET_RELEASE_DIR"
 
@@ -239,14 +274,15 @@ if [ "$BUILD_DEBUG" = true ]; then
     [ -d "$_xcf" ] || continue
     _name=$(basename "$_xcf" .xcframework)
     _slices=()
-    while IFS= read -r -d '' _a; do _slices+=("$_a"); done < <(find "$_xcf" -name '*.a' -print0)
+    while IFS= read -r -d '' _a; do _slices+=("$_a"); done < <(list_slices_device_first "$_xcf")
     [ "${#_slices[@]}" -gt 0 ] || continue
     if [ "${#_slices[@]}" -eq 1 ]; then
       cp "${_slices[0]}" "$TARGET_DEBUG_DIR/$_name.a"
     else
       # See the release block above: slices can overlap in architecture
       # (v1.75.0's simulator slices are fat arm64+x86_64), so deduplicate by
-      # extracting a thin slice per unique architecture before combining.
+      # extracting a thin slice per unique architecture before combining;
+      # the device slice is listed first so it wins for arm64.
       _have=()
       _inputs=()
       _tmpdir=$(mktemp -d)
@@ -275,6 +311,7 @@ if [ "$BUILD_DEBUG" = true ]; then
       }
       rm -rf "$_tmpdir"
     fi
+    check_arm64_is_device "$TARGET_DEBUG_DIR/$_name.a"
   done
   echo "Extracted universal libraries from XCFrameworks into $TARGET_DEBUG_DIR"
 
