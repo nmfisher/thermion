@@ -61,29 +61,23 @@ abstract class SssFullscreenPassView extends FFIView {
   /// Sampler used for every texture this pass reads.
   final FFITextureSampler sampler;
 
-  SssFullscreenPassView._(
-    Pointer<TView> view, {
-    required this.app,
-    required _SssPassResources resources,
-  }) : material = resources.material,
-       materialInstance = resources.materialInstance,
-       quadVertexBuffer = resources.vertexBuffer,
-       quadIndexBuffer = resources.indexBuffer,
-       quadEntity = resources.quadEntity,
-       passScene = resources.scene,
-       skybox = resources.skybox,
-       passCamera = resources.camera,
-       sampler = resources.sampler,
-       super(view, app);
+  SssFullscreenPassView._(Pointer<TView> view, {required this.app, required _SssPassResources resources})
+    : material = resources.material,
+      materialInstance = resources.materialInstance,
+      quadVertexBuffer = resources.vertexBuffer,
+      quadIndexBuffer = resources.indexBuffer,
+      quadEntity = resources.quadEntity,
+      passScene = resources.scene,
+      skybox = resources.skybox,
+      passCamera = resources.camera,
+      sampler = resources.sampler,
+      super(view, app);
 
   /// Builds the parts every fullscreen pass shares.
   ///
   /// [material] is the already-created material for this pass; each pass has
   /// its own so that its material instance can be configured independently.
-  static Future<_SssPassResources> buildResources(
-    FFIFilamentApp app,
-    FFIMaterial material,
-  ) async {
+  static Future<_SssPassResources> buildResources(FFIFilamentApp app, FFIMaterial material) async {
     final scene = await app.createScene() as FFIScene;
 
     // Fully transparent skybox: the quad covers the whole output, so the
@@ -125,12 +119,14 @@ abstract class SssFullscreenPassView extends FFIView {
     // LINEAR: the blur passes need filtered reads, and the composite pass
     // relies on filtered reads of the reduced-resolution scatter buffer to
     // upsample it.
-    final sampler = await app.createTextureSampler(
-      minFilter: TextureMinFilter.LINEAR,
-      magFilter: TextureMagFilter.LINEAR,
-      wrapS: TextureWrapMode.CLAMP_TO_EDGE,
-      wrapT: TextureWrapMode.CLAMP_TO_EDGE,
-    ) as FFITextureSampler;
+    final sampler =
+        await app.createTextureSampler(
+              minFilter: TextureMinFilter.LINEAR,
+              magFilter: TextureMagFilter.LINEAR,
+              wrapS: TextureWrapMode.CLAMP_TO_EDGE,
+              wrapT: TextureWrapMode.CLAMP_TO_EDGE,
+            )
+            as FFITextureSampler;
 
     final quadEntity = await app.createEntity();
 

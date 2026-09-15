@@ -148,7 +148,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TAnimationManager> tAnimationManager,
     EntityId entityId,
     Pointer<Float32> morphData,
-    Pointer<Uint32> morphIndices,
+    Pointer<Int32> morphIndices,
     int numMorphTargets,
     int numFrames,
     double frameLengthInMs,
@@ -171,7 +171,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TSceneAsset> sceneAsset,
     int index,
   );
-  external void _AnimationManager_update(Pointer<TAnimationManager> tAnimationManager, JSBigInt frameTimeInNanos);
+  external void _AnimationManager_update(Pointer<TAnimationManager> tAnimationManager, int frameTimeInNanos);
   external int _AnimationManager_updateBoneMatrices(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
@@ -183,7 +183,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _AnimationManager_updateRenderThread(
     Pointer<TAnimationManager> tAnimationManager,
-    JSBigInt frameTimeInNanos,
+    int frameTimeInNanos,
     int requestId,
     VoidCallback onComplete,
   );
@@ -210,14 +210,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TEngine> engine,
     Pointer<TBufferObject> buffer,
     Pointer<Void> data,
-    size_t sizeInBytes,
+    int sizeInBytes,
     int byteOffset,
   );
   external void _BufferObject_setBufferRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TBufferObject> tBuffer,
     Pointer<Void> data,
-    size_t sizeInBytes,
+    int sizeInBytes,
     int byteOffset,
     int requestId,
     VoidCallback onComplete,
@@ -459,15 +459,11 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
 
   /// Returns null for an invalid chunk layout or incompatible material version.
   /// Matching versions do not guarantee valid payloads or backend compatibility.
-  external Pointer<TMaterial> _Engine_buildMaterial(
-    Pointer<TEngine> tEngine,
-    Pointer<Uint8> materialData,
-    size_t length,
-  );
+  external Pointer<TMaterial> _Engine_buildMaterial(Pointer<TEngine> tEngine, Pointer<Int32> materialData, int length);
   external void _Engine_buildMaterialRenderThread(
     Pointer<TEngine> tEngine,
-    Pointer<Uint8> materialData,
-    size_t length,
+    Pointer<Int32> materialData,
+    int length,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
   );
   external Pointer<TSkybox> _Engine_buildSkybox(
@@ -507,13 +503,13 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TEngine> tEngine,
     int width,
     int height,
-    JSBigInt flags,
+    int flags,
   );
   external void _Engine_createHeadlessSwapChainRenderThread(
     Pointer<TEngine> tEngine,
     int width,
     int height,
-    JSBigInt flags,
+    int flags,
     Pointer<NativeFunction<void Function(PointerClass<TSwapChain>)>> onComplete,
   );
   external void _Engine_createRenderThread(
@@ -530,11 +526,11 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<NativeFunction<void Function(PointerClass<TRenderer>)>> onComplete,
   );
   external Pointer<TScene> _Engine_createScene(Pointer<TEngine> tEngine);
-  external Pointer<TSwapChain> _Engine_createSwapChain(Pointer<TEngine> tEngine, Pointer<Void> window, JSBigInt flags);
+  external Pointer<TSwapChain> _Engine_createSwapChain(Pointer<TEngine> tEngine, Pointer<Void> window, int flags);
   external void _Engine_createSwapChainRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<Void> window,
-    JSBigInt flags,
+    int flags,
     Pointer<NativeFunction<void Function(PointerClass<TSwapChain>)>> onComplete,
   );
   external Pointer<TView> _Engine_createView(Pointer<TEngine> tEngine);
@@ -636,7 +632,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<TDebugRegistry> _Engine_getDebugRegistry(Pointer<TEngine> tEngine);
   external Pointer<TEntityManager> _Engine_getEntityManager(Pointer<TEngine> engine);
   external Pointer<TLightManager> _Engine_getLightManager(Pointer<TEngine> engine);
-  external size_t _Engine_getMaxAutomaticInstances(Pointer<TEngine> tEngine);
+  external int _Engine_getMaxAutomaticInstances(Pointer<TEngine> tEngine);
   external Pointer<TRenderableManager> _Engine_getRenderableManager(Pointer<TEngine> engine);
   external int _Engine_getSupportedFeatureLevel(Pointer<TEngine> tEngine);
   external Pointer<TTransformManager> _Engine_getTransformManager(Pointer<TEngine> engine);
@@ -668,8 +664,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external int _FrameScheduler_initDartApi(Pointer<Void> data);
   external void _FrameScheduler_setTargetFps(int fps);
   external void _FrameScheduler_startWithCallback(FrameTickCallback tickCallback, int targetFps);
-  external void _FrameScheduler_startWithPort(JSBigInt port, int targetFps);
-  external JSBigInt _FrameScheduler_steadyClockUs();
+  external void _FrameScheduler_startWithPort(int port, int targetFps);
+  external int _FrameScheduler_steadyClockUs();
   external void _FrameScheduler_stop();
   external Pointer<TGizmo> _Gizmo_create(
     Pointer<TEngine> tEngine,
@@ -719,38 +715,38 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<TFilamentAsset> _GltfAssetLoader_load(
     Pointer<TEngine> tEngine,
     Pointer<TGltfAssetLoader> tAssetLoader,
-    Pointer<Uint8> data,
-    size_t length,
+    Pointer<Int32> data,
+    int length,
     int numInstances,
   );
   external void _GltfAssetLoader_loadRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TGltfAssetLoader> tAssetLoader,
-    Pointer<Uint8> data,
-    size_t length,
+    Pointer<Int32> data,
+    int length,
     int numInstances,
     Pointer<NativeFunction<void Function(PointerClass<TFilamentAsset>)>> callback,
   );
   external int _GltfParser_parseBuffer(
-    Pointer<Uint8> data,
-    size_t length,
+    Pointer<Int32> data,
+    int length,
     Pointer<Char> meshName,
     Pointer<TMeshData> outMeshData,
   );
   external void _GltfResourceLoader_addResourceData(
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
     Pointer<Char> uri,
-    Pointer<Uint8> data,
-    size_t length,
-    Pointer<NativeFunction<void Function(PointerClass<Void> buffer, size_t length, PointerClass<Void> userData)>>
+    Pointer<Int32> data,
+    int length,
+    Pointer<NativeFunction<void Function(PointerClass<Void> buffer, int length, PointerClass<Void> userData)>>
     onRelease,
     Pointer<Void> userData,
   );
   external void _GltfResourceLoader_addResourceDataRenderThread(
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
     Pointer<Char> uri,
-    Pointer<Uint8> data,
-    size_t length,
+    Pointer<Int32> data,
+    int length,
     int requestId,
     VoidCallback onComplete,
   );
@@ -798,10 +794,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int channel,
     Pointer<NativeFunction<void Function(PointerClass<TLinearImage>)>> onComplete,
   );
-  external Pointer<TLinearImage> _Image_decode(Pointer<Uint8> data, size_t length, Pointer<Char> name, bool alpha);
+  external Pointer<TLinearImage> _Image_decode(Pointer<Int32> data, int length, Pointer<Char> name, bool alpha);
   external void _Image_decodeRenderThread(
-    Pointer<Uint8> data,
-    size_t length,
+    Pointer<Int32> data,
+    int length,
     Pointer<Char> name,
     bool alpha,
     Pointer<NativeFunction<void Function(PointerClass<TLinearImage>)>> onComplete,
@@ -816,17 +812,17 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external int _Image_getChannels(Pointer<TLinearImage> tLinearImage);
   external void _Image_getChannelsRenderThread(
     Pointer<TLinearImage> tLinearImage,
-    Pointer<NativeFunction<void Function(int)>> onComplete,
+    Pointer<NativeFunction<void Function()>> onComplete,
   );
   external int _Image_getHeight(Pointer<TLinearImage> tLinearImage);
   external void _Image_getHeightRenderThread(
     Pointer<TLinearImage> tLinearImage,
-    Pointer<NativeFunction<void Function(int)>> onComplete,
+    Pointer<NativeFunction<void Function()>> onComplete,
   );
   external int _Image_getWidth(Pointer<TLinearImage> tLinearImage);
   external void _Image_getWidthRenderThread(
     Pointer<TLinearImage> tLinearImage,
-    Pointer<NativeFunction<void Function(int)>> onComplete,
+    Pointer<NativeFunction<void Function()>> onComplete,
   );
   external void _IndexBufferBuilder_bufferType(Pointer<TIndexBufferBuilder> builder, int indexType);
   external Pointer<TIndexBuffer> _IndexBufferBuilder_build(
@@ -848,25 +844,25 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
-  external size_t _IndexBuffer_getIndexCount(Pointer<TIndexBuffer> buffer);
+  external int _IndexBuffer_getIndexCount(Pointer<TIndexBuffer> buffer);
   external void _IndexBuffer_setBuffer(
     Pointer<TEngine> engine,
     Pointer<TIndexBuffer> buffer,
     Pointer<Void> data,
-    size_t sizeInBytes,
+    int sizeInBytes,
     int byteOffset,
   );
   external void _IndexBuffer_setBufferRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TIndexBuffer> tBuffer,
     Pointer<Void> data,
-    size_t sizeInBytes,
+    int sizeInBytes,
     int byteOffset,
     int requestId,
     VoidCallback onComplete,
   );
   external void _IndirectLight_setRotation(Pointer<TIndirectLight> tIndirectLight, Pointer<Float64> rotation);
-  external Pointer<TKtx1Bundle> _Ktx1Bundle_create(Pointer<Uint8> ktxData, size_t length);
+  external Pointer<TKtx1Bundle> _Ktx1Bundle_create(Pointer<Int32> ktxData, int length);
   external void _Ktx1Bundle_destroy(Pointer<TKtx1Bundle> tBundle);
   external void _Ktx1Bundle_getSphericalHarmonics(Pointer<TKtx1Bundle> tBundle, Pointer<Float32> harmonics);
   external int _Ktx1Bundle_isCubemap(Pointer<TKtx1Bundle> tBundle);
@@ -883,11 +879,11 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     VoidCallback onTextureUploadComplete,
     Pointer<NativeFunction<void Function(PointerClass<TTexture>)>> onComplete,
   );
-  external Pointer<TTexture> _Ktx2Reader_createTexture(Pointer<TEngine> tEngine, Pointer<Uint8> data, size_t size);
+  external Pointer<TTexture> _Ktx2Reader_createTexture(Pointer<TEngine> tEngine, Pointer<Int32> data, int size);
   external void _Ktx2Reader_createTextureRenderThread(
     Pointer<TEngine> tEngine,
-    Pointer<Uint8> data,
-    size_t size,
+    Pointer<Int32> data,
+    int size,
     Pointer<NativeFunction<void Function(PointerClass<TTexture>)>> onComplete,
   );
   external void _LightManager_computeLogSplits(Pointer<Float32> splitPositions, int cascades, double near, double far);
@@ -1268,7 +1264,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   /// Checks chunk boundaries without parsing their payloads. A nonnegative result
   /// does not establish that the package is complete or valid for a given backend.
   /// Reads synchronously and does not retain data. No engine is required.
-  external JSBigInt _Material_getPackageVersion(Pointer<Uint8> data, size_t length);
+  external int _Material_getPackageVersion(Pointer<Int32> data, int length);
 
   /// Material package format version expected by the linked Filament build.
   /// This is distinct from the Filament release version.
@@ -1278,8 +1274,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _MovementIntentExecutor_destroy(Pointer<TMovementIntentExecutor> executor);
   external void _MovementIntentExecutor_process(
     Pointer<TMovementIntentExecutor> executor,
-    Pointer<TMovementIntent> intent,
-    JSBigInt deltaTimeInNanos,
+    Pointer<UnnamedStruct1> intent,
+    int deltaTimeInNanos,
   );
   external Pointer<TNameComponentManager> _NameComponentManager_create();
   external void _NameComponentManager_destroy(Pointer<TNameComponentManager> tNameComponentManager);
@@ -1319,10 +1315,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
-  external void _RenderManager_render(Pointer<TRenderManager> tRenderer, JSBigInt frameTimeInNanos);
+  external void _RenderManager_render(Pointer<TRenderManager> tRenderer, int frameTimeInNanos);
   external void _RenderManager_renderRenderThread(
     Pointer<TRenderManager> tRenderManager,
-    JSBigInt frameTimeInNanos,
+    int frameTimeInNanos,
     int requestId,
     VoidCallback onComplete,
   );
@@ -1369,13 +1365,13 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<Void> _RenderThread_create();
   external Pointer<Void> _RenderThread_createForCanvas(Pointer<Char> canvasSelector);
   external void _RenderThread_destroy(Pointer<Void> renderThread);
-  external void _RenderableBuilder_blendOrder(Pointer<TRenderableBuilder> builder, size_t primitiveIndex, int order);
+  external void _RenderableBuilder_blendOrder(Pointer<TRenderableBuilder> builder, int primitiveIndex, int order);
   external void _RenderableBuilder_boneIndicesAndWeights(
     Pointer<TRenderableBuilder> builder,
-    size_t primitiveIndex,
+    int primitiveIndex,
     Pointer<Float32> indicesAndWeights,
-    size_t count,
-    size_t bonesPerVertex,
+    int count,
+    int bonesPerVertex,
   );
   external void _RenderableBuilder_boundingBox(Pointer<TRenderableBuilder> builder, Pointer<Aabb3> aabbPtr);
   external int _RenderableBuilder_build(Pointer<TRenderableBuilder> builder, Pointer<TEngine> engine, EntityId entity);
@@ -1389,46 +1385,46 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TRenderableBuilder> tBuilder,
     Pointer<TEngine> tEngine,
     EntityId entityId,
-    size_t boneCount,
+    int boneCount,
     Pointer<Float32> data,
     bool boneData,
     Pointer<NativeFunction<void Function(int)>> onComplete,
   );
   external void _RenderableBuilder_castShadows(Pointer<TRenderableBuilder> builder, bool enabled);
   external void _RenderableBuilder_channel(Pointer<TRenderableBuilder> builder, int channel);
-  external Pointer<TRenderableBuilder> _RenderableBuilder_create(size_t primitiveCount);
+  external Pointer<TRenderableBuilder> _RenderableBuilder_create(int primitiveCount);
   external void _RenderableBuilder_culling(Pointer<TRenderableBuilder> builder, bool enabled);
   external void _RenderableBuilder_destroy(Pointer<TRenderableBuilder> builder);
   external void _RenderableBuilder_enableSkinningBuffers(Pointer<TRenderableBuilder> builder, bool enabled);
   external void _RenderableBuilder_fog(Pointer<TRenderableBuilder> builder, bool enabled);
   external void _RenderableBuilder_geometry(
     Pointer<TRenderableBuilder> builder,
-    size_t primitiveIndex,
+    int primitiveIndex,
     int type,
     Pointer<TVertexBuffer> vertices,
     Pointer<TIndexBuffer> indices,
-    size_t offset,
-    size_t count,
+    int offset,
+    int count,
   );
   external void _RenderableBuilder_geometryNonIndexed(
     Pointer<TRenderableBuilder> builder,
-    size_t primitiveIndex,
+    int primitiveIndex,
     int type,
     Pointer<TVertexBuffer> vertices,
-    size_t offset,
-    size_t count,
+    int offset,
+    int count,
   );
   external void _RenderableBuilder_globalBlendOrderEnabled(
     Pointer<TRenderableBuilder> builder,
-    size_t primitiveIndex,
+    int primitiveIndex,
     bool enabled,
   );
-  external void _RenderableBuilder_instances(Pointer<TRenderableBuilder> builder, size_t instanceCount);
+  external void _RenderableBuilder_instances(Pointer<TRenderableBuilder> builder, int instanceCount);
   external void _RenderableBuilder_layerMask(Pointer<TRenderableBuilder> builder, int select, int values);
   external void _RenderableBuilder_lightChannel(Pointer<TRenderableBuilder> builder, int channel, bool enabled);
   external void _RenderableBuilder_material(
     Pointer<TRenderableBuilder> builder,
-    size_t primitiveIndex,
+    int primitiveIndex,
     Pointer<TMaterialInstance> materialInstance,
   );
   external void _RenderableBuilder_priority(Pointer<TRenderableBuilder> builder, int priority);
@@ -1436,12 +1432,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _RenderableBuilder_screenSpaceContactShadows(Pointer<TRenderableBuilder> builder, bool enabled);
   external void _RenderableBuilder_skinningFromBone(
     Pointer<TRenderableBuilder> builder,
-    size_t boneCount,
+    int boneCount,
     Pointer<Float32> bones,
   );
   external void _RenderableBuilder_skinningFromMat4(
     Pointer<TRenderableBuilder> builder,
-    size_t boneCount,
+    int boneCount,
     Pointer<Float32> transforms,
   );
   external void _RenderableManager_clearMaterialInstanceAt(
@@ -1472,7 +1468,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
   );
-  external size_t _RenderableManager_getComponentCount(Pointer<TRenderableManager> tRenderableManager);
+  external int _RenderableManager_getComponentCount(Pointer<TRenderableManager> tRenderableManager);
   external int _RenderableManager_getCulling(Pointer<TRenderableManager> tRenderableManager, EntityId entityId);
   external int _RenderableManager_getFogEnabled(Pointer<TRenderableManager> tRenderableManager, EntityId entityId);
   external int _RenderableManager_getLayerMask(Pointer<TRenderableManager> tRenderableManager, EntityId entityId);
@@ -1486,14 +1482,11 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     EntityId entityId,
     int primitiveIndex,
   );
-  external size_t _RenderableManager_getMorphTargetCount(
+  external int _RenderableManager_getMorphTargetCount(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
   );
-  external size_t _RenderableManager_getPrimitiveCount(
-    Pointer<TRenderableManager> tRenderableManager,
-    EntityId entityId,
-  );
+  external int _RenderableManager_getPrimitiveCount(Pointer<TRenderableManager> tRenderableManager, EntityId entityId);
   external int _RenderableManager_getPriority(Pointer<TRenderableManager> tRenderableManager, EntityId entityId);
   external int _RenderableManager_hasComponent(Pointer<TRenderableManager> tRenderableManager, EntityId entityId);
   external int _RenderableManager_isRenderable(Pointer<TRenderableManager> tRenderableManager, EntityId entityId);
@@ -1507,22 +1500,22 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _RenderableManager_setBlendOrderAt(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
-    size_t primitiveIndex,
+    int primitiveIndex,
     int order,
   );
   external void _RenderableManager_setBonesFromBone(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     Pointer<Float32> bones,
-    size_t boneCount,
-    size_t offset,
+    int boneCount,
+    int offset,
   );
   external void _RenderableManager_setBonesFromBoneRenderThread(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     Pointer<Float32> bones,
-    size_t boneCount,
-    size_t offset,
+    int boneCount,
+    int offset,
     int requestId,
     VoidCallback onComplete,
   );
@@ -1530,15 +1523,15 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     Pointer<Float32> transforms,
-    size_t boneCount,
-    size_t offset,
+    int boneCount,
+    int offset,
   );
   external void _RenderableManager_setBonesFromMat4RenderThread(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     Pointer<Float32> transforms,
-    size_t boneCount,
-    size_t offset,
+    int boneCount,
+    int offset,
     int requestId,
     VoidCallback onComplete,
   );
@@ -1575,8 +1568,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int primitiveIndex,
     int type,
     Pointer<TVertexBuffer> vertices,
-    size_t offset,
-    size_t count,
+    int offset,
+    int count,
   );
   external void _RenderableManager_setGeometryAtNonIndexedRenderThread(
     Pointer<TRenderableManager> tRenderableManager,
@@ -1584,14 +1577,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int primitiveIndex,
     int type,
     Pointer<TVertexBuffer> tVertices,
-    size_t offset,
-    size_t count,
+    int offset,
+    int count,
     Pointer<NativeFunction<void Function(bool)>> callback,
   );
   external void _RenderableManager_setGlobalBlendOrderEnabledAt(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
-    size_t primitiveIndex,
+    int primitiveIndex,
     bool enabled,
   );
   external void _RenderableManager_setLayerMask(
@@ -1616,15 +1609,15 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     Pointer<Float32> weights,
-    size_t count,
-    size_t offset,
+    int count,
+    int offset,
   );
   external void _RenderableManager_setMorphWeightsRenderThread(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     Pointer<Float32> weights,
-    size_t count,
-    size_t offset,
+    int count,
+    int offset,
     int requestId,
     VoidCallback onComplete,
   );
@@ -1655,15 +1648,11 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     EntityId entityId,
     int layer,
   );
-  external int _Renderer_beginFrame(
-    Pointer<TRenderer> tRenderer,
-    Pointer<TSwapChain> tSwapChain,
-    JSBigInt frameTimeInNanos,
-  );
+  external int _Renderer_beginFrame(Pointer<TRenderer> tRenderer, Pointer<TSwapChain> tSwapChain, int frameTimeInNanos);
   external void _Renderer_beginFrameRenderThread(
     Pointer<TRenderer> tRenderer,
     Pointer<TSwapChain> tSwapChain,
-    JSBigInt frameTimeInNanos,
+    int frameTimeInNanos,
     Pointer<NativeFunction<void Function(bool)>> onComplete,
   );
   external void _Renderer_endFrame(Pointer<TRenderer> tRenderer);
@@ -1677,8 +1666,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TRenderTarget> tRenderTarget,
     int tPixelBufferFormat,
     int tPixelDataType,
-    Pointer<Uint8> out,
-    size_t outLength,
+    Pointer<Int32> out,
+    int outLength,
   );
   external void _Renderer_readPixelsRenderThread(
     Pointer<TRenderer> tRenderer,
@@ -1689,8 +1678,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TRenderTarget> tRenderTarget,
     int tPixelBufferFormat,
     int tPixelDataType,
-    Pointer<Uint8> out,
-    size_t outLength,
+    Pointer<Int32> out,
+    int outLength,
     int requestId,
     VoidCallback onComplete,
   );
@@ -1797,12 +1786,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
-  external size_t _SceneAsset_getBoneCount(Pointer<TSceneAsset> tSceneAsset, size_t skinIndex);
-  external Pointer<Char> _SceneAsset_getBoneName(Pointer<TSceneAsset> tSceneAsset, size_t skinIndex, size_t boneIndex);
-  external void _SceneAsset_getBones(Pointer<TSceneAsset> tSceneAsset, size_t skinIndex, Pointer<Int32> out);
+  external int _SceneAsset_getBoneCount(Pointer<TSceneAsset> tSceneAsset, int skinIndex);
+  external Pointer<Char> _SceneAsset_getBoneName(Pointer<TSceneAsset> tSceneAsset, int skinIndex, int boneIndex);
+  external void _SceneAsset_getBones(Pointer<TSceneAsset> tSceneAsset, int skinIndex, Pointer<Int32> out);
   external void _SceneAsset_getBoundingBox(Pointer<Aabb3> Aabb3_out, Pointer<TSceneAsset> asset);
   external Pointer<Int32> _SceneAsset_getCameraEntities(Pointer<TSceneAsset> tSceneAsset);
-  external size_t _SceneAsset_getCameraEntityCount(Pointer<TSceneAsset> tSceneAsset);
+  external int _SceneAsset_getCameraEntityCount(Pointer<TSceneAsset> tSceneAsset);
   external void _SceneAsset_getChildEntities(Pointer<TSceneAsset> tSceneAsset, Pointer<Int32> out);
   external int _SceneAsset_getChildEntityCount(Pointer<TSceneAsset> tSceneAsset);
   external EntityId _SceneAsset_getEntity(Pointer<TSceneAsset> tSceneAsset);
@@ -1810,9 +1799,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external int _SceneAsset_getGeometryCapabilities(Pointer<TSceneAsset> asset);
   external Pointer<TIndexBuffer> _SceneAsset_getIndexBuffer(Pointer<TSceneAsset> tSceneAsset, int primitiveIndex);
   external Pointer<TSceneAsset> _SceneAsset_getInstance(Pointer<TSceneAsset> tSceneAsset, int index);
-  external size_t _SceneAsset_getInstanceCount(Pointer<TSceneAsset> tSceneAsset);
+  external int _SceneAsset_getInstanceCount(Pointer<TSceneAsset> tSceneAsset);
   external Pointer<Int32> _SceneAsset_getLightEntities(Pointer<TSceneAsset> tSceneAsset);
-  external size_t _SceneAsset_getLightEntityCount(Pointer<TSceneAsset> tSceneAsset);
+  external int _SceneAsset_getLightEntityCount(Pointer<TSceneAsset> tSceneAsset);
   external int _SceneAsset_getPrimitiveOffsetForEntity(Pointer<TSceneAsset> tSceneAsset, EntityId entity);
   external int _SceneAsset_getType(Pointer<TSceneAsset> tSceneAsset);
   external Pointer<TVertexBuffer> _SceneAsset_getVertexBuffer(Pointer<TSceneAsset> tSceneAsset, int primitiveIndex);
@@ -1893,73 +1882,73 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _SurfaceOrientationBuilder_normals(
     Pointer<TSurfaceOrientationBuilder> builder,
     Pointer<Float32> normals,
-    size_t stride,
+    int stride,
   );
   external void _SurfaceOrientationBuilder_positions(
     Pointer<TSurfaceOrientationBuilder> builder,
     Pointer<Float32> positions,
-    size_t stride,
+    int stride,
   );
   external void _SurfaceOrientationBuilder_tangents(
     Pointer<TSurfaceOrientationBuilder> builder,
     Pointer<Float32> tangents,
-    size_t stride,
+    int stride,
   );
-  external void _SurfaceOrientationBuilder_triangleCount(Pointer<TSurfaceOrientationBuilder> builder, size_t count);
+  external void _SurfaceOrientationBuilder_triangleCount(Pointer<TSurfaceOrientationBuilder> builder, int count);
   external void _SurfaceOrientationBuilder_triangles_uint(
     Pointer<TSurfaceOrientationBuilder> builder,
-    Pointer<Uint32> triangles,
+    Pointer<Int32> triangles,
   );
   external void _SurfaceOrientationBuilder_triangles_ushort(
     Pointer<TSurfaceOrientationBuilder> builder,
-    Pointer<Uint16> triangles,
+    Pointer<Int32> triangles,
   );
   external void _SurfaceOrientationBuilder_uvs(
     Pointer<TSurfaceOrientationBuilder> builder,
     Pointer<Float32> uvs,
-    size_t stride,
+    int stride,
   );
-  external void _SurfaceOrientationBuilder_vertexCount(Pointer<TSurfaceOrientationBuilder> builder, size_t count);
+  external void _SurfaceOrientationBuilder_vertexCount(Pointer<TSurfaceOrientationBuilder> builder, int count);
   external Pointer<TSurfaceOrientation> _SurfaceOrientation_build(
-    size_t vertexCount,
+    int vertexCount,
     Pointer<Float32> normals,
-    size_t normalsLength,
-    size_t normalStride,
+    int normalsLength,
+    int normalStride,
     Pointer<Float32> tangents,
-    size_t tangentsLength,
-    size_t tangentStride,
+    int tangentsLength,
+    int tangentStride,
     Pointer<Float32> uvs,
-    size_t uvsLength,
-    size_t uvStride,
+    int uvsLength,
+    int uvStride,
     Pointer<Float32> positions,
-    size_t positionsLength,
-    size_t positionStride,
-    size_t triangleCount,
-    Pointer<Uint32> triangles32,
-    size_t triangles32Length,
-    Pointer<Uint16> triangles16,
-    size_t triangles16Length,
+    int positionsLength,
+    int positionStride,
+    int triangleCount,
+    Pointer<Int32> triangles32,
+    int triangles32Length,
+    Pointer<Int32> triangles16,
+    int triangles16Length,
   );
   external void _SurfaceOrientation_destroy(Pointer<TSurfaceOrientation> orientation);
   external void _SurfaceOrientation_getQuats_float4(
     Pointer<TSurfaceOrientation> orientation,
     Pointer<Float32> out,
-    size_t quatCount,
-    size_t stride,
+    int quatCount,
+    int stride,
   );
   external void _SurfaceOrientation_getQuats_half4(
     Pointer<TSurfaceOrientation> orientation,
-    Pointer<Uint16> out,
-    size_t quatCount,
-    size_t stride,
+    Pointer<Int32> out,
+    int quatCount,
+    int stride,
   );
   external void _SurfaceOrientation_getQuats_short4(
     Pointer<TSurfaceOrientation> orientation,
-    Pointer<Int16> out,
-    size_t quatCount,
-    size_t stride,
+    Pointer<Int32> out,
+    int quatCount,
+    int stride,
   );
-  external size_t _SurfaceOrientation_getVertexCount(Pointer<TSurfaceOrientation> orientation);
+  external int _SurfaceOrientation_getVertexCount(Pointer<TSurfaceOrientation> orientation);
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_READABLE;
@@ -2078,7 +2067,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external int _Texture_getDepth(Pointer<TTexture> tTexture, int level);
   external int _Texture_getFormat(Pointer<TTexture> tTexture);
   external int _Texture_getHeight(Pointer<TTexture> tTexture, int level);
-  external size_t _Texture_getLevels(Pointer<TTexture> tTexture);
+  external int _Texture_getLevels(Pointer<TTexture> tTexture);
   external int _Texture_getUsage(Pointer<TTexture> tTexture, int level);
   external int _Texture_getWidth(Pointer<TTexture> tTexture, int level);
   external int _Texture_loadImage(
@@ -2114,8 +2103,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
     int level,
-    Pointer<Uint8> data,
-    size_t size,
+    Pointer<Int32> data,
+    int size,
     int x_offset,
     int y_offset,
     int z_offset,
@@ -2124,16 +2113,15 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int depth,
     int bufferFormat,
     int pixelDataType,
-    Pointer<NativeFunction<void Function(PointerClass<Void> buffer, size_t size, PointerClass<Void> userData)>>
-    onRelease,
+    Pointer<NativeFunction<void Function(PointerClass<Void> buffer, int size, PointerClass<Void> userData)>> onRelease,
     Pointer<Void> userData,
   );
   external void _Texture_setImageRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
     int level,
-    Pointer<Uint8> data,
-    size_t size,
+    Pointer<Int32> data,
+    int size,
     int x_offset,
     int y_offset,
     int z_offset,
@@ -2367,13 +2355,13 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
-  external size_t _VertexBuffer_getVertexCount(Pointer<TVertexBuffer> buffer);
+  external int _VertexBuffer_getVertexCount(Pointer<TVertexBuffer> buffer);
   external void _VertexBuffer_setBufferAt(
     Pointer<TEngine> engine,
     Pointer<TVertexBuffer> buffer,
     int bufferIndex,
     Pointer<Void> data,
-    size_t sizeInBytes,
+    int sizeInBytes,
     int byteOffset,
   );
   external void _VertexBuffer_setBufferAtRenderThread(
@@ -2381,7 +2369,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TVertexBuffer> tBuffer,
     int bufferIndex,
     Pointer<Void> data,
-    size_t sizeInBytes,
+    int sizeInBytes,
     int byteOffset,
     int requestId,
     VoidCallback onComplete,
@@ -2909,7 +2897,7 @@ bool AnimationManager_setMorphAnimation(
   Pointer<TAnimationManager> tAnimationManager,
   DartEntityId entityId,
   Pointer<Float32> morphData,
-  Pointer<Uint32> morphIndices,
+  Pointer<Int32> morphIndices,
   int numMorphTargets,
   int numFrames,
   double frameLengthInMs,
@@ -2971,11 +2959,8 @@ bool AnimationManager_stopGltfAnimation(
   return result == 1;
 }
 
-void AnimationManager_update(Pointer<TAnimationManager> tAnimationManager, BigInt frameTimeInNanos) {
-  final result = GeneratedBindings.instance._AnimationManager_update(
-    tAnimationManager.cast(),
-    frameTimeInNanos.toJSBigInt,
-  );
+void AnimationManager_update(Pointer<TAnimationManager> tAnimationManager, int frameTimeInNanos) {
+  final result = GeneratedBindings.instance._AnimationManager_update(tAnimationManager.cast(), frameTimeInNanos);
   return result;
 }
 
@@ -3005,13 +2990,13 @@ void AnimationManager_updateBoneMatricesRenderThread(
 
 void AnimationManager_updateRenderThread(
   Pointer<TAnimationManager> tAnimationManager,
-  BigInt frameTimeInNanos,
+  int frameTimeInNanos,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_updateRenderThread(
     tAnimationManager.cast(),
-    frameTimeInNanos.toJSBigInt,
+    frameTimeInNanos,
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );
@@ -3075,7 +3060,7 @@ void BufferObject_setBuffer(
   Pointer<TEngine> engine,
   Pointer<TBufferObject> buffer,
   Pointer<Void> data,
-  Dartsize_t sizeInBytes,
+  int sizeInBytes,
   int byteOffset,
 ) {
   final result = GeneratedBindings.instance._BufferObject_setBuffer(
@@ -3092,7 +3077,7 @@ void BufferObject_setBufferRenderThread(
   Pointer<TEngine> tEngine,
   Pointer<TBufferObject> tBuffer,
   Pointer<Void> data,
-  Dartsize_t sizeInBytes,
+  int sizeInBytes,
   int byteOffset,
   int requestId,
   DartVoidCallback onComplete,
@@ -3730,15 +3715,15 @@ void Engine_buildIndirectLightFromIrradianceTextureRenderThread(
 
 /// Returns null for an invalid chunk layout or incompatible material version.
 /// Matching versions do not guarantee valid payloads or backend compatibility.
-Pointer<TMaterial> Engine_buildMaterial(Pointer<TEngine> tEngine, Pointer<Uint8> materialData, Dartsize_t length) {
+Pointer<TMaterial> Engine_buildMaterial(Pointer<TEngine> tEngine, Pointer<Int32> materialData, int length) {
   final result = GeneratedBindings.instance._Engine_buildMaterial(tEngine.cast(), materialData, length);
   return Pointer<TMaterial>(result);
 }
 
 void Engine_buildMaterialRenderThread(
   Pointer<TEngine> tEngine,
-  Pointer<Uint8> materialData,
-  Dartsize_t length,
+  Pointer<Int32> materialData,
+  int length,
   Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_buildMaterialRenderThread(
@@ -3834,13 +3819,8 @@ void Engine_createFenceRenderThread(
   return result;
 }
 
-Pointer<TSwapChain> Engine_createHeadlessSwapChain(Pointer<TEngine> tEngine, int width, int height, BigInt flags) {
-  final result = GeneratedBindings.instance._Engine_createHeadlessSwapChain(
-    tEngine.cast(),
-    width,
-    height,
-    flags.toJSBigInt,
-  );
+Pointer<TSwapChain> Engine_createHeadlessSwapChain(Pointer<TEngine> tEngine, int width, int height, int flags) {
+  final result = GeneratedBindings.instance._Engine_createHeadlessSwapChain(tEngine.cast(), width, height, flags);
   return Pointer<TSwapChain>(result);
 }
 
@@ -3848,14 +3828,14 @@ void Engine_createHeadlessSwapChainRenderThread(
   Pointer<TEngine> tEngine,
   int width,
   int height,
-  BigInt flags,
+  int flags,
   Pointer<NativeFunction<void Function(Pointer<TSwapChain>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_createHeadlessSwapChainRenderThread(
     tEngine.cast(),
     width,
     height,
-    flags.toJSBigInt,
+    flags,
     onComplete.cast(),
   );
   return result;
@@ -3898,21 +3878,21 @@ Pointer<TScene> Engine_createScene(Pointer<TEngine> tEngine) {
   return Pointer<TScene>(result);
 }
 
-Pointer<TSwapChain> Engine_createSwapChain(Pointer<TEngine> tEngine, Pointer<Void> window, BigInt flags) {
-  final result = GeneratedBindings.instance._Engine_createSwapChain(tEngine.cast(), window, flags.toJSBigInt);
+Pointer<TSwapChain> Engine_createSwapChain(Pointer<TEngine> tEngine, Pointer<Void> window, int flags) {
+  final result = GeneratedBindings.instance._Engine_createSwapChain(tEngine.cast(), window, flags);
   return Pointer<TSwapChain>(result);
 }
 
 void Engine_createSwapChainRenderThread(
   Pointer<TEngine> tEngine,
   Pointer<Void> window,
-  BigInt flags,
+  int flags,
   Pointer<NativeFunction<void Function(Pointer<TSwapChain>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_createSwapChainRenderThread(
     tEngine.cast(),
     window,
-    flags.toJSBigInt,
+    flags,
     onComplete.cast(),
   );
   return result;
@@ -4233,7 +4213,7 @@ Pointer<TLightManager> Engine_getLightManager(Pointer<TEngine> engine) {
   return Pointer<TLightManager>(result);
 }
 
-Dartsize_t Engine_getMaxAutomaticInstances(Pointer<TEngine> tEngine) {
+int Engine_getMaxAutomaticInstances(Pointer<TEngine> tEngine) {
   final result = GeneratedBindings.instance._Engine_getMaxAutomaticInstances(tEngine.cast());
   return result;
 }
@@ -4367,14 +4347,14 @@ void FrameScheduler_startWithCallback(DartFrameTickCallback tickCallback, int ta
   return result;
 }
 
-void FrameScheduler_startWithPort(BigInt port, int targetFps) {
-  final result = GeneratedBindings.instance._FrameScheduler_startWithPort(port.toJSBigInt, targetFps);
+void FrameScheduler_startWithPort(int port, int targetFps) {
+  final result = GeneratedBindings.instance._FrameScheduler_startWithPort(port, targetFps);
   return result;
 }
 
-BigInt FrameScheduler_steadyClockUs() {
+int FrameScheduler_steadyClockUs() {
   final result = GeneratedBindings.instance._FrameScheduler_steadyClockUs();
-  return result.toDart;
+  return result;
 }
 
 void FrameScheduler_stop() {
@@ -4516,8 +4496,8 @@ Pointer<TMaterialProvider> GltfAssetLoader_getMaterialProvider(Pointer<TGltfAsse
 Pointer<TFilamentAsset> GltfAssetLoader_load(
   Pointer<TEngine> tEngine,
   Pointer<TGltfAssetLoader> tAssetLoader,
-  Pointer<Uint8> data,
-  Dartsize_t length,
+  Pointer<Int32> data,
+  int length,
   int numInstances,
 ) {
   final result = GeneratedBindings.instance._GltfAssetLoader_load(
@@ -4533,8 +4513,8 @@ Pointer<TFilamentAsset> GltfAssetLoader_load(
 void GltfAssetLoader_loadRenderThread(
   Pointer<TEngine> tEngine,
   Pointer<TGltfAssetLoader> tAssetLoader,
-  Pointer<Uint8> data,
-  Dartsize_t length,
+  Pointer<Int32> data,
+  int length,
   int numInstances,
   Pointer<NativeFunction<void Function(Pointer<TFilamentAsset>)>> callback,
 ) {
@@ -4549,12 +4529,7 @@ void GltfAssetLoader_loadRenderThread(
   return result;
 }
 
-int GltfParser_parseBuffer(
-  Pointer<Uint8> data,
-  Dartsize_t length,
-  Pointer<Char> meshName,
-  Pointer<TMeshData> outMeshData,
-) {
+int GltfParser_parseBuffer(Pointer<Int32> data, int length, Pointer<Char> meshName, Pointer<TMeshData> outMeshData) {
   final result = GeneratedBindings.instance._GltfParser_parseBuffer(data, length, meshName, outMeshData.cast());
   return result;
 }
@@ -4562,9 +4537,9 @@ int GltfParser_parseBuffer(
 void GltfResourceLoader_addResourceData(
   Pointer<TGltfResourceLoader> tGltfResourceLoader,
   Pointer<Char> uri,
-  Pointer<Uint8> data,
-  Dartsize_t length,
-  Pointer<NativeFunction<void Function(Pointer<Void> buffer, size_t length, Pointer<Void> userData)>> onRelease,
+  Pointer<Int32> data,
+  int length,
+  Pointer<NativeFunction<void Function(Pointer<Void> buffer, int length, Pointer<Void> userData)>> onRelease,
   Pointer<Void> userData,
 ) {
   final result = GeneratedBindings.instance._GltfResourceLoader_addResourceData(
@@ -4581,8 +4556,8 @@ void GltfResourceLoader_addResourceData(
 void GltfResourceLoader_addResourceDataRenderThread(
   Pointer<TGltfResourceLoader> tGltfResourceLoader,
   Pointer<Char> uri,
-  Pointer<Uint8> data,
-  Dartsize_t length,
+  Pointer<Int32> data,
+  int length,
   int requestId,
   DartVoidCallback onComplete,
 ) {
@@ -4719,14 +4694,14 @@ void Image_createEmptyRenderThread(
   return result;
 }
 
-Pointer<TLinearImage> Image_decode(Pointer<Uint8> data, Dartsize_t length, Pointer<Char> name, bool alpha) {
+Pointer<TLinearImage> Image_decode(Pointer<Int32> data, int length, Pointer<Char> name, bool alpha) {
   final result = GeneratedBindings.instance._Image_decode(data, length, name, alpha);
   return Pointer<TLinearImage>(result);
 }
 
 void Image_decodeRenderThread(
-  Pointer<Uint8> data,
-  Dartsize_t length,
+  Pointer<Int32> data,
+  int length,
   Pointer<Char> name,
   bool alpha,
   Pointer<NativeFunction<void Function(Pointer<TLinearImage>)>> onComplete,
@@ -4769,7 +4744,7 @@ int Image_getChannels(Pointer<TLinearImage> tLinearImage) {
 
 void Image_getChannelsRenderThread(
   Pointer<TLinearImage> tLinearImage,
-  Pointer<NativeFunction<void Function(int)>> onComplete,
+  Pointer<NativeFunction<void Function()>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Image_getChannelsRenderThread(tLinearImage.cast(), onComplete.cast());
   return result;
@@ -4782,7 +4757,7 @@ int Image_getHeight(Pointer<TLinearImage> tLinearImage) {
 
 void Image_getHeightRenderThread(
   Pointer<TLinearImage> tLinearImage,
-  Pointer<NativeFunction<void Function(int)>> onComplete,
+  Pointer<NativeFunction<void Function()>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Image_getHeightRenderThread(tLinearImage.cast(), onComplete.cast());
   return result;
@@ -4795,7 +4770,7 @@ int Image_getWidth(Pointer<TLinearImage> tLinearImage) {
 
 void Image_getWidthRenderThread(
   Pointer<TLinearImage> tLinearImage,
-  Pointer<NativeFunction<void Function(int)>> onComplete,
+  Pointer<NativeFunction<void Function()>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Image_getWidthRenderThread(tLinearImage.cast(), onComplete.cast());
   return result;
@@ -4859,7 +4834,7 @@ void IndexBuffer_destroyRenderThread(
   return result;
 }
 
-Dartsize_t IndexBuffer_getIndexCount(Pointer<TIndexBuffer> buffer) {
+int IndexBuffer_getIndexCount(Pointer<TIndexBuffer> buffer) {
   final result = GeneratedBindings.instance._IndexBuffer_getIndexCount(buffer.cast());
   return result;
 }
@@ -4868,7 +4843,7 @@ void IndexBuffer_setBuffer(
   Pointer<TEngine> engine,
   Pointer<TIndexBuffer> buffer,
   Pointer<Void> data,
-  Dartsize_t sizeInBytes,
+  int sizeInBytes,
   int byteOffset,
 ) {
   final result = GeneratedBindings.instance._IndexBuffer_setBuffer(
@@ -4885,7 +4860,7 @@ void IndexBuffer_setBufferRenderThread(
   Pointer<TEngine> tEngine,
   Pointer<TIndexBuffer> tBuffer,
   Pointer<Void> data,
-  Dartsize_t sizeInBytes,
+  int sizeInBytes,
   int byteOffset,
   int requestId,
   DartVoidCallback onComplete,
@@ -4907,7 +4882,7 @@ void IndirectLight_setRotation(Pointer<TIndirectLight> tIndirectLight, Pointer<F
   return result;
 }
 
-Pointer<TKtx1Bundle> Ktx1Bundle_create(Pointer<Uint8> ktxData, Dartsize_t length) {
+Pointer<TKtx1Bundle> Ktx1Bundle_create(Pointer<Int32> ktxData, int length) {
   final result = GeneratedBindings.instance._Ktx1Bundle_create(ktxData, length);
   return Pointer<TKtx1Bundle>(result);
 }
@@ -4959,15 +4934,15 @@ void Ktx1Reader_createTextureRenderThread(
   return result;
 }
 
-Pointer<TTexture> Ktx2Reader_createTexture(Pointer<TEngine> tEngine, Pointer<Uint8> data, Dartsize_t size) {
+Pointer<TTexture> Ktx2Reader_createTexture(Pointer<TEngine> tEngine, Pointer<Int32> data, int size) {
   final result = GeneratedBindings.instance._Ktx2Reader_createTexture(tEngine.cast(), data, size);
   return Pointer<TTexture>(result);
 }
 
 void Ktx2Reader_createTextureRenderThread(
   Pointer<TEngine> tEngine,
-  Pointer<Uint8> data,
-  Dartsize_t size,
+  Pointer<Int32> data,
+  int size,
   Pointer<NativeFunction<void Function(Pointer<TTexture>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Ktx2Reader_createTextureRenderThread(
@@ -5898,9 +5873,9 @@ int Material_getFeatureLevel(Pointer<TMaterial> tMaterial) {
 /// Checks chunk boundaries without parsing their payloads. A nonnegative result
 /// does not establish that the package is complete or valid for a given backend.
 /// Reads synchronously and does not retain data. No engine is required.
-BigInt Material_getPackageVersion(Pointer<Uint8> data, Dartsize_t length) {
+int Material_getPackageVersion(Pointer<Int32> data, int length) {
   final result = GeneratedBindings.instance._Material_getPackageVersion(data, length);
-  return result.toDart;
+  return result;
 }
 
 /// Material package format version expected by the linked Filament build.
@@ -5927,14 +5902,10 @@ void MovementIntentExecutor_destroy(Pointer<TMovementIntentExecutor> executor) {
 
 void MovementIntentExecutor_process(
   Pointer<TMovementIntentExecutor> executor,
-  Pointer<TMovementIntent> intent,
-  BigInt deltaTimeInNanos,
+  Pointer<UnnamedStruct1> intent,
+  int deltaTimeInNanos,
 ) {
-  final result = GeneratedBindings.instance._MovementIntentExecutor_process(
-    executor.cast(),
-    intent.cast(),
-    deltaTimeInNanos.toJSBigInt,
-  );
+  final result = GeneratedBindings.instance._MovementIntentExecutor_process(executor.cast(), intent, deltaTimeInNanos);
   return result;
 }
 
@@ -6050,20 +6021,20 @@ void RenderManager_removeSwapChainRenderThread(
   return result;
 }
 
-void RenderManager_render(Pointer<TRenderManager> tRenderer, BigInt frameTimeInNanos) {
-  final result = GeneratedBindings.instance._RenderManager_render(tRenderer.cast(), frameTimeInNanos.toJSBigInt);
+void RenderManager_render(Pointer<TRenderManager> tRenderer, int frameTimeInNanos) {
+  final result = GeneratedBindings.instance._RenderManager_render(tRenderer.cast(), frameTimeInNanos);
   return result;
 }
 
 void RenderManager_renderRenderThread(
   Pointer<TRenderManager> tRenderManager,
-  BigInt frameTimeInNanos,
+  int frameTimeInNanos,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderManager_renderRenderThread(
     tRenderManager.cast(),
-    frameTimeInNanos.toJSBigInt,
+    frameTimeInNanos,
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );
@@ -6190,17 +6161,17 @@ void RenderThread_destroy(Pointer<Void> renderThread) {
   return result;
 }
 
-void RenderableBuilder_blendOrder(Pointer<TRenderableBuilder> builder, Dartsize_t primitiveIndex, int order) {
+void RenderableBuilder_blendOrder(Pointer<TRenderableBuilder> builder, int primitiveIndex, int order) {
   final result = GeneratedBindings.instance._RenderableBuilder_blendOrder(builder.cast(), primitiveIndex, order);
   return result;
 }
 
 void RenderableBuilder_boneIndicesAndWeights(
   Pointer<TRenderableBuilder> builder,
-  Dartsize_t primitiveIndex,
+  int primitiveIndex,
   Pointer<Float32> indicesAndWeights,
-  Dartsize_t count,
-  Dartsize_t bonesPerVertex,
+  int count,
+  int bonesPerVertex,
 ) {
   final result = GeneratedBindings.instance._RenderableBuilder_boneIndicesAndWeights(
     builder.cast(),
@@ -6242,7 +6213,7 @@ void RenderableBuilder_buildWithSkinningRenderThread(
   Pointer<TRenderableBuilder> tBuilder,
   Pointer<TEngine> tEngine,
   DartEntityId entityId,
-  Dartsize_t boneCount,
+  int boneCount,
   Pointer<Float32> data,
   bool boneData,
   Pointer<NativeFunction<void Function(int)>> onComplete,
@@ -6269,7 +6240,7 @@ void RenderableBuilder_channel(Pointer<TRenderableBuilder> builder, int channel)
   return result;
 }
 
-Pointer<TRenderableBuilder> RenderableBuilder_create(Dartsize_t primitiveCount) {
+Pointer<TRenderableBuilder> RenderableBuilder_create(int primitiveCount) {
   final result = GeneratedBindings.instance._RenderableBuilder_create(primitiveCount);
   return Pointer<TRenderableBuilder>(result);
 }
@@ -6296,12 +6267,12 @@ void RenderableBuilder_fog(Pointer<TRenderableBuilder> builder, bool enabled) {
 
 void RenderableBuilder_geometry(
   Pointer<TRenderableBuilder> builder,
-  Dartsize_t primitiveIndex,
+  int primitiveIndex,
   int type,
   Pointer<TVertexBuffer> vertices,
   Pointer<TIndexBuffer> indices,
-  Dartsize_t offset,
-  Dartsize_t count,
+  int offset,
+  int count,
 ) {
   final result = GeneratedBindings.instance._RenderableBuilder_geometry(
     builder.cast(),
@@ -6317,11 +6288,11 @@ void RenderableBuilder_geometry(
 
 void RenderableBuilder_geometryNonIndexed(
   Pointer<TRenderableBuilder> builder,
-  Dartsize_t primitiveIndex,
+  int primitiveIndex,
   int type,
   Pointer<TVertexBuffer> vertices,
-  Dartsize_t offset,
-  Dartsize_t count,
+  int offset,
+  int count,
 ) {
   final result = GeneratedBindings.instance._RenderableBuilder_geometryNonIndexed(
     builder.cast(),
@@ -6334,11 +6305,7 @@ void RenderableBuilder_geometryNonIndexed(
   return result;
 }
 
-void RenderableBuilder_globalBlendOrderEnabled(
-  Pointer<TRenderableBuilder> builder,
-  Dartsize_t primitiveIndex,
-  bool enabled,
-) {
+void RenderableBuilder_globalBlendOrderEnabled(Pointer<TRenderableBuilder> builder, int primitiveIndex, bool enabled) {
   final result = GeneratedBindings.instance._RenderableBuilder_globalBlendOrderEnabled(
     builder.cast(),
     primitiveIndex,
@@ -6347,7 +6314,7 @@ void RenderableBuilder_globalBlendOrderEnabled(
   return result;
 }
 
-void RenderableBuilder_instances(Pointer<TRenderableBuilder> builder, Dartsize_t instanceCount) {
+void RenderableBuilder_instances(Pointer<TRenderableBuilder> builder, int instanceCount) {
   final result = GeneratedBindings.instance._RenderableBuilder_instances(builder.cast(), instanceCount);
   return result;
 }
@@ -6364,7 +6331,7 @@ void RenderableBuilder_lightChannel(Pointer<TRenderableBuilder> builder, int cha
 
 void RenderableBuilder_material(
   Pointer<TRenderableBuilder> builder,
-  Dartsize_t primitiveIndex,
+  int primitiveIndex,
   Pointer<TMaterialInstance> materialInstance,
 ) {
   final result = GeneratedBindings.instance._RenderableBuilder_material(
@@ -6390,18 +6357,14 @@ void RenderableBuilder_screenSpaceContactShadows(Pointer<TRenderableBuilder> bui
   return result;
 }
 
-void RenderableBuilder_skinningFromBone(
-  Pointer<TRenderableBuilder> builder,
-  Dartsize_t boneCount,
-  Pointer<Float32> bones,
-) {
+void RenderableBuilder_skinningFromBone(Pointer<TRenderableBuilder> builder, int boneCount, Pointer<Float32> bones) {
   final result = GeneratedBindings.instance._RenderableBuilder_skinningFromBone(builder.cast(), boneCount, bones);
   return result;
 }
 
 void RenderableBuilder_skinningFromMat4(
   Pointer<TRenderableBuilder> builder,
-  Dartsize_t boneCount,
+  int boneCount,
   Pointer<Float32> transforms,
 ) {
   final result = GeneratedBindings.instance._RenderableBuilder_skinningFromMat4(builder.cast(), boneCount, transforms);
@@ -6479,7 +6442,7 @@ Aabb3 RenderableManager_getBoundingBox(Pointer<TRenderableManager> tRenderableMa
   return Aabb3_out.toDart();
 }
 
-Dartsize_t RenderableManager_getComponentCount(Pointer<TRenderableManager> tRenderableManager) {
+int RenderableManager_getComponentCount(Pointer<TRenderableManager> tRenderableManager) {
   final result = GeneratedBindings.instance._RenderableManager_getComponentCount(tRenderableManager.cast());
   return result;
 }
@@ -6525,15 +6488,12 @@ Pointer<TMaterialInstance> RenderableManager_getMaterialInstanceAt(
   return Pointer<TMaterialInstance>(result);
 }
 
-Dartsize_t RenderableManager_getMorphTargetCount(
-  Pointer<TRenderableManager> tRenderableManager,
-  DartEntityId entityId,
-) {
+int RenderableManager_getMorphTargetCount(Pointer<TRenderableManager> tRenderableManager, DartEntityId entityId) {
   final result = GeneratedBindings.instance._RenderableManager_getMorphTargetCount(tRenderableManager.cast(), entityId);
   return result;
 }
 
-Dartsize_t RenderableManager_getPrimitiveCount(Pointer<TRenderableManager> tRenderableManager, DartEntityId entityId) {
+int RenderableManager_getPrimitiveCount(Pointer<TRenderableManager> tRenderableManager, DartEntityId entityId) {
   final result = GeneratedBindings.instance._RenderableManager_getPrimitiveCount(tRenderableManager.cast(), entityId);
   return result;
 }
@@ -6580,7 +6540,7 @@ void RenderableManager_setAxisAlignedBoundingBox(
 void RenderableManager_setBlendOrderAt(
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
-  Dartsize_t primitiveIndex,
+  int primitiveIndex,
   int order,
 ) {
   final result = GeneratedBindings.instance._RenderableManager_setBlendOrderAt(
@@ -6596,8 +6556,8 @@ void RenderableManager_setBonesFromBone(
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
   Pointer<Float32> bones,
-  Dartsize_t boneCount,
-  Dartsize_t offset,
+  int boneCount,
+  int offset,
 ) {
   final result = GeneratedBindings.instance._RenderableManager_setBonesFromBone(
     tRenderableManager.cast(),
@@ -6613,8 +6573,8 @@ void RenderableManager_setBonesFromBoneRenderThread(
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
   Pointer<Float32> bones,
-  Dartsize_t boneCount,
-  Dartsize_t offset,
+  int boneCount,
+  int offset,
   int requestId,
   DartVoidCallback onComplete,
 ) {
@@ -6634,8 +6594,8 @@ void RenderableManager_setBonesFromMat4(
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
   Pointer<Float32> transforms,
-  Dartsize_t boneCount,
-  Dartsize_t offset,
+  int boneCount,
+  int offset,
 ) {
   final result = GeneratedBindings.instance._RenderableManager_setBonesFromMat4(
     tRenderableManager.cast(),
@@ -6651,8 +6611,8 @@ void RenderableManager_setBonesFromMat4RenderThread(
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
   Pointer<Float32> transforms,
-  Dartsize_t boneCount,
-  Dartsize_t offset,
+  int boneCount,
+  int offset,
   int requestId,
   DartVoidCallback onComplete,
 ) {
@@ -6727,8 +6687,8 @@ bool RenderableManager_setGeometryAtNonIndexed(
   int primitiveIndex,
   int type,
   Pointer<TVertexBuffer> vertices,
-  Dartsize_t offset,
-  Dartsize_t count,
+  int offset,
+  int count,
 ) {
   final result = GeneratedBindings.instance._RenderableManager_setGeometryAtNonIndexed(
     tRenderableManager.cast(),
@@ -6748,8 +6708,8 @@ void RenderableManager_setGeometryAtNonIndexedRenderThread(
   int primitiveIndex,
   int type,
   Pointer<TVertexBuffer> tVertices,
-  Dartsize_t offset,
-  Dartsize_t count,
+  int offset,
+  int count,
   Pointer<NativeFunction<void Function(bool)>> callback,
 ) {
   final result = GeneratedBindings.instance._RenderableManager_setGeometryAtNonIndexedRenderThread(
@@ -6768,7 +6728,7 @@ void RenderableManager_setGeometryAtNonIndexedRenderThread(
 void RenderableManager_setGlobalBlendOrderEnabledAt(
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
-  Dartsize_t primitiveIndex,
+  int primitiveIndex,
   bool enabled,
 ) {
   final result = GeneratedBindings.instance._RenderableManager_setGlobalBlendOrderEnabledAt(
@@ -6829,8 +6789,8 @@ void RenderableManager_setMorphWeights(
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
   Pointer<Float32> weights,
-  Dartsize_t count,
-  Dartsize_t offset,
+  int count,
+  int offset,
 ) {
   final result = GeneratedBindings.instance._RenderableManager_setMorphWeights(
     tRenderableManager.cast(),
@@ -6846,8 +6806,8 @@ void RenderableManager_setMorphWeightsRenderThread(
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
   Pointer<Float32> weights,
-  Dartsize_t count,
-  Dartsize_t offset,
+  int count,
+  int offset,
   int requestId,
   DartVoidCallback onComplete,
 ) {
@@ -6932,25 +6892,21 @@ void RenderableManager_setVisibilityLayer(
   return result;
 }
 
-bool Renderer_beginFrame(Pointer<TRenderer> tRenderer, Pointer<TSwapChain> tSwapChain, BigInt frameTimeInNanos) {
-  final result = GeneratedBindings.instance._Renderer_beginFrame(
-    tRenderer.cast(),
-    tSwapChain.cast(),
-    frameTimeInNanos.toJSBigInt,
-  );
+bool Renderer_beginFrame(Pointer<TRenderer> tRenderer, Pointer<TSwapChain> tSwapChain, int frameTimeInNanos) {
+  final result = GeneratedBindings.instance._Renderer_beginFrame(tRenderer.cast(), tSwapChain.cast(), frameTimeInNanos);
   return result == 1;
 }
 
 void Renderer_beginFrameRenderThread(
   Pointer<TRenderer> tRenderer,
   Pointer<TSwapChain> tSwapChain,
-  BigInt frameTimeInNanos,
+  int frameTimeInNanos,
   Pointer<NativeFunction<void Function(bool)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Renderer_beginFrameRenderThread(
     tRenderer.cast(),
     tSwapChain.cast(),
-    frameTimeInNanos.toJSBigInt,
+    frameTimeInNanos,
     onComplete.cast(),
   );
   return result;
@@ -6979,8 +6935,8 @@ void Renderer_readPixels(
   Pointer<TRenderTarget> tRenderTarget,
   int tPixelBufferFormat,
   int tPixelDataType,
-  Pointer<Uint8> out,
-  Dartsize_t outLength,
+  Pointer<Int32> out,
+  int outLength,
 ) {
   final result = GeneratedBindings.instance._Renderer_readPixels(
     tRenderer.cast(),
@@ -7006,8 +6962,8 @@ void Renderer_readPixelsRenderThread(
   Pointer<TRenderTarget> tRenderTarget,
   int tPixelBufferFormat,
   int tPixelDataType,
-  Pointer<Uint8> out,
-  Dartsize_t outLength,
+  Pointer<Int32> out,
+  int outLength,
   int requestId,
   DartVoidCallback onComplete,
 ) {
@@ -7283,17 +7239,17 @@ void SceneAsset_destroyRenderThread(Pointer<TSceneAsset> tSceneAsset, int reques
   return result;
 }
 
-Dartsize_t SceneAsset_getBoneCount(Pointer<TSceneAsset> tSceneAsset, Dartsize_t skinIndex) {
+int SceneAsset_getBoneCount(Pointer<TSceneAsset> tSceneAsset, int skinIndex) {
   final result = GeneratedBindings.instance._SceneAsset_getBoneCount(tSceneAsset.cast(), skinIndex);
   return result;
 }
 
-Pointer<Char> SceneAsset_getBoneName(Pointer<TSceneAsset> tSceneAsset, Dartsize_t skinIndex, Dartsize_t boneIndex) {
+Pointer<Char> SceneAsset_getBoneName(Pointer<TSceneAsset> tSceneAsset, int skinIndex, int boneIndex) {
   final result = GeneratedBindings.instance._SceneAsset_getBoneName(tSceneAsset.cast(), skinIndex, boneIndex);
   return Pointer<Char>(result);
 }
 
-void SceneAsset_getBones(Pointer<TSceneAsset> tSceneAsset, Dartsize_t skinIndex, Pointer<Int32> out) {
+void SceneAsset_getBones(Pointer<TSceneAsset> tSceneAsset, int skinIndex, Pointer<Int32> out) {
   final result = GeneratedBindings.instance._SceneAsset_getBones(tSceneAsset.cast(), skinIndex, out);
   return result;
 }
@@ -7309,7 +7265,7 @@ Pointer<Int32> SceneAsset_getCameraEntities(Pointer<TSceneAsset> tSceneAsset) {
   return Pointer<Int32>(result);
 }
 
-Dartsize_t SceneAsset_getCameraEntityCount(Pointer<TSceneAsset> tSceneAsset) {
+int SceneAsset_getCameraEntityCount(Pointer<TSceneAsset> tSceneAsset) {
   final result = GeneratedBindings.instance._SceneAsset_getCameraEntityCount(tSceneAsset.cast());
   return result;
 }
@@ -7349,7 +7305,7 @@ Pointer<TSceneAsset> SceneAsset_getInstance(Pointer<TSceneAsset> tSceneAsset, in
   return Pointer<TSceneAsset>(result);
 }
 
-Dartsize_t SceneAsset_getInstanceCount(Pointer<TSceneAsset> tSceneAsset) {
+int SceneAsset_getInstanceCount(Pointer<TSceneAsset> tSceneAsset) {
   final result = GeneratedBindings.instance._SceneAsset_getInstanceCount(tSceneAsset.cast());
   return result;
 }
@@ -7359,7 +7315,7 @@ Pointer<Int32> SceneAsset_getLightEntities(Pointer<TSceneAsset> tSceneAsset) {
   return Pointer<Int32>(result);
 }
 
-Dartsize_t SceneAsset_getLightEntityCount(Pointer<TSceneAsset> tSceneAsset) {
+int SceneAsset_getLightEntityCount(Pointer<TSceneAsset> tSceneAsset) {
   final result = GeneratedBindings.instance._SceneAsset_getLightEntityCount(tSceneAsset.cast());
   return result;
 }
@@ -7599,7 +7555,7 @@ void SurfaceOrientationBuilder_destroy(Pointer<TSurfaceOrientationBuilder> build
 void SurfaceOrientationBuilder_normals(
   Pointer<TSurfaceOrientationBuilder> builder,
   Pointer<Float32> normals,
-  Dartsize_t stride,
+  int stride,
 ) {
   final result = GeneratedBindings.instance._SurfaceOrientationBuilder_normals(builder.cast(), normals, stride);
   return result;
@@ -7608,7 +7564,7 @@ void SurfaceOrientationBuilder_normals(
 void SurfaceOrientationBuilder_positions(
   Pointer<TSurfaceOrientationBuilder> builder,
   Pointer<Float32> positions,
-  Dartsize_t stride,
+  int stride,
 ) {
   final result = GeneratedBindings.instance._SurfaceOrientationBuilder_positions(builder.cast(), positions, stride);
   return result;
@@ -7617,63 +7573,56 @@ void SurfaceOrientationBuilder_positions(
 void SurfaceOrientationBuilder_tangents(
   Pointer<TSurfaceOrientationBuilder> builder,
   Pointer<Float32> tangents,
-  Dartsize_t stride,
+  int stride,
 ) {
   final result = GeneratedBindings.instance._SurfaceOrientationBuilder_tangents(builder.cast(), tangents, stride);
   return result;
 }
 
-void SurfaceOrientationBuilder_triangleCount(Pointer<TSurfaceOrientationBuilder> builder, Dartsize_t count) {
+void SurfaceOrientationBuilder_triangleCount(Pointer<TSurfaceOrientationBuilder> builder, int count) {
   final result = GeneratedBindings.instance._SurfaceOrientationBuilder_triangleCount(builder.cast(), count);
   return result;
 }
 
-void SurfaceOrientationBuilder_triangles_uint(Pointer<TSurfaceOrientationBuilder> builder, Pointer<Uint32> triangles) {
+void SurfaceOrientationBuilder_triangles_uint(Pointer<TSurfaceOrientationBuilder> builder, Pointer<Int32> triangles) {
   final result = GeneratedBindings.instance._SurfaceOrientationBuilder_triangles_uint(builder.cast(), triangles);
   return result;
 }
 
-void SurfaceOrientationBuilder_triangles_ushort(
-  Pointer<TSurfaceOrientationBuilder> builder,
-  Pointer<Uint16> triangles,
-) {
+void SurfaceOrientationBuilder_triangles_ushort(Pointer<TSurfaceOrientationBuilder> builder, Pointer<Int32> triangles) {
   final result = GeneratedBindings.instance._SurfaceOrientationBuilder_triangles_ushort(builder.cast(), triangles);
   return result;
 }
 
-void SurfaceOrientationBuilder_uvs(
-  Pointer<TSurfaceOrientationBuilder> builder,
-  Pointer<Float32> uvs,
-  Dartsize_t stride,
-) {
+void SurfaceOrientationBuilder_uvs(Pointer<TSurfaceOrientationBuilder> builder, Pointer<Float32> uvs, int stride) {
   final result = GeneratedBindings.instance._SurfaceOrientationBuilder_uvs(builder.cast(), uvs, stride);
   return result;
 }
 
-void SurfaceOrientationBuilder_vertexCount(Pointer<TSurfaceOrientationBuilder> builder, Dartsize_t count) {
+void SurfaceOrientationBuilder_vertexCount(Pointer<TSurfaceOrientationBuilder> builder, int count) {
   final result = GeneratedBindings.instance._SurfaceOrientationBuilder_vertexCount(builder.cast(), count);
   return result;
 }
 
 Pointer<TSurfaceOrientation> SurfaceOrientation_build(
-  Dartsize_t vertexCount,
+  int vertexCount,
   Pointer<Float32> normals,
-  Dartsize_t normalsLength,
-  Dartsize_t normalStride,
+  int normalsLength,
+  int normalStride,
   Pointer<Float32> tangents,
-  Dartsize_t tangentsLength,
-  Dartsize_t tangentStride,
+  int tangentsLength,
+  int tangentStride,
   Pointer<Float32> uvs,
-  Dartsize_t uvsLength,
-  Dartsize_t uvStride,
+  int uvsLength,
+  int uvStride,
   Pointer<Float32> positions,
-  Dartsize_t positionsLength,
-  Dartsize_t positionStride,
-  Dartsize_t triangleCount,
-  Pointer<Uint32> triangles32,
-  Dartsize_t triangles32Length,
-  Pointer<Uint16> triangles16,
-  Dartsize_t triangles16Length,
+  int positionsLength,
+  int positionStride,
+  int triangleCount,
+  Pointer<Int32> triangles32,
+  int triangles32Length,
+  Pointer<Int32> triangles16,
+  int triangles16Length,
 ) {
   final result = GeneratedBindings.instance._SurfaceOrientation_build(
     vertexCount,
@@ -7706,8 +7655,8 @@ void SurfaceOrientation_destroy(Pointer<TSurfaceOrientation> orientation) {
 void SurfaceOrientation_getQuats_float4(
   Pointer<TSurfaceOrientation> orientation,
   Pointer<Float32> out,
-  Dartsize_t quatCount,
-  Dartsize_t stride,
+  int quatCount,
+  int stride,
 ) {
   final result = GeneratedBindings.instance._SurfaceOrientation_getQuats_float4(
     orientation.cast(),
@@ -7720,9 +7669,9 @@ void SurfaceOrientation_getQuats_float4(
 
 void SurfaceOrientation_getQuats_half4(
   Pointer<TSurfaceOrientation> orientation,
-  Pointer<Uint16> out,
-  Dartsize_t quatCount,
-  Dartsize_t stride,
+  Pointer<Int32> out,
+  int quatCount,
+  int stride,
 ) {
   final result = GeneratedBindings.instance._SurfaceOrientation_getQuats_half4(
     orientation.cast(),
@@ -7735,9 +7684,9 @@ void SurfaceOrientation_getQuats_half4(
 
 void SurfaceOrientation_getQuats_short4(
   Pointer<TSurfaceOrientation> orientation,
-  Pointer<Int16> out,
-  Dartsize_t quatCount,
-  Dartsize_t stride,
+  Pointer<Int32> out,
+  int quatCount,
+  int stride,
 ) {
   final result = GeneratedBindings.instance._SurfaceOrientation_getQuats_short4(
     orientation.cast(),
@@ -7748,38 +7697,35 @@ void SurfaceOrientation_getQuats_short4(
   return result;
 }
 
-Dartsize_t SurfaceOrientation_getVertexCount(Pointer<TSurfaceOrientation> orientation) {
+int SurfaceOrientation_getVertexCount(Pointer<TSurfaceOrientation> orientation) {
   final result = GeneratedBindings.instance._SurfaceOrientation_getVertexCount(orientation.cast());
   return result;
 }
 
-BigInt get TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER {
-  final value = NativeLibrary.instance.getValueBigInt(
+int get TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER {
+  final value = NativeLibrary.instance.getValue(
     GeneratedBindings.instance._TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER,
-    "i64",
+    "i32",
   );
-  return bigIntasUintN(64, value).toDart;
+  return value.toDartInt;
 }
 
-BigInt get TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER {
-  final value = NativeLibrary.instance.getValueBigInt(
+int get TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER {
+  final value = NativeLibrary.instance.getValue(
     GeneratedBindings.instance._TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER,
-    "i64",
+    "i32",
   );
-  return bigIntasUintN(64, value).toDart;
+  return value.toDartInt;
 }
 
-BigInt get TSWAP_CHAIN_CONFIG_READABLE {
-  final value = NativeLibrary.instance.getValueBigInt(GeneratedBindings.instance._TSWAP_CHAIN_CONFIG_READABLE, "i64");
-  return bigIntasUintN(64, value).toDart;
+int get TSWAP_CHAIN_CONFIG_READABLE {
+  final value = NativeLibrary.instance.getValue(GeneratedBindings.instance._TSWAP_CHAIN_CONFIG_READABLE, "i32");
+  return value.toDartInt;
 }
 
-BigInt get TSWAP_CHAIN_CONFIG_TRANSPARENT {
-  final value = NativeLibrary.instance.getValueBigInt(
-    GeneratedBindings.instance._TSWAP_CHAIN_CONFIG_TRANSPARENT,
-    "i64",
-  );
-  return bigIntasUintN(64, value).toDart;
+int get TSWAP_CHAIN_CONFIG_TRANSPARENT {
+  final value = NativeLibrary.instance.getValue(GeneratedBindings.instance._TSWAP_CHAIN_CONFIG_TRANSPARENT, "i32");
+  return value.toDartInt;
 }
 
 Pointer<TTextureSampler> TextureSampler_create() {
@@ -8089,7 +8035,7 @@ int Texture_getHeight(Pointer<TTexture> tTexture, int level) {
   return result;
 }
 
-Dartsize_t Texture_getLevels(Pointer<TTexture> tTexture) {
+int Texture_getLevels(Pointer<TTexture> tTexture) {
   final result = GeneratedBindings.instance._Texture_getLevels(tTexture.cast());
   return result;
 }
@@ -8170,8 +8116,8 @@ bool Texture_setImage(
   Pointer<TEngine> tEngine,
   Pointer<TTexture> tTexture,
   int level,
-  Pointer<Uint8> data,
-  Dartsize_t size,
+  Pointer<Int32> data,
+  int size,
   int x_offset,
   int y_offset,
   int z_offset,
@@ -8180,7 +8126,7 @@ bool Texture_setImage(
   int depth,
   int bufferFormat,
   int pixelDataType,
-  Pointer<NativeFunction<void Function(Pointer<Void> buffer, size_t size, Pointer<Void> userData)>> onRelease,
+  Pointer<NativeFunction<void Function(Pointer<Void> buffer, int size, Pointer<Void> userData)>> onRelease,
   Pointer<Void> userData,
 ) {
   final result = GeneratedBindings.instance._Texture_setImage(
@@ -8207,8 +8153,8 @@ void Texture_setImageRenderThread(
   Pointer<TEngine> tEngine,
   Pointer<TTexture> tTexture,
   int level,
-  Pointer<Uint8> data,
-  Dartsize_t size,
+  Pointer<Int32> data,
+  int size,
   int x_offset,
   int y_offset,
   int z_offset,
@@ -8876,7 +8822,7 @@ void VertexBuffer_destroyRenderThread(
   return result;
 }
 
-Dartsize_t VertexBuffer_getVertexCount(Pointer<TVertexBuffer> buffer) {
+int VertexBuffer_getVertexCount(Pointer<TVertexBuffer> buffer) {
   final result = GeneratedBindings.instance._VertexBuffer_getVertexCount(buffer.cast());
   return result;
 }
@@ -8886,7 +8832,7 @@ void VertexBuffer_setBufferAt(
   Pointer<TVertexBuffer> buffer,
   int bufferIndex,
   Pointer<Void> data,
-  Dartsize_t sizeInBytes,
+  int sizeInBytes,
   int byteOffset,
 ) {
   final result = GeneratedBindings.instance._VertexBuffer_setBufferAt(
@@ -8905,7 +8851,7 @@ void VertexBuffer_setBufferAtRenderThread(
   Pointer<TVertexBuffer> tBuffer,
   int bufferIndex,
   Pointer<Void> data,
-  Dartsize_t sizeInBytes,
+  int sizeInBytes,
   int byteOffset,
   int requestId,
   DartVoidCallback onComplete,
@@ -9609,29 +9555,18 @@ typedef EntityId = int;
 typedef DartEntityId = int;
 typedef FrameTickCallback = Pointer<NativeFunction<FrameTickCallbackFunction>>;
 typedef DartFrameTickCallback = Pointer<NativeFunction<FrameTickCallbackFunction>>;
-typedef FrameTickCallbackFunction = void Function(JSBigInt frameTimeNanos);
-typedef DartFrameTickCallbackFunction = void Function(BigInt frameTimeNanos);
+typedef FrameTickCallbackFunction = void Function(int frameTimeNanos);
+typedef DartFrameTickCallbackFunction = void Function(int frameTimeNanos);
 typedef GizmoPickCallback = Pointer<NativeFunction<GizmoPickCallbackFunction>>;
 typedef DartGizmoPickCallback = Pointer<NativeFunction<GizmoPickCallbackFunction>>;
 typedef GizmoPickCallbackFunction = void Function(int resultType, double x, double y, double z);
 typedef DartGizmoPickCallbackFunction = void Function(int resultType, double x, double y, double z);
-
-const int JUMP_INTENT_MASK = 4;
-
-const int MAX_CUSTOM_INTENTS = 16;
-
-const int MOVEMENT_INTENT_MASK = 1;
-
 typedef PickCallback = Pointer<NativeFunction<PickCallbackFunction>>;
 typedef DartPickCallback = Pointer<NativeFunction<PickCallbackFunction>>;
 typedef PickCallbackFunction =
     void Function(int requestId, EntityId entityId, double depth, double fragX, double fragY, double fragZ);
 typedef DartPickCallbackFunction =
     void Function(int requestId, DartEntityId entityId, double depth, double fragX, double fragY, double fragZ);
-
-const int ROTATION_INTENT_MASK = 2;
-
-const int SPRINT_INTENT_MASK = 8;
 
 /// Options for ambient occlusion, Screen Space Cone Tracing (SSCT), and GTAO
 
@@ -9795,30 +9730,30 @@ final class TAmbientOcclusionOptions extends Struct {
   }
 
   TGtao get gtao {
-    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 81);
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 87);
     final value = NativeLibrary.instance.getValue(addr, '*');
     return TGtao(Pointer<TGtao>(addr));
   }
 
   set gtao(TGtao val) {
-    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 81), val.address.toJS, '*');
+    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 87), val.address.toJS, '*');
   }
 
   /// !< ambient occlusion algorithm
   int get aoType {
-    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 93);
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 105);
     final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set aoType(int val) {
-    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 93), val.toJS, 'i32');
+    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 105), val.toJS, 'i32');
   }
 
   TAmbientOcclusionOptions(super.address);
 
   static Pointer<TAmbientOcclusionOptions> stackAlloc() {
-    return Pointer<TAmbientOcclusionOptions>(NativeLibrary.instance.stackAlloc<TAmbientOcclusionOptions>(97));
+    return Pointer<TAmbientOcclusionOptions>(NativeLibrary.instance.stackAlloc<TAmbientOcclusionOptions>(109));
   }
 }
 
@@ -10274,73 +10209,73 @@ final class TGtao extends Struct {
   /// !< number of slices; higher values reduce noise
   int get sampleSliceCount {
     final addr = Pointer<TGtao>(this.address.addr + 0);
-    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set sampleSliceCount(int val) {
-    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 0), val.toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 0), val.toJS, 'i32');
   }
 
   /// !< integration steps per slice; higher values reduce bias
   int get sampleStepsPerSlice {
-    final addr = Pointer<TGtao>(this.address.addr + 1);
-    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    final addr = Pointer<TGtao>(this.address.addr + 4);
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set sampleStepsPerSlice(int val) {
-    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 1), val.toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 4), val.toJS, 'i32');
   }
 
   /// !< ignored when visibility bitmasks are enabled
   double get thicknessHeuristic {
-    final addr = Pointer<TGtao>(this.address.addr + 2);
+    final addr = Pointer<TGtao>(this.address.addr + 8);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set thicknessHeuristic(double val) {
-    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 2), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 8), val.toJS, 'float');
   }
 
   /// !< enables visibility bitmasks mode
   bool get useVisibilityBitmasks {
-    final addr = Pointer<TGtao>(this.address.addr + 6);
+    final addr = Pointer<TGtao>(this.address.addr + 12);
     final value = NativeLibrary.instance.getValue(addr, 'i8');
     return value.toDartInt == 1;
   }
 
   set useVisibilityBitmasks(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 6), (val ? 1 : 0).toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 12), (val ? 1 : 0).toJS, 'i8');
   }
 
   /// !< world-space thickness used by visibility bitmasks
   double get constThickness {
-    final addr = Pointer<TGtao>(this.address.addr + 7);
+    final addr = Pointer<TGtao>(this.address.addr + 13);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set constThickness(double val) {
-    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 7), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 13), val.toJS, 'float');
   }
 
   /// !< increases thickness with distance
   bool get linearThickness {
-    final addr = Pointer<TGtao>(this.address.addr + 11);
+    final addr = Pointer<TGtao>(this.address.addr + 17);
     final value = NativeLibrary.instance.getValue(addr, 'i8');
     return value.toDartInt == 1;
   }
 
   set linearThickness(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 11), (val ? 1 : 0).toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 17), (val ? 1 : 0).toJS, 'i8');
   }
 
   TGtao(super.address);
 
   static Pointer<TGtao> stackAlloc() {
-    return Pointer<TGtao>(NativeLibrary.instance.stackAlloc<TGtao>(12));
+    return Pointer<TGtao>(NativeLibrary.instance.stackAlloc<TGtao>(18));
   }
 }
 
@@ -10551,20 +10486,8 @@ final class TMeshData extends Struct {
   }
 }
 
-extension TMovementIntentExt on Pointer<TMovementIntent> {
-  TMovementIntent toDart() {
-    return TMovementIntent(this);
-  }
-}
-
-final class TMovementIntent extends Struct {
-  Pointer<TMovementIntent> get address => super.address.cast();
-  TMovementIntent(super.address);
-
-  static Pointer<TMovementIntent> stackAlloc() {
-    return Pointer<TMovementIntent>(NativeLibrary.instance.stackAlloc<TMovementIntent>(0));
-  }
-}
+typedef TMovementIntent = UnnamedStruct1;
+typedef DartTMovementIntent = UnnamedStruct1;
 
 extension TMovementIntentExecutorExt on Pointer<TMovementIntentExecutor> {
   TMovementIntentExecutor toDart() {
@@ -10898,258 +10821,258 @@ final class TShadowOptions extends Struct {
 
   int get shadowCascades {
     final addr = Pointer<TShadowOptions>(this.address.addr + 4);
-    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set shadowCascades(int val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 4), val.toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 4), val.toJS, 'i32');
   }
 
   Array<Float32> get cascadeSplitPositions {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 5);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 8);
     final value = NativeLibrary.instance.getValue(addr, '*');
-    return Array<Float32>((numElements: 3, addr: Pointer<Float32>(this.address.addr + 5)));
+    return Array<Float32>((numElements: 3, addr: Pointer<Float32>(this.address.addr + 8)));
   }
 
   set cascadeSplitPositions(Array<Float32> val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 5), val.internal.addr.addr.toJS, '*');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 8), val.internal.addr.addr.toJS, '*');
   }
 
   double get constantBias {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 17);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 20);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set constantBias(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 17), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 20), val.toJS, 'float');
   }
 
   double get normalBias {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 21);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 24);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set normalBias(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 21), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 24), val.toJS, 'float');
   }
 
   double get shadowFar {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 25);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 28);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set shadowFar(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 25), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 28), val.toJS, 'float');
   }
 
   double get shadowNearHint {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 29);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 32);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set shadowNearHint(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 29), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 32), val.toJS, 'float');
   }
 
   double get shadowFarHint {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 33);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 36);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set shadowFarHint(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 33), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 36), val.toJS, 'float');
   }
 
   bool get stable {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 37);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 40);
     final value = NativeLibrary.instance.getValue(addr, 'i8');
     return value.toDartInt == 1;
   }
 
   set stable(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 37), (val ? 1 : 0).toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 40), (val ? 1 : 0).toJS, 'i8');
   }
 
   bool get lispsm {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 38);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 41);
     final value = NativeLibrary.instance.getValue(addr, 'i8');
     return value.toDartInt == 1;
   }
 
   set lispsm(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 38), (val ? 1 : 0).toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 41), (val ? 1 : 0).toJS, 'i8');
   }
 
   double get polygonOffsetConstant {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 39);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 42);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set polygonOffsetConstant(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 39), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 42), val.toJS, 'float');
   }
 
   double get polygonOffsetSlope {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 43);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 46);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set polygonOffsetSlope(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 43), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 46), val.toJS, 'float');
   }
 
   bool get screenSpaceContactShadows {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 47);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 50);
     final value = NativeLibrary.instance.getValue(addr, 'i8');
     return value.toDartInt == 1;
   }
 
   set screenSpaceContactShadows(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 47), (val ? 1 : 0).toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 50), (val ? 1 : 0).toJS, 'i8');
   }
 
   int get stepCount {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 48);
-    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    final addr = Pointer<TShadowOptions>(this.address.addr + 51);
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set stepCount(int val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 48), val.toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 51), val.toJS, 'i32');
   }
 
   double get maxShadowDistance {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 49);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 55);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set maxShadowDistance(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 49), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 55), val.toJS, 'float');
   }
 
   bool get vsmElvsm {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 53);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 59);
     final value = NativeLibrary.instance.getValue(addr, 'i8');
     return value.toDartInt == 1;
   }
 
   set vsmElvsm(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 53), (val ? 1 : 0).toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 59), (val ? 1 : 0).toJS, 'i8');
   }
 
   double get vsmBlurWidth {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 54);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 60);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set vsmBlurWidth(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 54), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 60), val.toJS, 'float');
   }
 
   double get shadowBulbRadius {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 58);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 64);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set shadowBulbRadius(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 58), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 64), val.toJS, 'float');
   }
 
   double get penumbraScale {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 62);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 68);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set penumbraScale(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 62), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 68), val.toJS, 'float');
   }
 
   double get penumbraRatioScale {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 66);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 72);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set penumbraRatioScale(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 66), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 72), val.toJS, 'float');
   }
 
   double get maxPenumbraRatio {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 70);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 76);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set maxPenumbraRatio(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 70), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 76), val.toJS, 'float');
   }
 
   double get maxSearchRadius {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 74);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 80);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set maxSearchRadius(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 74), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 80), val.toJS, 'float');
   }
 
   double get transformX {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 78);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 84);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set transformX(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 78), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 84), val.toJS, 'float');
   }
 
   double get transformY {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 82);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 88);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set transformY(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 82), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 88), val.toJS, 'float');
   }
 
   double get transformZ {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 86);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 92);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set transformZ(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 86), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 92), val.toJS, 'float');
   }
 
   double get transformW {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 90);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 96);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set transformW(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 90), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 96), val.toJS, 'float');
   }
 
   TShadowOptions(super.address);
 
   static Pointer<TShadowOptions> stackAlloc() {
-    return Pointer<TShadowOptions>(NativeLibrary.instance.stackAlloc<TShadowOptions>(94));
+    return Pointer<TShadowOptions>(NativeLibrary.instance.stackAlloc<TShadowOptions>(100));
   }
 }
 
@@ -11339,40 +11262,40 @@ final class TSsct extends Struct {
   /// !< tracing sample count, between 1 and 255
   int get sampleCount {
     final addr = Pointer<TSsct>(this.address.addr + 36);
-    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set sampleCount(int val) {
-    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 36), val.toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 36), val.toJS, 'i32');
   }
 
   /// !< # of rays to trace, between 1 and 255
   int get rayCount {
-    final addr = Pointer<TSsct>(this.address.addr + 37);
-    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    final addr = Pointer<TSsct>(this.address.addr + 40);
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set rayCount(int val) {
-    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 37), val.toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 40), val.toJS, 'i32');
   }
 
   /// !< enables or disables SSCT
   bool get enabled {
-    final addr = Pointer<TSsct>(this.address.addr + 38);
+    final addr = Pointer<TSsct>(this.address.addr + 44);
     final value = NativeLibrary.instance.getValue(addr, 'i8');
     return value.toDartInt == 1;
   }
 
   set enabled(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 38), (val ? 1 : 0).toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 44), (val ? 1 : 0).toJS, 'i8');
   }
 
   TSsct(super.address);
 
   static Pointer<TSsct> stackAlloc() {
-    return Pointer<TSsct>(NativeLibrary.instance.stackAlloc<TSsct>(39));
+    return Pointer<TSsct>(NativeLibrary.instance.stackAlloc<TSsct>(45));
   }
 }
 
@@ -11835,68 +11758,83 @@ final class TVsmShadowOptions extends Struct {
   Pointer<TVsmShadowOptions> get address => super.address.cast();
   int get anisotropy {
     final addr = Pointer<TVsmShadowOptions>(this.address.addr + 0);
-    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set anisotropy(int val) {
-    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 0), val.toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 0), val.toJS, 'i32');
   }
 
   bool get mipmapping {
-    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 1);
+    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 4);
     final value = NativeLibrary.instance.getValue(addr, 'i8');
     return value.toDartInt == 1;
   }
 
   set mipmapping(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 1), (val ? 1 : 0).toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 4), (val ? 1 : 0).toJS, 'i8');
   }
 
   int get msaaSamples {
-    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 2);
-    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 5);
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set msaaSamples(int val) {
-    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 2), val.toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 5), val.toJS, 'i32');
   }
 
   bool get highPrecision {
-    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 3);
+    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 9);
     final value = NativeLibrary.instance.getValue(addr, 'i8');
     return value.toDartInt == 1;
   }
 
   set highPrecision(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 3), (val ? 1 : 0).toJS, 'i8');
+    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 9), (val ? 1 : 0).toJS, 'i8');
   }
 
   double get minVarianceScale {
-    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 4);
+    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 10);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set minVarianceScale(double val) {
-    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 4), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 10), val.toJS, 'float');
   }
 
   double get lightBleedReduction {
-    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 8);
+    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 14);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set lightBleedReduction(double val) {
-    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 8), val.toJS, 'float');
+    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 14), val.toJS, 'float');
   }
 
   TVsmShadowOptions(super.address);
 
   static Pointer<TVsmShadowOptions> stackAlloc() {
-    return Pointer<TVsmShadowOptions>(NativeLibrary.instance.stackAlloc<TVsmShadowOptions>(12));
+    return Pointer<TVsmShadowOptions>(NativeLibrary.instance.stackAlloc<TVsmShadowOptions>(18));
+  }
+}
+
+extension UnnamedStruct1Ext on Pointer<UnnamedStruct1> {
+  UnnamedStruct1 toDart() {
+    return UnnamedStruct1(this);
+  }
+}
+
+final class UnnamedStruct1 extends Struct {
+  Pointer<UnnamedStruct1> get address => super.address.cast();
+  UnnamedStruct1(super.address);
+
+  static Pointer<UnnamedStruct1> stackAlloc() {
+    return Pointer<UnnamedStruct1>(NativeLibrary.instance.stackAlloc<UnnamedStruct1>(0));
   }
 }
 
@@ -11904,8 +11842,6 @@ typedef VoidCallback = Pointer<NativeFunction<VoidCallbackFunction>>;
 typedef DartVoidCallback = Pointer<NativeFunction<VoidCallbackFunction>>;
 typedef VoidCallbackFunction = void Function(int requestId);
 typedef DartVoidCallbackFunction = void Function(int requestId);
-
-const int __bool_true_false_are_defined = 1;
 
 extension double3Ext on Pointer<double3> {
   double3 toDart() {
@@ -12007,9 +11943,6 @@ final class double4x4 extends Struct {
   }
 }
 
-typedef size_t = int;
-typedef Dartsize_t = int;
-
 extension StructAllocator on Struct {
   static T create<T>() {
     switch (T) {
@@ -12100,9 +12033,6 @@ extension StructAllocator on Struct {
       case TMeshData:
         final ptr = TMeshData.stackAlloc();
         return ptr.toDart() as T;
-      case TMovementIntent:
-        final ptr = TMovementIntent.stackAlloc();
-        return ptr.toDart() as T;
       case TMovementIntentExecutor:
         final ptr = TMovementIntentExecutor.stackAlloc();
         return ptr.toDart() as T;
@@ -12178,6 +12108,9 @@ extension StructAllocator on Struct {
       case TVsmShadowOptions:
         final ptr = TVsmShadowOptions.stackAlloc();
         return ptr.toDart() as T;
+      case UnnamedStruct1:
+        final ptr = UnnamedStruct1.stackAlloc();
+        return ptr.toDart() as T;
       case double3:
         final ptr = double3.stackAlloc();
         return ptr.toDart() as T;
@@ -12221,7 +12154,7 @@ extension NativeFunctionPointer25<T extends NativeType> on void Function(double)
   }
 }
 
-extension NativeFunctionPointer48<T extends NativeType> on void Function() {
+extension NativeFunctionPointer31<T extends NativeType> on void Function() {
   Pointer<NativeFunction<void Function()>> addFunction() {
     return Pointer<NativeFunction<void Function()>>(
       NativeLibrary.instance.addFunction<void Function()>(this.toJS, 'v'),

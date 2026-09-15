@@ -224,9 +224,9 @@ class SssSkinMaskView extends FFIView {
 
     await _maskScene.addEntity(entity);
 
-    _components.putIfAbsent(target, () => []).add(
-      _SkinMaskComponent(materialInstance: materialInstance, entity: entity),
-    );
+    _components
+        .putIfAbsent(target, () => [])
+        .add(_SkinMaskComponent(materialInstance: materialInstance, entity: entity));
   }
 
   /// Removes every primitive previously added for [target].

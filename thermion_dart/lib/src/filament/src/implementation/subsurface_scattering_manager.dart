@@ -132,11 +132,19 @@ class SubsurfaceScatteringManager {
     required this.compositeView,
   }) : _app = app;
 
-  static Future<SubsurfaceScatteringManager> create(FFIFilamentApp app, {required int width, required int height}) async {
+  static Future<SubsurfaceScatteringManager> create(
+    FFIFilamentApp app, {
+    required int width,
+    required int height,
+  }) async {
     final maskView = await SssSkinMaskView.create(app, width: width, height: height);
     // The blur passes run at reduced resolution, so their views are sized for
     // the scatter buffers rather than for the main view.
-    final (scatterWidth, scatterHeight) = _scatterSize(width, height, SubsurfaceScatteringParameters().blurResolutionScale);
+    final (scatterWidth, scatterHeight) = _scatterSize(
+      width,
+      height,
+      SubsurfaceScatteringParameters().blurResolutionScale,
+    );
     final horizontalBlurView = await SssBlurView.create(app, width: scatterWidth, height: scatterHeight);
     final verticalBlurView = await SssBlurView.create(app, width: scatterWidth, height: scatterHeight);
     final compositeView = await SssCompositeView.create(app, width: width, height: height);
@@ -177,9 +185,7 @@ class SubsurfaceScatteringManager {
     for (final entity in entities) {
       final offset = await geoAsset.getPrimitiveOffsetForEntity(entity);
       if (offset < 0) {
-        _logger.warning(
-          "addSkin: no accessible geometry buffers for entity $entity; skipping",
-        );
+        _logger.warning("addSkin: no accessible geometry buffers for entity $entity; skipping");
         continue;
       }
 
@@ -542,11 +548,7 @@ class SubsurfaceScatteringManager {
     // resolution scatter buffer, where one texel covers more than one screen
     // pixel, so its radius has to be divided by the same factor the buffer was
     // divided by.
-    final radius = [
-      parameters.radiusRed,
-      parameters.radiusGreen,
-      parameters.radiusBlue,
-    ];
+    final radius = [parameters.radiusRed, parameters.radiusGreen, parameters.radiusBlue];
     final reducedRadius = [
       parameters.radiusRed / parameters.blurResolutionScale,
       parameters.radiusGreen / parameters.blurResolutionScale,
