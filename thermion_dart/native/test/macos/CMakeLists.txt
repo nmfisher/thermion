@@ -59,6 +59,8 @@ set(MATERIAL_SOURCES
     "${NATIVE_ROOT}/include/material/wireframe_${THERMION_MATERIAL_VARIANT}.c"
     "${NATIVE_ROOT}/include/material/translation_axis_${THERMION_MATERIAL_VARIANT}.c"
     "${NATIVE_ROOT}/include/material/bone_overlay_${THERMION_MATERIAL_VARIANT}.c"
+    "${NATIVE_ROOT}/include/material/sss_blur_${THERMION_MATERIAL_VARIANT}.c"
+    "${NATIVE_ROOT}/include/material/sss_composite_${THERMION_MATERIAL_VARIANT}.c"
     "${NATIVE_ROOT}/include/material/gizmo_material_${THERMION_MATERIAL_VARIANT}.c"
 )
 

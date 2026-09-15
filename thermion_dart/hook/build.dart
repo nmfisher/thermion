@@ -212,6 +212,8 @@ outputDirectory : ${outputDirectory.path}
       // with scene/Gizmo.cpp on Windows.
       'gizmo': materialPath('gizmo_material', materialSuffix),
       'bone_overlay': materialPath('bone_overlay', materialSuffix),
+      'sss_blur': materialPath('sss_blur', materialSuffix),
+      'sss_composite': materialPath('sss_composite', materialSuffix),
     };
 
     // Add gizmo resources (always included)
