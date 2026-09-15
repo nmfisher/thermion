@@ -1,0 +1,18 @@
+#ifndef SSS_COMPOSITE_APPLE_H_
+#define SSS_COMPOSITE_APPLE_H_
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+    extern const uint8_t SSS_COMPOSITE_PACKAGE[];
+#ifdef __cplusplus
+}
+#endif
+
+#define SSS_COMPOSITE_SSS_COMPOSITE_OFFSET 0
+#define SSS_COMPOSITE_SSS_COMPOSITE_SIZE 45766
+#define SSS_COMPOSITE_SSS_COMPOSITE_DATA (SSS_COMPOSITE_PACKAGE + SSS_COMPOSITE_SSS_COMPOSITE_OFFSET)
+
+#endif
