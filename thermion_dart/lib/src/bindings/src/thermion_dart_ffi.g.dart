@@ -2482,6 +2482,28 @@ external void Material_createSilhouetteMaterialRenderThread(
 );
 
 @ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TMaterial> Material_createSssBlurMaterial(ffi.Pointer<TEngine> tEngine);
+
+@ffi.Native<
+  ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>)
+>(isLeaf: true)
+external void Material_createSssBlurMaterialRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
+);
+
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TMaterial> Material_createSssCompositeMaterial(ffi.Pointer<TEngine> tEngine);
+
+@ffi.Native<
+  ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>)
+>(isLeaf: true)
+external void Material_createSssCompositeMaterialRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
+);
+
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TMaterial> Material_createTranslationAxisMaterial(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<

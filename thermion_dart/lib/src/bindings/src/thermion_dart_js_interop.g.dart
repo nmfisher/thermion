@@ -1240,6 +1240,16 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
   );
+  external Pointer<TMaterial> _Material_createSssBlurMaterial(Pointer<TEngine> tEngine);
+  external void _Material_createSssBlurMaterialRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
+  );
+  external Pointer<TMaterial> _Material_createSssCompositeMaterial(Pointer<TEngine> tEngine);
+  external void _Material_createSssCompositeMaterialRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
+  );
   external Pointer<TMaterial> _Material_createTranslationAxisMaterial(Pointer<TEngine> tEngine);
   external void _Material_createTranslationAxisMaterialRenderThread(
     Pointer<TEngine> tEngine,
@@ -5803,6 +5813,38 @@ void Material_createSilhouetteMaterialRenderThread(
   Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Material_createSilhouetteMaterialRenderThread(
+    tEngine.cast(),
+    onComplete.cast(),
+  );
+  return result;
+}
+
+Pointer<TMaterial> Material_createSssBlurMaterial(Pointer<TEngine> tEngine) {
+  final result = GeneratedBindings.instance._Material_createSssBlurMaterial(tEngine.cast());
+  return Pointer<TMaterial>(result);
+}
+
+void Material_createSssBlurMaterialRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._Material_createSssBlurMaterialRenderThread(
+    tEngine.cast(),
+    onComplete.cast(),
+  );
+  return result;
+}
+
+Pointer<TMaterial> Material_createSssCompositeMaterial(Pointer<TEngine> tEngine) {
+  final result = GeneratedBindings.instance._Material_createSssCompositeMaterial(tEngine.cast());
+  return Pointer<TMaterial>(result);
+}
+
+void Material_createSssCompositeMaterialRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._Material_createSssCompositeMaterialRenderThread(
     tEngine.cast(),
     onComplete.cast(),
   );
