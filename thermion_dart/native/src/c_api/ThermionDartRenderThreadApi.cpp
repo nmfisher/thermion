@@ -953,6 +953,32 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Material_createSssBlurMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  {
+    auto *rt = RT(tEngine);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *instance = Material_createSssBlurMaterial(tEngine);
+
+          setOwner(instance, rt);          PROXY(onComplete(instance));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Material_createSssCompositeMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  {
+    auto *rt = RT(tEngine);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *instance = Material_createSssCompositeMaterial(tEngine);
+
+          setOwner(instance, rt);          PROXY(onComplete(instance));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *))
   {
     auto *rt = RT(tMaterial);

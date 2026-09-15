@@ -19,6 +19,8 @@
 #include "material/gizmo.h"
 #include "material/wireframe.h"
 #include "material/bone_overlay.h"
+#include "material/sss_blur.h"
+#include "material/sss_composite.h"
 
 #include "c_api/TMaterialInstance.h"
 
@@ -112,6 +114,22 @@ namespace thermion
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
                 .package(BONE_OVERLAY_BONE_OVERLAY_DATA, BONE_OVERLAY_BONE_OVERLAY_SIZE)
+                .build(*engine);
+            return reinterpret_cast<TMaterial *>(material);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSssBlurMaterial(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *material = filament::Material::Builder()
+                .package(SSS_BLUR_SSS_BLUR_DATA, SSS_BLUR_SSS_BLUR_SIZE)
+                .build(*engine);
+            return reinterpret_cast<TMaterial *>(material);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSssCompositeMaterial(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *material = filament::Material::Builder()
+                .package(SSS_COMPOSITE_SSS_COMPOSITE_DATA, SSS_COMPOSITE_SSS_COMPOSITE_SIZE)
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }

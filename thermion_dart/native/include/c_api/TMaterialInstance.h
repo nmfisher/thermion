@@ -94,6 +94,8 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createWireframeMaterial(TEngine *tEngine);
 	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createTranslationAxisMaterial(TEngine *tEngine);
 	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createBoneOverlayMaterial(TEngine *tEngine);
+	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSssBlurMaterial(TEngine *tEngine);
+	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSssCompositeMaterial(TEngine *tEngine);
 	EMSCRIPTEN_KEEPALIVE bool Material_hasParameter(TMaterial *tMaterial, const char *propertyName);
 	EMSCRIPTEN_KEEPALIVE bool MaterialInstance_isStencilWriteEnabled(TMaterialInstance *materialInstance);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setStencilWrite(TMaterialInstance *materialInstance, bool enabled);

@@ -5,6 +5,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.d
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/highlight_overlay_manager.dart';
+import 'package:thermion_dart/src/filament/src/implementation/subsurface_scattering_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
@@ -45,6 +46,7 @@ class FFIView extends View<Pointer<TView>> {
     await withVoidCallback((requestId, cb) => View_setViewportRenderThread(view, width, height, requestId, cb));
 
     await _highlightOverlayManager?.setViewport(width, height);
+    await _subsurfaceScatteringManager?.setViewport(width, height);
   }
 
   Future<RenderTarget?> getRenderTarget() async {
@@ -87,6 +89,10 @@ class FFIView extends View<Pointer<TView>> {
 
     // Sync the silhouette view's camera with the main view
     await _highlightOverlayManager?.setCamera(camera);
+
+    // And the subsurface scattering mask pass, which renders the skin in world
+    // space and therefore has to share the main view's camera.
+    await _subsurfaceScatteringManager?.setCamera(camera);
   }
 
   @override
@@ -538,6 +544,44 @@ class FFIView extends View<Pointer<TView>> {
     } else {
       await _disableHighlightOverlay();
     }
+  }
+
+  SubsurfaceScatteringManager? _subsurfaceScatteringManager;
+
+  @override
+  SubsurfaceScatteringManager? getSubsurfaceScattering() => _subsurfaceScatteringManager;
+
+  @override
+  Future setSubsurfaceScatteringEnabled(bool enabled) async {
+    if (enabled == (_subsurfaceScatteringManager != null)) {
+      return;
+    }
+
+    if (!enabled) {
+      final manager = _subsurfaceScatteringManager;
+      _subsurfaceScatteringManager = null;
+      await manager?.destroy();
+      return;
+    }
+
+    final rm = _app.renderManager;
+    final swapChains = rm.getAttachedSwapChains(this).toList();
+    if (swapChains.isEmpty) {
+      throw Exception("View must be attached to a swapchain first");
+    }
+
+    final vp = await getViewport();
+    final width = vp.width > 0 ? vp.width : 1;
+    final height = vp.height > 0 ? vp.height : 1;
+
+    final manager = await SubsurfaceScatteringManager.create(_app, width: width, height: height);
+
+    await manager.enable(this, swapChains.first, outputRenderTarget: renderTarget);
+
+    _subsurfaceScatteringManager = manager;
+
+    // The manager re-attached this view with a new render order.
+    await rm.setRenderable(this, true);
   }
 
   // Highlights an entity with a screen-space outline.
