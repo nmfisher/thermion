@@ -220,6 +220,41 @@ EMSCRIPTEN_KEEPALIVE TTexture *Texture_build(TEngine *engine,
     TTextureSamplerType sampler, 
     TTextureFormat format);
 EMSCRIPTEN_KEEPALIVE void Texture_setExternalImage(TEngine *tEngine, TTexture *tTexture, void *externalImage);
+
+/**
+ * Bind a platform image (iOS/macOS: CVPixelBufferRef, Android: EGLImageKHR) as
+ * this texture's contents.
+ *
+ * Unlike Texture_setExternalImage above, this calls the void* overload
+ * filament::Texture::setExternalImage(Engine&, void*) rather than the
+ * ExternalImageHandleRef one. That overload is marked UTILS_DEPRECATED
+ * (Texture.h), but on the Metal backend it is currently the only one that
+ * works: at the Filament version this package pins, the handle path is
+ * unimplemented on Metal --
+ *   MetalDriver::createTextureExternalImage2R -> "// FIXME: implement"
+ *   MetalDriver::setupExternalImage2          -> "// FIXME: implement"
+ * while the void* path (createTextureExternalImageR) is fully implemented and
+ * constructs a MetalTexture from the CVPixelBuffer.
+ *
+ * PRECONDITION: the texture must have been built external, i.e. with
+ * Texture::Builder().sampler(SAMPLER_EXTERNAL) or .external(). Filament checks
+ * this with FILAMENT_CHECK_PRECONDITION(mExternal), which aborts rather than
+ * returning an error. This constrains the TEXTURE, not the material: declaring
+ * the material parameter as `sampler2d` rather than `samplerExternal` is
+ * correct on Metal, where the external image becomes an ordinary MTLTexture.
+ *
+ * OWNERSHIP: Filament takes its own reference; it does NOT adopt the caller's.
+ * setExternalImage begins with api.setupExternalImage(image), which on Metal is
+ * a single CVPixelBufferRetain performed synchronously on the calling thread
+ * and documented there as "allowing the application to free their reference to
+ * the buffer". A caller holding a +1 must release it after this call returns,
+ * and may safely do so immediately.
+ *
+ * Metal accepts only kCVPixelFormatType_32BGRA and
+ * kCVPixelFormatType_420YpCbCr8BiPlanarFullRange; any other format is a fatal
+ * check inside the backend, not a fallback.
+ */
+EMSCRIPTEN_KEEPALIVE void Texture_setExternalImagePlatform(TEngine *tEngine, TTexture *tTexture, void *platformImage);
 EMSCRIPTEN_KEEPALIVE size_t Texture_getLevels(TTexture *tTexture);
 EMSCRIPTEN_KEEPALIVE bool Texture_loadImage(
     TEngine *tEngine,

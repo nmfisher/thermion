@@ -537,6 +537,21 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return FFITexture(engine, texturePtr, this);
   }
 
+  /// Bind an external image to [texture].
+  ///
+  /// NOTE: this routes to Texture_setExternalImage, which uses Filament's
+  /// ExternalImageHandleRef overload. That path is unimplemented on the Metal
+  /// backend at the Filament version this package pins -- both
+  /// MetalDriver::setupExternalImage2 and
+  /// MetalDriver::createTextureExternalImage2R have empty "// FIXME: implement"
+  /// bodies -- so on Metal this call currently does nothing and reports no
+  /// error. It also static_casts the address to Platform::ExternalImage*, so
+  /// passing a CVPixelBufferRef here is type confusion rather than an
+  /// unsupported-format error.
+  ///
+  /// For a CVPixelBufferRef on iOS/macOS use [Texture.setExternalImage], which
+  /// goes through Texture_setExternalImagePlatform (the void* overload that
+  /// Metal does implement).
   Future<void> setExternalImage(Texture texture, int externalImagePtr) async {
     final ffiTexture = texture as FFITexture;
     await withVoidCallback((requestId, cb) {

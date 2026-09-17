@@ -4135,6 +4135,13 @@ external void Texture_setExternalImage(
   ffi.Pointer<ffi.Void> externalImage,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>, ffi.Pointer<ffi.Void>)>(isLeaf: true)
+external void Texture_setExternalImagePlatform(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<ffi.Void> platformImage,
+);
+
 @ffi.Native<
   ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>, ffi.Pointer<ffi.Void>, ffi.Uint32, VoidCallback)
 >(isLeaf: true)
@@ -4142,6 +4149,17 @@ external void Texture_setExternalImageRenderThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TTexture> tTexture,
   ffi.Pointer<ffi.Void> externalImage,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+  ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>, ffi.Pointer<ffi.Void>, ffi.Uint32, VoidCallback)
+>(isLeaf: true)
+external void Texture_setExternalImagePlatformRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<ffi.Void> platformImage,
   int requestId,
   VoidCallback onComplete,
 );
