@@ -2481,27 +2481,13 @@ external void Material_createSilhouetteMaterialRenderThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
-external ffi.Pointer<TMaterial> Material_createSssBlurMaterial(ffi.Pointer<TEngine> tEngine);
 
-@ffi.Native<
-  ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>)
->(isLeaf: true)
-external void Material_createSssBlurMaterialRenderThread(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
-);
 
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
-external ffi.Pointer<TMaterial> Material_createSssCompositeMaterial(ffi.Pointer<TEngine> tEngine);
 
-@ffi.Native<
-  ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>)
->(isLeaf: true)
-external void Material_createSssCompositeMaterialRenderThread(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
-);
+
+
+
+
 
 @ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TMaterial> Material_createTranslationAxisMaterial(ffi.Pointer<TEngine> tEngine);
@@ -6184,3 +6170,74 @@ final class double4x4 extends ffi.Struct {
 const int false$ = 0;
 
 const int true$ = 1;
+
+
+@ffi.Native<
+    ffi.Bool Function(ffi.Pointer<TEngine>, ffi.Pointer<TView>, ffi.Bool,
+        ffi.Float, ffi.Float, ffi.Float, ffi.Float, ffi.Int)>(isLeaf: true)
+external bool View_configureSss(
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TView> view,
+  bool enabled,
+  double distanceR,
+  double distanceG,
+  double distanceB,
+  double strength,
+  int debugOutput,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<TView>,
+            ffi.Bool,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Int,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
+    isLeaf: true)
+external void View_configureSssRenderThread(
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TView> view,
+  bool enabled,
+  double distanceR,
+  double distanceG,
+  double distanceB,
+  double strength,
+  int debugOutput,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
+);
+
+@ffi.Native<
+    ffi.Bool Function(ffi.Pointer<TEngine>, ffi.Pointer<TView>, EntityId,
+        ffi.Int, ffi.Bool, ffi.Int)>(isLeaf: true)
+external bool View_setSssPrimitive(
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TView> view,
+  int entity,
+  int primitive,
+  bool enabled,
+  int group,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<TView>,
+            EntityId,
+            ffi.Int,
+            ffi.Bool,
+            ffi.Int,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
+    isLeaf: true)
+external void View_setSssPrimitiveRenderThread(
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TView> view,
+  int entity,
+  int primitive,
+  bool enabled,
+  int group,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
+);

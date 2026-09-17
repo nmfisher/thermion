@@ -10,10 +10,8 @@ import 'helpers.dart';
 /// material alone (image_tests), so a broken variant in any of the other seven
 /// would go unnoticed until a user hits it.
 ///
-/// The ten live materials: image, grid, translation_axis, wireframe, gizmo,
-/// bone_overlay, silhouette, edge_outline, sss_blur, sss_composite. The two sss
-/// materials are instantiated by subsurface_scattering_tests rather than here,
-/// because they need the pass chain the subsurface scattering manager sets up.
+/// The diffuse SSS material is internal to the patched Filament engine and is
+/// exercised by subsurface_scattering_tests.dart.
 void main() async {
   final testHelper = TestHelper("all_materials");
   await testHelper.setup();

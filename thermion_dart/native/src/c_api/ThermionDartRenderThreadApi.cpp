@@ -953,31 +953,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createSssBlurMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
-  {
-    auto *rt = RT(tEngine);
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *instance = Material_createSssBlurMaterial(tEngine);
 
-          setOwner(instance, rt);          PROXY(onComplete(instance));
-        });
-    auto fut = rt->addTask(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Material_createSssCompositeMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
-  {
-    auto *rt = RT(tEngine);
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *instance = Material_createSssCompositeMaterial(tEngine);
-
-          setOwner(instance, rt);          PROXY(onComplete(instance));
-        });
-    auto fut = rt->addTask(lambda);
-  }
 
   EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *))
   {
@@ -1446,6 +1422,25 @@ extern "C"
         });
     auto fut = rt->addTask(lambda);
   }
+
+  EMSCRIPTEN_KEEPALIVE void View_configureSssRenderThread(TEngine* engine, TView* view, bool enabled, float distanceR, float distanceG, float distanceB, float strength, int debugOutput, void (*onComplete)(bool)) {
+    auto* rt = RT(view);
+    std::packaged_task<void()> task([=] {
+      auto result = View_configureSss(engine, view, enabled, distanceR, distanceG, distanceB, strength, debugOutput);
+      PROXY(onComplete(result));
+    });
+    rt->addTask(task);
+  }
+  EMSCRIPTEN_KEEPALIVE void View_setSssPrimitiveRenderThread(TEngine* engine, TView* view, EntityId entity, int primitive, bool enabled, int group, void (*onComplete)(bool)) {
+    auto* rt = RT(view);
+    std::packaged_task<void()> task([=] {
+      auto result = View_setSssPrimitive(engine, view, entity, primitive, enabled, group);
+      PROXY(onComplete(result));
+    });
+    rt->addTask(task);
+  }
+
+
 
   EMSCRIPTEN_KEEPALIVE void View_setNameRenderThread(TView *tView, const char *name, uint32_t requestId, VoidCallback onComplete)
   {

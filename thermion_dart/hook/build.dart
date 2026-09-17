@@ -106,14 +106,17 @@ outputDirectory : ${outputDirectory.path}
 
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
 
-    final libResult = await getLibDir(
-      packageRoot,
-      targetOS,
-      targetArchitecture,
-      logger,
-      buildMode,
-      isIOSSimulator: isIOSSimulator,
-    );
+    final localFilamentDefine = input.userDefines['filament_path'] as String?;
+    final localFilament = localFilamentDefine == null
+        ? null
+        : path.normalize(path.join(pkgRootFilePath, localFilamentDefine));
+    final libResult = localFilament != null
+        ? (libDir: Directory(localFilament), includeDir: Directory(path.join(localFilament, 'include')))
+        : await getLibDir(packageRoot, targetOS, targetArchitecture, logger, buildMode, isIOSSimulator: isIOSSimulator);
+    if (localFilament != null) {
+      // Invalidate the native build when the matching local engine is rebuilt.
+      output.dependencies.addAll(libResult.libDir.listSync(recursive: true).whereType<File>().map((file) => file.uri));
+    }
     var libDir = libResult.libDir.path;
     // Version-matched Filament headers extracted from the same R2 artifact as
     // the libraries (see getLibDir). Expressed relative to the package root to
@@ -212,8 +215,6 @@ outputDirectory : ${outputDirectory.path}
       // with scene/Gizmo.cpp on Windows.
       'gizmo': materialPath('gizmo_material', materialSuffix),
       'bone_overlay': materialPath('bone_overlay', materialSuffix),
-      'sss_blur': materialPath('sss_blur', materialSuffix),
-      'sss_composite': materialPath('sss_composite', materialSuffix),
     };
 
     // Add gizmo resources (always included)

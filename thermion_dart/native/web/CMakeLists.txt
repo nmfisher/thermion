@@ -113,8 +113,6 @@ set(MATERIAL_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/wireframe_${THERMION_MATERIAL_VARIANT}.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/translation_axis_${THERMION_MATERIAL_VARIANT}.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/bone_overlay_${THERMION_MATERIAL_VARIANT}.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/sss_blur_${THERMION_MATERIAL_VARIANT}.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/sss_composite_${THERMION_MATERIAL_VARIANT}.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/gizmo_material_${THERMION_MATERIAL_VARIANT}.c"
 )
 

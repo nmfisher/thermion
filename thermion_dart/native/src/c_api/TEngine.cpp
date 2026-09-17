@@ -1,3 +1,4 @@
+#include "rendering/SubsurfaceScattering.hpp"
 #ifdef __EMSCRIPTEN__
 #include <emscripten/html5.h>
 #include "ThermionWebApi.h"
@@ -173,6 +174,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Engine_destroyView(TEngine *tEngine, TView *tView) {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *view = reinterpret_cast<View *>(tView);
+            releaseSubsurfaceSelections(engine, view);
             engine->destroy(view);
         }
 
