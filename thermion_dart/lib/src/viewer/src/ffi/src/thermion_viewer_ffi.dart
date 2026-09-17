@@ -166,6 +166,7 @@ class ThermionViewerFFI extends ThermionViewer {
     await _removeIbl(destroy: true);
     await clearBackgroundImage(destroy: true);
 
+    await view.setSubsurfaceScatteringEnabled(false);
     await destroyAssets();
     await destroyLights();
 
@@ -584,6 +585,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future destroyAsset(ThermionAsset asset) async {
     _assets.remove(asset);
+    await view.getSubsurfaceScattering()?.removeSkin(asset);
     await scene.remove(asset);
     await view.removeStencilHighlight(asset);
 
@@ -598,10 +600,12 @@ class ThermionViewerFFI extends ThermionViewer {
     _logger.info("Destroying ${_assets.length} assets");
     for (final asset in _assets) {
       _logger.info("Destroying asset ${asset.getNativeHandle()}");
+      await view.getSubsurfaceScattering()?.removeSkin(asset);
       await scene.remove(asset);
       await hideBoundingBox(asset, destroy: true);
 
       for (final instance in (await asset.getInstances())) {
+        await view.getSubsurfaceScattering()?.removeSkin(instance);
         await scene.remove(instance);
         await hideBoundingBox(instance, destroy: true);
       }

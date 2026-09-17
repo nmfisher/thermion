@@ -62,6 +62,8 @@ enum TLutFormat {
 typedef enum TLutFormat TLutFormat;
 
 // View
+EMSCRIPTEN_KEEPALIVE bool View_configureSss(TEngine* engine, TView* view, bool enabled, float distanceR, float distanceG, float distanceB, float strength, int debugOutput);
+EMSCRIPTEN_KEEPALIVE bool View_setSssPrimitive(TEngine* engine, TView* view, EntityId entity, int primitive, bool enabled, int group);
 EMSCRIPTEN_KEEPALIVE TViewport View_getViewport(TView *view);
 EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createLinear(TEngine* tEngine);
 EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createACES(TEngine* tEngine);

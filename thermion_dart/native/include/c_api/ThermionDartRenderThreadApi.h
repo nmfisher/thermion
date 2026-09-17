@@ -120,8 +120,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Material_createEdgeOutlineMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Material_createWireframeMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Material_createTranslationAxisMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
-        EMSCRIPTEN_KEEPALIVE void Material_createSssBlurMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
-        EMSCRIPTEN_KEEPALIVE void Material_createSssCompositeMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
+
 
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_createRenderThread(void (*onComplete)(TColorGradingBuilder *));
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_buildRenderThread(TColorGradingBuilder *tBuilder, TEngine *tEngine, void (*onComplete)(TColorGrading *));
@@ -143,6 +142,9 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setCameraRenderThread(TView *tView, TCamera *tCamera, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_getNameRenderThread(TView *tView, void (*onComplete)(const char *));
+        EMSCRIPTEN_KEEPALIVE void View_configureSssRenderThread(TEngine* engine, TView* view, bool enabled, float distanceR, float distanceG, float distanceB, float strength, int debugOutput, void (*onComplete)(bool));
+        EMSCRIPTEN_KEEPALIVE void View_setSssPrimitiveRenderThread(TEngine* engine, TView* view, EntityId entity, int primitive, bool enabled, int group, void (*onComplete)(bool));
+
         EMSCRIPTEN_KEEPALIVE void View_setNameRenderThread(TView *tView, const char *name, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setViewportRenderThread(TView *tView, uint32_t width, uint32_t height, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setRenderTargetRenderThread(TView *tView, TRenderTarget *tRenderTarget, uint32_t requestId, VoidCallback onComplete);

@@ -533,6 +533,44 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int flags,
     Pointer<NativeFunction<void Function(PointerClass<TSwapChain>)>> onComplete,
   );
+  external int _View_configureSss(
+    Pointer<TEngine> engine,
+    Pointer<TView> view,
+    bool enabled,
+    double distanceR,
+    double distanceG,
+    double distanceB,
+    double strength,
+    int debugOutput,
+  );
+  external void _View_configureSssRenderThread(
+    Pointer<TEngine> engine,
+    Pointer<TView> view,
+    bool enabled,
+    double distanceR,
+    double distanceG,
+    double distanceB,
+    double strength,
+    int debugOutput,
+    Pointer<NativeFunction<void Function(bool)>> onComplete,
+  );
+  external int _View_setSssPrimitive(
+    Pointer<TEngine> engine,
+    Pointer<TView> view,
+    EntityId entity,
+    int primitive,
+    bool enabled,
+    int group,
+  );
+  external void _View_setSssPrimitiveRenderThread(
+    Pointer<TEngine> engine,
+    Pointer<TView> view,
+    EntityId entity,
+    int primitive,
+    bool enabled,
+    int group,
+    Pointer<NativeFunction<void Function(bool)>> onComplete,
+  );
   external Pointer<TView> _Engine_createView(Pointer<TEngine> tEngine);
   external void _Engine_createViewRenderThread(
     Pointer<TEngine> tEngine,
@@ -1236,16 +1274,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
   );
-  external Pointer<TMaterial> _Material_createSssBlurMaterial(Pointer<TEngine> tEngine);
-  external void _Material_createSssBlurMaterialRenderThread(
-    Pointer<TEngine> tEngine,
-    Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
-  );
-  external Pointer<TMaterial> _Material_createSssCompositeMaterial(Pointer<TEngine> tEngine);
-  external void _Material_createSssCompositeMaterialRenderThread(
-    Pointer<TEngine> tEngine,
-    Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
-  );
+
+
+
+
   external Pointer<TMaterial> _Material_createTranslationAxisMaterial(Pointer<TEngine> tEngine);
   external void _Material_createTranslationAxisMaterialRenderThread(
     Pointer<TEngine> tEngine,
@@ -5794,37 +5826,13 @@ void Material_createSilhouetteMaterialRenderThread(
   return result;
 }
 
-Pointer<TMaterial> Material_createSssBlurMaterial(Pointer<TEngine> tEngine) {
-  final result = GeneratedBindings.instance._Material_createSssBlurMaterial(tEngine.cast());
-  return Pointer<TMaterial>(result);
-}
 
-void Material_createSssBlurMaterialRenderThread(
-  Pointer<TEngine> tEngine,
-  Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
-) {
-  final result = GeneratedBindings.instance._Material_createSssBlurMaterialRenderThread(
-    tEngine.cast(),
-    onComplete.cast(),
-  );
-  return result;
-}
 
-Pointer<TMaterial> Material_createSssCompositeMaterial(Pointer<TEngine> tEngine) {
-  final result = GeneratedBindings.instance._Material_createSssCompositeMaterial(tEngine.cast());
-  return Pointer<TMaterial>(result);
-}
 
-void Material_createSssCompositeMaterialRenderThread(
-  Pointer<TEngine> tEngine,
-  Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
-) {
-  final result = GeneratedBindings.instance._Material_createSssCompositeMaterialRenderThread(
-    tEngine.cast(),
-    onComplete.cast(),
-  );
-  return result;
-}
+
+
+
+
 
 Pointer<TMaterial> Material_createTranslationAxisMaterial(Pointer<TEngine> tEngine) {
   final result = GeneratedBindings.instance._Material_createTranslationAxisMaterial(tEngine.cast());
@@ -12160,4 +12168,93 @@ extension NativeFunctionPointer31<T extends NativeType> on void Function() {
       NativeLibrary.instance.addFunction<void Function()>(this.toJS, 'v'),
     ).cast();
   }
+}
+
+
+bool View_configureSss(
+  Pointer<TEngine> engine,
+  Pointer<TView> view,
+  bool enabled,
+  double distanceR,
+  double distanceG,
+  double distanceB,
+  double strength,
+  int debugOutput,
+) {
+  final result = GeneratedBindings.instance._View_configureSss(
+    engine.cast(),
+    view.cast(),
+    enabled,
+    distanceR,
+    distanceG,
+    distanceB,
+    strength,
+    debugOutput,
+  );
+  return result == 1;
+}
+
+void View_configureSssRenderThread(
+  Pointer<TEngine> engine,
+  Pointer<TView> view,
+  bool enabled,
+  double distanceR,
+  double distanceG,
+  double distanceB,
+  double strength,
+  int debugOutput,
+  Pointer<NativeFunction<void Function(bool)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._View_configureSssRenderThread(
+    engine.cast(),
+    view.cast(),
+    enabled,
+    distanceR,
+    distanceG,
+    distanceB,
+    strength,
+    debugOutput,
+    onComplete.cast(),
+  );
+  return result;
+}
+
+bool View_setSssPrimitive(
+  Pointer<TEngine> engine,
+  Pointer<TView> view,
+  DartEntityId entity,
+  int primitive,
+  bool enabled,
+  int group,
+) {
+  final result = GeneratedBindings.instance._View_setSssPrimitive(
+    engine.cast(),
+    view.cast(),
+    entity,
+    primitive,
+    enabled,
+    group,
+  );
+  return result == 1;
+}
+
+void View_setSssPrimitiveRenderThread(
+  Pointer<TEngine> engine,
+  Pointer<TView> view,
+  DartEntityId entity,
+  int primitive,
+  bool enabled,
+  int group,
+  Pointer<NativeFunction<void Function(bool)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._View_setSssPrimitiveRenderThread(
+    engine.cast(),
+    view.cast(),
+    entity,
+    primitive,
+    enabled,
+    group,
+    onComplete.cast(),
+  );
+  return result;
 }

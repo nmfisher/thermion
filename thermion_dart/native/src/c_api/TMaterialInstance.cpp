@@ -19,8 +19,6 @@
 #include "material/gizmo.h"
 #include "material/wireframe.h"
 #include "material/bone_overlay.h"
-#include "material/sss_blur.h"
-#include "material/sss_composite.h"
 
 #include "c_api/TMaterialInstance.h"
 
@@ -118,21 +116,7 @@ namespace thermion
             return reinterpret_cast<TMaterial *>(material);
         }
 
-        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSssBlurMaterial(TEngine *tEngine) {
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(SSS_BLUR_SSS_BLUR_DATA, SSS_BLUR_SSS_BLUR_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
-        }
 
-        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSssCompositeMaterial(TEngine *tEngine) {
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(SSS_COMPOSITE_SSS_COMPOSITE_DATA, SSS_COMPOSITE_SSS_COMPOSITE_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
-        }
 
         EMSCRIPTEN_KEEPALIVE bool Material_hasParameter(TMaterial *tMaterial, const char *propertyName) {
             auto *material = reinterpret_cast<filament::Material *>(tMaterial);

@@ -1,5 +1,4 @@
 import 'package:thermion_dart/src/filament/src/implementation/highlight_overlay_manager.dart';
-import 'package:thermion_dart/src/filament/src/implementation/subsurface_scattering_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -473,21 +472,12 @@ abstract class View<T> extends NativeHandle<T> {
   // called with false).
   HighlightOverlayManager? getHighlightOverlay();
 
-  /// Enables the screen-space subsurface scattering pass for skin.
-  ///
-  /// Filament exposes no public post-process hook, so this is built from
-  /// ordinary Views the RenderManager submits in a fixed order: skin mask, this
-  /// view redirected into an internal colour/depth render target, two
-  /// separable depth-aware chromatic blur passes, then a composite pass writing
-  /// to this view's original target.
-  ///
-  /// Five views are attached to the swapchain (this one plus four) out of the
-  /// RenderManager's maximum of eight, and this view's render target is taken
-  /// over, so it cannot be combined with [setHighlightOverlayEnabled], which
-  /// wants the same thing.
-  ///
-  /// Use [getSubsurfaceScattering] to mark assets as skin and to tune the
-  /// effect. See docs/screen-space-subsurface-scattering.md.
+  /// Enables diffuse-only screen-space scattering inside Filament's HDR pipeline.
+  /// Requires the matching diffuse-SSS engine and material compiler. Uses this
+  /// view's geometry and depth without additional public views or target changes.
+  /// Only opaque standard-lit primitives are eligible; MSAA, fog and SSR must
+  /// be disabled. See docs/screen-space-subsurface-scattering.md for limits.
+  /// Use [getSubsurfaceScattering] to select primitives and set physical radii.
   Future setSubsurfaceScatteringEnabled(bool enabled);
 
   /// The subsurface scattering manager for this view, or null while
