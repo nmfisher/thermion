@@ -1,0 +1,13 @@
+__pycache__/
+*.dylib
+*.so
+*.blend
+*.blend1
+*.exr
+/grid_srgb.png
+/burley-reference/
+/visible-demo/
+/comparison-burley.html
+/visible-demo.html
+/burley-metrics.json
+/renders/
