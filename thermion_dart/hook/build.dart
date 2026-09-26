@@ -474,7 +474,8 @@ outputDirectory : ${outputDirectory.path}
       }
     }
 
-    var srcs = File(Directory.systemTemp.path + Platform.pathSeparator + "thermion_sources.rsp");
+    // Per-process name: concurrent builds on one machine must not share (and overwrite) one source list.
+    var srcs = File(Directory.systemTemp.path + Platform.pathSeparator + "thermion_sources_$pid.rsp");
     srcs.writeAsStringSync(sources.join("\n"));
 
     final cbuilder = CBuilder.library(
@@ -539,7 +540,13 @@ outputDirectory : ${outputDirectory.path}
           : const [],
     );
 
-    await cbuilder.run(input: input, output: output, logger: logger);
+    try {
+      await cbuilder.run(input: input, output: output, logger: logger);
+    } finally {
+      try {
+        srcs.deleteSync();
+      } catch (_) {}
+    }
 
     output.metadata.addAll({"includeDirs": includeDirs.map((dir) => path.join(pkgRootFilePath, dir)).toList()});
     output.metadata.addAll({"outputDir": outputDirectory.path});
