@@ -292,12 +292,11 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
 
     final requiredSplits = cascades - 1;
 
-    // Allocate native memory for the float array
-    final pointer = makeFloat32List(requiredSplits);
-
-    // Call the native method
-    LightManager_computeUniformSplits(pointer.address, cascades);
-    return pointer;
+    final splits = Float32List(requiredSplits);
+    withNativeBuffers([splits], () {
+      LightManager_computeUniformSplits(splits.address, cascades);
+    });
+    return splits.toList();
   }
 
   @override
@@ -308,12 +307,11 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
 
     final requiredSplits = cascades - 1;
 
-    // Allocate native memory for the float array
-    final pointer = makeFloat32List(requiredSplits);
-
-    // Call the native method
-    LightManager_computeLogSplits(pointer.address, cascades, near, far);
-    return pointer;
+    final splits = Float32List(requiredSplits);
+    withNativeBuffers([splits], () {
+      LightManager_computeLogSplits(splits.address, cascades, near, far);
+    });
+    return splits.toList();
   }
 
   @override
@@ -328,12 +326,11 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
 
     final requiredSplits = cascades - 1;
 
-    // Allocate native memory for the float array
-    final pointer = makeFloat32List(requiredSplits);
-
-    // Call the native method
-    LightManager_computePracticalSplits(pointer.address, cascades, near, far, lambda);
-    return pointer;
+    final splits = Float32List(requiredSplits);
+    withNativeBuffers([splits], () {
+      LightManager_computePracticalSplits(splits.address, cascades, near, far, lambda);
+    });
+    return splits.toList();
   }
 
   @override

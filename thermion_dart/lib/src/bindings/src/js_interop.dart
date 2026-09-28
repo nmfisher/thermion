@@ -33,6 +33,14 @@ class FinalizableUint8List {
   FinalizableUint8List(this.name, this.data);
 }
 
+extension FreeTypedData<T> on TypedData {
+  void free() {
+    // Frees the allocation only if this view's offset matches a tracked
+    // (malloc-backed) allocation; no-op otherwise.
+    Pointer<Void>(offsetInBytes).free();
+  }
+}
+
 class CallbackHolder<T extends Function> {
   final Pointer<NativeFunction<T>> pointer;
 
@@ -175,6 +183,17 @@ Pointer<T> allocate<T extends NativeType>(int byteCount) {
     default:
       throw Exception(T.toString());
   }
+}
+
+/// Malloc-backed (tracked) view over Wasm memory. Unlike [makeUint8List],
+/// the allocation is heap-backed, so it stays valid across awaits without a
+/// stack bracket; release via [FreeTypedData.free].
+Uint8List makeTrackedUint8List(int length) {
+  final ptr = malloc<Uint8>(length);
+  if (ptr.addr == 0) {
+    throw StateError('Could not allocate $length bytes.');
+  }
+  return (Uint8ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr.addr, length) as JSUint8Array).toDart;
 }
 
 Future<int> withUInt32Callback(Function(Pointer<NativeFunction<Void Function(int)>>) func) async {

@@ -126,3 +126,21 @@ header.header {
   color: var(--thermion-blue);
   text-decoration: none;
 }
+
+/* Content width and typography ----------------------------------------- */
+
+/* The content wrapper (.sl-container) is sized by this Starlight variable.
+   Page.astro re-sets it for pages without a sidebar, so override both. */
+:root,
+html:not([data-has-sidebar]) {
+  --sl-content-width: 960px;
+}
+
+.sl-container :is(h1, h2, h3, h4, h5, h6) {
+  font-weight: 1000;
+  font-size: 32px;
+}
+
+body {
+  font-size: 20px;
+}

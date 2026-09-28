@@ -20,15 +20,17 @@ class FFIIndexBuffer extends IndexBuffer {
   Future setBuffer(TypedData data, {int byteOffset = 0}) async {
     final byteData = data.asUint8List();
     await withVoidCallback((requestId, cb) {
-      bindings.IndexBuffer_setBufferRenderThread(
-        _engine,
-        _ptr,
-        byteData.address.cast(),
-        byteData.length,
-        byteOffset,
-        requestId,
-        cb,
-      );
+      bindings.withNativeBuffers([byteData], () {
+        bindings.IndexBuffer_setBufferRenderThread(
+          _engine,
+          _ptr,
+          byteData.address.cast(),
+          byteData.length,
+          byteOffset,
+          requestId,
+          cb,
+        );
+      });
     });
   }
 

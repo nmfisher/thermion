@@ -130,11 +130,6 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   String? getGltfAnimationName(ThermionAsset asset, int index) {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-
     final nameBuffer = allocate<Char>(256); // Allocate buffer for name
     try {
       AnimationManager_getGltfAnimationName(animationManager, asset.getNativeHandle(), nameBuffer, index);
@@ -143,9 +138,6 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       return name.isEmpty ? null : name;
     } finally {
       free(nameBuffer);
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
     }
   }
 
@@ -183,34 +175,21 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       );
     }
 
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
+    final data = Float32List.fromList(morphData);
+    final indices = Int32List.fromList(morphIndices);
 
-    final morphDataPtr = makeFloat32List(morphData.length);
-    final morphIndicesPtr = makeInt32List(morphIndices.length);
-
-    morphDataPtr.setRange(0, morphData.length, morphData);
-    morphIndicesPtr.setRange(0, morphIndices.length, morphIndices);
-
-    try {
+    // Scoped borrow: the native side copies the morph data before returning.
+    return withNativeBuffers([data, indices], () {
       return AnimationManager_setMorphAnimation(
         animationManager,
         entityId,
-        morphDataPtr.address,
-        morphIndicesPtr.address.cast(),
+        data.address,
+        indices.address.cast(),
         numMorphTargets,
         numFrames,
         frameLengthInMs,
       );
-    } finally {
-      morphDataPtr.free();
-      morphIndicesPtr.free();
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
-    }
+    });
   }
 
   @override
@@ -225,11 +204,6 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   String? getMorphTargetName(ThermionAsset asset, ThermionEntity entityId, int index) {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-
     final nameBuffer = allocate<Char>(256); // Allocate buffer for name
     try {
       AnimationManager_getMorphTargetName(animationManager, asset.getNativeHandle(), entityId, nameBuffer, index);
@@ -238,9 +212,6 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       return name.isEmpty ? null : name;
     } finally {
       free(nameBuffer);
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
     }
   }
 
@@ -265,21 +236,16 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       asset = (await asset.getInstances())[0];
     }
 
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
+    final data = Float32List.fromList(frameData);
 
-    final frameDataPtr = makeFloat32List(frameData.length);
-    frameDataPtr.setRange(0, frameData.length, frameData);
-
-    try {
+    // Scoped borrow: the native side copies the frame data before returning.
+    return withNativeBuffers([data], () {
       return AnimationManager_addBoneAnimation(
         animationManager,
         asset.getNativeHandle(),
         skinIndex,
         boneIndex,
-        frameDataPtr.address,
+        data.address,
         numFrames,
         frameLengthInMs,
         fadeOutInSecs,
@@ -287,12 +253,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
         maxDelta,
         loop,
       );
-    } finally {
-      frameDataPtr.free();
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
-    }
+    });
   }
 
   @override
@@ -311,29 +272,20 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       return [];
     }
 
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-
-    // 16 floats per bone (4x4 matrix)
-    final transformsPtr = makeFloat32List(boneCount * 16);
-    try {
+    // 16 floats per bone (4x4 matrix). Scoped borrow: the native side fills
+    // the buffer synchronously and writes are copied back on scope exit.
+    final transforms = Float32List(boneCount * 16);
+    withNativeBuffers([transforms], () {
       AnimationManager_getRestLocalTransforms(
         animationManager,
         asset.getNativeHandle(),
         skinIndex,
-        transformsPtr.address,
+        transforms.address,
         boneCount,
       );
+    });
 
-      return transformsPtr.toList();
-    } finally {
-      transformsPtr.free();
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
-    }
+    return transforms.toList();
   }
 
   @override
@@ -346,28 +298,19 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       asset = (await asset.getInstances())[0];
     }
 
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-
-    final matrixPtr = makeFloat32List(16); // 4x4 matrix
-    try {
+    // 4x4 matrix. Scoped borrow: filled synchronously by the native side.
+    final matrix = Float32List(16);
+    withNativeBuffers([matrix], () {
       AnimationManager_getInverseBindMatrix(
         animationManager,
         asset.getNativeHandle(),
         skinIndex,
         boneIndex,
-        matrixPtr.address,
+        matrix.address,
       );
+    });
 
-      return matrixPtr.toList();
-    } finally {
-      matrixPtr.free();
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
-    }
+    return matrix.toList();
   }
 
   @override

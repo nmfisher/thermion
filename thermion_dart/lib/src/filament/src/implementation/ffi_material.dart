@@ -90,12 +90,10 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
       data[i + 2] = item.z;
       i += 3;
     }
-    MaterialInstance_setParameterFloat3Array(pointer, ptr, data.address, array.length * 3);
-
-    if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
-      data.free();
-    }
+    // Scoped borrow: the native side copies the values before returning.
+    withNativeBuffers([data], () {
+      MaterialInstance_setParameterFloat3Array(pointer, ptr, data.address, array.length * 3);
+    });
   }
 
   @override
@@ -192,16 +190,18 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
 
   @override
   Future setParameterMat3(String name, Matrix3 matrix) async {
-    MaterialInstance_setParameterMat3(pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);
-
-    if (FILAMENT_WASM) {
-      matrix.storage.free();
-    }
+    // Scoped borrow: the native side copies the matrix before returning.
+    withNativeBuffers([matrix.storage], () {
+      MaterialInstance_setParameterMat3(pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);
+    });
   }
 
   @override
   Future setParameterMat4(String name, Matrix4 matrix) async {
-    MaterialInstance_setParameterMat4(pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);
+    // Scoped borrow: the native side copies the matrix before returning.
+    withNativeBuffers([matrix.storage], () {
+      MaterialInstance_setParameterMat4(pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);
+    });
   }
 
   @override

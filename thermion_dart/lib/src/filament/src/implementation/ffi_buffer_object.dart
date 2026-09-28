@@ -15,15 +15,17 @@ class FFIBufferObject extends BufferObject {
   Future<void> setBuffer(TypedData data, {int byteOffset = 0}) async {
     final bytes = data.asUint8List();
     await withVoidCallback((requestId, cb) {
-      bindings.BufferObject_setBufferRenderThread(
-        _engine,
-        _ptr,
-        bytes.address.cast(),
-        bytes.lengthInBytes,
-        byteOffset,
-        requestId,
-        cb,
-      );
+      bindings.withNativeBuffers([bytes], () {
+        bindings.BufferObject_setBufferRenderThread(
+          _engine,
+          _ptr,
+          bytes.address.cast(),
+          bytes.lengthInBytes,
+          byteOffset,
+          requestId,
+          cb,
+        );
+      });
     });
   }
 

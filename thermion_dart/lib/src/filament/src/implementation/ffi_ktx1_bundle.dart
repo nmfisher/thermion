@@ -35,8 +35,10 @@ class FFIKtx1Bundle extends Ktx1Bundle {
   ///
   Float32List getSphericalHarmonics() {
     _checkAlive();
-    final harmonics = makeFloat32List(27);
-    Ktx1Bundle_getSphericalHarmonics(pointer, harmonics.address);
+    final harmonics = Float32List(27);
+    withNativeBuffers([harmonics], () {
+      Ktx1Bundle_getSphericalHarmonics(pointer, harmonics.address);
+    });
     return harmonics;
   }
 
@@ -44,7 +46,8 @@ class FFIKtx1Bundle extends Ktx1Bundle {
   ///
   ///
   static Future<Ktx1Bundle> create(FFIFilamentApp app, Uint8List data) async {
-    var bundle = Ktx1Bundle_create(data.address, data.length);
+    // Scoped borrow: the native side copies the KTX data before returning.
+    var bundle = withNativeBuffers([data], () => Ktx1Bundle_create(data.address, data.length));
 
     if (bundle == nullptr) {
       throw Exception("Failed to decode KTX texture");

@@ -43,13 +43,15 @@ class FFIIndirectLight extends IndirectLight {
     final engine = app.engine;
 
     var indirectLight = await withPointerCallback<TIndirectLight>((cb) {
-      Engine_buildIndirectLightFromIrradianceHarmonicsRenderThread(
-        engine,
-        (reflectionsTexture as FFITexture?)?.pointer ?? nullptr,
-        irradianceHarmonics.address,
-        intensity,
-        cb,
-      );
+      withNativeBuffers([irradianceHarmonics], () {
+        Engine_buildIndirectLightFromIrradianceHarmonicsRenderThread(
+          engine,
+          (reflectionsTexture as FFITexture?)?.pointer ?? nullptr,
+          irradianceHarmonics.address,
+          intensity,
+          cb,
+        );
+      });
     });
     if (indirectLight == nullptr) {
       throw Exception("Failed to create indirect light");
@@ -58,12 +60,11 @@ class FFIIndirectLight extends IndirectLight {
   }
 
   Future rotate(Matrix3 rotation) async {
-    IndirectLight_setRotation(this.pointer, rotation.storage.address);
-
-    if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
-      rotation.storage.free();
-    }
+    // Scoped borrow: the native side copies the rotation matrix before
+    // returning.
+    withNativeBuffers([rotation.storage], () {
+      IndirectLight_setRotation(this.pointer, rotation.storage.address);
+    });
   }
 
   Future destroy() async {

@@ -49,16 +49,18 @@ class FFIVertexBuffer extends VertexBuffer {
     }
     final byteData = data.asUint8List();
     await withVoidCallback((requestId, cb) {
-      bindings.VertexBuffer_setBufferAtRenderThread(
-        _engine,
-        _ptr,
-        bufferIndex,
-        byteData.address.cast(),
-        byteData.lengthInBytes,
-        byteOffset,
-        requestId,
-        cb,
-      );
+      bindings.withNativeBuffers([byteData], () {
+        bindings.VertexBuffer_setBufferAtRenderThread(
+          _engine,
+          _ptr,
+          bufferIndex,
+          byteData.address.cast(),
+          byteData.lengthInBytes,
+          byteOffset,
+          requestId,
+          cb,
+        );
+      });
     });
   }
 

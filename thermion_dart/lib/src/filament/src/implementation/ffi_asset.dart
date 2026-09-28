@@ -89,19 +89,13 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (_childEntities == null) {
       var count = SceneAsset_getChildEntityCount(asset);
 
-      late Pointer stackPtr;
-      if (FILAMENT_WASM) {
-        stackPtr = stackSave();
-      }
-      var childEntities = makeInt32List(count);
+      var childEntities = Int32List(count);
       if (count > 0) {
-        SceneAsset_getChildEntities(asset, childEntities.address);
+        withNativeBuffers([childEntities], () {
+          SceneAsset_getChildEntities(asset, childEntities.address);
+        });
       }
-      _childEntities = Int32List.fromList(childEntities);
-
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
+      _childEntities = childEntities;
     }
 
     return _childEntities!;
@@ -172,13 +166,10 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     }
 
     var created = await withPointerCallback<TSceneAsset>((cb) {
-      SceneAsset_createInstanceRenderThread(asset, ptrList.address.cast(), materialInstances?.length ?? 0, cb);
+      withNativeBuffers([ptrList], () {
+        SceneAsset_createInstanceRenderThread(asset, ptrList.address.cast(), materialInstances?.length ?? 0, cb);
+      });
     });
-
-    if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
-      ptrList.free();
-    }
 
     if (created == nullptr) {
       throw Exception("Failed to create instance");
@@ -602,9 +593,6 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
         animation.frameLengthInMs,
       );
 
-      frameData.data.free();
-      indices.free();
-
       if (!result) {
         throw Exception("Failed to set morph animation data for ${childName}");
       }
@@ -652,72 +640,68 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
     var numFrames = animation.frameData.length;
 
-    var data = makeFloat32List(numFrames * 16);
+    var data = Float32List(numFrames * 16);
 
-    try {
-      var bones = await instanceAsset.getBones(skinIndex: skinIndex);
+    var bones = await instanceAsset.getBones(skinIndex: skinIndex);
 
-      for (int i = 0; i < animation.bones.length; i++) {
-        var boneName = animation.bones[i];
-        var entityBoneIndex = boneNames.indexOf(boneName);
-        if (entityBoneIndex == -1) {
-          _logger.warning("Bone $boneName not found, skipping");
-          continue;
-        }
-        var boneEntity = bones[entityBoneIndex];
-
-        var baseTransform = restLocalTransforms[entityBoneIndex];
-
-        var world = Matrix4.identity();
-        // this odd use of ! is intentional, without it, the WASM optimizer gets
-        // in trouble
-        var parentBoneEntity = (await _app.getParent(boneEntity))!;
-        while (true) {
-          if (!bones.contains(parentBoneEntity)) {
-            break;
-          }
-          world = restLocalTransforms[bones.indexOf(parentBoneEntity)] * world;
-          parentBoneEntity = (await _app.getParent(parentBoneEntity))!;
-        }
-
-        world = Matrix4.identity()..setRotation(world.getRotation());
-        var worldInverse = Matrix4.identity()..copyInverse(world);
-
-        for (int frameNum = 0; frameNum < numFrames; frameNum++) {
-          var rotation = animation.frameData[frameNum][i].rotation;
-          var translation = animation.frameData[frameNum][i].translation;
-          var frameTransform = Matrix4.compose(translation, rotation, Vector3.all(1.0));
-          var newLocalTransform = frameTransform.clone();
-          if (animation.space == Space.Bone) {
-            newLocalTransform = baseTransform * frameTransform;
-          } else if (animation.space == Space.ParentWorldRotation) {
-            newLocalTransform = baseTransform * (worldInverse * frameTransform * world);
-          }
-          for (int j = 0; j < 16; j++) {
-            data[(frameNum * 16) + j] = newLocalTransform.storage[j];
-          }
-        }
-
-        var frameDataList = <double>[];
-        for (int i = 0; i < numFrames * 16; i++) {
-          frameDataList.add(data[i]);
-        }
-
-        await _app.animationManager.addBoneAnimation(
-          this,
-          skinIndex,
-          entityBoneIndex,
-          frameDataList,
-          numFrames,
-          animation.frameLengthInMs,
-          fadeOutInSecs: fadeOutInSecs,
-          fadeInInSecs: fadeInInSecs,
-          maxDelta: maxDelta,
-          loop: loop,
-        );
+    for (int i = 0; i < animation.bones.length; i++) {
+      var boneName = animation.bones[i];
+      var entityBoneIndex = boneNames.indexOf(boneName);
+      if (entityBoneIndex == -1) {
+        _logger.warning("Bone $boneName not found, skipping");
+        continue;
       }
-    } finally {
-      data.free();
+      var boneEntity = bones[entityBoneIndex];
+
+      var baseTransform = restLocalTransforms[entityBoneIndex];
+
+      var world = Matrix4.identity();
+      // this odd use of ! is intentional, without it, the WASM optimizer gets
+      // in trouble
+      var parentBoneEntity = (await _app.getParent(boneEntity))!;
+      while (true) {
+        if (!bones.contains(parentBoneEntity)) {
+          break;
+        }
+        world = restLocalTransforms[bones.indexOf(parentBoneEntity)] * world;
+        parentBoneEntity = (await _app.getParent(parentBoneEntity))!;
+      }
+
+      world = Matrix4.identity()..setRotation(world.getRotation());
+      var worldInverse = Matrix4.identity()..copyInverse(world);
+
+      for (int frameNum = 0; frameNum < numFrames; frameNum++) {
+        var rotation = animation.frameData[frameNum][i].rotation;
+        var translation = animation.frameData[frameNum][i].translation;
+        var frameTransform = Matrix4.compose(translation, rotation, Vector3.all(1.0));
+        var newLocalTransform = frameTransform.clone();
+        if (animation.space == Space.Bone) {
+          newLocalTransform = baseTransform * frameTransform;
+        } else if (animation.space == Space.ParentWorldRotation) {
+          newLocalTransform = baseTransform * (worldInverse * frameTransform * world);
+        }
+        for (int j = 0; j < 16; j++) {
+          data[(frameNum * 16) + j] = newLocalTransform.storage[j];
+        }
+      }
+
+      var frameDataList = <double>[];
+      for (int i = 0; i < numFrames * 16; i++) {
+        frameDataList.add(data[i]);
+      }
+
+      await _app.animationManager.addBoneAnimation(
+        this,
+        skinIndex,
+        entityBoneIndex,
+        frameDataList,
+        numFrames,
+        animation.frameLengthInMs,
+        fadeOutInSecs: fadeOutInSecs,
+        fadeInInSecs: fadeInInSecs,
+        maxDelta: maxDelta,
+        loop: loop,
+      );
     }
   }
 
@@ -753,8 +737,12 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (skinIndex != 0) {
       throw UnimplementedError("TOOD");
     }
-    final out = makeInt32List(await getBoneCount(skinIndex: skinIndex));
-    SceneAsset_getBones(asset, skinIndex, out.address);
+    final out = Int32List(await getBoneCount(skinIndex: skinIndex));
+    if (out.isNotEmpty) {
+      withNativeBuffers([out], () {
+        SceneAsset_getBones(asset, skinIndex, out.address);
+      });
+    }
     return out;
   }
 

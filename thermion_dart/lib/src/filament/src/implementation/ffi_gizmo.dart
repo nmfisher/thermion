@@ -54,7 +54,11 @@ class FFIGizmo extends GizmoAsset {
     }
     final gizmoEntityCount = SceneAsset_getChildEntityCount(gizmo.cast<TSceneAsset>());
     final gizmoEntities = Int32List(gizmoEntityCount);
-    SceneAsset_getChildEntities(gizmo.cast<TSceneAsset>(), gizmoEntities.address);
+    if (gizmoEntityCount > 0) {
+      withNativeBuffers([gizmoEntities], () {
+        SceneAsset_getChildEntities(gizmo.cast<TSceneAsset>(), gizmoEntities.address);
+      });
+    }
 
     final gizmoAsset = FFIGizmo(
       handle: gizmo,
@@ -62,10 +66,6 @@ class FFIGizmo extends GizmoAsset {
       app: app,
       entities: gizmoEntities.toSet()..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())),
     );
-    if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
-      gizmoEntities.free();
-    }
 
     return gizmoAsset;
   }

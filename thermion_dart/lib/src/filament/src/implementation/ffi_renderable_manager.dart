@@ -296,32 +296,21 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
       return;
     }
 
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
+    final data = Float32List.fromList(weights);
 
-    final weightsPtr = makeFloat32List(weights.length);
-    weightsPtr.setRange(0, weights.length, weights);
-
-    try {
-      await withVoidCallback(
-        (requestId, cb) => RenderableManager_setMorphWeightsRenderThread(
+    await withVoidCallback(
+      (requestId, cb) => withNativeBuffers([data], () {
+        RenderableManager_setMorphWeightsRenderThread(
           renderableManager,
           entity,
-          weightsPtr.address,
+          data.address,
           weights.length,
           offset,
           requestId,
           cb,
-        ),
-      );
-    } finally {
-      weightsPtr.free();
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
-    }
+        );
+      }),
+    );
   }
 
   void _validateMorphWeights(List<double> weights) {
@@ -348,29 +337,25 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
       return;
     }
 
-    final transformsPtr = makeFloat32List(boneCount * 16);
+    final data = Float32List(boneCount * 16);
     for (int i = 0; i < boneCount; i++) {
       final storage = transforms[i].storage;
-      for (int j = 0; j < 16; j++) {
-        transformsPtr[i * 16 + j] = storage[j];
-      }
+      data.setRange(i * 16, (i + 1) * 16, storage);
     }
 
     await withVoidCallback(
-      (requestId, cb) => RenderableManager_setBonesFromMat4RenderThread(
-        renderableManager,
-        entity,
-        transformsPtr.address,
-        boneCount,
-        offset,
-        requestId,
-        cb,
-      ),
+      (requestId, cb) => withNativeBuffers([data], () {
+        RenderableManager_setBonesFromMat4RenderThread(
+          renderableManager,
+          entity,
+          data.address,
+          boneCount,
+          offset,
+          requestId,
+          cb,
+        );
+      }),
     );
-
-    if (FILAMENT_WASM) {
-      transformsPtr.free();
-    }
   }
 
   @override
@@ -379,27 +364,21 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
       return;
     }
 
-    final bonesData = BoneData.toFloat32List(bones);
-    final bonesPtr = makeFloat32List(bonesData.length);
-    for (int i = 0; i < bonesData.length; i++) {
-      bonesPtr[i] = bonesData[i];
-    }
+    final data = BoneData.toFloat32List(bones);
 
     await withVoidCallback(
-      (requestId, cb) => RenderableManager_setBonesFromBoneRenderThread(
-        renderableManager,
-        entity,
-        bonesPtr.address,
-        bones.length,
-        offset,
-        requestId,
-        cb,
-      ),
+      (requestId, cb) => withNativeBuffers([data], () {
+        RenderableManager_setBonesFromBoneRenderThread(
+          renderableManager,
+          entity,
+          data.address,
+          bones.length,
+          offset,
+          requestId,
+          cb,
+        );
+      }),
     );
-
-    if (FILAMENT_WASM) {
-      bonesPtr.free();
-    }
   }
 
   // ============================================================================
@@ -617,25 +596,24 @@ class FFIRenderableBuilder implements RenderableBuilder {
     _checkNotBuilt();
 
     final totalPairs = indicesAndWeights.length;
-    final dataPtr = makeFloat32List(totalPairs * 2);
+    final data = Float32List(totalPairs * 2);
 
     int offset = 0;
     for (final pair in indicesAndWeights) {
-      dataPtr[offset++] = pair[0]; // bone index
-      dataPtr[offset++] = pair[1]; // weight
+      data[offset++] = pair[0]; // bone index
+      data[offset++] = pair[1]; // weight
     }
 
-    bindings.RenderableBuilder_boneIndicesAndWeights(
-      _builderPtr!,
-      primitiveIndex,
-      dataPtr.address,
-      totalPairs,
-      bonesPerVertex,
-    );
-
-    if (FILAMENT_WASM) {
-      dataPtr.free();
-    }
+    // Scoped borrow: the native side copies the pairs before returning.
+    bindings.withNativeBuffers([data], () {
+      bindings.RenderableBuilder_boneIndicesAndWeights(
+        _builderPtr!,
+        primitiveIndex,
+        data.address,
+        totalPairs,
+        bonesPerVertex,
+      );
+    });
   }
 
   @override
@@ -651,20 +629,19 @@ class FFIRenderableBuilder implements RenderableBuilder {
       );
     } else {
       result = await withIntCallback((cb) {
-        // Web needs a WASM-memory view for FFI; native borrows the Dart list directly.
-        final stack = FILAMENT_WASM ? stackSave() : nullptr;
-        final input = FILAMENT_WASM ? (makeFloat32List(skinningData.length)..setAll(0, skinningData)) : skinningData;
-        bindings.RenderableBuilder_buildWithSkinningRenderThread(
-          _builderPtr!,
-          _app.engine,
-          entity,
-          _boneCount,
-          input.address,
-          _skinningBones != null,
-          cb.cast(),
-        );
+        // Scoped borrow on web; native borrows the Dart list directly.
         // The native function has copied the data before returning.
-        if (FILAMENT_WASM) stackRestore(stack);
+        bindings.withNativeBuffers([skinningData], () {
+          bindings.RenderableBuilder_buildWithSkinningRenderThread(
+            _builderPtr!,
+            _app.engine,
+            entity,
+            _boneCount,
+            skinningData.address,
+            _skinningBones != null,
+            cb.cast(),
+          );
+        });
       });
     }
 

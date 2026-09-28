@@ -92,22 +92,24 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
     int zOffset = 0,
   }) async {
     final success = await withBoolCallback((cb) {
-      Texture_setImageRenderThread(
-        _engine,
-        pointer,
-        level,
-        buffer.address,
-        buffer.lengthInBytes,
-        xOffset,
-        yOffset,
-        zOffset,
-        width,
-        height,
-        depth,
-        format.index,
-        type.index,
-        cb,
-      );
+      withNativeBuffers([buffer], () {
+        Texture_setImageRenderThread(
+          _engine,
+          pointer,
+          level,
+          buffer.address,
+          buffer.lengthInBytes,
+          xOffset,
+          yOffset,
+          zOffset,
+          width,
+          height,
+          depth,
+          format.index,
+          type.index,
+          cb,
+        );
+      });
     });
 
     if (!success) {

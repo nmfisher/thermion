@@ -16,6 +16,12 @@ Uint8List makeUint8List(int length) {
   return Uint8List(length);
 }
 
+/// Native twin of ffigen_js's tracked malloc-backed allocation: valid across
+/// awaits; released via [TypedData.free] (a no-op here, the list is GC'd).
+Uint8List makeTrackedUint8List(int length) {
+  return Uint8List(length);
+}
+
 Uint32List makeUint32List(int length) {
   return Uint32List(length);
 }
@@ -71,6 +77,11 @@ Pointer<T> allocate<T extends NativeType>(int byteCount) {
 void free(Pointer ptr) {
   calloc.free(ptr);
 }
+
+/// Native twin of ffigen_js's [withNativeBuffers]: on native targets,
+/// `TypedData.address` is dart:ffi's zero-copy address, so no buffer scope is
+/// needed and the body simply executes.
+R withNativeBuffers<R>(Iterable<TypedData> buffers, R Function() body) => body();
 
 Pointer stackSave() {
   throw Exception();

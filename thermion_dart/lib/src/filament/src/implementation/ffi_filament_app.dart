@@ -583,7 +583,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future<LinearImage> decodeImage(Uint8List data, {String name = "image", bool requireAlpha = false}) async {
     var now = DateTime.now();
     final namePtr = name.toNativeUtf8().cast<Char>();
-    var ptr = Image_decode(data.address, data.length, namePtr, requireAlpha);
+    var ptr = withNativeBuffers([data], () => Image_decode(data.address, data.length, namePtr, requireAlpha));
     free(namePtr);
 
     var finished = DateTime.now();
@@ -643,10 +643,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw const FormatException('Material package is empty.');
     }
     try {
-      // Each .address is a separate synchronous borrow. The render-thread
-      // entry point snapshots in native code before returning, and the native
-      // builder checks that snapshot again before passing it to Filament.
-      final actualVersion = Material_getPackageVersion(data.address, data.length).toInt();
+      // Each .address is a separate synchronous borrow (scoped on web by
+      // withNativeBuffers). The render-thread entry point snapshots in native
+      // code before returning, and the native builder checks that snapshot
+      // again before passing it to Filament.
+      final actualVersion = withNativeBuffers([
+        data,
+      ], () => Material_getPackageVersion(data.address, data.length)).toInt();
       if (actualVersion < 0) {
         throw const FormatException('Invalid material package chunk layout or version metadata.');
       }
@@ -658,7 +661,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         );
       }
       final ptr = await withPointerCallback<TMaterial>((cb) {
-        Engine_buildMaterialRenderThread(engine, data.address, data.length, cb);
+        withNativeBuffers([data], () {
+          Engine_buildMaterialRenderThread(engine, data.address, data.length, cb);
+        });
       });
       if (ptr == nullptr) {
         throw StateError('Filament could not create the material.');
@@ -1005,11 +1010,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     _logger.finest("Starting capture for ${views.length} views");
 
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-
     // Per-view "was this read as UBYTE for a FLOAT request?" flags. The
     // downgrade-on-web rule depends on the framebuffer being read from
     // (RGBA8 swapchain/RT → must use UBYTE; FLOAT RT → must use FLOAT),
@@ -1066,7 +1066,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
 
       final numBytes = viewport.width * viewport.height * numChannels * channelSizeInBytes;
-      final pixelBuffer = makeUint8List(numBytes);
+      // Heap-backed allocation: native writes into this buffer asynchronously
+      // (after the readPixels call returns and, on web, only once a subsequent
+      // frame renders), so it must stay valid across awaits. Stack-backed
+      // makeUint8List storage is not safe here; the tracked allocation is
+      // released below via TypedData.free().
+      final pixelBuffer = makeTrackedUint8List(numBytes);
 
       if (render) {
         await withVoidCallback((requestId, cb) {
@@ -1151,9 +1156,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         result.add((view, out));
       }
 
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
       return result;
     }
 
@@ -1211,8 +1213,17 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       );
 
       var filamentAsset = await withPointerCallback<TFilamentAsset>(
-        (cb) =>
-            GltfAssetLoader_loadRenderThread(engine, gltfAssetLoader, data.address, data.length, initialInstances, cb),
+        (cb) => withNativeBuffers(
+          [data],
+          () => GltfAssetLoader_loadRenderThread(
+            engine,
+            gltfAssetLoader,
+            data.address,
+            data.length,
+            initialInstances,
+            cb,
+          ),
+        ),
       );
 
       if (filamentAsset == nullptr) {
@@ -1240,13 +1251,16 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         resources.add(FinalizableUint8List(resourceUris[i], resourceData));
 
         await withVoidCallback(
-          (requestId, cb) => GltfResourceLoader_addResourceDataRenderThread(
-            gltfResourceLoader,
-            resourceUris[i],
-            resourceData.address,
-            resourceData.lengthInBytes,
-            requestId,
-            cb,
+          (requestId, cb) => withNativeBuffers(
+            [resourceData],
+            () => GltfResourceLoader_addResourceDataRenderThread(
+              gltfResourceLoader,
+              resourceUris[i],
+              resourceData.address,
+              resourceData.lengthInBytes,
+              requestId,
+              cb,
+            ),
           ),
         );
       }
@@ -1701,7 +1715,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // happen on the engine's render thread; routing through the *RenderThread
     // variant avoids the abort.
     final texturePtr = await withPointerCallback<TTexture>(
-      (cb) => Ktx2Reader_createTextureRenderThread(engine, data.address, data.length, cb),
+      (cb) =>
+          withNativeBuffers([data], () => Ktx2Reader_createTextureRenderThread(engine, data.address, data.length, cb)),
     );
     if (texturePtr == nullptr) {
       throw Exception("Failed to load KTX2 texture");

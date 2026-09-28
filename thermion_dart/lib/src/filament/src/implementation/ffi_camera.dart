@@ -237,7 +237,9 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   ///
   Future<Frustum> getFrustum() async {
     var out = Float64List(24);
-    Camera_getFrustum(camera, out.address);
+    withNativeBuffers([out], () {
+      Camera_getFrustum(camera, out.address);
+    });
 
     var frustum = Frustum();
 
