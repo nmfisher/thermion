@@ -27,7 +27,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: pr-tests-${{ github.event.pull_request.number }}
+  group: run-dart-and-flutter-tests-on-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
