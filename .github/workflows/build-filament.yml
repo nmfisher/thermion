@@ -153,6 +153,11 @@ jobs:
       - name: Checkout thermion
         uses: actions/checkout@v4
 
+      - name: Test iOS device library packaging
+        run: |
+          bash -n scripts/build_ios.sh
+          python3 -B -m unittest discover -s scripts -p 'test_ios_device_libraries.py' -v
+
       - name: Checkout Filament
         run: git clone --depth 1 --branch ${{ env.FILAMENT_VERSION }} ${{ env.FILAMENT_REPO }} filament
 

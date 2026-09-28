@@ -146,56 +146,10 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
-  # Filament v1.74.0 builds iOS XCFramework bundles (lib<name>.xcframework/)
-  # and removes the intermediate flat per-arch .a directories. Thermion links
-  # flat -l<name> .a archives, so extract the per-slice .a from each xcframework
-  # and lipo the slices into a single universal (device + simulator) .a in the
-  # target directory.
-  _LIB_DIR="out/ios-release/filament/lib"
-  for _xcf in "$_LIB_DIR"/*.xcframework; do
-    [ -d "$_xcf" ] || continue
-    _name=$(basename "$_xcf" .xcframework)
-    _slices=()
-    while IFS= read -r -d '' _a; do _slices+=("$_a"); done < <(find "$_xcf" -name '*.a' -print0)
-    [ "${#_slices[@]}" -gt 0 ] || continue
-    if [ "${#_slices[@]}" -eq 1 ]; then
-      cp "${_slices[0]}" "$TARGET_RELEASE_DIR/$_name.a"
-    else
-      # Slices can overlap in architecture — v1.75.0's simulator slices are
-      # fat (arm64 + x86_64) while the device slices are arm64-only, so
-      # lipo -create of all slices fails ("same architectures and can't be
-      # in the same fat output file"). Deduplicate by extracting a thin
-      # slice per unique architecture, then combine those.
-      _have=()
-      _inputs=()
-      _tmpdir=$(mktemp -d)
-      for _a in "${_slices[@]}"; do
-        for _arch in $(lipo -archs "$_a"); do
-          case " ${_have[*]} " in
-            *" $_arch "*) continue ;;
-          esac
-          _have+=("$_arch")
-          if [ "$(lipo -archs "$_a" | wc -w)" -eq 1 ]; then
-            _inputs+=("$_a")
-          else
-            lipo -extract "$_arch" "$_a" -output "$_tmpdir/$_name-$_arch.a" || {
-              echo "Error: failed to extract $_arch from $_a"
-              rm -rf "$_tmpdir"
-              exit 1
-            }
-            _inputs+=("$_tmpdir/$_name-$_arch.a")
-          fi
-        done
-      done
-      lipo -create "${_inputs[@]}" -output "$TARGET_RELEASE_DIR/$_name.a" || {
-        echo "Error: failed to lipo universal library $_name"
-        rm -rf "$_tmpdir"
-        exit 1
-      }
-      rm -rf "$_tmpdir"
-    fi
-  done
-  echo "Extracted universal libraries from XCFrameworks into $TARGET_RELEASE_DIR"
+  # Select the device library by XCFramework metadata. Simulator libraries
+  # are packaged separately by build_ios_simulator.sh.
+  python3 "$SCRIPT_DIR/ios_device_libraries.py" extract \
+    "out/ios-release/filament/lib" "$TARGET_RELEASE_DIR" || exit 1
 
   # Build libz for release
   echo "Building libz (release)..."
@@ -233,50 +187,10 @@ if [ "$BUILD_DEBUG" = true ]; then
     exit 1
   }
 
-  # Extract universal libs from XCFrameworks (see release block above).
-  _LIB_DIR="out/ios-debug/filament/lib"
-  for _xcf in "$_LIB_DIR"/*.xcframework; do
-    [ -d "$_xcf" ] || continue
-    _name=$(basename "$_xcf" .xcframework)
-    _slices=()
-    while IFS= read -r -d '' _a; do _slices+=("$_a"); done < <(find "$_xcf" -name '*.a' -print0)
-    [ "${#_slices[@]}" -gt 0 ] || continue
-    if [ "${#_slices[@]}" -eq 1 ]; then
-      cp "${_slices[0]}" "$TARGET_DEBUG_DIR/$_name.a"
-    else
-      # See the release block above: slices can overlap in architecture
-      # (v1.75.0's simulator slices are fat arm64+x86_64), so deduplicate by
-      # extracting a thin slice per unique architecture before combining.
-      _have=()
-      _inputs=()
-      _tmpdir=$(mktemp -d)
-      for _a in "${_slices[@]}"; do
-        for _arch in $(lipo -archs "$_a"); do
-          case " ${_have[*]} " in
-            *" $_arch "*) continue ;;
-          esac
-          _have+=("$_arch")
-          if [ "$(lipo -archs "$_a" | wc -w)" -eq 1 ]; then
-            _inputs+=("$_a")
-          else
-            lipo -extract "$_arch" "$_a" -output "$_tmpdir/$_name-$_arch.a" || {
-              echo "Error: failed to extract $_arch from $_a"
-              rm -rf "$_tmpdir"
-              exit 1
-            }
-            _inputs+=("$_tmpdir/$_name-$_arch.a")
-          fi
-        done
-      done
-      lipo -create "${_inputs[@]}" -output "$TARGET_DEBUG_DIR/$_name.a" || {
-        echo "Error: failed to lipo universal library $_name"
-        rm -rf "$_tmpdir"
-        exit 1
-      }
-      rm -rf "$_tmpdir"
-    fi
-  done
-  echo "Extracted universal libraries from XCFrameworks into $TARGET_DEBUG_DIR"
+  # Select the device library by XCFramework metadata. Simulator libraries
+  # are packaged separately by build_ios_simulator.sh.
+  python3 "$SCRIPT_DIR/ios_device_libraries.py" extract \
+    "out/ios-debug/filament/lib" "$TARGET_DEBUG_DIR" || exit 1
 
   # Build libz for debug
   echo "Building libz (debug)..."
@@ -382,6 +296,8 @@ fi
 
 # Create zip files
 if [ "$BUILD_RELEASE" = true ]; then
+  # Validate the final contents, including separately copied third-party libs.
+  python3 "$SCRIPT_DIR/ios_device_libraries.py" validate "$TARGET_RELEASE_DIR" || exit 1
   echo "Creating release zip..."
   cd "$TARGET_RELEASE_DIR"
   zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-ios-release.zip" . || {
@@ -391,6 +307,8 @@ if [ "$BUILD_RELEASE" = true ]; then
 fi
 
 if [ "$BUILD_DEBUG" = true ]; then
+  # Validate the final contents, including separately copied third-party libs.
+  python3 "$SCRIPT_DIR/ios_device_libraries.py" validate "$TARGET_DEBUG_DIR" || exit 1
   echo "Creating debug zip..."
   cd "$TARGET_DEBUG_DIR"
   zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-ios-debug.zip" . || {
