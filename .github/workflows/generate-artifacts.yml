@@ -276,12 +276,9 @@ jobs:
           SHA=$(git rev-parse "origin/$PUSH_BRANCH")
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
 
-  run-tests:
-    name: Run Tests
-    # Skipped when called as the release verify gate — the release orchestrator
-    # (publish-pub-dev.yml) runs its own tests at the tag SHA.
-    if: ${{ !inputs.verify }}
-    needs: generate-artifacts
-    uses: ./.github/workflows/run-tests.yml
-    with:
-      ref: ${{ needs.generate-artifacts.outputs.sha }}
+  # NOTE: this workflow deliberately does NOT run the test suite on PRs
+  # anymore. pr-tests.yml is the single test runner (so the pr-approval
+  # environment gate actually gates something); running the suite here as
+  # well duplicated every PR's test matrix and bypassed the approval gate,
+  # since this workflow carries no environment. The release verify path
+  # (publish-pub-dev.yml) runs its own tests directly at the tag SHA.
