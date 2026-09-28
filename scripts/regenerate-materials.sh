@@ -15,7 +15,8 @@
 #   - examples/assets/*.filamat
 #
 # Intended for CI: run it whenever filament.version changes, then commit the
-# diff (see .github/workflows/regenerate-materials.yml). matc output for a
+# diff (see the materials jobs in
+# .github/workflows/regenerate-bindings-and-materials.yml). matc output for a
 # fixed version is deterministic, so an already-up-to-date tree produces no
 # diff and no commit.
 set -eu
