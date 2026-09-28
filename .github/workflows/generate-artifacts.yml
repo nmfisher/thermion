@@ -277,6 +277,7 @@ jobs:
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
 
   # NOTE: this workflow deliberately does NOT run the test suite on PRs
+  # NOTE: this workflow deliberately does NOT run the test suite on PRs
   # anymore. run-dart-and-flutter-tests-on-pr.yml is the single test runner
   # (so the pr-approval
   # environment gate actually gates something); running the suite here as
