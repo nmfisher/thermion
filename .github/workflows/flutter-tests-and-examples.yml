@@ -218,6 +218,7 @@ jobs:
       # channel — the old run-web-builds.yml used beta for no remaining
       # reason, wasm app compilation having been stable since Flutter 3.22).
       # These steps do NOT compile native code: they download the
+      # These steps do NOT compile native code: they download the
       # thermion_dart.js/.wasm artifacts published to R2 by
       # regenerate-bindings-and-materials.yml on develop, keyed by the
       # committed web.version. On PRs
