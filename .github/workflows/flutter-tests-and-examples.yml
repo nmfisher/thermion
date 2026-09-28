@@ -1,0 +1,329 @@
+# thermion_flutter unit tests + lifecycle integration test, then example app
+# builds (desktop + Android appbundles).
+#
+# Structure:
+#   flutter-tests      — unit tests on macOS/Windows/Linux runners (+ the macOS
+#                        lifecycle integration test). Runs FIRST.
+#   desktop-examples   — needs flutter-tests; builds quickstart/picking/viewer
+#                        for macOS/Windows/Linux on fresh runners (SDK setup is
+#                        re-run per job, but subosito/flutter-action's cache
+#                        makes it a cache restore rather than a download).
+#   android-appbundles — needs flutter-tests; 4 appbundle variants.
+#   Web example shells build as extra steps on the desktop-examples Linux
+#   leg (same runner, reusing its SDK setup); see the step comment there
+#   for the prebuilt-wasm caveat.
+#
+# Every build job keeps a minimal "prime build hooks" step (one small unit
+# test) before its first cmake configure: the plugin's CMake configure runs
+# BEFORE the in-build hook step that extracts the Filament headers from the
+# R2 artifact and writes .dart_tool/generated_headers.cmake
+# (DART_PKG_HEADERS). On a fresh checkout the first `flutter build
+# windows/linux/macos` would otherwise configure with an empty
+# DART_PKG_HEADERS and the plugin compile fails on bluevk/BlueVK.h. Running
+# a flutter test out of band fires the hooks so the header dir and
+# generated_headers.cmake already exist when cmake configures.
+#
+# Replaces the former run-flutter-builds.yml (whose build jobs embedded the
+# unit tests as priming steps) and, together with run-dart-tests.yml,
+# replaces the deleted run-tests.yml umbrella.
+name: Flutter tests and example builds
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref (SHA or branch) to check out
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref (SHA or branch) to check out
+        required: false
+        type: string
+
+jobs:
+  flutter-tests:
+    name: Flutter tests (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            flutter-arch: ARM64
+          - name: Windows
+            os: windows-latest
+            flutter-arch: X64
+          - name: Linux
+            os: ubuntu-22.04
+            flutter-arch: X64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+          architecture: ${{ matrix.flutter-arch }}
+          cache: true
+          pub-cache: true
+
+      # Match the Filament archive toolchain. Jammy's libc++ 14 lacks
+      # __libcpp_verbose_abort, used by the no-exceptions archives. Must run
+      # before the first flutter invocation that compiles the plugin's native
+      # code.
+      - name: Install Linux build dependencies
+        if: matrix.name == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y ca-certificates wget cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libdrm-dev libegl1 libegl1-mesa-dev
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 18
+          sudo apt-get install -y libc++-18-dev libc++abi-18-dev
+          echo "/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"
+
+      - name: Run thermion_flutter unit tests
+        working-directory: thermion_flutter/thermion_flutter
+        shell: bash
+        run: |
+          flutter pub get
+          flutter test
+
+      # Runs the thermion_flutter lifecycle integration test (FrameScheduler
+      # stop/start/pause/resume + WidgetsBindingObserver recovery) against the
+      # real macOS target. Validates the Flutter-layer scheduler state machine;
+      # the Linux startFlutterSynced resume re-arm is NOT covered here (needs
+      # a Linux + display-server runner — see linux-display-smoke.yml).
+      - name: Run lifecycle integration test (macOS)
+        if: matrix.name == 'macOS'
+        working-directory: examples/flutter/quickstart
+        shell: bash
+        run: flutter test integration_test/lifecycle_test.dart -d macos
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-flutter-${{ matrix.name }}
+          path: |
+            ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
+
+  desktop-examples:
+    name: Flutter Examples (${{ matrix.name }})
+    needs: [flutter-tests]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            flutter-arch: ARM64
+          - name: Windows
+            os: windows-latest
+            flutter-arch: X64
+          - name: Linux
+            os: ubuntu-22.04
+            flutter-arch: X64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: examples/flutter
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+          architecture: ${{ matrix.flutter-arch }}
+          cache: true
+          pub-cache: true
+
+      - name: Install Linux build dependencies
+        if: matrix.name == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y ca-certificates wget cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libdrm-dev libegl1 libegl1-mesa-dev
+          # Match the Filament archive toolchain. Jammy's libc++ 14 lacks
+          # __libcpp_verbose_abort, used by the no-exceptions archives.
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 18
+          sudo apt-get install -y libc++-18-dev libc++abi-18-dev
+          echo "/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"
+
+      # Prime the build hooks (see header comment). A single small test file
+      # is enough to fire them; the full suite already ran in flutter-tests.
+      - name: Prime build hooks
+        working-directory: thermion_flutter/thermion_flutter
+        shell: bash
+        run: |
+          flutter pub get
+          flutter test test/frame_scheduler_clock_test.dart
+
+      # macOS: build native macOS examples.
+      - name: Build quickstart (macOS)
+        if: matrix.name == 'macOS'
+        run: cd quickstart && flutter pub get && flutter build macos
+
+      - name: Build picking (macOS)
+        if: matrix.name == 'macOS'
+        run: cd picking && flutter pub get && flutter build macos
+
+      - name: Build viewer (macOS)
+        if: matrix.name == 'macOS'
+        run: cd viewer && flutter pub get && flutter build macos
+
+      # Windows: build native Windows.
+      - name: Build quickstart (Windows)
+        if: matrix.name == 'Windows'
+        run: cd quickstart && flutter pub get && flutter build windows
+
+      - name: Build picking (Windows)
+        if: matrix.name == 'Windows'
+        run: cd picking && flutter pub get && flutter build windows
+
+      # The checked-in example overrides are relative monorepo paths. Real
+      # consumers of a Git or hosted package receive absolute file:/// root
+      # URIs in package_config.json, so exercise that resolution path too.
+      - name: Exercise absolute package URIs (Linux)
+        if: matrix.name == 'Linux'
+        shell: bash
+        run: |
+          sed -i "s|path: ../../../thermion_dart|path: ${GITHUB_WORKSPACE}/thermion_dart|" quickstart/pubspec.yaml
+          sed -i "s|path: ../../../thermion_dart|path: ${GITHUB_WORKSPACE}/thermion_dart|" picking/pubspec.yaml
+
+      - name: Build quickstart (Linux)
+        if: matrix.name == 'Linux'
+        run: cd quickstart && flutter pub get && flutter build linux
+
+      - name: Build picking (Linux)
+        if: matrix.name == 'Linux'
+        run: cd picking && flutter pub get && flutter build linux
+
+      # Web shells ride on the Linux leg's runner (SDK + toolchain already
+      # set up above; plain `flutter build web` is dart2js, stable in every
+      # channel — the old run-web-builds.yml used beta for no remaining
+      # reason, wasm app compilation having been stable since Flutter 3.22).
+      # These steps do NOT compile native code: they download the
+      # thermion_dart.js/.wasm artifacts published to R2 by Generate
+      # Artifacts on develop, keyed by the committed web.version. On PRs
+      # that change native code, this validates the web shell against the
+      # LAST PUBLISHED wasm, not the PR's native changes.
+      - name: Download web artifacts (Linux)
+        if: matrix.name == 'Linux'
+        working-directory: ${{ github.workspace }}/thermion_dart
+        shell: bash
+        run: |
+          dart pub get
+          dart run bin/download_web.dart -o ../examples/flutter/quickstart/web
+          dart run bin/download_web.dart -o ../examples/flutter/picking/web
+          dart run bin/download_web.dart -o ../examples/flutter/viewer/web
+
+      - name: Build quickstart (web)
+        if: matrix.name == 'Linux'
+        run: cd quickstart && flutter pub get && flutter build web
+
+      - name: Build picking (web)
+        if: matrix.name == 'Linux'
+        run: cd picking && flutter pub get && flutter build web
+
+      - name: Build viewer (web)
+        if: matrix.name == 'Linux'
+        run: cd viewer && flutter pub get && flutter build web
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-flutter-${{ matrix.name }}
+          path: |
+            ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
+
+  android-appbundles:
+    name: Android (${{ matrix.app }}, ${{ matrix.variant }})
+    needs: [flutter-tests]
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - app: quickstart
+            variant: default
+          - app: picking
+            variant: default
+          - app: viewer
+            variant: default
+          - app: quickstart
+            variant: vulkan
+    defaults:
+      run:
+        working-directory: examples/flutter/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+          architecture: X64
+          cache: true
+          pub-cache: true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools cmake;3.22.1 ndk;28.2.13676358'
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v6
+
+      # materials.backends e2e for Android: build quickstart with the
+      # vulkan-only material variant selected via user_defines. Strip any
+      # existing hooks block first so this define applies to exactly this job.
+      - name: Configure Vulkan-only materials
+        if: matrix.variant == 'vulkan'
+        shell: bash
+        run: |
+          awk '
+            /^hooks:/ { skip=1; next }
+            skip && /^[^[:space:]#]/ { skip=0 }
+            !skip { print }
+          ' pubspec.yaml > pubspec.yaml.tmp
+          mv pubspec.yaml.tmp pubspec.yaml
+          printf '\nhooks:\n  user_defines:\n    thermion_dart:\n      materials:\n        backends:\n          android: vulkan\n' >> pubspec.yaml
+
+      - name: Build app bundle
+        run: flutter build appbundle
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-flutter-android-${{ matrix.app }}-${{ matrix.variant }}
+          path: |
+            ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5

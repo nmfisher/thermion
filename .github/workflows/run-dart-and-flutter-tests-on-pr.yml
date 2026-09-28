@@ -1,17 +1,16 @@
 # Runs the full Dart/Flutter test suite on every pull request, gated behind
 # manual approval. GitHub Actions does not allow `environment` on a job that
-# calls a reusable workflow (run-tests.yml), so the gate is a separate no-op
-# job: `approval-gate` references the `pr-approval` environment, whose
-# required-reviewer rule holds the run in "Waiting" state until it is
-# approved from the PR's Checks tab (Review deployments -> Approve and run).
-# The suite itself lives in run-tests.yml (workflow_call), which fans out to
-# run-dart-tests.yml and run-flutter-builds.yml, and only starts after the
-# gate job is approved.
+# calls a reusable workflow (run-dart-tests.yml, flutter-tests-and-examples.yml),
+# so the gate is a separate no-op job: `approval-gate` references the
+# `pr-approval` environment, whose required-reviewer rule holds the run in
+# "Waiting" state until it is approved from the PR's Checks tab (Review
+# deployments -> Approve and run). The suites are only called after the gate
+# job is approved.
 #
 # Matrix jobs expand into many check run names ("Dart Tests (Linux)", ...),
 # which is awkward to reference from branch protection. The tests-passed job
 # folds the whole suite into a single stable check name ("PR tests passed")
-# that the required status checks on develop/main reference.
+# that required status checks can reference.
 name: PR Tests (Dart/Flutter)
 
 on:
@@ -28,7 +27,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: pr-tests-${{ github.event.pull_request.number }}
+  group: run-dart-and-flutter-tests-on-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -43,22 +42,31 @@ jobs:
   tests:
     name: Dart/Flutter tests
     needs: [approval-gate]
-    uses: ./.github/workflows/run-tests.yml
+    uses: ./.github/workflows/run-dart-tests.yml
+    with:
+      ref: ${{ github.event.pull_request.head.sha }}
+    secrets: inherit
+
+  flutter:
+    name: Flutter tests and examples
+    needs: [approval-gate]
+    uses: ./.github/workflows/flutter-tests-and-examples.yml
     with:
       ref: ${{ github.event.pull_request.head.sha }}
     secrets: inherit
 
   tests-passed:
     name: PR tests passed
-    needs: [tests]
+    needs: [tests, flutter]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate suite result
         run: |
-          result="${{ needs.tests.result }}"
-          if [ "$result" != "success" ]; then
-            echo "PR test suite did not pass (result: $result)."
+          dart_result="${{ needs.tests.result }}"
+          flutter_result="${{ needs.flutter.result }}"
+          if [ "$dart_result" != "success" ] || [ "$flutter_result" != "success" ]; then
+            echo "PR test suite did not pass (dart: $dart_result, flutter: $flutter_result)."
             exit 1
           fi
           echo "PR test suite passed."
