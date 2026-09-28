@@ -7,7 +7,7 @@ WORKFLOW_FILE="$ROOT_DIR/.github/workflows/run-dart-tests.yml"
 REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
 
 # Workflows that may produce golden-images-* artifacts, in priority order.
-GOLDEN_WORKFLOWS=("generate-artifacts.yml" "run-dart-tests.yml")
+GOLDEN_WORKFLOWS=("regenerate-bindings-and-materials.yml" "run-dart-tests.yml")
 
 usage() {
     cat <<EOF
@@ -16,8 +16,8 @@ Usage: $(basename "$0") [--trigger] [--branch BRANCH]
 Update the golden image reference in run-dart-tests.yml.
 
 Options:
-  --trigger        Trigger a new generate-artifacts run and wait for it to finish,
-                   then use its artifact as the new golden reference.
+  --trigger        Trigger a new regenerate-bindings-and-materials run and wait for it
+                   to finish, then use its artifact as the new golden reference.
   --branch BRANCH  Branch to trigger the run on (default: current branch).
                    Only used with --trigger.
 
@@ -69,7 +69,7 @@ find_latest_golden() {
 }
 
 if $TRIGGER; then
-    TRIGGER_WORKFLOW="generate-artifacts.yml"
+    TRIGGER_WORKFLOW="regenerate-bindings-and-materials.yml"
     BRANCH="${BRANCH:-$(git -C "$ROOT_DIR" rev-parse --abbrev-ref HEAD)}"
     echo "Triggering $TRIGGER_WORKFLOW on branch '$BRANCH'..."
     gh workflow run "$TRIGGER_WORKFLOW" --ref "$BRANCH"

@@ -1,7 +1,8 @@
 name: Create Release
 
 # Manual-only release pathway. A push or PR to develop runs NORMAL CI only
-# (Generate Artifacts: regen bindings + tests) and never releases. To cut a
+# (Regenerate bindings and materials: regen bindings + tests) and never
+# releases. To cut a
 # release, dispatch this workflow by hand (GitHub UI, or
 # `gh workflow run "Create Release"`). With the version input left empty, it
 # reads the version from the checked-out ref's pubspec.yaml and tags the develop

@@ -1,4 +1,4 @@
-name: Generate Artifacts
+name: Regenerate bindings and materials
 
 on:
   push:
@@ -33,6 +33,12 @@ on:
 # releases are manual via release.yml (workflow_dispatch). master is a legacy
 # reference and does not trigger this workflow.
 #
+# Naming: the derived files regenerated here are the Dart FFI/JS bindings
+# and the filament materials (plus two side effects on develop/tags: the
+# web wasm is recompiled, uploaded to R2, and web.version committed).
+# Materials for NON-develop branches are handled by regenerate-materials.yml
+# (filament.version-driven); this file covers develop, PRs, and tags.
+#
 # Fork PRs (pull_request where head.repo != this repository) run the full
 # regeneration + tests, but skip every pushing step: the PR branch exists
 # only in the contributor's fork, which this workflow must never modify.
@@ -41,12 +47,12 @@ permissions:
   contents: write
 
 concurrency:
-  group: generate-artifacts-${{ github.head_ref || github.ref }}
+  group: regenerate-bindings-and-materials-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  generate-artifacts:
-    name: Generate Artifacts
+  regenerate-bindings-and-materials:
+    name: Regenerate bindings and materials
     runs-on: ubuntu-24.04
     outputs:
       sha: ${{ steps.resolve-sha.outputs.sha }}
@@ -276,7 +282,6 @@ jobs:
           SHA=$(git rev-parse "origin/$PUSH_BRANCH")
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
 
-  # NOTE: this workflow deliberately does NOT run the test suite on PRs
   # NOTE: this workflow deliberately does NOT run the test suite on PRs
   # anymore. run-dart-and-flutter-tests-on-pr.yml is the single test runner
   # (so the pr-approval
