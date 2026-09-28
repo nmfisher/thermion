@@ -1,4 +1,4 @@
-package com.example.quickstart
+package dev.thermion.viewer
 
 import io.flutter.embedding.android.FlutterActivity
 
