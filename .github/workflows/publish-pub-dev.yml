@@ -156,19 +156,29 @@ jobs:
       verify: true
 
   tests:
-    # Full dart + flutter-build matrix. Only for a real tag push (not the
-    # dry-run manual dispatch) so releases can't ship without all checks green.
-    # Waits for both verify gates so tests run against bindings known to be fresh.
+    # Full dart test matrix. Only for a real tag push (not the dry-run
+    # manual dispatch) so releases can't ship without all checks green. Waits
+    # for both verify gates so tests run against bindings known to be fresh.
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     name: Test suite
     needs: [validate, generate-artifacts, generate-swift-bindings]
-    uses: ./.github/workflows/run-tests.yml
+    uses: ./.github/workflows/run-dart-tests.yml
+    with:
+      ref: ${{ github.ref }}
+
+  flutter-tests-and-examples:
+    # Flutter half of the release test suite: plugin unit/integration tests
+    # followed by example builds (see flutter-tests-and-examples.yml).
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    name: Flutter test suite
+    needs: [validate, generate-artifacts, generate-swift-bindings]
+    uses: ./.github/workflows/flutter-tests-and-examples.yml
     with:
       ref: ${{ github.ref }}
 
   publish:
     name: Publish to pub.dev
-    needs: [validate, generate-artifacts, generate-swift-bindings, tests]
+    needs: [validate, generate-artifacts, generate-swift-bindings, tests, flutter-tests-and-examples]
     # Only a real tag push publishes. workflow_dispatch never reaches here.
     if: ${{ startsWith(github.ref, 'refs/tags/v') && needs.validate.outputs.already-published != 'true' }}
     runs-on: ubuntu-24.04

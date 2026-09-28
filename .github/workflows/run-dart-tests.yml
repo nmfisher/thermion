@@ -243,7 +243,7 @@ jobs:
   # actually render with: Linux tests render through EGL/llvmpipe under xvfb
   # (like the Linux job above), Windows through SwiftShader Vulkan
   # (VK_ICD_FILENAMES). Android's android: [vulkan] variant is covered by an
-  # appbundle build in run-flutter-builds.yml.
+  # appbundle build in flutter-tests-and-examples.yml.
   dart-tests-material-variants:
     name: Dart Tests Material Variants (${{ matrix.name }})
     strategy:
