@@ -20,3 +20,4 @@ pubspec_overrides.yaml
 node_modules
 .claude
 .tickets
+.tina/
