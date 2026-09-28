@@ -13,7 +13,7 @@ name: Regenerate Materials
 # deterministic, so if the tree is already up to date the job produces no
 # diff and no commit.
 #
-# develop is excluded: generate-artifacts.yml regenerates and commits
+# develop is excluded: regenerate-bindings-and-materials.yml regenerates and commits
 # materials there (its materials-changed filter also covers filament.version),
 # keeping a single pusher per branch. This workflow covers every other
 # branch, including PR heads.
