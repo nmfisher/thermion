@@ -24,7 +24,7 @@ apply plugin: 'com.android.library'
 android {
     namespace 'dev.thermion.android'
     compileSdkVersion 33
-    ndkVersion "28.2.13676358"
+    ndkVersion flutter.ndkVersion
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
