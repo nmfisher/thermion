@@ -9,9 +9,9 @@
 #                        re-run per job, but subosito/flutter-action's cache
 #                        makes it a cache restore rather than a download).
 #   android-appbundles — needs flutter-tests; 4 appbundle variants.
-#   web-examples       — needs flutter-tests; builds the example web shells
-#                        against prebuilt wasm downloaded from R2 (see the
-#                        job comment for the caveat this implies).
+#   Web example shells build as extra steps on the desktop-examples Linux
+#   leg (same runner, reusing its SDK setup); see the step comment there
+#   for the prebuilt-wasm caveat.
 #
 # Every build job keeps a minimal "prime build hooks" step (one small unit
 # test) before its first cmake configure: the plugin's CMake configure runs
@@ -213,64 +213,42 @@ jobs:
         if: matrix.name == 'Linux'
         run: cd picking && flutter pub get && flutter build linux
 
-      - name: Upload logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs-flutter-${{ matrix.name }}
-          path: |
-            ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
-          retention-days: 5
-
-  web-examples:
-    # Web example builds. Unlike the desktop/android jobs, this does NOT
-    # compile native code: it downloads the thermion_dart.js/.wasm artifacts
-    # published to R2 by Generate Artifacts on develop, keyed by the
-    # committed web.version, and builds the example shells against them.
-    # Consequence: on PRs that change native code, this validates that the
-    # Flutter web shell compiles against the LAST PUBLISHED wasm, not the
-    # PR's native changes (those are covered by the desktop/android builds).
-    #
-    # Flutter beta is intentional (wasm target); it is isolated here so it
-    # cannot leak into the desktop matrix, which pins stable.
-    name: Flutter Web Builds (Linux)
-    needs: [flutter-tests]
-    runs-on: ubuntu-22.04
-    defaults:
-      run:
-        working-directory: examples/flutter
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref || github.head_ref || github.ref }}
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: beta
-          architecture: X64
-
-      - name: Download web artifacts
+      # Web shells ride on the Linux leg's runner (SDK + toolchain already
+      # set up above; plain `flutter build web` is dart2js, stable in every
+      # channel — the old run-web-builds.yml used beta for no remaining
+      # reason, wasm app compilation having been stable since Flutter 3.22).
+      # These steps do NOT compile native code: they download the
+      # thermion_dart.js/.wasm artifacts published to R2 by Generate
+      # Artifacts on develop, keyed by the committed web.version. On PRs
+      # that change native code, this validates the web shell against the
+      # LAST PUBLISHED wasm, not the PR's native changes.
+      - name: Download web artifacts (Linux)
+        if: matrix.name == 'Linux'
+        working-directory: ${{ github.workspace }}/thermion_dart
         shell: bash
         run: |
-          cd thermion_dart && dart pub get && dart run bin/download_web.dart -o ../examples/flutter/quickstart/web
-          cd thermion_dart && dart run bin/download_web.dart -o ../examples/flutter/picking/web
-          cd thermion_dart && dart run bin/download_web.dart -o ../examples/flutter/viewer/web
+          dart pub get
+          dart run bin/download_web.dart -o ../examples/flutter/quickstart/web
+          dart run bin/download_web.dart -o ../examples/flutter/picking/web
+          dart run bin/download_web.dart -o ../examples/flutter/viewer/web
 
       - name: Build quickstart (web)
+        if: matrix.name == 'Linux'
         run: cd quickstart && flutter pub get && flutter build web
 
       - name: Build picking (web)
+        if: matrix.name == 'Linux'
         run: cd picking && flutter pub get && flutter build web
 
       - name: Build viewer (web)
+        if: matrix.name == 'Linux'
         run: cd viewer && flutter pub get && flutter build web
 
       - name: Upload logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: build-logs-flutter-web
+          name: build-logs-flutter-${{ matrix.name }}
           path: |
             ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5
