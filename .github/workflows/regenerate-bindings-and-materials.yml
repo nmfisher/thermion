@@ -1,10 +1,15 @@
 name: Regenerate bindings and materials
 
 on:
+  # Any branch: develop gets the full regen path; feature branches get the
+  # materials-only path (the triage job decides — see the policy comment
+  # above the jobs). No workflow-level paths filter: develop must run on
+  # every push (bindings/format drift from ANY source change), so the
+  # cheap-path decision happens in triage instead.
   push:
-    branches: [ "develop" ]
+    branches:
+      - '**'
   pull_request:
-    branches: [ "develop" ]
   workflow_dispatch:
   # Called by publish-pub-dev.yml on a v* tag push, with verify: true, so the
   # release can gate publish on freshly-regenerated bindings WITHOUT this
@@ -36,8 +41,24 @@ on:
 # Naming: the derived files regenerated here are the Dart FFI/JS bindings
 # and the filament materials (plus two side effects on develop/tags: the
 # web wasm is recompiled, uploaded to R2, and web.version committed).
-# Materials for NON-develop branches are handled by regenerate-materials.yml
-# (filament.version-driven); this file covers develop, PRs, and tags.
+#
+# This single workflow covers BOTH former material-regeneration paths.
+# The triage job picks a mode per event:
+#
+#   full      — develop pushes, PRs to develop, tags (verify gate), and
+#               manual dispatch: bindings + materials + format/analyze +
+#               web side effects (develop/tags) — everything as before.
+#   materials — every OTHER branch, when filament.version changed: run
+#               scripts/regenerate-materials.sh and commit the result to
+#               the same-repo branch, or FAIL on fork PRs (contributor must
+#               run 'make materials' locally and push). Replaces the
+#               former regenerate-materials.yml, which had a branch-level
+#               paths filter ('filament.version') doing this triage.
+#   skip      — anything else on non-develop branches (the common case:
+#               ordinary WIP pushes) does nothing.
+#
+# The old regenerate-materials.yml is deleted; its behavior lives in the
+# materials mode of this workflow.
 #
 # Fork PRs (pull_request where head.repo != this repository) run the full
 # regeneration + tests, but skip every pushing step: the PR branch exists
@@ -51,8 +72,46 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  triage:
+    name: Triage (select mode)
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+    steps:
+      - name: Select mode
+        id: mode
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          IS_FORK_PR: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          case "$EVENT" in
+            workflow_dispatch)
+              # Manual run: full regen on develop, materials-only elsewhere
+              # (matches the old split-workflow behavior for dispatches).
+              if [ "$REF_NAME" = "develop" ]; then mode=full; else mode=materials; fi ;;
+            pull_request)
+              if [ "$PR_BASE" = "develop" ]; then
+                mode=full
+              elif [ "$IS_FORK_PR" = "true" ]; then
+                mode=materials-fork
+              else
+                mode=materials
+              fi ;;
+            push)
+              if [ "$REF_NAME" = "develop" ]; then mode=full; else mode=materials; fi ;;
+            *)
+              mode=skip ;;
+          esac
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+
   regenerate-bindings-and-materials:
     name: Regenerate bindings and materials
+    # Full path: develop pushes, PRs to develop, tag verify gate, dispatch
+    # on develop. Everything else is handled by the materials-only job.
+    needs: [triage]
+    if: needs.triage.outputs.mode == 'full'
     runs-on: ubuntu-24.04
     outputs:
       sha: ${{ steps.resolve-sha.outputs.sha }}
@@ -281,6 +340,135 @@ jobs:
           git fetch origin "$PUSH_BRANCH" --depth=1
           SHA=$(git rev-parse "origin/$PUSH_BRANCH")
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+  # Materials-only path (every branch except develop / PRs to develop):
+  # inherits the behavior of the former regenerate-materials.yml — run the
+  # regeneration script, commit the result to a same-repo branch, or fail
+  # loudly on a fork PR (the contributor runs 'make materials' and pushes).
+  # No bindings, no format, no web build: those never run on WIP branches.
+  regenerate-materials-only:
+    name: Regenerate materials (feature branch)
+    needs: [triage]
+    if: needs.triage.outputs.mode == 'materials'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The branch itself, not the merge ref, so a regeneration commit
+          # lands on the branch.
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
+          fetch-depth: 2
+
+      # Replaces the old workflow-level paths filter: only do work when
+      # filament.version actually changed (vs the previous commit on push,
+      # vs the PR base tip otherwise). Everything below is a no-op otherwise.
+      - name: Did filament.version change?
+        id: version-changed
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            git fetch origin "$PR_BASE" --depth=1
+            if git diff --exit-code "origin/$PR_BASE" HEAD -- filament.version > /dev/null; then
+              echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          else
+            if git diff --exit-code HEAD~1 HEAD -- filament.version > /dev/null; then
+              echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Filament build tools
+        if: steps.version-changed.outputs.changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/thermion/filament-tools
+          key: filament-tools-${{ runner.os }}-${{ hashFiles('filament.version') }}
+
+      - name: Regenerate materials
+        if: steps.version-changed.outputs.changed == 'true'
+        run: scripts/regenerate-materials.sh
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push regenerated materials
+        if: steps.git-check.outputs.changed == 'true'
+        env:
+          PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A thermion_dart/native/include/material examples/assets
+          git commit -m "chore: regenerate materials for filament.version (CI)
+
+          Regenerated by regenerate-bindings-and-materials.yml (materials
+          mode) so the committed materials always match the Filament
+          version in filament.version.
+
+          🤖 Generated with GitHub Actions"
+          git pull --rebase origin "$PUSH_BRANCH"
+          git push origin "HEAD:$PUSH_BRANCH"
+
+      # Nothing changed: normal for WIP pushes that didn't touch
+      # filament.version (matc output is deterministic).
+      - name: No changes
+        if: steps.git-check.outputs.changed != 'true'
+        run: echo "Materials already up to date; nothing to commit."
+
+  # Fork PRs cannot be pushed to with GITHUB_TOKEN — mirror the old
+  # regenerate-materials.yml behavior: fail loudly with instructions so
+  # stale materials can never silently ride into develop.
+  regenerate-materials-fork-pr:
+    name: Regenerate materials (fork PR — manual fix required)
+    needs: [triage]
+    if: needs.triage.outputs.mode == 'materials-fork'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      # Same "only on filament.version change" gate as the same-repo job.
+      - name: Did filament.version change?
+        id: version-changed
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          git fetch origin "$PR_BASE" --depth=1
+          if git diff --exit-code "origin/$PR_BASE" HEAD -- filament.version > /dev/null; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Cache Filament build tools
+        if: steps.version-changed.outputs.changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/thermion/filament-tools
+          key: filament-tools-${{ runner.os }}-${{ hashFiles('filament.version') }}
+
+      - name: Regenerate materials
+        if: steps.version-changed.outputs.changed == 'true'
+        run: scripts/regenerate-materials.sh
+
+      - name: Fail if regeneration produced a diff
+        if: steps.version-changed.outputs.changed == 'true'
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::filament.version changed but the committed materials are stale, and this PR comes from a fork so CI cannot push the regeneration. Run 'make materials' locally, commit, and push."
+            git --no-pager diff --stat
+            exit 1
+          fi
+          echo "Materials already up to date."
 
   # NOTE: this workflow deliberately does NOT run the test suite on PRs
   # anymore. run-dart-and-flutter-tests-on-pr.yml is the single test runner
