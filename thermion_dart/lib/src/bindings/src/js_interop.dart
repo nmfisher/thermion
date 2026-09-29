@@ -127,14 +127,18 @@ Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool
 
   final onComplete_interopFnPtr = callback.addFunction();
 
-  func.call(onComplete_interopFnPtr.cast());
+  try {
+    func.call(onComplete_interopFnPtr.cast());
 
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
+    while (!completer.isCompleted) {
+      _NativeLibrary.instance._execute_queue();
+      await Future.delayed(Duration(milliseconds: 1));
+    }
+
+    return await completer.future;
+  } finally {
+    onComplete_interopFnPtr.dispose();
   }
-
-  return completer.future;
 }
 
 Future<double> withFloatCallback(void Function(Pointer<NativeFunction<void Function(double)>>) func) async {
@@ -144,12 +148,16 @@ Future<double> withFloatCallback(void Function(Pointer<NativeFunction<void Funct
     completer.complete(result);
   };
   var ptr = callback.addFunction();
-  func.call(ptr);
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
+  try {
+    func.call(ptr);
+    while (!completer.isCompleted) {
+      _NativeLibrary.instance._execute_queue();
+      await Future.delayed(Duration(milliseconds: 1));
+    }
+    return await completer.future;
+  } finally {
+    ptr.dispose();
   }
-  return completer.future;
 }
 
 Future<int> withIntCallback(Function(Pointer<NativeFunction<void Function(int)>>) func) async {
@@ -159,12 +167,16 @@ Future<int> withIntCallback(Function(Pointer<NativeFunction<void Function(int)>>
     completer.complete(result);
   };
   var ptr = callback.addFunction();
-  func.call(ptr);
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
+  try {
+    func.call(ptr);
+    while (!completer.isCompleted) {
+      _NativeLibrary.instance._execute_queue();
+      await Future.delayed(Duration(milliseconds: 1));
+    }
+    return await completer.future;
+  } finally {
+    ptr.dispose();
   }
-  return completer.future;
 }
 
 Pointer<T> allocate<T extends NativeType>(int byteCount) {
@@ -184,9 +196,12 @@ Future<int> withUInt32Callback(Function(Pointer<NativeFunction<Void Function(int
     completer.complete(result);
   };
   final ptr = callback.addFunction();
-  func.call(ptr.cast());
-  await completer.future;
-  return completer.future;
+  try {
+    func.call(ptr.cast());
+    return await completer.future;
+  } finally {
+    ptr.dispose();
+  }
 }
 
 Future<String> withCharPtrCallback(Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>) func) async {
