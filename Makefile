@@ -33,7 +33,7 @@ swift-bindings:
 dart-bindings:
 	cd thermion_dart/ && dart pub get
 	cd thermion_dart/ && dart run ffigen --config ffigen/native.yaml
-	cd thermion_dart/ && dart run ffigen_js --config ffigen/web.yaml
+	cd thermion_dart/ && dart run ffigen_js --config ffigen/web.yaml --compiler-opts "$(FFIGEN_JS_COMPILER_OPTS)"
 flutter-bindings:
 	cd thermion_flutter/thermion_flutter && flutter pub get && flutter pub run ffigen --config ffigen/swift.yaml
 bindings: dart-bindings flutter-bindings

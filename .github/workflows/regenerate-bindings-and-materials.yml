@@ -166,8 +166,8 @@ jobs:
         with:
           cmake-version: '3.25.0'
 
+      # Web bindings need Emscripten headers even when native sources did not change.
       - name: Setup Emscripten
-        if: steps.changes.outputs.native-changed == 'true'
         uses: mymindstorm/setup-emsdk@v14
         with:
           version: '6.0.4'
@@ -190,7 +190,11 @@ jobs:
         run: scripts/regenerate-materials.sh
 
       - name: Generate bindings
-        run: make dart-bindings
+        run: |
+          # ffigen_js invokes libclang directly, so pass the sysroot used by emcc.
+          emscripten_sysroot="$(emcc --cflags | tr ' ' '\n' | sed -n 's/^--sysroot=//p')"
+          test -f "$emscripten_sysroot/include/emscripten.h"
+          make dart-bindings FFIGEN_JS_COMPILER_OPTS="--sysroot=$emscripten_sysroot -I$PWD/thermion_dart/native/include"
 
       # Previously format.yml. Folded in here so only this workflow pushes to
       # the branch (no concurrent-push race with the bindings commit). Runs
@@ -214,6 +218,10 @@ jobs:
         run: |
           dart pub get
           dart analyze --no-fatal-warnings
+
+      - name: Check generated web bindings compile
+        working-directory: thermion_dart
+        run: dart compile js -o "$RUNNER_TEMP/thermion-web-bindings.js" tool/check_web_bindings.dart
 
       - name: Ensure generated binding files are tracked
         run: |
