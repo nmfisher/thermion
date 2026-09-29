@@ -119,19 +119,19 @@ else
   sed -i.bak 's|-Wno-unused-member-function|-Wno-unused-member-function -Wno-implicit-int-conversion -Wno-implicit-int-float-conversion -Wno-old-style-cast -Wno-sign-conversion -Wno-unused-parameter -Wno-unused-function -Wno-poison-system-directories|' "$TINYEXR_CMAKE"
 fi
 
-# Run release build (-s adds iOS simulator support, -l builds universal libraries)
+# Filament creates device-only XCFrameworks without -s or -l. Simulator
+# libraries are built and packaged separately by build_ios_simulator.sh.
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Building Filament for iOS (release)..."
-  ./build.sh -E -s -l -i -f -p ios release || {
+  ./build.sh -E -i -f -p ios release || {
     echo "Error: Filament release build failed"
     exit 1
   }
 fi
 
-# Run debug build (-s adds iOS simulator support, -l builds universal libraries)
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Building Filament for iOS (debug)..."
-  ./build.sh -E -s -l -i -f -p ios debug || {
+  ./build.sh -E -i -f -p ios debug || {
     echo "Error: Filament debug build failed"
     exit 1
   }
