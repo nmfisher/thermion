@@ -72,10 +72,38 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
     return Texture_getWidth(pointer, level);
   }
 
+  /// Bind a platform image as this texture's contents.
+  ///
+  /// [externalImage] is the native image's address as an `int`. On iOS/macOS
+  /// that is a `CVPixelBufferRef`; on Android, an `EGLImageKHR`.
+  ///
+  /// Routed through Texture_setExternalImagePlatform (the void* overload)
+  /// rather than Texture_setExternalImage (the handle overload), because the
+  /// handle path is unimplemented on the Metal backend -- see the comment on
+  /// Texture_setExternalImagePlatform in native/include/c_api/TTexture.h.
+  ///
+  /// The texture must have been built with
+  /// TextureSamplerType.SAMPLER_EXTERNAL, or Filament aborts on a failed
+  /// precondition check rather than returning an error.
+  ///
+  /// Filament takes its own reference to the image and does not adopt the
+  /// caller's. A caller holding a +1 should release it once this future
+  /// completes; awaiting is what makes that safe, because the retain happens
+  /// on the render thread inside this call.
   @override
-  Future<void> setExternalImage(externalImage) {
-    // TODO: implement setExternalImage
-    throw UnimplementedError();
+  Future<void> setExternalImage(externalImage) async {
+    if (externalImage is! int) {
+      throw ArgumentError(
+          'setExternalImage expects the native image address as an int, got '
+          '${externalImage.runtimeType}.');
+    }
+    if (externalImage == 0) {
+      throw ArgumentError('setExternalImage got a null address.');
+    }
+    final image = Pointer<Void>.fromAddress(externalImage);
+    await withVoidCallback((requestId, cb) =>
+        Texture_setExternalImagePlatformRenderThread(
+            _engine, pointer, image, requestId, cb));
   }
 
   @override

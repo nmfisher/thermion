@@ -550,6 +550,13 @@ namespace thermion
             texture->setExternalImage(*engine, std::move(handle));
         }
 
+        EMSCRIPTEN_KEEPALIVE void Texture_setExternalImagePlatform(TEngine *tEngine, TTexture *tTexture, void *platformImage)
+        {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *texture = reinterpret_cast<filament::Texture *>(tTexture);
+            texture->setExternalImage(*engine, platformImage);
+        }
+
         EMSCRIPTEN_KEEPALIVE size_t Texture_getLevels(TTexture *tTexture)
         {
             auto texture = reinterpret_cast<filament::Texture *>(tTexture);

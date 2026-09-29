@@ -1888,6 +1888,17 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Texture_setExternalImagePlatformRenderThread(TEngine *tEngine, TTexture *tTexture, void *platformImage, uint32_t requestId, VoidCallback onComplete) {
+    auto *rt = RT(tEngine);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          Texture_setExternalImagePlatform(tEngine, tTexture, platformImage);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Texture_generateMipMapsRenderThread(TTexture *tTexture, TEngine *tEngine, uint32_t requestId, VoidCallback onComplete) {
     auto *rt = RT(tTexture);
     std::packaged_task<void()> lambda(

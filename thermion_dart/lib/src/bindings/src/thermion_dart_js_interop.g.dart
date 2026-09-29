@@ -2082,10 +2082,22 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TTexture> tTexture,
     Pointer<Void> externalImage,
   );
+  external void _Texture_setExternalImagePlatform(
+    Pointer<TEngine> tEngine,
+    Pointer<TTexture> tTexture,
+    Pointer<Void> platformImage,
+  );
   external void _Texture_setExternalImageRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
     Pointer<Void> externalImage,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _Texture_setExternalImagePlatformRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<TTexture> tTexture,
+    Pointer<Void> platformImage,
     int requestId,
     VoidCallback onComplete,
   );
@@ -8053,6 +8065,11 @@ void Texture_setExternalImage(Pointer<TEngine> tEngine, Pointer<TTexture> tTextu
   return result;
 }
 
+void Texture_setExternalImagePlatform(Pointer<TEngine> tEngine, Pointer<TTexture> tTexture, Pointer<Void> platformImage) {
+  final result = GeneratedBindings.instance._Texture_setExternalImagePlatform(tEngine.cast(), tTexture.cast(), platformImage);
+  return result;
+}
+
 void Texture_setExternalImageRenderThread(
   Pointer<TEngine> tEngine,
   Pointer<TTexture> tTexture,
@@ -8064,6 +8081,23 @@ void Texture_setExternalImageRenderThread(
     tEngine.cast(),
     tTexture.cast(),
     externalImage,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+void Texture_setExternalImagePlatformRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<TTexture> tTexture,
+  Pointer<Void> platformImage,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._Texture_setExternalImagePlatformRenderThread(
+    tEngine.cast(),
+    tTexture.cast(),
+    platformImage,
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );
