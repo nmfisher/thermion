@@ -1,0 +1,86 @@
+name: iOS device build
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - '.github/workflows/ios-device-build.yml'
+      - 'filament.version'
+      - 'scripts/build_ios.sh'
+      - 'scripts/ios_device_libraries.py'
+      - 'thermion_dart/**'
+      - 'thermion_flutter/**'
+      - 'examples/flutter/quickstart/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-device-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quickstart:
+    name: iOS device (${{ matrix.mode }})
+    runs-on: macos-15
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [debug, release]
+    defaults:
+      run:
+        shell: bash
+        working-directory: examples/flutter/quickstart
+    env:
+      BUILD_MODE: ${{ matrix.mode }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+          architecture: ARM64
+          cache: true
+          pub-cache: true
+
+      - name: Select matching Filament archive
+        # Flutter's --debug flag does not select debug Filament libraries;
+        # the native build hook reads this setting from the consuming app.
+        run: |
+          ruby -ryaml -e '
+            file = "pubspec.yaml"
+            config = YAML.load_file(file)
+            config["hooks"] = {
+              "user_defines" => {
+                "thermion_dart" => {"mode" => ENV.fetch("BUILD_MODE")}
+              }
+            }
+            File.write(file, config.to_yaml)
+          '
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Build unsigned iOS device app
+        # Fresh jobs fetch the pinned iOS archive through the normal hook.
+        # Only SDK/pub caches are restored; native archives are not cached.
+        run: |
+          cat ../../../filament.version
+          xcodebuild -version
+          flutter build ios --no-simulator --no-codesign --"$BUILD_MODE" --verbose \
+            2>&1 | tee "$RUNNER_TEMP/ios-device-$BUILD_MODE.log"
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-device-${{ matrix.mode }}-logs
+          path: |
+            ${{ runner.temp }}/ios-device-${{ matrix.mode }}.log
+            thermion_dart/.dart_tool/thermion_dart/log/build.log
+          if-no-files-found: ignore
+          retention-days: 7
