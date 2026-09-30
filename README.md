@@ -33,7 +33,7 @@ custom materials with `matc`:
 import 'package:thermion_dart/filament_version.dart';
 
 void main() {
-  print(filamentVersion); // v1.76.0
+  print(filamentVersion); // v1.77.2
 }
 ```
 
