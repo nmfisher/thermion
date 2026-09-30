@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 59058ee43..ac97f10ce 100644
+index a95a74765..7593f7a71 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -135,7 +135,18 @@ set(FILAMENT_OSMESA_PATH "" CACHE STRING
@@ -29,9 +29,9 @@ index 59058ee43..ac97f10ce 100644
 -if (IS_HOST_PLATFORM OR ANDROID)
 +if ((IS_HOST_PLATFORM OR ANDROID) AND FILAMENT_ENABLE_EXCEPTIONS)
     add_subdirectory(${LIBRARIES}/filamentapp)
+    add_subdirectory(${EXTERNAL}/libassimp/tnt)
  endif()
-
-@@ -1005,16 +1016,18 @@ if (IS_HOST_PLATFORM)
+@@ -1006,15 +1017,17 @@ if (IS_HOST_PLATFORM)
      if (FILAMENT_SUPPORTS_OPENGL)
          add_subdirectory(${LIBRARIES}/bluegl)
      endif()
@@ -45,7 +45,6 @@ index 59058ee43..ac97f10ce 100644
 
      add_subdirectory(${FILAMENT}/samples)
 
-     add_subdirectory(${EXTERNAL}/libassimp/tnt)
 -    add_subdirectory(${EXTERNAL}/libpng/tnt)
      add_subdirectory(${EXTERNAL}/libsdl2/tnt)
 -    add_subdirectory(${EXTERNAL}/libz/tnt)
@@ -67,20 +66,18 @@ index 59058ee43..ac97f10ce 100644
  if ((NOT CMAKE_CROSSCOMPILING AND NOT FILAMENT_IMPORT_PREBUILT_EXECUTABLES) OR FILAMENT_EXPORT_PREBUILT_EXECUTABLES)
      export(TARGETS matc cmgen filamesh mipgen resgen uberz glslminifier FILE ${IMPORT_EXECUTABLES})
 diff --git a/build.sh b/build.sh
-index b9f29ad11..db9d38a10 100755
+index 05a2c8dc6..074e79435 100755
 --- a/build.sh
 +++ b/build.sh
-@@ -283,7 +283,8 @@ function build_tools_for_split_build {
-         -DCMAKE_BUILD_TYPE="${build_type_arg}" \
+@@ -286,6 +286,7 @@ function build_tools_for_split_build {
          ${WEBGPU_OPTION} \
          ${architectures} \
--        ${EXCEPTIONS_OPTION} \
-+        -DFILAMENT_ENABLE_EXCEPTIONS=ON \
+         -DFILAMENT_ENABLE_EXCEPTIONS=ON \
 +        ${FILAMENT_HOST_TOOLS_OPTIONS:-} \
          ${MUTEX_DEBUG_OPTION} \
          ../..
 
-@@ -534,7 +535,9 @@ function build_android {
+@@ -594,7 +595,9 @@ function build_android {
      local old_install_command=${INSTALL_COMMAND}
      INSTALL_COMMAND=
 
@@ -91,7 +88,7 @@ index b9f29ad11..db9d38a10 100755
 
      # When building the samples, we need to partially "install" the host tools so Gradle can see
      # them.
-@@ -577,6 +580,11 @@ function build_android {
+@@ -637,6 +640,11 @@ function build_android {
          archive_android "Release"
      fi
 
@@ -103,7 +100,7 @@ index b9f29ad11..db9d38a10 100755
      local root_dir=$(pwd)
 
      pushd android > /dev/null
-@@ -756,7 +764,9 @@ function build_ios {
+@@ -816,7 +824,9 @@ function build_ios {
      local old_install_command=${INSTALL_COMMAND}
      INSTALL_COMMAND=
 
