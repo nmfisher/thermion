@@ -5,4 +5,4 @@
 ///
 /// Compile custom materials with `matc` from this release. Material packages
 /// from an incompatible compiler can cause Filament to abort when loading them.
-const String filamentVersion = 'v1.76.0';
+const String filamentVersion = 'v1.77.2';
