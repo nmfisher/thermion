@@ -8,7 +8,7 @@
   controls nonblocking to prevent deadlocks with main-thread upload callbacks.
 - Let Dart isolates exit after their native void callbacks finish, without
   closing the shared callback listener while requests are still pending.
-- Upgrade Filament from 1.75.0 to 1.76.0 and expose the bundled release through
+- Upgrade Filament from 1.75.0 to 1.77.2 and expose the bundled release through
   the public Dart `filamentVersion` constant (#327).
 - Include WebGPU-capable `matc` and `resgen` tools in the standard Linux archives
   for regenerating materials (#327).
@@ -74,7 +74,7 @@
   and release modes. Filament panics now abort the process. Dart exceptions and
   ordinary error results remain available; host tools retain C++ exceptions
   (#327).
-- Recompile custom materials with `matc` from Filament 1.76.0 to match the bundled
+- Recompile custom materials with `matc` from Filament 1.77.2 to match the bundled
   runtime (#327).
 - Linux setup now uses Clang/libc++ 18, matching the Filament archive build.
   Ubuntu 22.04's default libc++ 14 cannot link the new archives. Deployed apps

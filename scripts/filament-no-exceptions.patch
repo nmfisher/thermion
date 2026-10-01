@@ -1,10 +1,10 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 59058ee43..ac97f10ce 100644
+index a95a747..f524967 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -135,7 +135,18 @@ set(FILAMENT_OSMESA_PATH "" CACHE STRING
  set(SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS OFF)
-
+ 
  if (NOT FILAMENT_ENABLE_EXCEPTIONS)
 -    add_compile_options(-fno-exceptions)
 +    # SDL is only needed by the desktop tools and their tests.
@@ -21,17 +21,32 @@ index 59058ee43..ac97f10ce 100644
 +    endif()
      set(SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS ON)
  endif()
-
-@@ -997,7 +1008,7 @@ if (WASM)
+ 
+@@ -209,6 +220,11 @@ if (NOT FILAMENT_OSMESA_PATH STREQUAL "")
+     set(FILAMENT_SUPPORTS_OSMESA TRUE CACHE BOOL "Enable OSMesa (headless GL context) for Filament" FORCE)
+ endif()
+ 
++if (LINUX AND NOT FILAMENT_ENABLE_EXCEPTIONS)
++    # Thermion's Linux runtime is headless: never create an X11 surface.
++    set(DAWN_USE_X11 OFF)
++endif()
++
+ if (LINUX)
+     if (FILAMENT_SUPPORTS_WAYLAND)
+         add_definitions(-DFILAMENT_SUPPORTS_WAYLAND)
+@@ -997,24 +1013,26 @@ if (WASM)
      add_subdirectory(web/examples)
  endif()
-
+ 
 -if (IS_HOST_PLATFORM OR ANDROID)
+-   add_subdirectory(${LIBRARIES}/filamentapp)
+-   add_subdirectory(${EXTERNAL}/libassimp/tnt)
 +if ((IS_HOST_PLATFORM OR ANDROID) AND FILAMENT_ENABLE_EXCEPTIONS)
-    add_subdirectory(${LIBRARIES}/filamentapp)
++    add_subdirectory(${LIBRARIES}/filamentapp)
++    add_subdirectory(${EXTERNAL}/libassimp/tnt)
  endif()
-
-@@ -1005,16 +1016,18 @@ if (IS_HOST_PLATFORM)
+ 
+ if (IS_HOST_PLATFORM)
      if (FILAMENT_SUPPORTS_OPENGL)
          add_subdirectory(${LIBRARIES}/bluegl)
      endif()
@@ -42,21 +57,20 @@ index 59058ee43..ac97f10ce 100644
 +if (IS_HOST_PLATFORM AND FILAMENT_ENABLE_EXCEPTIONS)
      add_subdirectory(${LIBRARIES}/imageio)
      add_subdirectory(${LIBRARIES}/filament-matp)
-
+ 
      add_subdirectory(${FILAMENT}/samples)
-
-     add_subdirectory(${EXTERNAL}/libassimp/tnt)
+ 
 -    add_subdirectory(${EXTERNAL}/libpng/tnt)
      add_subdirectory(${EXTERNAL}/libsdl2/tnt)
 -    add_subdirectory(${EXTERNAL}/libz/tnt)
 -    add_subdirectory(${EXTERNAL}/tinyexr/tnt)
-
+ 
      add_subdirectory(${TOOLS}/cmgen)
      add_subdirectory(${TOOLS}/cso-lut)
-@@ -1036,6 +1049,12 @@ if (IS_HOST_PLATFORM)
+@@ -1036,6 +1054,12 @@ if (IS_HOST_PLATFORM)
      add_subdirectory(${TOOLS}/specgen)
  endif()
-
+ 
 +if (IS_HOST_PLATFORM)
 +    add_subdirectory(${EXTERNAL}/libpng/tnt)
 +    add_subdirectory(${EXTERNAL}/libz/tnt)
@@ -67,66 +81,64 @@ index 59058ee43..ac97f10ce 100644
  if ((NOT CMAKE_CROSSCOMPILING AND NOT FILAMENT_IMPORT_PREBUILT_EXECUTABLES) OR FILAMENT_EXPORT_PREBUILT_EXECUTABLES)
      export(TARGETS matc cmgen filamesh mipgen resgen uberz glslminifier FILE ${IMPORT_EXECUTABLES})
 diff --git a/build.sh b/build.sh
-index b9f29ad11..db9d38a10 100755
+index 05a2c8d..074e794 100644
 --- a/build.sh
 +++ b/build.sh
-@@ -283,7 +283,8 @@ function build_tools_for_split_build {
-         -DCMAKE_BUILD_TYPE="${build_type_arg}" \
+@@ -286,6 +286,7 @@ function build_tools_for_split_build {
          ${WEBGPU_OPTION} \
          ${architectures} \
--        ${EXCEPTIONS_OPTION} \
-+        -DFILAMENT_ENABLE_EXCEPTIONS=ON \
+         -DFILAMENT_ENABLE_EXCEPTIONS=ON \
 +        ${FILAMENT_HOST_TOOLS_OPTIONS:-} \
          ${MUTEX_DEBUG_OPTION} \
          ../..
-
-@@ -534,7 +535,9 @@ function build_android {
+ 
+@@ -594,7 +595,9 @@ function build_android {
      local old_install_command=${INSTALL_COMMAND}
      INSTALL_COMMAND=
-
+ 
 -    build_desktop "${MOBILE_HOST_TOOLS}"
 +    if [[ "${ISSUE_SPLIT_BUILD}" != "true" ]]; then
 +        build_desktop "${MOBILE_HOST_TOOLS}"
 +    fi
-
+ 
      # When building the samples, we need to partially "install" the host tools so Gradle can see
      # them.
-@@ -577,6 +580,11 @@ function build_android {
+@@ -637,6 +640,11 @@ function build_android {
          archive_android "Release"
      fi
-
+ 
 +    # Thermion uses the native archives, not Filament's JNI/AAR libraries.
 +    if [[ "${EXCEPTIONS_OPTION}" == "-DFILAMENT_ENABLE_EXCEPTIONS=OFF" ]]; then
 +        return
 +    fi
 +
      local root_dir=$(pwd)
-
+ 
      pushd android > /dev/null
-@@ -756,7 +764,9 @@ function build_ios {
+@@ -816,7 +824,9 @@ function build_ios {
      local old_install_command=${INSTALL_COMMAND}
      INSTALL_COMMAND=
-
+ 
 -    build_desktop "${MOBILE_HOST_TOOLS}"
 +    if [[ "${ISSUE_SPLIT_BUILD}" != "true" ]]; then
 +        build_desktop "${MOBILE_HOST_TOOLS}"
 +    fi
-
+ 
      INSTALL_COMMAND=${old_install_command}
-
+ 
 diff --git a/libs/fgviewer/src/ApiHandler.cpp b/libs/fgviewer/src/ApiHandler.cpp
-index b07d9238a..d3e56ce29 100644
+index b07d923..d3e56ce 100644
 --- a/libs/fgviewer/src/ApiHandler.cpp
 +++ b/libs/fgviewer/src/ApiHandler.cpp
 @@ -15,6 +15,9 @@
   */
-
-
+ 
+ 
 +#include <cerrno>
 +#include <cstdlib>
 +
  #include "ApiHandler.h"
-
+ 
  #include <__chrono/duration.h>
 @@ -153,9 +156,10 @@ bool ApiHandler::handlePostMonitor(struct mg_connection* conn,
              auto fgidEnd = body.find("\"", fgidStart);
@@ -160,10 +172,10 @@ index b07d9238a..d3e56ce29 100644
 +    if (ec != std::errc()) {
 +        LOG(ERROR) << "from_chars failed for id. sv=" << sv;
      }
-
+ 
      std::string_view name = "Unknown";
 diff --git a/libs/imageio-lite/CMakeLists.txt b/libs/imageio-lite/CMakeLists.txt
-index c3b9ec792..c76f20956 100644
+index c3b9ec7..c76f209 100644
 --- a/libs/imageio-lite/CMakeLists.txt
 +++ b/libs/imageio-lite/CMakeLists.txt
 @@ -45,7 +45,7 @@ install(DIRECTORY ${PUBLIC_HDR_DIR}/imageio-lite DESTINATION include)
