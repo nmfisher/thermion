@@ -6,14 +6,19 @@ exceptions. The existing `build-filament.yml` workflow runs these scripts.
 
 `filament-no-exceptions.patch` adapts Filament 1.77.2 for this build:
 
-- Host tools use a separate build. Their image encoders and command-line parsers
-  require exceptions, but those executables are never linked into Thermion.
-- Desktop runtime builds import the host tools instead of rebuilding them.
-- Windows uses MSVC's flags. Metal's Objective-C++ files keep their Objective-C
-  handling while using the same C++ header configuration as the C++ files.
+- Desktop runtime builds disable C++ exceptions for C++ and Objective-C++
+  sources; MSVC uses `/EHs-c-` with `_HAS_EXCEPTIONS=0`. Host tools keep
+  exceptions: upstream `build.sh` already passes `-DFILAMENT_ENABLE_EXCEPTIONS=ON`
+  to the split host-tools build, and the patch only adds a
+  `FILAMENT_HOST_TOOLS_OPTIONS` pass-through there (used for the WebGPU host
+  tools on Linux).
+- Desktop runtime builds skip the tools, samples and third-party apps that
+  require exceptions; `libpng`, `libz` and `tinyexr` do not and stay enabled.
+- When the host tools are built separately (`-y`), the Android and iOS target
+  builds no longer rebuild them.
+- Android builds the native libraries without the Java/JNI wrappers.
 - The debug frame-graph viewer parses numbers without C++ exception handling.
 - Runtime builds exclude the image decoder test that requires C++ exceptions.
-- Android builds the native libraries without the Java/JNI wrappers.
 
 Linux archives also include the matching `matc` and `resgen` in `bin/`. The
 separate host-tool build enables WGSL compilation for the committed WebGPU
