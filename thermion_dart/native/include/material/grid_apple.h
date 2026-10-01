@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 #define GRID_GRID_OFFSET 0
-#define GRID_GRID_SIZE 22045
+#define GRID_GRID_SIZE 22047
 #define GRID_GRID_DATA (GRID_PACKAGE + GRID_GRID_OFFSET)
 
 #endif
