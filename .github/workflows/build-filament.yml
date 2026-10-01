@@ -319,8 +319,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ca-certificates wget ninja-build \
-            libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev \
-            libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
+            libx11-dev libx11-xcb-dev libxcursor-dev libxrandr-dev libxinerama-dev \
+            libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev \
+            libgbm-dev
           # clang-18 + libc++ 18 from apt.llvm.org (jammy's distro clang is
           # 14, too old for Filament). See the runs-on comment above.
           wget -q https://apt.llvm.org/llvm.sh
@@ -449,8 +450,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ca-certificates wget ninja-build \
-            libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev \
-            libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
+            libx11-dev libx11-xcb-dev libxcursor-dev libxrandr-dev libxinerama-dev \
+            libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev \
+            libgbm-dev
           # clang-18 + libc++ 18 from apt.llvm.org (jammy's distro clang is
           # 14, too old for Filament). See the runs-on comment above.
           wget -q https://apt.llvm.org/llvm.sh
