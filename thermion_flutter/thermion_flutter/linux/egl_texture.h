@@ -36,8 +36,13 @@ struct _ThermionTextureGL {
     uint32_t width;
     uint32_t height;
     FlTextureRegistrar* registrar;
-    // dmabuf info for lazy EGL import (DMA-BUF path only)
+    // dmabuf info for lazy EGL import (DMA-BUF path only). dmabuf_fd is a
+    // consumer-owned dup() of the producer's descriptor, so producer teardown
+    // cannot invalidate a concurrent import.
     int dmabuf_fd;
+    // Whether dispose() must close dmabuf_fd (FALSE only when dup() failed at
+    // creation and the producer's descriptor is merely borrowed).
+    gboolean owns_dmabuf_fd;
     uint32_t stride;
     uint32_t offset;
     uint32_t drm_format;
@@ -46,8 +51,16 @@ struct _ThermionTextureGL {
     gboolean initialized;
     int64_t surface_id;  // for Blit() and destruction
     ThermionTextureKind kind;
-    // Deferred "awaitTextureReady" response (stored until populate creates the GL texture)
-    FlMethodCall* pending_ready_call;
+    // Deferred awaitTextureReady responses stored until populate creates the
+    // bootstrap GL texture. Each entry owns a FlMethodCall reference.
+    GPtrArray* pending_ready_calls;
+    // Set before native resources are released. Queued idle responses use this
+    // to avoid publishing a texture ID after cancellation.
+    gboolean destroyed;
+    // Serializes populate() (Flutter's raster thread) against the plugin's
+    // release_texture() (platform thread). Guards pending_ready_calls, the
+    // lazy import below, and the destroyed flag.
+    GMutex lock;
 };
 
 typedef struct _ThermionTextureGL ThermionTextureGL;
