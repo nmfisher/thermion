@@ -502,9 +502,13 @@ class ThermionViewerFFI extends ThermionViewer {
   //
   @override
   Future removeLight(ThermionEntity entity) async {
+    // The light may already have been removed (e.g. by [destroyLights] when
+    // this viewer was disposed).
+    if (!_lights.remove(entity)) {
+      return;
+    }
     await scene.removeEntity(entity);
     _app.lightManager.destroyLight(entity);
-    _lights.remove(entity);
   }
 
   //
@@ -582,8 +586,16 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future destroyAsset(ThermionAsset asset) async {
-    _assets.remove(asset);
+  Future destroyAsset(ThermionAsset asset) {
+    return _serializeSceneResourceOperation(() => _destroyAsset(asset));
+  }
+
+  Future _destroyAsset(ThermionAsset asset) async {
+    // The asset may already have been destroyed (e.g. by [destroyAssets] when
+    // this viewer was disposed). Instances are not tracked in [_assets].
+    if (!_assets.remove(asset) && (!asset.isInstance || _disposed)) {
+      return;
+    }
     await scene.remove(asset);
     await view.removeStencilHighlight(asset);
 
@@ -594,9 +606,18 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future destroyAssets() async {
+  Future destroyAssets() {
+    return _serializeSceneResourceOperation(_destroyAssets);
+  }
+
+  Future _destroyAssets() async {
     _logger.info("Destroying ${_assets.length} assets");
-    for (final asset in _assets) {
+    // Iterate over a copy, as [_assets] may change while this loop is
+    // suspended.
+    for (final asset in _assets.toList()) {
+      if (!_assets.remove(asset)) {
+        continue;
+      }
       _logger.info("Destroying asset ${asset.getNativeHandle()}");
       await scene.remove(asset);
       await hideBoundingBox(asset, destroy: true);
@@ -889,6 +910,10 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   Future removeFromScene(ThermionAsset asset) async {
+    // Once dispose() has started, it removes and destroys every asset itself.
+    if (_disposed) {
+      return;
+    }
     await scene.remove(asset);
     await view.removeStencilHighlight(asset);
   }
