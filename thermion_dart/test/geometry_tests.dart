@@ -148,6 +148,37 @@ void main() async {
     });
   });
 
+  test('destroyAsset while destroyAssets is running', () async {
+    await ViewerBuilder(testHelper).execute((result) async {
+      final assets = [for (var i = 0; i < 3; i++) await result.viewer.createGeometry(GeometryUtils.cube())];
+
+      // destroyAssets suspends inside its loop, so these calls run while it
+      // is still iterating. Each asset must only be destroyed once.
+      final destroyAll = result.viewer.destroyAssets();
+      await Future.wait([destroyAll, for (final asset in assets) result.viewer.destroyAsset(asset)]);
+
+      // Destroying an asset that was already destroyed is a no-op.
+      await result.viewer.destroyAsset(assets.first);
+    });
+  });
+
+  test('remove and destroy assets and lights while the viewer is disposed', () async {
+    await ViewerBuilder(testHelper).execute((result) async {
+      final viewer = result.viewer;
+      final assets = [for (var i = 0; i < 3; i++) await viewer.createGeometry(GeometryUtils.cube())];
+      final light = await viewer.addDirectLight(DirectLight.point());
+
+      // App code often releases its own assets and lights while the viewer is
+      // being disposed (e.g. in a parent widget's dispose()), or after.
+      Future release() => Future.wait([
+        for (final asset in assets) viewer.removeFromScene(asset).then((_) => viewer.destroyAsset(asset)),
+        viewer.removeLight(light),
+      ]);
+      await Future.wait([viewer.dispose(), release()]);
+      await release();
+    });
+  });
+
   // test('create cube with lit ubershader material (normals/ no uvs)',
   //     () async {
   //   await testHelper.withViewer((viewer) async {
