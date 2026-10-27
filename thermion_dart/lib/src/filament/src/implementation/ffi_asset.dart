@@ -993,10 +993,24 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   }
 
   void _removeAnimationComponent() {
-    // Teardown calls this after marking the asset as destroying, while its
-    // native handle is still valid. The Dart manager methods use public asset
-    // accessors, which reject that state. For glTF owners, getInstances() would
-    // also queue behind teardown and deadlock. Use the native calls directly.
+    // _destroyNativeResources() calls this after setting _status to destroying,
+    // before it calls SceneAsset_destroyRenderThread(). The native object at
+    // _asset is still valid, while public FFIAsset access is already blocked.
+    //
+    // FFIAnimationManager.removeGltfAnimationComponent() and
+    // FFIAnimationManager.removeBoneAnimationComponent() read this asset's type
+    // or call getNativeHandle(). Those accesses go through _throwIfNotAlive()
+    // and would throw here.
+    //
+    // Allowing those public checks during destruction would still leave a
+    // queue dependency: for a glTF owner the manager methods await getInstances().
+    // That method would queue work behind the owner's running
+    // _destroyNativeResources() operation, which cannot finish while waiting
+    // for that work. This would deadlock the queue.
+    //
+    // Use the private _getInstances() and _getChildEntities() methods and the
+    // AnimationManager_* native bindings below. They use the still-valid native
+    // pointers without public asset checks or another queued operation.
     final type = SceneAsset_getType(_asset);
     if (!{
       TSceneAssetType.SCENE_ASSET_TYPE_GEOMETRY,
