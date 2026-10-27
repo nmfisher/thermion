@@ -162,6 +162,50 @@ void main() async {
     });
   });
 
+  for (final destroyAll in [true, false]) {
+    final operation = destroyAll ? 'destroyAssets' : 'destroyAsset(owner)';
+    test('$operation before queued instance cleanup is safe', () async {
+      await ViewerBuilder(testHelper).execute((result) async {
+        final viewer = result.viewer;
+        final asset = await viewer.createGeometry(GeometryUtils.cube());
+        final instance = await asset.createInstance();
+        final alias = (await asset.getInstances()).single;
+        await viewer.addToScene(instance);
+        final entities = [asset.entity, instance.entity];
+
+        // The queued instance wrappers refer to native memory freed by the
+        // owning asset's destruction. Neither wrapper may reach native code.
+        final destroyOwner = destroyAll ? viewer.destroyAssets() : viewer.destroyAsset(asset);
+        await Future.wait([destroyOwner, viewer.destroyAsset(instance), viewer.destroyAsset(alias)]);
+        await viewer.destroyAsset(instance);
+
+        for (final entity in entities) {
+          expect(FilamentApp.instance!.renderableManager.hasComponent(entity), isFalse);
+        }
+      });
+    });
+  }
+
+  test('destroyAsset releases app-created geometry added to the viewer', () async {
+    await ViewerBuilder(testHelper).execute((result) async {
+      final app = FilamentApp.instance!;
+      final asset = await app.createGeometry(GeometryUtils.cube());
+      final entity = asset.entity;
+      await result.viewer.addToScene(asset);
+      try {
+        expect(app.renderableManager.hasComponent(entity), isTrue);
+        await result.viewer.destroyAsset(asset);
+        expect(app.renderableManager.hasComponent(entity), isFalse);
+        await result.viewer.destroyAsset(asset);
+      } finally {
+        if (app.renderableManager.hasComponent(entity)) {
+          await result.viewer.removeFromScene(asset);
+          await app.destroyAsset(asset);
+        }
+      }
+    });
+  });
+
   test('remove and destroy assets and lights while the viewer is disposed', () async {
     await ViewerBuilder(testHelper).execute((result) async {
       final viewer = result.viewer;

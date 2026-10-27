@@ -520,7 +520,17 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   final _assets = <ThermionAsset>{};
+  final _destroyedAssets = Expando<bool>();
   final _cameras = <Camera>{};
+
+  bool _isAssetDestroyed(ThermionAsset asset) {
+    if (_destroyedAssets[asset] == true) {
+      return true;
+    }
+    // Destroying an owning asset also destroys every native instance, even
+    // though the instance wrappers themselves are not tracked in _assets.
+    return asset is FFIAsset && asset.instanceOwner != null && _destroyedAssets[asset.instanceOwner!] == true;
+  }
 
   //
   @override
@@ -591,17 +601,19 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future _destroyAsset(ThermionAsset asset) async {
-    // The asset may already have been destroyed (e.g. by [destroyAssets] when
-    // this viewer was disposed). Instances are not tracked in [_assets].
-    if (!_assets.remove(asset) && (!asset.isInstance || _disposed)) {
+    // Untracked assets may still be alive (for example, app-created geometry).
+    // Once disposal starts, only tracked assets may use the scene for cleanup.
+    if (_isAssetDestroyed(asset) || (_disposed && !_assets.contains(asset))) {
       return;
     }
+    _assets.remove(asset);
     await scene.remove(asset);
     await view.removeStencilHighlight(asset);
 
     await hideBoundingBox(asset, destroy: true);
 
     await _app.destroyAsset(asset as FFIAsset);
+    _destroyedAssets[asset] = true;
   }
 
   //
@@ -627,6 +639,7 @@ class ThermionViewerFFI extends ThermionViewer {
         await hideBoundingBox(instance, destroy: true);
       }
       await _app.destroyAsset(asset as FFIAsset);
+      _destroyedAssets[asset] = true;
       _logger.info("Destroyed asset");
     }
     _assets.clear();
