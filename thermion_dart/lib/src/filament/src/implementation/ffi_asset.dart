@@ -993,21 +993,22 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   }
 
   void _removeAnimationComponent() {
-    // _destroyNativeResources() calls this with _status set to destroying.
-    // SceneAsset_destroyRenderThread() has not been called yet.
-    // The native asset is still valid.
+    // We must remove the animations before freeing the native asset.
+    // We use native calls because the public FFIAnimationManager methods
+    // cannot be used once this asset is marked as destroying.
     //
-    // FFIAnimationManager.removeGltfAnimationComponent() and
-    // FFIAnimationManager.removeBoneAnimationComponent() read type and call
-    // getNativeHandle(). Those accesses throw when destruction has started.
+    // _destroyNativeResources() marks the asset as destroying before calling
+    // this method. FFIAnimationManager.removeGltfAnimationComponent() and
+    // removeBoneAnimationComponent() would throw when they read type or
+    // call getNativeHandle().
     //
-    // For a glTF owner, those methods also await getInstances(). If allowed,
-    // that call would queue work after _destroyNativeResources(). The work
-    // cannot run until _destroyNativeResources() finishes. Waiting here
-    // would deadlock.
+    // Removing those checks would cause a deadlock for glTF owners.
+    // Both methods await getInstances(), which adds work to the owner's queue.
+    // _destroyNativeResources() would then wait for work queued after itself.
     //
-    // Use the native functions below to remove the animation components
-    // before SceneAsset_destroyRenderThread() is called.
+    // The private _getInstances() and _getChildEntities() read native data
+    // directly. The native asset is still valid: _destroyNativeResources()
+    // calls SceneAsset_destroyRenderThread() after this method returns.
     final type = SceneAsset_getType(_asset);
     if (!{
       TSceneAssetType.SCENE_ASSET_TYPE_GEOMETRY,
