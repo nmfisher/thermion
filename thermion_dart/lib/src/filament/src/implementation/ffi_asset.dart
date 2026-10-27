@@ -10,7 +10,37 @@ import 'package:vector_math/vector_math_64.dart' as v64;
 class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   late final _logger = Logger(this.runtimeType.toString());
 
-  final Pointer<TSceneAsset> asset;
+  final Pointer<TSceneAsset> _asset;
+  final _AssetLifecycle _lifecycle;
+  final _instanceLifecycles = <int, _AssetLifecycle>{};
+  Future<void> _lifecycleOperations = Future<void>.value();
+
+  Pointer<TSceneAsset> get asset {
+    _throwIfDestroyed();
+    return _asset;
+  }
+
+  @override
+  bool get isDestroyed => _lifecycle.status != _AssetStatus.alive || (instanceOwner?.isDestroyed ?? false);
+
+  void _throwIfDestroyed() {
+    if (isDestroyed) {
+      throw StateError('Asset has been destroyed.');
+    }
+  }
+
+  Future<T> _serializeLifecycleOperation<T>(Future<T> Function() operation) {
+    if (instanceOwner != null) {
+      return instanceOwner!._serializeLifecycleOperation(operation);
+    }
+    final previous = _lifecycleOperations;
+    final current = () async {
+      await previous;
+      return operation();
+    }();
+    _lifecycleOperations = current.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return current;
+  }
 
   Pointer<TSceneAsset> getNativeHandle() {
     return asset;
@@ -33,7 +63,11 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   final FFIFilamentApp _app;
 
-  FFIAsset(this.asset, {this.instanceOwner = null, required FFIFilamentApp app}) : _app = app {
+  FFIAsset(Pointer<TSceneAsset> asset, {this.instanceOwner = null, required FFIFilamentApp app})
+    : _asset = asset,
+      _lifecycle =
+          instanceOwner?._instanceLifecycles.putIfAbsent(asset.address, _AssetLifecycle.new) ?? _AssetLifecycle(),
+      _app = app {
     entity = SceneAsset_getEntity(asset);
   }
 
@@ -81,13 +115,15 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   }
 
   // childEntities are (currently) immutable, so we cache them here.
-  Int32List? _childEntities;
-
-  //
   @override
   Future<List<ThermionEntity>> getChildEntities() async {
-    if (_childEntities == null) {
-      var count = SceneAsset_getChildEntityCount(asset);
+    _throwIfDestroyed();
+    return _getChildEntities();
+  }
+
+  List<ThermionEntity> _getChildEntities() {
+    if (_lifecycle.childEntities == null) {
+      var count = SceneAsset_getChildEntityCount(_asset);
 
       late Pointer stackPtr;
       if (FILAMENT_WASM) {
@@ -95,16 +131,16 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       }
       var childEntities = makeInt32List(count);
       if (count > 0) {
-        SceneAsset_getChildEntities(asset, childEntities.address);
+        SceneAsset_getChildEntities(_asset, childEntities.address);
       }
-      _childEntities = Int32List.fromList(childEntities);
+      _lifecycle.childEntities = Int32List.fromList(childEntities);
 
       if (FILAMENT_WASM) {
         stackRestore(stackPtr);
       }
     }
 
-    return _childEntities!;
+    return _lifecycle.childEntities!;
   }
 
   //
@@ -135,70 +171,87 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<ThermionAsset> getInstance(int index) async {
+    _throwIfDestroyed();
     if (isInstance) {
       throw Exception(
         """This is itself an instance. Call getInstance on the """
         """original asset that this instance was created from""",
       );
     }
-    var instance = SceneAsset_getInstance(asset, index);
-    if (instance == nullptr) {
-      throw Exception("No instance available at index $index");
-    }
-    return FFIAsset(instance, instanceOwner: this, app: _app);
+    return _serializeLifecycleOperation(() async {
+      var instance = SceneAsset_getInstance(_asset, index);
+      if (instance == nullptr) {
+        throw Exception("No instance available at index $index");
+      }
+      return FFIAsset(instance, instanceOwner: this, app: _app);
+    });
   }
 
   //
   @override
   Future<FFIAsset> createInstance({List<MaterialInstance>? materialInstances = null}) async {
+    _throwIfDestroyed();
     if (isInstance) {
       return instanceOwner!.createInstance(materialInstances: materialInstances);
     }
-    if (_sourceDataReleased) {
-      throw Exception(
-        """Cannot create instance: the asset's glTF source data has been """
-        """released (via releaseSourceData: true at load time or a prior """
-        """call to releaseSourceData())""",
-      );
-    }
-    var ptrList = IntPtrList(materialInstances?.length ?? 0);
+    return _serializeLifecycleOperation(() async {
+      if (_sourceDataReleased) {
+        throw Exception(
+          """Cannot create instance: the asset's glTF source data has been """
+          """released (via releaseSourceData: true at load time or a prior """
+          """call to releaseSourceData())""",
+        );
+      }
+      var ptrList = IntPtrList(materialInstances?.length ?? 0);
 
-    if (materialInstances != null && materialInstances.isNotEmpty) {
-      ptrList.setRange(
-        0,
-        materialInstances.length,
-        materialInstances.cast<FFIMaterialInstance>().map((mi) => mi.pointer.address).toList(),
-      );
-    }
+      if (materialInstances != null && materialInstances.isNotEmpty) {
+        ptrList.setRange(
+          0,
+          materialInstances.length,
+          materialInstances.cast<FFIMaterialInstance>().map((mi) => mi.pointer.address).toList(),
+        );
+      }
 
-    var created = await withPointerCallback<TSceneAsset>((cb) {
-      SceneAsset_createInstanceRenderThread(asset, ptrList.address.cast(), materialInstances?.length ?? 0, cb);
+      var created = await withPointerCallback<TSceneAsset>((cb) {
+        SceneAsset_createInstanceRenderThread(_asset, ptrList.address.cast(), materialInstances?.length ?? 0, cb);
+      });
+
+      if (FILAMENT_WASM) {
+        //stackRestore(stackPtr);
+        ptrList.free();
+      }
+
+      if (created == nullptr) {
+        throw Exception("Failed to create instance");
+      }
+      // A recycled native address starts a new lifetime. Existing wrappers keep
+      // their old lifecycle record and must never become valid again.
+      if (_instanceLifecycles[created.address]?.status == _AssetStatus.destroyed) {
+        _instanceLifecycles.remove(created.address);
+      }
+      return FFIAsset(created, instanceOwner: this, app: _app);
     });
-
-    if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
-      ptrList.free();
-    }
-
-    if (created == nullptr) {
-      throw Exception("Failed to create instance");
-    }
-    return FFIAsset(created, instanceOwner: this, app: _app);
   }
 
   //
   @override
   Future<int> getInstanceCount() async {
-    return SceneAsset_getInstanceCount(asset);
+    _throwIfDestroyed();
+    return _serializeLifecycleOperation(() async => SceneAsset_getInstanceCount(_asset));
   }
 
   //
   @override
   Future<List<ThermionAsset>> getInstances() async {
-    var count = await getInstanceCount();
-    final result = List<ThermionAsset>.generate(count, (i) {
+    _throwIfDestroyed();
+    return _serializeLifecycleOperation(() async => _getInstances());
+  }
+
+  List<FFIAsset> _getInstances() {
+    var count = SceneAsset_getInstanceCount(_asset);
+    final result = List<FFIAsset>.generate(count, (i) {
       _logger.fine("Getting instance at index $i");
-      final instance = SceneAsset_getInstance(asset, i);
+      final instance = SceneAsset_getInstance(_asset, i);
       if (instance == nullptr) {
         throw Exception("Failed to get asset instance at index $i");
       }
@@ -211,22 +264,67 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future releaseSourceData() async {
+    _throwIfDestroyed();
     if (isInstance) {
       throw StateError("releaseSourceData must be called on the owning asset, not an instance");
     }
     if (type != SceneAssetType.gltf) {
       throw StateError("releaseSourceData is only supported on glTF assets");
     }
-    if (_sourceDataReleased) {
-      throw StateError("The asset's glTF source data has already been released");
+    return _serializeLifecycleOperation(() async {
+      if (_sourceDataReleased) {
+        throw StateError("The asset's glTF source data has already been released");
+      }
+      await withVoidCallback((requestId, cb) => SceneAsset_releaseSourceDataRenderThread(_asset, requestId, cb));
+      _released = true;
+    });
+  }
+
+  /// Called by FilamentApp so every alias shares the same destruction future.
+  Future<void> destroy() {
+    final destruction = _lifecycle.destruction;
+    if (destruction != null) {
+      return destruction;
     }
-    await withVoidCallback((requestId, cb) => SceneAsset_releaseSourceDataRenderThread(asset, requestId, cb));
-    _released = true;
+    if (instanceOwner?.isDestroyed ?? false) {
+      return instanceOwner!._lifecycle.destruction!;
+    }
+    _lifecycle.status = _AssetStatus.destroying;
+    final current = _serializeLifecycleOperation(_destroyNativeResources);
+    _lifecycle.destruction = current;
+    return current;
+  }
+
+  Future<void> _destroyNativeResources() async {
+    if (_lifecycle.status == _AssetStatus.destroyed) {
+      return;
+    }
+    _lifecycle.status = _AssetStatus.destroying;
+    final pooledInstance = isInstance && SceneAsset_getType(_asset) == TSceneAssetType.SCENE_ASSET_TYPE_GLTF;
+    // Lifecycle operations accepted before destruction use the raw handles
+    // internally; public handle access is already invalid at this point.
+    _removeAnimationComponent();
+    if (!isInstance) {
+      for (final instance in _getInstances()) {
+        await instance._destroyNativeResources();
+      }
+    }
+    await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(_asset, requestId, cb));
+    await dispose();
+    _lifecycle.status = _AssetStatus.destroyed;
+    if (!isInstance) {
+      _instanceLifecycles.clear();
+    } else if (!pooledInstance) {
+      // Geometry instances are deleted outright. Only pooled native instances
+      // need to retain their current lifetime in the owner's lookup table.
+      instanceOwner!._instanceLifecycles.remove(_asset.address);
+    }
   }
 
   //
   Future dispose() async {
-    _childEntities?.free();
+    _lifecycle.childEntities?.free();
+    _lifecycle.childEntities = null;
   }
 
   //
@@ -886,19 +984,34 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future removeAnimationComponent() async {
-    if (!{SceneAssetType.geometry, SceneAssetType.gltf, SceneAssetType.light}.contains(this.type)) {
+    _throwIfDestroyed();
+    _removeAnimationComponent();
+  }
+
+  void _removeAnimationComponent() {
+    final type = SceneAsset_getType(_asset);
+    if (!{
+      TSceneAssetType.SCENE_ASSET_TYPE_GEOMETRY,
+      TSceneAssetType.SCENE_ASSET_TYPE_GLTF,
+      TSceneAssetType.SCENE_ASSET_TYPE_LIGHT,
+    }.contains(type)) {
       return;
     }
 
-    if (type == SceneAssetType.gltf && !await _app.animationManager.removeGltfAnimationComponent(this)) {
+    final manager = _app.animationManager.getNativeHandle();
+    final animationAsset = type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF && !isInstance
+        ? _getInstances().first._asset
+        : _asset;
+    if (type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF &&
+        !AnimationManager_removeGltfAnimationComponent(manager, animationAsset)) {
       _logger.warning("Failed to remove glTF animation component");
     }
-    if (!await _app.animationManager.removeBoneAnimationComponent(this)) {
+    if (!AnimationManager_removeBoneAnimationComponent(manager, animationAsset)) {
       _logger.warning("Failed to remove bone animation component");
     }
     _app.animationManager.removeMorphAnimationComponent(entity);
 
-    for (final child in await getChildEntities()) {
+    for (final child in _getChildEntities()) {
       _app.animationManager.removeMorphAnimationComponent(child);
     }
   }
@@ -935,6 +1048,14 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     final storageMode = vertexBufferStorageModeFromNative(SceneAsset_getVertexBufferStorageMode(asset, primitiveIndex));
     return FFIVertexBuffer.assetOwned(vbPtr, _app.engine, storageMode: storageMode);
   }
+}
+
+enum _AssetStatus { alive, destroying, destroyed }
+
+class _AssetLifecycle {
+  _AssetStatus status = _AssetStatus.alive;
+  Future<void>? destruction;
+  Int32List? childEntities;
 }
 
 final class _FFIMorphTargetSet implements MorphTargetSet {

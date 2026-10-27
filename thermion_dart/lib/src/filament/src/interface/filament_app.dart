@@ -79,6 +79,8 @@ abstract class FilamentApp<T> {
   Future destroy();
 
   //
+  /// Destroys [asset] and its instances. They cannot be used after this call.
+  /// Repeated calls wait for the same cleanup to finish.
   Future destroyAsset(covariant ThermionAsset asset);
 
   //
