@@ -244,6 +244,15 @@ namespace thermion
     mRenderPaused.store(paused, std::memory_order_relaxed);
   }
 
+  void RenderManager::flushCommands()
+  {
+#ifdef __EMSCRIPTEN__
+    mEngine->flush();
+    mEngine->execute();
+    mEngine->pumpMessageQueues();
+#endif
+  }
+
   bool RenderManager::tick(uint64_t frameTimeInNanos)
   {
     std::lock_guard<std::mutex> lock(mMutex);

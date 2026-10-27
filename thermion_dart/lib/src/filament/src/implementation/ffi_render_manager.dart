@@ -215,19 +215,12 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   }
 
   Future render({int? frameTimeInNanos}) async {
-    if (FILAMENT_SINGLE_THREADED) {
-      // Web renders independently on the worker's animation frames. There is
-      // no frame request to submit, and this Future does not await drawing.
-      return;
-    } else {
-      // Frame timestamps share one clock: the native steady clock that the
-      // frame schedulers and Filament's beginFrame already use.
-      final timestamp = frameTimeInNanos ?? FrameScheduler_steadyClockUs().toInt() * 1000;
-
-      await withVoidCallback((requestId, cb) {
-        RenderManager_renderRenderThread(pointer, timestamp.toBigInt, requestId, cb);
-      });
-    }
+    // The web binary decides whether its worker owns rendering or this call
+    // drives a canvas-thread frame. Worker mode completes without queuing work.
+    final timestamp = frameTimeInNanos ?? FrameScheduler_steadyClockUs().toInt() * 1000;
+    await withVoidCallback((requestId, cb) {
+      RenderManager_renderRenderThread(pointer, timestamp.toBigInt, requestId, cb);
+    });
   }
 
   @override

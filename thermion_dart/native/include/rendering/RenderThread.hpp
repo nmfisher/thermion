@@ -84,6 +84,10 @@ public:
      */
     void shutdown();
 
+    /// Drain commands after a synchronous canvas-thread operation. The normal
+    /// worker and native paths submit commands through their existing loops.
+    void flushCommands();
+
     /**
      * @brief Adds a task to the render thread's task queue.
      *

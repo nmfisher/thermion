@@ -129,6 +129,21 @@ flutter run -d chrome
 
 When set, the build hook copies `thermion_dart.{js,wasm}` from `thermion_dart/native/web/build/build/out/` into your app's `web/` directory instead of downloading from R2. Remove the flag (or set it to `false`) to go back to the pinned prebuilt.
 
+#### Calling-thread rendering for standalone web clients
+
+Custom browser clients can build the web engine with
+`-DTHERMION_WEB_SINGLE_THREADED=ON` (default: `OFF`). Thermion then executes
+commands and completion callbacks on the calling canvas thread, without
+transferring its canvas to a render pthread. Each command drains pending
+Filament uploads without drawing an intermediate frame.
+
+The client must serialize calls on that thread and drive rendering itself,
+for example by awaiting `FilamentApp.render()` from its own animation-frame
+loop. This mode does not create Thermion's automatic worker render loop.
+It does not disable Emscripten pthread support or Filament's internal helpers,
+and requires rebuilding the Wasm engine; a Dart define or an existing worker
+bundle cannot enable it. No performance improvement is implied by the option.
+
 #### Running the test suite on web
 
 The package:test suite runs on Chrome via a wrapper. Do not invoke `dart test -p chrome` directly — the multithreaded WASM build needs `crossOriginIsolated` (a COOP/COEP proxy), and each test file needs an HTML host that loads `thermion_dart.js` and the `thermion_canvas`. The wrapper handles both:
