@@ -993,24 +993,21 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   }
 
   void _removeAnimationComponent() {
-    // _destroyNativeResources() calls this after setting _status to destroying,
-    // before it calls SceneAsset_destroyRenderThread(). The native object at
-    // _asset is still valid, while public FFIAsset access is already blocked.
+    // _destroyNativeResources() calls this with _status set to destroying.
+    // SceneAsset_destroyRenderThread() has not been called yet.
+    // The native asset is still valid.
     //
     // FFIAnimationManager.removeGltfAnimationComponent() and
-    // FFIAnimationManager.removeBoneAnimationComponent() read this asset's type
-    // or call getNativeHandle(). Those accesses go through _throwIfNotAlive()
-    // and would throw here.
+    // FFIAnimationManager.removeBoneAnimationComponent() read type and call
+    // getNativeHandle(). Those accesses throw when destruction has started.
     //
-    // Allowing those public checks during destruction would still leave a
-    // queue dependency: for a glTF owner the manager methods await getInstances().
-    // That method would queue work behind the owner's running
-    // _destroyNativeResources() operation, which cannot finish while waiting
-    // for that work. This would deadlock the queue.
+    // For a glTF owner, those methods also await getInstances(). If allowed,
+    // that call would queue work after _destroyNativeResources(). The work
+    // cannot run until _destroyNativeResources() finishes. Waiting here
+    // would deadlock.
     //
-    // Use the private _getInstances() and _getChildEntities() methods and the
-    // AnimationManager_* native bindings below. They use the still-valid native
-    // pointers without public asset checks or another queued operation.
+    // Use the native functions below to remove the animation components
+    // before SceneAsset_destroyRenderThread() is called.
     final type = SceneAsset_getType(_asset);
     if (!{
       TSceneAssetType.SCENE_ASSET_TYPE_GEOMETRY,
