@@ -41,7 +41,12 @@ abstract class ThermionViewer {
   @Deprecated('Use FilamentApp.instance!.setTargetFramerate(framerate)')
   Future<void> setFrameRate(int framerate);
 
-  // Destroys/disposes the viewer (including the entire scene). You cannot use the viewer after calling this method.
+  /// Disposes the viewer and the assets and lights created through it.
+  ///
+  /// Previously accepted scene operations finish before teardown. Asset and
+  /// light cleanup calls made once disposal starts are no-ops. Assets created
+  /// directly through [FilamentApp] remain the caller's responsibility, even
+  /// if they were added to this viewer's scene.
   Future dispose();
 
   // Return the textured quad used for the background image.
@@ -216,15 +221,17 @@ abstract class ThermionViewer {
     bool addToScene = true,
   });
 
-  // Destroys [asset] and all underlying resources
-  // (including instances, but excluding any manually created material instances).
-  //
+  /// Destroys a viewer-owned [asset] and its instances, excluding manually
+  /// created material instances. Instances of viewer-owned assets are owned
+  /// by this viewer too.
+  ///
+  /// Does nothing for an unowned or already destroyed asset, or once viewer
+  /// disposal starts. Destroy app-owned assets through [FilamentApp.destroyAsset].
   Future destroyAsset(ThermionAsset asset);
 
-  // Removes/destroys all renderable entities from the scene (including cameras).
-  // All [ThermionEntity] handles will no longer be valid after this method is
-  // called; ensure you immediately discard all references to all entities once
-  // this method is complete.
+  /// Destroys all assets created or loaded through this viewer and their
+  /// instances. Their native handles are invalid after this completes.
+  /// Does nothing once viewer disposal starts.
   Future destroyAssets();
 
   // Enable/disable bloom.
@@ -343,10 +350,11 @@ abstract class ThermionViewer {
   int getCameraCount();
 
   // Adds the asset to the scene. All renderable entities attached to
-  // the asset will be visible.
+  // the asset will be visible. This does not transfer ownership to the viewer.
   Future addToScene(covariant ThermionAsset asset);
 
   // Removes the asset from the scene. None of the renderable entities
   // attached to the asset will be visible, but the asset itself remains valid.
+  // Does nothing once viewer disposal starts.
   Future removeFromScene(covariant ThermionAsset asset);
 }

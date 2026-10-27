@@ -186,23 +186,37 @@ void main() async {
     });
   }
 
-  test('destroyAsset releases app-created geometry added to the viewer', () async {
+  test('app-created geometry stays app-owned when added to the viewer', () async {
     await ViewerBuilder(testHelper).execute((result) async {
       final app = FilamentApp.instance!;
       final asset = await app.createGeometry(GeometryUtils.cube());
+      final instance = await asset.createInstance();
       final entity = asset.entity;
+      final instanceEntity = instance.entity;
       await result.viewer.addToScene(asset);
+      await result.viewer.addToScene(instance);
       try {
+        await result.viewer.destroyAsset(asset);
+        await result.viewer.destroyAsset(instance);
+        await result.viewer.destroyAssets();
         expect(app.renderableManager.hasComponent(entity), isTrue);
+        expect(app.renderableManager.hasComponent(instanceEntity), isTrue);
+
+        await result.viewer.removeFromScene(instance);
+        await result.viewer.removeFromScene(asset);
+        await result.viewer.dispose();
+
+        // Viewer cleanup after teardown cannot act on app-owned resources.
         await result.viewer.destroyAsset(asset);
-        expect(app.renderableManager.hasComponent(entity), isFalse);
-        await result.viewer.destroyAsset(asset);
+        await result.viewer.destroyAsset(instance);
+        await result.viewer.removeFromScene(asset);
+        expect(app.renderableManager.hasComponent(entity), isTrue);
+        expect(app.renderableManager.hasComponent(instanceEntity), isTrue);
       } finally {
-        if (app.renderableManager.hasComponent(entity)) {
-          await result.viewer.removeFromScene(asset);
-          await app.destroyAsset(asset);
-        }
+        await app.destroyAsset(asset);
       }
+      expect(app.renderableManager.hasComponent(entity), isFalse);
+      expect(app.renderableManager.hasComponent(instanceEntity), isFalse);
     });
   });
 
@@ -211,6 +225,7 @@ void main() async {
       final viewer = result.viewer;
       final assets = [for (var i = 0; i < 3; i++) await viewer.createGeometry(GeometryUtils.cube())];
       final light = await viewer.addDirectLight(DirectLight.point());
+      final entities = assets.map((asset) => asset.entity).toList();
 
       // App code often releases its own assets and lights while the viewer is
       // being disposed (e.g. in a parent widget's dispose()), or after.
@@ -220,6 +235,10 @@ void main() async {
       ]);
       await Future.wait([viewer.dispose(), release()]);
       await release();
+      for (final entity in entities) {
+        expect(FilamentApp.instance!.renderableManager.hasComponent(entity), isFalse);
+      }
+      expect(FilamentApp.instance!.lightManager.hasComponent(light), isFalse);
     });
   });
 
