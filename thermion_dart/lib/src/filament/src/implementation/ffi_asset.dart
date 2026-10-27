@@ -993,6 +993,10 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   }
 
   void _removeAnimationComponent() {
+    // Teardown calls this after marking the asset as destroying, while its
+    // native handle is still valid. The Dart manager methods use public asset
+    // accessors, which reject that state. For glTF owners, getInstances() would
+    // also queue behind teardown and deadlock. Use the native calls directly.
     final type = SceneAsset_getType(_asset);
     if (!{
       TSceneAssetType.SCENE_ASSET_TYPE_GEOMETRY,
