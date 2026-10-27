@@ -78,7 +78,8 @@ abstract class FilamentApp<T> {
   //
   Future destroy();
 
-  //
+  /// Destroys [asset] and its instances (if any). The asset/instances will immediately be inaccessible.
+  /// Throws [StateError] if destruction has already started for the asset or its owner.
   Future destroyAsset(covariant ThermionAsset asset);
 
   //

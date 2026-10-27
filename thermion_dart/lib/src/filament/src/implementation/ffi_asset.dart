@@ -10,7 +10,41 @@ import 'package:vector_math/vector_math_64.dart' as v64;
 class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   late final _logger = Logger(this.runtimeType.toString());
 
-  final Pointer<TSceneAsset> asset;
+  final Pointer<TSceneAsset> _asset;
+  _AssetStatus _status = _AssetStatus.alive;
+  Int32List? _childEntities;
+  // The owner keeps one Dart object for each native instance.
+  final _instances = <int, FFIAsset>{};
+  Future<void> _pendingOperations = Future<void>.value();
+
+  Pointer<TSceneAsset> get asset {
+    _throwIfNotAlive();
+    return _asset;
+  }
+
+  @override
+  bool get isDestroyed => _status != _AssetStatus.alive || (instanceOwner?.isDestroyed ?? false);
+
+  void _throwIfNotAlive() {
+    if (isDestroyed) {
+      throw StateError('Asset has been destroyed.');
+    }
+  }
+
+  // Instance operations use their owner's queue so owner destruction waits
+  // for pending operations on its instances.
+  Future<T> _enqueueOperation<T>(Future<T> Function() operation) {
+    if (instanceOwner != null) {
+      return instanceOwner!._enqueueOperation(operation);
+    }
+    final previous = _pendingOperations;
+    final current = () async {
+      await previous;
+      return operation();
+    }();
+    _pendingOperations = current.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return current;
+  }
 
   Pointer<TSceneAsset> getNativeHandle() {
     return asset;
@@ -33,7 +67,19 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   final FFIFilamentApp _app;
 
-  FFIAsset(this.asset, {this.instanceOwner = null, required FFIFilamentApp app}) : _app = app {
+  factory FFIAsset(Pointer<TSceneAsset> asset, {FFIAsset? instanceOwner, required FFIFilamentApp app}) {
+    if (instanceOwner != null) {
+      return instanceOwner._instances.putIfAbsent(
+        asset.address,
+        () => FFIAsset._(asset, instanceOwner: instanceOwner, app: app),
+      );
+    }
+    return FFIAsset._(asset, app: app);
+  }
+
+  FFIAsset._(Pointer<TSceneAsset> asset, {this.instanceOwner, required FFIFilamentApp app})
+    : _asset = asset,
+      _app = app {
     entity = SceneAsset_getEntity(asset);
   }
 
@@ -81,13 +127,15 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   }
 
   // childEntities are (currently) immutable, so we cache them here.
-  Int32List? _childEntities;
-
-  //
   @override
   Future<List<ThermionEntity>> getChildEntities() async {
+    _throwIfNotAlive();
+    return _getChildEntities();
+  }
+
+  List<ThermionEntity> _getChildEntities() {
     if (_childEntities == null) {
-      var count = SceneAsset_getChildEntityCount(asset);
+      var count = SceneAsset_getChildEntityCount(_asset);
 
       late Pointer stackPtr;
       if (FILAMENT_WASM) {
@@ -95,7 +143,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       }
       var childEntities = makeInt32List(count);
       if (count > 0) {
-        SceneAsset_getChildEntities(asset, childEntities.address);
+        SceneAsset_getChildEntities(_asset, childEntities.address);
       }
       _childEntities = Int32List.fromList(childEntities);
 
@@ -135,70 +183,87 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<ThermionAsset> getInstance(int index) async {
+    _throwIfNotAlive();
     if (isInstance) {
       throw Exception(
         """This is itself an instance. Call getInstance on the """
         """original asset that this instance was created from""",
       );
     }
-    var instance = SceneAsset_getInstance(asset, index);
-    if (instance == nullptr) {
-      throw Exception("No instance available at index $index");
-    }
-    return FFIAsset(instance, instanceOwner: this, app: _app);
+    return _enqueueOperation(() async {
+      var instance = SceneAsset_getInstance(_asset, index);
+      if (instance == nullptr) {
+        throw Exception("No instance available at index $index");
+      }
+      return FFIAsset(instance, instanceOwner: this, app: _app);
+    });
   }
 
   //
   @override
   Future<FFIAsset> createInstance({List<MaterialInstance>? materialInstances = null}) async {
+    _throwIfNotAlive();
     if (isInstance) {
       return instanceOwner!.createInstance(materialInstances: materialInstances);
     }
-    if (_sourceDataReleased) {
-      throw Exception(
-        """Cannot create instance: the asset's glTF source data has been """
-        """released (via releaseSourceData: true at load time or a prior """
-        """call to releaseSourceData())""",
-      );
-    }
-    var ptrList = IntPtrList(materialInstances?.length ?? 0);
+    return _enqueueOperation(() async {
+      if (_sourceDataReleased) {
+        throw Exception(
+          """Cannot create instance: the asset's glTF source data has been """
+          """released (via releaseSourceData: true at load time or a prior """
+          """call to releaseSourceData())""",
+        );
+      }
+      var ptrList = IntPtrList(materialInstances?.length ?? 0);
 
-    if (materialInstances != null && materialInstances.isNotEmpty) {
-      ptrList.setRange(
-        0,
-        materialInstances.length,
-        materialInstances.cast<FFIMaterialInstance>().map((mi) => mi.pointer.address).toList(),
-      );
-    }
+      if (materialInstances != null && materialInstances.isNotEmpty) {
+        ptrList.setRange(
+          0,
+          materialInstances.length,
+          materialInstances.cast<FFIMaterialInstance>().map((mi) => mi.pointer.address).toList(),
+        );
+      }
 
-    var created = await withPointerCallback<TSceneAsset>((cb) {
-      SceneAsset_createInstanceRenderThread(asset, ptrList.address.cast(), materialInstances?.length ?? 0, cb);
+      var created = await withPointerCallback<TSceneAsset>((cb) {
+        SceneAsset_createInstanceRenderThread(_asset, ptrList.address.cast(), materialInstances?.length ?? 0, cb);
+      });
+
+      if (FILAMENT_WASM) {
+        //stackRestore(stackPtr);
+        ptrList.free();
+      }
+
+      if (created == nullptr) {
+        throw Exception("Failed to create instance");
+      }
+      // A recycled native instance gets a new object. References to the old
+      // object stay destroyed.
+      if (_instances[created.address]?._status == _AssetStatus.destroyed) {
+        _instances.remove(created.address);
+      }
+      return FFIAsset(created, instanceOwner: this, app: _app);
     });
-
-    if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
-      ptrList.free();
-    }
-
-    if (created == nullptr) {
-      throw Exception("Failed to create instance");
-    }
-    return FFIAsset(created, instanceOwner: this, app: _app);
   }
 
   //
   @override
   Future<int> getInstanceCount() async {
-    return SceneAsset_getInstanceCount(asset);
+    _throwIfNotAlive();
+    return _enqueueOperation(() async => SceneAsset_getInstanceCount(_asset));
   }
 
   //
   @override
   Future<List<ThermionAsset>> getInstances() async {
-    var count = await getInstanceCount();
-    final result = List<ThermionAsset>.generate(count, (i) {
+    _throwIfNotAlive();
+    return _enqueueOperation(() async => _getInstances());
+  }
+
+  List<FFIAsset> _getInstances() {
+    var count = SceneAsset_getInstanceCount(_asset);
+    final result = List<FFIAsset>.generate(count, (i) {
       _logger.fine("Getting instance at index $i");
-      final instance = SceneAsset_getInstance(asset, i);
+      final instance = SceneAsset_getInstance(_asset, i);
       if (instance == nullptr) {
         throw Exception("Failed to get asset instance at index $i");
       }
@@ -211,22 +276,59 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future releaseSourceData() async {
+    _throwIfNotAlive();
     if (isInstance) {
       throw StateError("releaseSourceData must be called on the owning asset, not an instance");
     }
     if (type != SceneAssetType.gltf) {
       throw StateError("releaseSourceData is only supported on glTF assets");
     }
-    if (_sourceDataReleased) {
-      throw StateError("The asset's glTF source data has already been released");
+    return _enqueueOperation(() async {
+      if (_sourceDataReleased) {
+        throw StateError("The asset's glTF source data has already been released");
+      }
+      await withVoidCallback((requestId, cb) => SceneAsset_releaseSourceDataRenderThread(_asset, requestId, cb));
+      _released = true;
+    });
+  }
+
+  /// Called by FilamentApp to destroy this asset.
+  Future<void> destroy() {
+    _throwIfNotAlive();
+    _status = _AssetStatus.destroying;
+    return _enqueueOperation(_destroyNativeResources);
+  }
+
+  Future<void> _destroyNativeResources() async {
+    if (_status == _AssetStatus.destroyed) {
+      return;
     }
-    await withVoidCallback((requestId, cb) => SceneAsset_releaseSourceDataRenderThread(asset, requestId, cb));
-    _released = true;
+    _status = _AssetStatus.destroying;
+    final pooledInstance = isInstance && SceneAsset_getType(_asset) == TSceneAssetType.SCENE_ASSET_TYPE_GLTF;
+    // Lifecycle operations accepted before destruction use the raw handles
+    // internally; public handle access is already invalid at this point.
+    _removeAnimationComponent();
+    if (!isInstance) {
+      for (final instance in _getInstances()) {
+        await instance._destroyNativeResources();
+      }
+    }
+    await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(_asset, requestId, cb));
+    await dispose();
+    _status = _AssetStatus.destroyed;
+    if (!isInstance) {
+      _instances.clear();
+    } else if (!pooledInstance) {
+      // Geometry instances are deleted outright. Only pooled native instances
+      // stay in the owner's cache after destruction.
+      instanceOwner!._instances.remove(_asset.address);
+    }
   }
 
   //
   Future dispose() async {
     _childEntities?.free();
+    _childEntities = null;
   }
 
   //
@@ -886,19 +988,50 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future removeAnimationComponent() async {
-    if (!{SceneAssetType.geometry, SceneAssetType.gltf, SceneAssetType.light}.contains(this.type)) {
+    _throwIfNotAlive();
+    _removeAnimationComponent();
+  }
+
+  void _removeAnimationComponent() {
+    // We must remove the animations before freeing the native asset.
+    // We use native calls because the public FFIAnimationManager methods
+    // cannot be used once this asset is marked as destroying.
+    //
+    // _destroyNativeResources() marks the asset as destroying before calling
+    // this method. FFIAnimationManager.removeGltfAnimationComponent() and
+    // removeBoneAnimationComponent() would throw when they read type or
+    // call getNativeHandle().
+    //
+    // Removing those checks would cause a deadlock for glTF owners.
+    // Both methods await getInstances(), which adds work to the owner's queue.
+    // _destroyNativeResources() would then wait for work queued after itself.
+    //
+    // The private _getInstances() and _getChildEntities() read native data
+    // directly. The native asset is still valid: _destroyNativeResources()
+    // calls SceneAsset_destroyRenderThread() after this method returns.
+    final type = SceneAsset_getType(_asset);
+    if (!{
+      TSceneAssetType.SCENE_ASSET_TYPE_GEOMETRY,
+      TSceneAssetType.SCENE_ASSET_TYPE_GLTF,
+      TSceneAssetType.SCENE_ASSET_TYPE_LIGHT,
+    }.contains(type)) {
       return;
     }
 
-    if (type == SceneAssetType.gltf && !await _app.animationManager.removeGltfAnimationComponent(this)) {
+    final manager = _app.animationManager.getNativeHandle();
+    final animationAsset = type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF && !isInstance
+        ? _getInstances().first._asset
+        : _asset;
+    if (type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF &&
+        !AnimationManager_removeGltfAnimationComponent(manager, animationAsset)) {
       _logger.warning("Failed to remove glTF animation component");
     }
-    if (!await _app.animationManager.removeBoneAnimationComponent(this)) {
+    if (!AnimationManager_removeBoneAnimationComponent(manager, animationAsset)) {
       _logger.warning("Failed to remove bone animation component");
     }
     _app.animationManager.removeMorphAnimationComponent(entity);
 
-    for (final child in await getChildEntities()) {
+    for (final child in _getChildEntities()) {
       _app.animationManager.removeMorphAnimationComponent(child);
     }
   }
@@ -936,6 +1069,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     return FFIVertexBuffer.assetOwned(vbPtr, _app.engine, storageMode: storageMode);
   }
 }
+
+enum _AssetStatus { alive, destroying, destroyed }
 
 final class _FFIMorphTargetSet implements MorphTargetSet {
   @override
