@@ -43,7 +43,10 @@ void main() async {
       final index = instances.indexWhere((asset) => asset.entity == instance.entity);
       final alias = instances[index];
       final indexedAlias = await owner.getInstance(index);
-      // Populate the shared child cache before native destruction.
+      expect(identical(instance, alias), isTrue);
+      expect(identical(instance, indexedAlias), isTrue);
+      expect(identical((await owner.getInstances())[index], instance), isTrue);
+      // Populate the child cache before native destruction.
       await instance.getChildEntities();
       await alias.getChildEntities();
 
@@ -79,6 +82,7 @@ void main() async {
 
         if (gltf) {
           final pooledAlias = (await owner.getInstances()).firstWhere((asset) => asset.entity == instance.entity);
+          expect(identical(pooledAlias, instance), isTrue);
           expect(pooledAlias.isDestroyed, isTrue);
           expect(() => app.destroyAsset(pooledAlias), throwsStateError);
         }
@@ -106,6 +110,8 @@ void main() async {
           expect(current.getNativeHandle(), oldHandle);
         }
         final currentAlias = (await owner.getInstances()).firstWhere((asset) => asset.entity == current.entity);
+        expect(identical(current, old), isFalse);
+        expect(identical(currentAlias, current), isTrue);
         expect(current.isDestroyed, isFalse);
         expect(currentAlias.isDestroyed, isFalse);
         expect(old.isDestroyed, isTrue);
