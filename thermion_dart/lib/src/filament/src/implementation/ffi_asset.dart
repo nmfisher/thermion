@@ -16,14 +16,14 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   Future<void> _lifecycleOperations = Future<void>.value();
 
   Pointer<TSceneAsset> get asset {
-    _throwIfDestroyed();
+    _throwIfNotAlive();
     return _asset;
   }
 
   @override
   bool get isDestroyed => _lifecycle.status != _AssetStatus.alive || (instanceOwner?.isDestroyed ?? false);
 
-  void _throwIfDestroyed() {
+  void _throwIfNotAlive() {
     if (isDestroyed) {
       throw StateError('Asset has been destroyed.');
     }
@@ -117,7 +117,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   // childEntities are (currently) immutable, so we cache them here.
   @override
   Future<List<ThermionEntity>> getChildEntities() async {
-    _throwIfDestroyed();
+    _throwIfNotAlive();
     return _getChildEntities();
   }
 
@@ -171,7 +171,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<ThermionAsset> getInstance(int index) async {
-    _throwIfDestroyed();
+    _throwIfNotAlive();
     if (isInstance) {
       throw Exception(
         """This is itself an instance. Call getInstance on the """
@@ -190,7 +190,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<FFIAsset> createInstance({List<MaterialInstance>? materialInstances = null}) async {
-    _throwIfDestroyed();
+    _throwIfNotAlive();
     if (isInstance) {
       return instanceOwner!.createInstance(materialInstances: materialInstances);
     }
@@ -236,14 +236,14 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<int> getInstanceCount() async {
-    _throwIfDestroyed();
+    _throwIfNotAlive();
     return _serializeLifecycleOperation(() async => SceneAsset_getInstanceCount(_asset));
   }
 
   //
   @override
   Future<List<ThermionAsset>> getInstances() async {
-    _throwIfDestroyed();
+    _throwIfNotAlive();
     return _serializeLifecycleOperation(() async => _getInstances());
   }
 
@@ -264,7 +264,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future releaseSourceData() async {
-    _throwIfDestroyed();
+    _throwIfNotAlive();
     if (isInstance) {
       throw StateError("releaseSourceData must be called on the owning asset, not an instance");
     }
@@ -282,7 +282,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   /// Called by FilamentApp to destroy this asset.
   Future<void> destroy() {
-    _throwIfDestroyed();
+    _throwIfNotAlive();
     _lifecycle.status = _AssetStatus.destroying;
     return _serializeLifecycleOperation(_destroyNativeResources);
   }
@@ -976,7 +976,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future removeAnimationComponent() async {
-    _throwIfDestroyed();
+    _throwIfNotAlive();
     _removeAnimationComponent();
   }
 
