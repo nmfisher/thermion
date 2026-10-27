@@ -105,17 +105,18 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
 
   final onComplete_interopFnPtr = callback.addFunction();
 
-  func.call(onComplete_interopFnPtr.cast());
+  try {
+    func.call(onComplete_interopFnPtr.cast());
 
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
+    while (!completer.isCompleted) {
+      _NativeLibrary.instance._execute_queue();
+      await Future.delayed(Duration(milliseconds: 1));
+    }
+
+    return await completer.future;
+  } finally {
+    onComplete_interopFnPtr.dispose();
   }
-
-  var ptr = await completer.future;
-  onComplete_interopFnPtr.dispose();
-
-  return ptr;
 }
 
 Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
