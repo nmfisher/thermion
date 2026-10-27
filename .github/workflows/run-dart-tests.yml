@@ -16,6 +16,40 @@ on:
         type: string
 
 jobs:
+  js-callback-tests:
+    name: JavaScript Callback Tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+
+      - uses: dart-lang/setup-dart@v1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Run pointer callback regression tests (Node)
+        working-directory: thermion_dart
+        run: |
+          # dart test starts through the VM and fires the package build hook,
+          # but these JS bindings tests do not need a native renderer.
+          awk '
+            /^hooks:/ { skip=1; next }
+            skip && /^[^[:space:]#]/ { skip=0 }
+            !skip { print }
+          ' pubspec.yaml > pubspec.yaml.tmp
+          mv pubspec.yaml.tmp pubspec.yaml
+          cat >> pubspec.yaml <<'EOF'
+          hooks:
+            user_defines:
+              thermion_dart:
+                skip_native_build: true
+          EOF
+          dart pub get
+          dart test -p node test/js_pointer_callback_test.dart -r expanded
+
   dart-tests:
     name: Dart Tests (${{ matrix.name }})
     strategy:
