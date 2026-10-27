@@ -15,14 +15,14 @@ void main() async {
     Future<ThermionAsset> createOwner() =>
         gltf ? app.loadGltfFromBuffer(gltfData) : app.createGeometry(GeometryUtils.cube());
 
-    test('$kind repeated destruction throws after cleanup finishes', () async {
+    test('$kind repeated destruction throws once cleanup starts', () async {
       final owner = await createOwner();
       final entities = [owner.entity, ...await owner.getChildEntities()];
       expect(owner.isDestroyed, isFalse);
 
       final destruction = app.destroyAsset(owner);
       expect(owner.isDestroyed, isTrue);
-      expect(identical(app.destroyAsset(owner), destruction), isTrue);
+      expect(() => app.destroyAsset(owner), throwsStateError);
       expect(() => owner.getNativeHandle(), throwsStateError);
       await destruction;
       expect(() => app.destroyAsset(owner), throwsStateError);
@@ -50,7 +50,7 @@ void main() async {
       final destruction = app.destroyAsset(owner);
       for (final wrapper in [instance, alias, indexedAlias]) {
         expect(wrapper.isDestroyed, isTrue);
-        expect(identical(app.destroyAsset(wrapper), destruction), isTrue);
+        expect(() => app.destroyAsset(wrapper), throwsStateError);
       }
       await destruction;
 
@@ -62,7 +62,7 @@ void main() async {
       }
     });
 
-    test('$kind instance aliases share destruction without destroying the owner', () async {
+    test('$kind instance destruction immediately invalidates all aliases', () async {
       final owner = await createOwner();
       try {
         final instance = await owner.createInstance();
@@ -72,7 +72,8 @@ void main() async {
         expect(instance.isDestroyed, isTrue);
         expect(alias.isDestroyed, isTrue);
         expect(owner.isDestroyed, isFalse);
-        expect(identical(app.destroyAsset(alias), destruction), isTrue);
+        expect(() => app.destroyAsset(instance), throwsStateError);
+        expect(() => app.destroyAsset(alias), throwsStateError);
         await destruction;
         expect(() => app.destroyAsset(alias), throwsStateError);
 

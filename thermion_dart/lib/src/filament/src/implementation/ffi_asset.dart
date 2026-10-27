@@ -280,22 +280,11 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     });
   }
 
-  /// Called by FilamentApp so every alias shares the same destruction future.
+  /// Called by FilamentApp to destroy this asset.
   Future<void> destroy() {
-    if (_lifecycle.status == _AssetStatus.destroyed || instanceOwner?._lifecycle.status == _AssetStatus.destroyed) {
-      throw StateError('Asset has already been destroyed.');
-    }
-    final destruction = _lifecycle.destruction;
-    if (destruction != null) {
-      return destruction;
-    }
-    if (instanceOwner?.isDestroyed ?? false) {
-      return instanceOwner!._lifecycle.destruction!;
-    }
+    _throwIfDestroyed();
     _lifecycle.status = _AssetStatus.destroying;
-    final current = _serializeLifecycleOperation(_destroyNativeResources);
-    _lifecycle.destruction = current;
-    return current;
+    return _serializeLifecycleOperation(_destroyNativeResources);
   }
 
   Future<void> _destroyNativeResources() async {
@@ -1057,7 +1046,6 @@ enum _AssetStatus { alive, destroying, destroyed }
 
 class _AssetLifecycle {
   _AssetStatus status = _AssetStatus.alive;
-  Future<void>? destruction;
   Int32List? childEntities;
 }
 
