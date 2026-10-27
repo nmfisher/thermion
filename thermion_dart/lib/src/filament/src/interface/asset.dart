@@ -92,6 +92,12 @@ abstract interface class MorphTargetSet {
 // entities.
 //
 abstract class ThermionAsset<T> extends NativeHandle<T> {
+  /// Whether this asset handle has been invalidated by destruction.
+  ///
+  /// This becomes true when destruction is requested, including while native
+  /// cleanup is pending. Destroying an owner invalidates all its instances.
+  bool get isDestroyed;
+
   Set<SceneAssetGeometryCapability> get geometryCapabilities {
     return const {};
   }

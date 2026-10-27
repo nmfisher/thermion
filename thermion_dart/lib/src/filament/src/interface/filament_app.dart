@@ -79,6 +79,10 @@ abstract class FilamentApp<T> {
   Future destroy();
 
   //
+  /// Invalidates [asset] immediately and releases its native resources.
+  /// Repeated calls, including calls through instance aliases, wait for the
+  /// existing destruction operation. Destroying an owner also invalidates
+  /// every instance; recycled instances receive a new lifetime.
   Future destroyAsset(covariant ThermionAsset asset);
 
   //
