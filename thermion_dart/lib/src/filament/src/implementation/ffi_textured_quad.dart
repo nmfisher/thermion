@@ -8,6 +8,9 @@ import 'ffi_filament_app.dart';
 class FFITexturedQuad<T> extends TexturedQuad<T> {
   final ThermionAsset<T> asset;
 
+  @override
+  bool get isDestroyed => asset.isDestroyed;
+
   ThermionEntity get entity => asset.entity;
 
   Texture? texture;
