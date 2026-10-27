@@ -294,6 +294,15 @@ jobs:
         if: steps.changes.outputs.native-changed == 'true'
         run: make wasm
 
+      - name: Test web uploads without visible frames
+        if: steps.changes.outputs.native-changed == 'true'
+        run: |
+          emcmake cmake -S thermion_dart/native/test/web -B "$RUNNER_TEMP/thermion-web-tests" \
+            -DFILAMENT_TEST_LIB_DIR="$GITHUB_WORKSPACE/thermion_dart/native/web/lib/release" \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build "$RUNNER_TEMP/thermion-web-tests" --parallel 2
+          node "$RUNNER_TEMP/thermion-web-tests/web_upload_drain_test.js"
+
       - name: Package and upload web artifacts to R2
         if: ${{ !inputs.verify && steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/')) }}
         # R2 is a cache, not a release gate: an R2 outage must not block a

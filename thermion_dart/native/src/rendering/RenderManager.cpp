@@ -273,7 +273,14 @@ namespace thermion
     }
 
 #ifdef __EMSCRIPTEN__
+    // Without a rendered frame there is no endFrame() to submit uploads.
+    // Submit them before draining the backend, then deliver their release
+    // callbacks even when no visible frame was rendered.
+    if (!anyRendered) {
+      mEngine->flush();
+    }
     mEngine->execute();
+    mEngine->pumpMessageQueues();
 #endif
 
     return anyRendered;

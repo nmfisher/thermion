@@ -181,14 +181,14 @@ void RenderThread::enqueue(std::function<void()> task) {
 }
 
 #ifdef __EMSCRIPTEN__
-// Drain every queued task without yielding to the browser. Called from
-// iter() on the worker, so Filament calls keep their thread affinity; the
-// queue mutex is released while each task executes so tasks may queue
-// further work.
+// Bound each batch so uploads reach tick() and its command-buffer drain even
+// when completions keep queuing more work. Filament calls stay on the worker;
+// the queue mutex is released while each task executes.
 void RenderThread::pumpTasks() {
     std::unique_lock<std::mutex> taskLock(_taskMutex);
 
-    while (!_tasks.empty())
+    unsigned taskCount = 0;
+    while (!_tasks.empty() && taskCount++ < 8)
     {
         auto task = std::move(_tasks.front());
         _tasks.pop_front();
