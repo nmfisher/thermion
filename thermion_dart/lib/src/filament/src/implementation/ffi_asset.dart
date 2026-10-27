@@ -282,6 +282,9 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   /// Called by FilamentApp so every alias shares the same destruction future.
   Future<void> destroy() {
+    if (_lifecycle.status == _AssetStatus.destroyed || instanceOwner?._lifecycle.status == _AssetStatus.destroyed) {
+      throw StateError('Asset has already been destroyed.');
+    }
     final destruction = _lifecycle.destruction;
     if (destruction != null) {
       return destruction;

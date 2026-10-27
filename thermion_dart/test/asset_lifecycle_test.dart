@@ -15,7 +15,7 @@ void main() async {
     Future<ThermionAsset> createOwner() =>
         gltf ? app.loadGltfFromBuffer(gltfData) : app.createGeometry(GeometryUtils.cube());
 
-    test('$kind root destruction invalidates handles and is idempotent', () async {
+    test('$kind repeated destruction throws after cleanup finishes', () async {
       final owner = await createOwner();
       final entities = [owner.entity, ...await owner.getChildEntities()];
       expect(owner.isDestroyed, isFalse);
@@ -25,7 +25,7 @@ void main() async {
       expect(identical(app.destroyAsset(owner), destruction), isTrue);
       expect(() => owner.getNativeHandle(), throwsStateError);
       await destruction;
-      await app.destroyAsset(owner);
+      expect(() => app.destroyAsset(owner), throwsStateError);
 
       expect(owner.isDestroyed, isTrue);
       await expectLater(owner.getChildEntities(), throwsStateError);
@@ -58,7 +58,7 @@ void main() async {
         expect(wrapper.isDestroyed, isTrue);
         expect(() => wrapper.getNativeHandle(), throwsStateError);
         await expectLater(wrapper.getChildEntities(), throwsStateError);
-        await app.destroyAsset(wrapper);
+        expect(() => app.destroyAsset(wrapper), throwsStateError);
       }
     });
 
@@ -74,12 +74,12 @@ void main() async {
         expect(owner.isDestroyed, isFalse);
         expect(identical(app.destroyAsset(alias), destruction), isTrue);
         await destruction;
-        await app.destroyAsset(alias);
+        expect(() => app.destroyAsset(alias), throwsStateError);
 
         if (gltf) {
           final pooledAlias = (await owner.getInstances()).firstWhere((asset) => asset.entity == instance.entity);
           expect(pooledAlias.isDestroyed, isTrue);
-          expect(identical(app.destroyAsset(pooledAlias), destruction), isTrue);
+          expect(() => app.destroyAsset(pooledAlias), throwsStateError);
         }
 
         expect(owner.isDestroyed, isFalse);
@@ -110,7 +110,7 @@ void main() async {
         expect(old.isDestroyed, isTrue);
         expect(oldAlias.isDestroyed, isTrue);
 
-        await app.destroyAsset(oldAlias);
+        expect(() => app.destroyAsset(oldAlias), throwsStateError);
         expect(current.isDestroyed, isFalse);
         expect(app.transformManager.hasComponent(current.entity), isTrue);
 
@@ -143,7 +143,7 @@ void main() async {
       expect(owner.isDestroyed, isTrue);
       expect(instance.isDestroyed, isTrue);
       expect(() => instance.getNativeHandle(), throwsStateError);
-      await app.destroyAsset(instance);
+      expect(() => app.destroyAsset(instance), throwsStateError);
     });
   }
 
