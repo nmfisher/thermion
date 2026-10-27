@@ -364,14 +364,24 @@ jobs:
         include:
           - name: Linux
             artifact: dart-test-output-Linux
+            baseline_asset: dart-test-output-Linux.zip
+            baseline_sha256: 07c462256121c6e012adf49952f797341a5076fcb9875d2f2a803760efc874de
           - name: Windows
             artifact: dart-test-output-Windows
+            baseline_asset: dart-test-output-Windows.zip
+            baseline_sha256: 8a2d4270fc6191e166ad12ba5d8c719e75e24e66f6b50ef134174ded755292e2
           - name: macOS
             artifact: dart-test-output-macOS
+            baseline_asset: dart-test-output-macOS.zip
+            baseline_sha256: 622db9ac802b40cd626bf8c7be5a7f56ce2f8c15d8a0f53be6404cfdaeae3039
           - name: Linux opengl-only
             artifact: dart-material-output-Linux opengl-only
+            baseline_asset: dart-material-output-Linux-opengl-only.zip
+            baseline_sha256: 465d1ba1e4514f831361214fe78bffba506f8f585a4a3e1c042f5e26d6fe467d
           - name: Windows vulkan-only
             artifact: dart-material-output-Windows vulkan-only
+            baseline_asset: dart-material-output-Windows-vulkan-only.zip
+            baseline_sha256: e71d53bb538c00cd28548f32e1c1fd1820249c2e1bbc956fca75da5bd55ed835
     steps:
       - uses: actions/checkout@v4
         with:
@@ -384,16 +394,26 @@ jobs:
           path: thermion_dart/test/golden-candidate
 
       - name: Download reviewed platform baseline
-        uses: actions/download-artifact@v4
-        with:
-          github-token: ${{ github.token }}
-          # To refresh every baseline, first push a capture-only commit,
-          # inspect its dart-*-output-* artifacts, then update this run ID.
-          # Filament 1.76: reviewed all 631 images; only the Linux/Windows
-          # PCSS per-light shadow edges changed, identically across two runs.
-          run-id: 34490792201
-          name: ${{ matrix.artifact }}
-          path: thermion_dart/test/golden-baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Preserve reviewed PNGs in releases so Actions retention cannot
+          # remove the baseline. Source: successful run 36846959241; all 631
+          # PNGs also match run 40479176422 pixel-for-pixel. For a refresh,
+          # review a capture run, publish a new release, then update this tag
+          # and the per-platform SHA-256 values above in a reviewed PR.
+          BASELINE_TAG: render-baselines-2026-10-27
+          BASELINE_ASSET: ${{ matrix.baseline_asset }}
+          BASELINE_SHA256: ${{ matrix.baseline_sha256 }}
+        run: |
+          set -euo pipefail
+          baseline_dir="$RUNNER_TEMP/thermion-golden-baseline"
+          mkdir -p "$baseline_dir"
+          gh release download "$BASELINE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$BASELINE_ASSET" \
+            --dir "$baseline_dir"
+          printf '%s  %s\n' "$BASELINE_SHA256" "$baseline_dir/$BASELINE_ASSET" | sha256sum --check --strict
+          python -m zipfile -e "$baseline_dir/$BASELINE_ASSET" thermion_dart/test/golden-baseline
 
       - name: Install golden comparison dependencies
         run: |

@@ -21,9 +21,8 @@ on:
 
 permissions:
   contents: read
-  # compare-dart-test-output downloads baseline artifacts from a previous run
-  # (actions/download-artifact@v4 with an explicit run-id), which requires
-  # actions:read on the token.
+  # Read candidate artifacts from the current run. Reviewed baselines are
+  # release assets, downloaded with the contents:read permission above.
   actions: read
 
 concurrency:
