@@ -12,6 +12,7 @@
 #include <filament/BufferObject.h>
 #include <filament/Engine.h>
 #include <filament/RenderableManager.h>
+#include <filament/TransformManager.h>
 #include <filament/VertexBuffer.h>
 #include <filament/IndexBuffer.h>
 #include <gltfio/AssetLoader.h>
@@ -112,6 +113,13 @@ namespace thermion
 
     GltfSceneAsset::~GltfSceneAsset()
     {
+        // gltfio destroys instance root entities but leaves their transforms.
+        // Remove the transforms before AssetLoader::destroyAsset() frees the entities.
+        auto &tm = _engine->getTransformManager();
+        for (auto &instance : _instances)
+        {
+            tm.destroy(instance->getEntity());
+        }
         _instances.clear();
         for (auto *vb : _preservedVertexBuffers)
         {
