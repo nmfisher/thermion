@@ -545,22 +545,13 @@ class ThermionViewerFFI extends ThermionViewer {
     }
   }
 
-  final _assets = <ThermionAsset>{};
-  final _destroyedAssets = Expando<bool>();
+  // NativeHandle.hashCode calls getNativeHandle(), which throws after destruction.
+  final _assets = Set<ThermionAsset>.identity();
   final _cameras = <Camera>{};
 
   bool _ownsAsset(ThermionAsset asset) {
     final owner = asset is FFIAsset ? asset.instanceOwner ?? asset : asset;
     return _assets.contains(owner);
-  }
-
-  bool _isAssetDestroyed(ThermionAsset asset) {
-    if (_destroyedAssets[asset] == true) {
-      return true;
-    }
-    // Destroying an owning asset also destroys every native instance, even
-    // though the instance wrappers themselves are not tracked in _assets.
-    return asset is FFIAsset && asset.instanceOwner != null && _destroyedAssets[asset.instanceOwner!] == true;
   }
 
   //
@@ -639,22 +630,27 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future<void> _destroyAsset(ThermionAsset asset) async {
-    if (_isAssetDestroyed(asset) || !_ownsAsset(asset)) {
+    if (!_ownsAsset(asset)) {
       return;
     }
     _assets.remove(asset);
+    if (asset.isDestroyed) {
+      return;
+    }
     await _removeFromScene(asset);
     await hideBoundingBox(asset, destroy: true);
 
     if (!asset.isInstance) {
       for (final instance in await asset.getInstances()) {
+        if (instance.isDestroyed) {
+          continue;
+        }
         await _removeFromScene(instance);
         await hideBoundingBox(instance, destroy: true);
       }
     }
 
     await _app.destroyAsset(asset as FFIAsset);
-    _destroyedAssets[asset] = true;
   }
 
   //
@@ -962,7 +958,7 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future<void> _removeFromScene(ThermionAsset asset) async {
-    if (_isAssetDestroyed(asset)) {
+    if (asset.isDestroyed) {
       return;
     }
     await scene.remove(asset);
