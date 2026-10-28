@@ -1,5 +1,7 @@
 # thermion_flutter unit tests + lifecycle integration test, then example app
-# builds (desktop + Android appbundles).
+# builds (desktop, Android, web, and iOS).
+# PR callers disable example builds. Releases and manual runs build them
+# after the tests pass.
 #
 # Structure:
 #   flutter-tests      — unit tests on macOS/Windows/Linux runners (+ the macOS
@@ -9,6 +11,7 @@
 #                        re-run per job, but subosito/flutter-action's cache
 #                        makes it a cache restore rather than a download).
 #   android-appbundles — needs flutter-tests; 4 appbundle variants.
+#   ios-examples       — needs flutter-tests; debug and release device builds.
 #   Web example shells build as extra steps on the desktop-examples Linux
 #   leg (same runner, reusing its SDK setup); see the step comment there
 #   for the prebuilt-wasm caveat.
@@ -35,12 +38,22 @@ on:
         description: Git ref (SHA or branch) to check out
         required: false
         type: string
+      build_examples:
+        description: Build desktop, Android, web, and iOS examples
+        required: false
+        type: boolean
+        default: true
   workflow_dispatch:
     inputs:
       ref:
         description: Git ref (SHA or branch) to check out
         required: false
         type: string
+      build_examples:
+        description: Build desktop, Android, web, and iOS examples
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   flutter-tests:
@@ -118,6 +131,7 @@ jobs:
 
   desktop-examples:
     name: Flutter Examples (${{ matrix.name }})
+    if: ${{ inputs.build_examples }}
     needs: [flutter-tests]
     strategy:
       fail-fast: false
@@ -257,6 +271,7 @@ jobs:
 
   android-appbundles:
     name: Android (${{ matrix.app }}, ${{ matrix.variant }})
+    if: ${{ inputs.build_examples }}
     needs: [flutter-tests]
     runs-on: ubuntu-22.04
     strategy:
@@ -329,3 +344,11 @@ jobs:
           path: |
             ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5
+
+  ios-examples:
+    name: iOS examples
+    if: ${{ inputs.build_examples }}
+    needs: [flutter-tests]
+    uses: ./.github/workflows/ios-device-build.yml
+    with:
+      ref: ${{ inputs.ref || github.head_ref || github.ref }}

@@ -1,4 +1,4 @@
-# Runs the full Dart/Flutter test suite on every pull request, gated behind
+# Runs the Dart/Flutter tests on every pull request, gated behind
 # manual approval. GitHub Actions does not allow `environment` on a job that
 # calls a reusable workflow (run-dart-tests.yml, flutter-tests-and-examples.yml),
 # so the gate is a separate no-op job: `approval-gate` references the
@@ -47,11 +47,12 @@ jobs:
     secrets: inherit
 
   flutter:
-    name: Flutter tests and examples
+    name: Flutter tests
     needs: [approval-gate]
     uses: ./.github/workflows/flutter-tests-and-examples.yml
     with:
       ref: ${{ github.event.pull_request.head.sha }}
+      build_examples: false
     secrets: inherit
 
   tests-passed:
