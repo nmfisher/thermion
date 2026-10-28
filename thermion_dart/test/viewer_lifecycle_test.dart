@@ -16,6 +16,20 @@ void main() async {
   final app = FilamentApp.instance!;
   final gltfData = await app.loadResource('file://${testHelper.assetsDir}/cube.glb');
 
+  Future<ThermionAsset> showBoundingBox(ThermionViewer viewer, ThermionAsset asset) async {
+    final box = await viewer.showBoundingBox(asset) as ThermionAsset;
+    final material = await box.getMaterialInstanceAt();
+    addTearDown(() async {
+      if (!box.isDestroyed) {
+        await app.destroyAsset(box);
+      }
+      // The viewer does not destroy this material yet (tpf-kx2v).
+      // Release it after the box.
+      await material.destroy();
+    });
+    return box;
+  }
+
   test('10 viewer lifecycles with capture', () async {
     for (var i = 0; i < 10; i++) {
       print('[iter] $i start');
@@ -92,6 +106,7 @@ void main() async {
       final instanceEntity = instance.entity;
       await result.viewer.addToScene(asset);
       await result.viewer.addToScene(instance);
+      final box = await showBoundingBox(result.viewer, asset);
       try {
         await result.viewer.destroyAsset(asset);
         await result.viewer.destroyAsset(instance);
@@ -102,6 +117,8 @@ void main() async {
         await result.viewer.removeFromScene(instance);
         await result.viewer.removeFromScene(asset);
         await result.viewer.dispose();
+        expect(box.isDestroyed, isTrue);
+        expect(app.renderableManager.hasComponent(box.entity), isFalse);
 
         // Viewer cleanup after teardown cannot act on app-owned resources.
         await result.viewer.destroyAsset(asset);
@@ -144,6 +161,31 @@ void main() async {
     Future<ThermionAsset> createAsset(ThermionViewer viewer) =>
         gltf ? viewer.loadGltfFromBuffer(gltfData) : viewer.createGeometry(GeometryUtils.cube());
 
+    for (final dispose in [false, true]) {
+      final cleanup = dispose ? 'disposal' : 'asset cleanup';
+      test('$kind $cleanup destroys bounding boxes after external owner destruction', () async {
+        await ViewerBuilder(testHelper).execute((result) async {
+          final viewer = result.viewer;
+          final owner = await createAsset(viewer);
+          final instance = await owner.createInstance();
+          final boxes = [await showBoundingBox(viewer, owner), await showBoundingBox(viewer, instance)];
+
+          await app.destroyAsset(owner);
+          if (dispose) {
+            await viewer.dispose();
+          } else {
+            await viewer.destroyAsset(owner);
+          }
+
+          for (final box in boxes) {
+            expect(box.isDestroyed, isTrue);
+            expect(app.renderableManager.hasComponent(box.entity), isFalse);
+            expect(app.transformManager.hasComponent(box.entity), isFalse);
+          }
+        });
+      });
+    }
+
     test('$kind viewer cleanup skips an owner destroyed through FilamentApp', () async {
       await ViewerBuilder(testHelper).execute((result) async {
         final viewer = result.viewer;
@@ -177,12 +219,17 @@ void main() async {
         final instance = await owner.createInstance();
         final alias = (await owner.getInstances()).last;
         await viewer.addToScene(instance);
+        final ownerBox = await showBoundingBox(viewer, owner);
+        final instanceBox = await showBoundingBox(viewer, instance);
 
         final destruction = app.destroyAsset(instance);
         expect(instance.isDestroyed, isTrue);
         expect(owner.isDestroyed, isFalse);
         await Future.wait([destruction, viewer.removeFromScene(instance), viewer.destroyAsset(alias)]);
+        expect(instanceBox.isDestroyed, isTrue);
+        expect(ownerBox.isDestroyed, isFalse);
         await viewer.destroyAssets();
+        expect(ownerBox.isDestroyed, isTrue);
         await viewer.dispose();
 
         expect(owner.isDestroyed, isTrue);
