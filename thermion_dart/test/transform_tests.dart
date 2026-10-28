@@ -1,6 +1,10 @@
 // ignore_for_file: unused_local_variable
 
+import 'dart:async';
+
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_transform_manager.dart';
 import 'package:test/test.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
@@ -8,6 +12,35 @@ import 'helpers.dart';
 void main() async {
   final testHelper = TestHelper("transforms");
   await testHelper.setup();
+
+  test('FilamentApp.setParent waits for the transform manager', () async {
+    final nativeApp = FilamentApp.instance! as FFIFilamentApp;
+    final manager = _ControlledParentingManager(nativeApp);
+    final FilamentApp app = _ParentingTestApp(nativeApp, manager);
+    var completed = false;
+    final parenting = app.setParent(1, 2).then<void>((_) => completed = true);
+
+    try {
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+    } finally {
+      manager.completion.complete();
+      await parenting.timeout(const Duration(seconds: 5));
+    }
+    expect(completed, isTrue);
+  });
+
+  test('FilamentApp.setParent propagates transform manager errors', () async {
+    final nativeApp = FilamentApp.instance! as FFIFilamentApp;
+    final manager = _ControlledParentingManager(nativeApp);
+    final FilamentApp app = _ParentingTestApp(nativeApp, manager);
+    final error = StateError('parenting failed');
+    // Also handle the manager error if the app incorrectly discards its future.
+    manager.completion.future.ignore();
+    final failure = expectLater(app.setParent(1, null), throwsA(same(error)));
+    manager.completion.completeError(error);
+    await failure;
+  });
 
   test('create entity and set as parent', () async {
     await testHelper.withViewer((viewer) async {
@@ -174,4 +207,39 @@ void main() async {
       }
     });
   });
+}
+
+class _ControlledParentingManager extends FFITransformManager {
+  final completion = Completer<void>();
+
+  _ControlledParentingManager(FFIFilamentApp app) : super(app.transformManager.getNativeHandle(), app);
+
+  @override
+  Future<void> setParent(ThermionEntity child, ThermionEntity? parent, {bool preserveScaling = false}) {
+    return completion.future;
+  }
+}
+
+// Shares the existing engine and replaces only the transform manager.
+class _ParentingTestApp extends FFIFilamentApp {
+  final FFITransformManager _parentingManager;
+
+  @override
+  FFITransformManager get transformManager => _parentingManager;
+
+  _ParentingTestApp(FFIFilamentApp app, this._parentingManager)
+    : super(
+        app.engine,
+        app.gltfAssetLoader,
+        app.renderer,
+        app.transformManager.getNativeHandle(),
+        app.ubershaderMaterialProvider,
+        app.renderManager.getNativeHandle(),
+        app.renderThreadHandle,
+        app.nameComponentManager,
+        app.loadResource,
+        app.lightManager.getNativeHandle(),
+        app.renderableManager.getNativeHandle(),
+        app.animationManager.getNativeHandle(),
+      );
 }
