@@ -65,7 +65,9 @@ material {
             default : false
         }
     ],
-    depthWrite : true,
+    // Grid levels share a plane. Transparent cells must not write depth.
+    // Keep depth testing so geometry in front still hides the grid.
+    depthWrite : false,
     depthCulling : true,
     doubleSided: false,
     shadingModel : unlit,
