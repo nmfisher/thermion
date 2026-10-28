@@ -533,53 +533,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       0, 4, 1, 5, 2, 6, 3, 7,
     ]);
 
-    // Create unlit material instance for the wireframe
-    final materialInstancePtr = await withPointerCallback<TMaterialInstance>((cb) {
-      MaterialProvider_createMaterialInstanceRenderThread(
-        _app.ubershaderMaterialProvider,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        0,
-        false,
-        false,
-        0,
-        false,
-        0,
-        0,
-        false,
-        0,
-        false,
-        0,
-        false,
-        0,
-        false,
-        false,
-        false,
-        0,
-        0,
-        0,
-        false,
-        0,
-        false,
-        0,
-        false,
-        0,
-        false,
-        0,
-        false,
-        false,
-        false,
-        cb,
-      );
-    });
-
-    final material = FFIMaterialInstance(materialInstancePtr, _app);
+    final material = await _app.createUnlitMaterialInstance() as FFIMaterialInstance;
     FFIAsset? box;
     try {
       await material.setParameterFloat4("baseColorFactor", 1.0, 1.0, 0.0, 1.0); // Yellow wireframe.
