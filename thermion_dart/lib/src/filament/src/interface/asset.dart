@@ -195,6 +195,18 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
     throw UnimplementedError();
   }
 
+  /// Returns the cached wireframe geometry for this asset's bounding box.
+  /// The geometry and its material are owned by this asset and shared by viewers.
+  Future<ThermionAsset> getBoundingBoxAsset() async {
+    throw UnimplementedError();
+  }
+
+  /// Destroys the cached bounding-box geometry and its material.
+  /// This affects every viewer showing the box. A later request creates a new box.
+  Future<void> destroyBoundingBox() async {
+    throw UnimplementedError();
+  }
+
   // Gets the instance attached to this asset at index [index]
   Future<ThermionAsset> getInstance(int index) async {
     throw UnimplementedError();

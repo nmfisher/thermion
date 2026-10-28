@@ -22,6 +22,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   final _ownedAssets = Set<FFIAsset>.identity();
   final _ownedMaterialInstances = <int, FFIMaterialInstance>{};
   Future<void>? _destructionFuture;
+  FFIAsset? _boundingBoxAsset;
 
   Pointer<TSceneAsset> get asset {
     _throwIfNotAlive();
@@ -80,23 +81,6 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     }
     child._owner = this;
     _ownedAssets.add(child);
-  }
-
-  /// Transfers a newly allocated material instance to this asset.
-  /// The caller must stop owning it and must not transfer it to another asset.
-  /// Materials supplied to geometry or native instance creation stay borrowed
-  /// unless explicitly transferred here.
-  /// Materials obtained from asset accessors are borrowed and must not be transferred.
-  /// Native instances retain transferred materials on their instance owner.
-  void ownMaterialInstance(FFIMaterialInstance material) {
-    _throwIfNotAlive();
-    if (isInstance) {
-      // Releasing a glTF instance returns it to its native pool. Its renderables
-      // can still reference the material until the native owner is destroyed.
-      _owner!.ownMaterialInstance(material);
-      return;
-    }
-    _ownedMaterialInstances.putIfAbsent(material.pointer.address, () => material);
   }
 
   late final ThermionEntity entity;
@@ -428,17 +412,23 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future dispose() async {
+    _boundingBoxAsset = null;
     _childEntities?.free();
     _childEntities = null;
   }
 
   //
   Future<v64.Aabb3> getBoundingBox() async {
+    _throwIfNotAlive();
+    return _getBoundingBox();
+  }
+
+  v64.Aabb3 _getBoundingBox() {
     final entities = <ThermionEntity>[];
     if (_app.renderableManager.isRenderable(entity)) {
       entities.add(entity);
     } else {
-      entities.addAll(await getChildEntities());
+      entities.addAll(_getChildEntities());
     }
 
     var boundingBox = v64.Aabb3();
@@ -448,6 +438,111 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       boundingBox.hull(aabb3);
     }
     return boundingBox;
+  }
+
+  @override
+  Future<FFIAsset> getBoundingBoxAsset() {
+    _throwIfNotAlive();
+    return _enqueueOperation(() async {
+      final existing = _boundingBoxAsset;
+      if (existing != null && existing._status == _AssetStatus.alive) {
+        return existing;
+      }
+      await _destroyBoundingBox();
+      return _createBoundingBox();
+    });
+  }
+
+  @override
+  Future<void> destroyBoundingBox() {
+    _throwIfNotAlive();
+    return _enqueueOperation(_destroyBoundingBox);
+  }
+
+  Future<void> _destroyBoundingBox() async {
+    final box = _boundingBoxAsset;
+    if (box != null && box._status != _AssetStatus.destroyed) {
+      await box._destroyFromOwner();
+    }
+    _boundingBoxAsset = null;
+  }
+
+  Future<FFIAsset> _createBoundingBox() async {
+    final bounds = _getBoundingBox();
+    // The bounds are absolute model-space corners.
+    // Parenting the box applies this asset's transform.
+    final min = [bounds.min.x, bounds.min.y, bounds.min.z];
+    final max = [bounds.max.x, bounds.max.y, bounds.max.z];
+
+    // Create vertices for the bounding box wireframe
+    // 8 vertices for a cube
+    final vertices = Float32List(8 * 3);
+
+    // Bottom vertices
+    vertices[0] = min[0];
+    vertices[1] = min[1];
+    vertices[2] = min[2]; // v0
+    vertices[3] = max[0];
+    vertices[4] = min[1];
+    vertices[5] = min[2]; // v1
+    vertices[6] = max[0];
+    vertices[7] = min[1];
+    vertices[8] = max[2]; // v2
+    vertices[9] = min[0];
+    vertices[10] = min[1];
+    vertices[11] = max[2]; // v3
+
+    // Top vertices
+    vertices[12] = min[0];
+    vertices[13] = max[1];
+    vertices[14] = min[2]; // v4
+    vertices[15] = max[0];
+    vertices[16] = max[1];
+    vertices[17] = min[2]; // v5
+    vertices[18] = max[0];
+    vertices[19] = max[1];
+    vertices[20] = max[2]; // v6
+    vertices[21] = min[0];
+    vertices[22] = max[1];
+    vertices[23] = max[2]; // v7
+
+    // Indices for lines (24 indices for 12 lines)
+    final indices = Uint16List.fromList([
+      // Bottom face
+      0, 1, 1, 2, 2, 3, 3, 0,
+      // Top face
+      4, 5, 5, 6, 6, 7, 7, 4,
+      // Vertical edges
+      0, 4, 1, 5, 2, 6, 3, 7,
+    ]);
+
+    final material = await _app.createUnlitMaterialInstance() as FFIMaterialInstance;
+    FFIAsset? box;
+    try {
+      await material.setParameterFloat4("baseColorFactor", 1.0, 1.0, 0.0, 1.0); // Yellow wireframe.
+      // Create geometry for the bounding box.
+      final geometry = Geometry(vertices, indices, primitiveType: PrimitiveType.LINES);
+      try {
+        box = await _app.createGeometry(geometry, materialInstances: [material]) as FFIAsset;
+      } finally {
+        geometry.dispose();
+      }
+      // Destroying the box must release its material even if the target stays alive.
+      box._ownedMaterialInstances[material.pointer.address] = material;
+      await box.setCastShadows(false);
+      await box.setReceiveShadows(false);
+      await _app.transformManager.setParent(box.entity, entity);
+      _ownAsset(box);
+      _boundingBoxAsset = box;
+      return box;
+    } catch (_) {
+      if (box != null) {
+        await box._destroyFromOwner();
+      } else {
+        await material.destroy();
+      }
+      rethrow;
+    }
   }
 
   //

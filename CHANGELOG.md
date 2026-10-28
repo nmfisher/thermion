@@ -9,6 +9,11 @@
   instance source. The deprecated getter retains its existing behavior.
   Classes using `implements ThermionAsset` must add `owner`. Subclasses can
   inherit the compatibility default.
+- Bounding-box geometry and its generated material are now owned by the target
+  asset and shared between viewers. Viewer show/hide calls control scene
+  attachment. The `destroy` parameter on `viewer.hideBoundingBox` is retained
+  but deprecated. When true, it destroys the shared box in every viewer.
+  Use `asset.destroyBoundingBox()` to discard the cached geometry and material.
 - Remove the unused native `RenderManager_requestRender` API and make web pause
   controls nonblocking to prevent deadlocks with main-thread upload callbacks.
 - Let Dart isolates exit after their native void callbacks finish, without
