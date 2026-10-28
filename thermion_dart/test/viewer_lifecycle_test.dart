@@ -24,19 +24,106 @@ void main() async {
   final app = FilamentApp.instance!;
   final gltfData = await app.loadResource('file://${testHelper.assetsDir}/cube.glb');
 
-  Future<ThermionAsset> showBoundingBox(ThermionViewer viewer, ThermionAsset asset) async {
-    final box = await viewer.showBoundingBox(asset) as ThermionAsset;
-    final material = await box.getMaterialInstanceAt();
-    addTearDown(() async {
-      if (!box.isDestroyed) {
-        await app.destroyAsset(box);
+  test('viewers share asset-owned boxes and control visibility independently', () async {
+    final first = await testHelper.createViewer(
+      bg: kBlue,
+      createRenderTarget: true,
+      viewportDimensions: (width: 128, height: 128),
+    );
+    final second = await testHelper.createViewer(
+      bg: kBlue,
+      createRenderTarget: true,
+      viewportDimensions: (width: 128, height: 128),
+    );
+    final owner = await app.createGeometry(GeometryUtils.cube());
+
+    Future<int> yellowPixels(ThermionViewer viewer, SwapChain swapChain) async {
+      final captured = await testHelper.capture(viewer.view, null, swapChain: swapChain, captureRenderTarget: true);
+      final pixels = ByteData.sublistView(captured[viewer.view]!);
+      var count = 0;
+      for (var offset = 0; offset < pixels.lengthInBytes; offset += 16) {
+        if (pixels.getFloat32(offset, Endian.little) > 0.5 &&
+            pixels.getFloat32(offset + 4, Endian.little) > 0.5 &&
+            pixels.getFloat32(offset + 8, Endian.little) < 0.25) {
+          count++;
+        }
       }
-      // The viewer does not destroy this material yet (tpf-kx2v).
-      // Release it after the box.
-      await material.destroy();
+      return count;
+    }
+
+    try {
+      final box = await first.$1.showBoundingBox(owner);
+      expect(identical(await second.$1.showBoundingBox(owner), box), isTrue);
+      expect(await yellowPixels(first.$1, first.$2), greaterThan(0));
+      expect(await yellowPixels(second.$1, second.$2), greaterThan(0));
+
+      await first.$1.hideBoundingBox(owner);
+      expect(box.isDestroyed, isFalse);
+      expect(await yellowPixels(first.$1, first.$2), 0);
+      expect(await yellowPixels(second.$1, second.$2), greaterThan(0));
+
+      expect(identical(await first.$1.showBoundingBox(owner), box), isTrue);
+      await first.$1.dispose();
+      expect(box.isDestroyed, isFalse);
+      expect(await yellowPixels(second.$1, second.$2), greaterThan(0));
+
+      await owner.destroyBoundingBox();
+      expect(box.isDestroyed, isTrue);
+      expect(await yellowPixels(second.$1, second.$2), 0);
+      final replacement = await second.$1.showBoundingBox(owner);
+      expect(identical(replacement, box), isFalse);
+      expect(await yellowPixels(second.$1, second.$2), greaterThan(0));
+
+      await app.destroyAsset(owner);
+      expect(replacement.isDestroyed, isTrue);
+      await second.$1.hideBoundingBox(owner);
+      expect(await yellowPixels(second.$1, second.$2), 0);
+    } finally {
+      await first.$1.dispose();
+      await second.$1.dispose();
+      if (!owner.isDestroyed) await app.destroyAsset(owner);
+      await app.destroySwapChain(first.$2);
+      await app.destroySwapChain(second.$2);
+      await testHelper.disposeColorGradings();
+    }
+  });
+
+  test('deprecated destroy option releases the shared box and keeps its owner alive', () async {
+    await ViewerBuilder(testHelper).execute((first) async {
+      await ViewerBuilder(testHelper).execute((second) async {
+        final owner = await app.createGeometry(GeometryUtils.cube());
+        try {
+          final box = await first.viewer.showBoundingBox(owner);
+          expect(identical(await second.viewer.showBoundingBox(owner), box), isTrue);
+
+          // ignore: deprecated_member_use_from_same_package
+          await first.viewer.hideBoundingBox(owner, destroy: false);
+          expect(box.isDestroyed, isFalse);
+          expect(identical(await first.viewer.showBoundingBox(owner), box), isTrue);
+
+          // ignore: deprecated_member_use_from_same_package
+          await first.viewer.hideBoundingBox(owner, destroy: true);
+          expect(box.isDestroyed, isTrue);
+          expect(owner.isDestroyed, isFalse);
+          expect(app.renderableManager.hasComponent(box.entity), isFalse);
+          expect(app.transformManager.hasComponent(box.entity), isFalse);
+
+          // The second viewer still has an attachment entry for the destroyed box.
+          await second.viewer.hideBoundingBox(owner);
+          final replacement = await second.viewer.showBoundingBox(owner);
+          expect(identical(replacement, box), isFalse);
+          expect(replacement.isDestroyed, isFalse);
+
+          await app.destroyAsset(owner);
+          expect(replacement.isDestroyed, isTrue);
+          // ignore: deprecated_member_use_from_same_package
+          await second.viewer.hideBoundingBox(owner, destroy: true);
+        } finally {
+          if (!owner.isDestroyed) await app.destroyAsset(owner);
+        }
+      });
     });
-    return box;
-  }
+  });
 
   test('10 viewer lifecycles with capture', () async {
     for (var i = 0; i < 10; i++) {
@@ -263,7 +350,7 @@ void main() async {
       final instanceEntity = instance.entity;
       await result.viewer.addToScene(asset);
       await result.viewer.addToScene(instance);
-      final box = await showBoundingBox(result.viewer, asset);
+      final box = await result.viewer.showBoundingBox(asset);
       try {
         await result.viewer.destroyAsset(asset);
         await result.viewer.destroyAsset(instance);
@@ -274,8 +361,8 @@ void main() async {
         await result.viewer.removeFromScene(instance);
         await result.viewer.removeFromScene(asset);
         await result.viewer.dispose();
-        expect(box.isDestroyed, isTrue);
-        expect(app.renderableManager.hasComponent(box.entity), isFalse);
+        expect(box.isDestroyed, isFalse);
+        expect(app.renderableManager.hasComponent(box.entity), isTrue);
 
         // Viewer cleanup after teardown cannot act on app-owned resources.
         await result.viewer.destroyAsset(asset);
@@ -288,6 +375,8 @@ void main() async {
       }
       expect(app.renderableManager.hasComponent(entity), isFalse);
       expect(app.renderableManager.hasComponent(instanceEntity), isFalse);
+      expect(box.isDestroyed, isTrue);
+      expect(app.renderableManager.hasComponent(box.entity), isFalse);
     });
   });
 
@@ -325,7 +414,7 @@ void main() async {
           final viewer = result.viewer;
           final owner = await createAsset(viewer);
           final instance = await owner.createInstance();
-          final boxes = [await showBoundingBox(viewer, owner), await showBoundingBox(viewer, instance)];
+          final boxes = [await viewer.showBoundingBox(owner), await viewer.showBoundingBox(instance)];
 
           await app.destroyAsset(owner);
           if (dispose) {
@@ -376,8 +465,8 @@ void main() async {
         final instance = await owner.createInstance();
         final alias = (await owner.getInstances()).last;
         await viewer.addToScene(instance);
-        final ownerBox = await showBoundingBox(viewer, owner);
-        final instanceBox = await showBoundingBox(viewer, instance);
+        final ownerBox = await viewer.showBoundingBox(owner);
+        final instanceBox = await viewer.showBoundingBox(instance);
 
         final destruction = app.destroyAsset(instance);
         expect(instance.isDestroyed, isTrue);

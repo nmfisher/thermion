@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' show pi;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_indirect_light.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_ktx1_bundle.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
@@ -199,12 +198,12 @@ class ThermionViewerFFI extends ThermionViewer {
         errors.add(('destroy asset', error, stackTrace));
       }
     }
-    // Boxes shown for app-owned assets are still owned by the viewer.
+    // App-owned assets keep their cached boxes. Detach them from this scene.
     for (final asset in _boundingBoxAssets.keys.toList()) {
       try {
-        await hideBoundingBox(asset, destroy: true);
+        await _hideBoundingBox(asset);
       } catch (error, stackTrace) {
-        errors.add(('destroy bounding box', error, stackTrace));
+        errors.add(('detach bounding box', error, stackTrace));
       }
     }
     for (final light in _lights.toList()) {
@@ -715,12 +714,11 @@ class ThermionViewerFFI extends ThermionViewer {
     }
     _assets.remove(asset);
 
-    // FilamentApp.destroyAsset() can destroy an asset without removing its boxes.
-    // Release the boxes before checking asset.isDestroyed.
+    // Detach boxes shown in this scene. Their target asset owns their resources.
     for (final target in _boundingBoxAssets.keys.toList()) {
       final owner = target is FFIAsset && target.isInstance ? target.owner : null;
       if (identical(target, asset) || identical(owner, asset)) {
-        await hideBoundingBox(target, destroy: true);
+        await _hideBoundingBox(target);
       }
     }
 
@@ -1054,152 +1052,42 @@ class ThermionViewerFFI extends ThermionViewer {
     await view.removeStencilHighlight(asset);
   }
 
-  // Destroyed asset keys must remain usable without reading their native handles.
-  final _boundingBoxAssets = Map<ThermionAsset, Completer<ThermionAsset>>.identity();
+  // Visibility belongs to this scene. The target asset owns the box itself.
+  final _boundingBoxAssets = Map<ThermionAsset, ThermionAsset>.identity();
 
-  //
-  Future showBoundingBox(ThermionAsset asset) async {
-    if (_boundingBoxAssets.containsKey(asset)) {
-      final bbAsset = await _boundingBoxAssets[asset]!.future;
-      await scene.add(bbAsset);
-      return;
-    }
-
-    var completer = Completer<ThermionAsset>();
-    _boundingBoxAssets[asset] = completer;
-
-    final boundingBox = await asset.getBoundingBox();
-
-    // Aabb3.min/max are absolute object-space corners, not offsets from
-    // center. The wireframe asset is parented to `asset` below, so these
-    // values are already in the right frame.
-    final min = [boundingBox.min.x, boundingBox.min.y, boundingBox.min.z];
-    final max = [boundingBox.max.x, boundingBox.max.y, boundingBox.max.z];
-
-    // Create vertices for the bounding box wireframe
-    // 8 vertices for a cube
-    final vertices = Float32List(8 * 3);
-
-    // Bottom vertices
-    vertices[0] = min[0];
-    vertices[1] = min[1];
-    vertices[2] = min[2]; // v0
-    vertices[3] = max[0];
-    vertices[4] = min[1];
-    vertices[5] = min[2]; // v1
-    vertices[6] = max[0];
-    vertices[7] = min[1];
-    vertices[8] = max[2]; // v2
-    vertices[9] = min[0];
-    vertices[10] = min[1];
-    vertices[11] = max[2]; // v3
-
-    // Top vertices
-    vertices[12] = min[0];
-    vertices[13] = max[1];
-    vertices[14] = min[2]; // v4
-    vertices[15] = max[0];
-    vertices[16] = max[1];
-    vertices[17] = min[2]; // v5
-    vertices[18] = max[0];
-    vertices[19] = max[1];
-    vertices[20] = max[2]; // v6
-    vertices[21] = min[0];
-    vertices[22] = max[1];
-    vertices[23] = max[2]; // v7
-
-    // Indices for lines (24 indices for 12 lines)
-    final indices = Uint16List.fromList([
-      // Bottom face
-      0, 1, 1, 2, 2, 3, 3, 0,
-      // Top face
-      4, 5, 5, 6, 6, 7, 7, 4,
-      // Vertical edges
-      0, 4, 1, 5, 2, 6, 3, 7,
-    ]);
-
-    // Create unlit material instance for the wireframe
-    final materialInstancePtr = await withPointerCallback<TMaterialInstance>((cb) {
-      MaterialProvider_createMaterialInstanceRenderThread(
-        _app.ubershaderMaterialProvider,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        0,
-        false,
-        false,
-        0,
-        false,
-        0,
-        0,
-        false,
-        0,
-        false,
-        0,
-        false,
-        0,
-        false,
-        false,
-        false,
-        0,
-        0,
-        0,
-        false,
-        0,
-        false,
-        0,
-        false,
-        0,
-        false,
-        0,
-        false,
-        false,
-        false,
-        cb,
-      );
+  @override
+  Future<ThermionAsset> showBoundingBox(ThermionAsset asset) {
+    _throwIfNotActive();
+    return _serializeSceneResourceOperation(() async {
+      final box = await asset.getBoundingBoxAsset();
+      await scene.add(box);
+      _boundingBoxAssets[asset] = box;
+      return box;
     });
-
-    final material = FFIMaterialInstance(materialInstancePtr, _app);
-    await material.setParameterFloat4("baseColorFactor", 1.0, 1.0, 0.0, 1.0); // Yellow wireframe
-
-    // Create geometry for the bounding box
-    final geometry = Geometry(vertices, indices, primitiveType: PrimitiveType.LINES);
-
-    final bbAsset = await _app.createGeometry(geometry, materialInstances: [material]);
-
-    await bbAsset.setCastShadows(false);
-    await bbAsset.setReceiveShadows(false);
-
-    TransformManager_setParent(Engine_getTransformManager(_app.engine), bbAsset.entity, asset.entity, false);
-    geometry.dispose();
-
-    completer.complete(bbAsset);
-
-    await scene.add(bbAsset);
-
-    return bbAsset;
   }
 
-  Future hideBoundingBox(ThermionAsset asset, {bool destroy = false}) async {
-    if (_boundingBoxAssets.containsKey(asset)) {
-      final completer = _boundingBoxAssets[asset]!;
-      final bbAsset = await completer.future;
-
-      await scene.remove(bbAsset);
-      if (destroy) {
-        _boundingBoxAssets.remove(asset);
-        await _app.destroyAsset(bbAsset as FFIAsset);
-        _logger.info("Bounding box destroyed");
-      } else {
-        _logger.info("Bounding box hidden");
+  @override
+  Future<void> hideBoundingBox(
+    ThermionAsset asset, {
+    @Deprecated('Use asset.destroyBoundingBox() to destroy the shared box.') bool destroy = false,
+  }) {
+    if (_lifecycle != _ViewerLifecycle.active) {
+      return Future<void>.value();
+    }
+    return _serializeSceneResourceOperation(() async {
+      await _hideBoundingBox(asset);
+      if (destroy && !asset.isDestroyed) {
+        await asset.destroyBoundingBox();
       }
-    } else {
-      _logger.warning("Warning - no bounding box for asset created");
+    });
+  }
+
+  Future<void> _hideBoundingBox(ThermionAsset asset) async {
+    final box = _boundingBoxAssets.remove(asset);
+    if (box != null) {
+      // The box may already be destroyed. Its cached entity ID is enough to
+      // remove the scene attachment, without reading a native asset handle.
+      await scene.removeEntity(box.entity);
     }
   }
 }

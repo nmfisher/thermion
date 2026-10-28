@@ -151,7 +151,7 @@ void main() async {
       await testHelper.capture(result.viewer.view, "show_bounding_box");
       await result.viewer.hideBoundingBox(asset);
       await testHelper.capture(result.viewer.view, "hide_bounding_box");
-      await result.viewer.hideBoundingBox(asset, destroy: true);
+      await asset.destroyBoundingBox();
       await testHelper.capture(result.viewer.view, "destroy_bounding_box");
     });
   });
