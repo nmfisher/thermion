@@ -43,10 +43,11 @@ abstract class ThermionViewer {
 
   /// Disposes the viewer and the assets and lights created through it.
   ///
-  /// Previously accepted scene operations finish before teardown. Asset and
-  /// light cleanup calls made once disposal starts are no-ops. Assets created
-  /// directly through [FilamentApp] remain the caller's responsibility, even
-  /// if they were added to this viewer's scene.
+  /// Queued scene operations finish before resources are released.
+  /// Asset and light cleanup calls made once disposal starts do nothing.
+  /// Do not use the viewer for other work after calling this method.
+  /// Assets created directly through [FilamentApp] remain the caller's
+  /// responsibility, even if they were added to this viewer's scene.
   Future dispose();
 
   // Return the textured quad used for the background image.
