@@ -885,7 +885,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   //
   @override
   Future setParent(ThermionEntity child, ThermionEntity? parent, {bool preserveScaling = false}) async {
-    transformManager.setParent(child, parent ?? FILAMENT_ENTITY_NULL, preserveScaling: preserveScaling);
+    await transformManager.setParent(child, parent ?? FILAMENT_ENTITY_NULL, preserveScaling: preserveScaling);
   }
 
   //
