@@ -66,14 +66,6 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   @Deprecated('Use owner. Check isInstance for native instances.')
   FFIAsset? get instanceOwner => isInstance ? _owner : null;
 
-  /// Transfers an independently allocated asset to this asset's lifetime.
-  /// Native instances are registered by their factory instead.
-  void ownAsset(FFIAsset child) {
-    _throwIfNotAlive();
-    child._throwIfNotAlive();
-    _ownAsset(child);
-  }
-
   void _ownAsset(FFIAsset child) {
     if (child._owner != null) {
       throw StateError('Asset already has an owner.');

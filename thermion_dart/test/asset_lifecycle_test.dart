@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:logging/logging.dart';
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
@@ -19,60 +18,6 @@ void main() async {
     Future<ThermionAsset> createOwner() =>
         gltf ? app.loadGltfFromBuffer(gltfData) : app.createGeometry(GeometryUtils.cube());
 
-    test('$kind owner destroys independent child assets and their instances', () async {
-      final owner = await createOwner() as FFIAsset;
-      final child = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
-      final grandchild = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
-      final instance = await child.createInstance();
-      owner.ownAsset(child);
-      child.ownAsset(grandchild);
-      expect(owner.owner, isNull);
-      expect(identical(child.owner, owner), isTrue);
-      expect(identical(grandchild.owner, child), isTrue);
-      expect(child.isInstance, isFalse);
-      // ignore: deprecated_member_use_from_same_package
-      expect(child.instanceOwner, isNull);
-      expect(instance.isInstance, isTrue);
-      expect(identical(instance.owner, child), isTrue);
-      // ignore: deprecated_member_use_from_same_package
-      expect(identical(instance.instanceOwner, child), isTrue);
-
-      final destruction = app.destroyAsset(owner);
-      for (final asset in [child, grandchild, instance]) {
-        expect(asset.isDestroyed, isTrue);
-        expect(() => asset.getNativeHandle(), throwsStateError);
-      }
-      await destruction.timeout(const Duration(seconds: 10));
-      for (final asset in [child, grandchild, instance]) {
-        expect(app.renderableManager.hasComponent(asset.entity), isFalse);
-        expect(app.transformManager.hasComponent(asset.entity), isFalse);
-      }
-      expect(identical(child.owner, owner), isTrue);
-      expect(identical(instance.owner, child), isTrue);
-    });
-
-    test('$kind child can be destroyed before its owner', () async {
-      final owner = await createOwner() as FFIAsset;
-      final child = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
-      owner.ownAsset(child);
-      await app.destroyAsset(child);
-      expect(owner.isDestroyed, isFalse);
-      expect(child.isDestroyed, isTrue);
-      await app.destroyAsset(owner);
-    });
-
-    test('$kind native instance can own an independently allocated asset', () async {
-      final owner = await createOwner();
-      final instance = await owner.createInstance() as FFIAsset;
-      final child = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
-      instance.ownAsset(child);
-      await app.destroyAsset(instance);
-      expect(child.isDestroyed, isTrue);
-      expect(owner.isDestroyed, isFalse);
-      expect(app.renderableManager.hasComponent(child.entity), isFalse);
-      await app.destroyAsset(owner);
-    });
-
     test('$kind instance materials are retained until the native owner is destroyed', () async {
       final owner = await createOwner() as FFIAsset;
       final instance = await owner.createInstance();
@@ -90,45 +35,6 @@ void main() async {
       expect(material.destroyCalls, 0);
       await material.setParameterFloat4('baseColorFactor', 0, 1, 0, 1);
       await app.destroyAsset(owner);
-      expect(material.destroyCalls, 1);
-      expect(material.destroyed, isTrue);
-    });
-
-    test('$kind destruction waits for accepted operations on an independent child', () async {
-      final owner = await createOwner() as FFIAsset;
-      final child = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
-      owner.ownAsset(child);
-      final created = child.createInstance();
-      final destruction = app.destroyAsset(owner);
-      final instance = await created;
-      await destruction.timeout(const Duration(seconds: 10));
-      expect(instance.isDestroyed, isTrue);
-      expect(app.renderableManager.hasComponent(instance.entity), isFalse);
-    });
-
-    test('$kind parent waits for child destruction already releasing its material', () async {
-      final owner = await createOwner() as FFIAsset;
-      final allocated = await app.createUbershaderMaterialInstance(unlit: true) as FFIMaterialInstance;
-      final material = _TrackedMaterialInstance(allocated, app);
-      final child = await app.createGeometry(GeometryUtils.cube(), materialInstances: [material]) as FFIAsset;
-      material.entities.add(child.entity);
-      material.allowDestruction = Completer<void>();
-      child.ownMaterialInstance(material);
-      owner.ownAsset(child);
-      final childDestruction = app.destroyAsset(child);
-      await material.destructionStarted.future.timeout(const Duration(seconds: 10));
-      final ownerDestruction = app.destroyAsset(owner);
-      var ownerFinished = false;
-      final ownerHandled = ownerDestruction.then((_) => ownerFinished = true);
-      try {
-        await Future<void>.delayed(Duration.zero);
-        expect(ownerFinished, isFalse);
-        expect(app.transformManager.hasComponent(owner.entity), isTrue);
-        expect(material.destroyCalls, 1);
-      } finally {
-        material.allowDestruction!.complete();
-      }
-      await Future.wait([childDestruction, ownerHandled]).timeout(const Duration(seconds: 10));
       expect(material.destroyCalls, 1);
       expect(material.destroyed, isTrue);
     });
@@ -157,6 +63,12 @@ void main() async {
     test('$kind owner destruction invalidates every instance alias', () async {
       final owner = await createOwner();
       final instance = await owner.createInstance();
+      expect(owner.owner, isNull);
+      expect(identical(instance.owner, owner), isTrue);
+      // ignore: deprecated_member_use_from_same_package
+      expect(owner.instanceOwner, isNull);
+      // ignore: deprecated_member_use_from_same_package
+      expect(identical(instance.instanceOwner, owner), isTrue);
       final instances = await owner.getInstances();
       final index = instances.indexWhere((asset) => asset.entity == instance.entity);
       final alias = instances[index];
@@ -178,6 +90,7 @@ void main() async {
       for (final wrapper in [instance, alias, indexedAlias]) {
         expect(wrapper.isDestroyed, isTrue);
         expect(() => wrapper.getNativeHandle(), throwsStateError);
+        expect(identical(wrapper.owner, owner), isTrue);
         await expectLater(wrapper.getChildEntities(), throwsStateError);
         expect(() => app.destroyAsset(wrapper), throwsStateError);
       }
@@ -307,82 +220,6 @@ void main() async {
     expect(material.destroyCalls, 1);
   });
 
-  test('child failures do not skip siblings or destroy the native parent', () async {
-    final owner = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
-    final ownerHandle = owner.getNativeHandle();
-    final children = <FFIAsset>[];
-    final handles = <Pointer<TSceneAsset>>[];
-    final materials = <_TrackedMaterialInstance>[];
-    for (var i = 0; i < 3; i++) {
-      final allocated = await app.createUbershaderMaterialInstance(unlit: true) as FFIMaterialInstance;
-      final material = _TrackedMaterialInstance(allocated, app);
-      final child = await app.createGeometry(GeometryUtils.cube(), materialInstances: [material]) as FFIAsset;
-      material.entities.add(child.entity);
-      child.ownMaterialInstance(material);
-      owner.ownAsset(child);
-      children.add(child);
-      handles.add(child.getNativeHandle());
-      materials.add(material);
-    }
-    final instance = await children.last.createInstance();
-    final instanceHandle = instance.getNativeHandle();
-    materials.last.entities.add(instance.entity);
-    final firstError = StateError('first child material destruction failed');
-    final firstStack = StackTrace.fromString('first child material destruction stack');
-    final secondError = StateError('second child material destruction failed');
-    materials[0].destructionError = firstError;
-    materials[0].destructionStack = firstStack;
-    materials[1].destructionError = secondError;
-    final records = <LogRecord>[];
-    final logLevel = Logger.root.level;
-    Logger.root.level = Level.WARNING;
-    addTearDown(() => Logger.root.level = logLevel);
-    final subscription = Logger.root.onRecord.listen(records.add);
-    addTearDown(subscription.cancel);
-    try {
-      Object? reportedError;
-      StackTrace? reportedStack;
-      await app
-          .destroyAsset(owner)
-          .then<void>(
-            (_) => fail('destruction should report the child failure'),
-            onError: (Object error, StackTrace stack) {
-              reportedError = error;
-              reportedStack = stack;
-            },
-          );
-      expect(reportedError, same(firstError));
-      expect(reportedStack.toString(), firstStack.toString());
-      expect(owner.isDestroyed, isTrue);
-      expect(app.renderableManager.hasComponent(owner.entity), isTrue);
-      for (final child in children) {
-        expect(child.isDestroyed, isTrue);
-        expect(app.renderableManager.hasComponent(child.entity), isFalse);
-      }
-      expect(app.renderableManager.hasComponent(instance.entity), isFalse);
-      expect(materials.map((material) => material.destroyCalls), [1, 1, 1]);
-      expect(materials.last.destroyed, isTrue);
-      expect(records.where((record) => identical(record.error, secondError)), hasLength(1));
-      expect(() => app.destroyAsset(owner), throwsStateError);
-    } finally {
-      // The public API cannot retry partial destruction. Release the remaining
-      // native resources directly so this intentional failure does not leak.
-      if (app.renderableManager.hasComponent(instance.entity)) {
-        await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(instanceHandle, requestId, cb));
-      }
-      for (var i = 0; i < children.length; i++) {
-        if (app.renderableManager.hasComponent(children[i].entity)) {
-          await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(handles[i], requestId, cb));
-        }
-        materials[i].destructionError = null;
-        if (!materials[i].destroyed) await materials[i].destroy();
-      }
-      if (app.renderableManager.hasComponent(owner.entity)) {
-        await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(ownerHandle, requestId, cb));
-      }
-    }
-  });
-
   test('material failure does not skip the asset remaining owned materials', () async {
     final materials = <_TrackedMaterialInstance>[];
     for (var i = 0; i < 2; i++) {
@@ -417,21 +254,6 @@ void main() async {
     final instance = _LegacyAsset(root);
     expect(root.owner, isNull);
     expect(identical(instance.owner, root), isTrue);
-  });
-
-  test('ownership rejects a second owner and cycles', () async {
-    final owner = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
-    final child = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
-    final other = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
-    try {
-      owner.ownAsset(child);
-      expect(() => other.ownAsset(child), throwsStateError);
-      expect(() => child.ownAsset(owner), throwsStateError);
-      expect(() => other.ownAsset(other), throwsStateError);
-    } finally {
-      await app.destroyAsset(owner);
-      await app.destroyAsset(other);
-    }
   });
 
   Future<ThermionAsset> createGltfOwner({int initialInstances = 1}) async {
