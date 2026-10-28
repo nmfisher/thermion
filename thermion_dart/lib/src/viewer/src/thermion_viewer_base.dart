@@ -41,8 +41,19 @@ abstract class ThermionViewer {
   @Deprecated('Use FilamentApp.instance!.setTargetFramerate(framerate)')
   Future<void> setFrameRate(int framerate);
 
-  // Destroys/disposes the viewer (including the entire scene). You cannot use the viewer after calling this method.
-  Future dispose();
+  /// Disposes the viewer and the assets and lights created through it.
+  ///
+  /// Queued scene operations finish before resources are released.
+  /// Asset and light cleanup calls made once disposal starts do nothing.
+  /// Do not use the viewer for other work after calling this method.
+  /// Assets created directly through [FilamentApp] remain the caller's
+  /// responsibility, even if they were added to this viewer's scene.
+  ///
+  /// Cleanup continues after errors where it is safe to do so. The returned
+  /// future reports the first error after cleanup. Further errors are logged.
+  /// The viewer cannot be used again, even if cleanup fails. Repeated calls
+  /// return the same future and do not retry cleanup.
+  Future<void> dispose();
 
   // Return the textured quad used for the background image.
   Future<TexturedQuad> getBackgroundImage();
@@ -216,15 +227,18 @@ abstract class ThermionViewer {
     bool addToScene = true,
   });
 
-  // Destroys [asset] and all underlying resources
-  // (including instances, but excluding any manually created material instances).
-  //
+  /// Destroys a viewer-owned [asset], its instances, and their bounding boxes.
+  /// Manually created material instances are excluded. Instances of
+  /// viewer-owned assets are owned by this viewer too.
+  ///
+  /// If [asset] is already destroyed, its bounding boxes are still released.
+  /// Does nothing for unowned assets or once viewer disposal starts.
+  /// Destroy app-owned assets through [FilamentApp.destroyAsset].
   Future destroyAsset(ThermionAsset asset);
 
-  // Removes/destroys all renderable entities from the scene (including cameras).
-  // All [ThermionEntity] handles will no longer be valid after this method is
-  // called; ensure you immediately discard all references to all entities once
-  // this method is complete.
+  /// Destroys all assets created or loaded through this viewer and their
+  /// instances. Their native handles are invalid after this completes.
+  /// Does nothing once viewer disposal starts.
   Future destroyAssets();
 
   // Enable/disable bloom.
@@ -280,7 +294,13 @@ abstract class ThermionViewer {
   // Only one gizmo can be visible at any given time for this viewer.
   Future<GizmoAsset> getGizmo(GizmoType type);
 
-  // Register a callback to be invoked when this viewer is disposed.
+  /// Register cleanup to run during disposal, before cameras, scene and view
+  /// are destroyed. Register callbacks before disposal starts.
+  ///
+  /// A callback error does not stop the remaining callbacks or viewer cleanup.
+  /// [dispose] reports the first error and logs later errors. Do not await
+  /// this viewer's [dispose] from a callback: disposal is already waiting
+  /// for that callback.
   void onDispose(Future Function() callback);
 
   // Gets the 3D axis aligned bounding box for the given entity.
@@ -343,10 +363,11 @@ abstract class ThermionViewer {
   int getCameraCount();
 
   // Adds the asset to the scene. All renderable entities attached to
-  // the asset will be visible.
+  // the asset will be visible. This does not transfer ownership to the viewer.
   Future addToScene(covariant ThermionAsset asset);
 
   // Removes the asset from the scene. None of the renderable entities
   // attached to the asset will be visible, but the asset itself remains valid.
+  // Does nothing once viewer disposal starts.
   Future removeFromScene(covariant ThermionAsset asset);
 }

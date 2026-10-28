@@ -19,6 +19,8 @@ import '../../../../filament/src/interface/defaults.dart';
 
 const FILAMENT_ASSET_ERROR = 0;
 
+enum _ViewerLifecycle { active, disposing, disposed }
+
 //
 //
 //
@@ -129,7 +131,7 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   final _onDispose = <Future Function()>[];
-  bool _disposed = false;
+  _ViewerLifecycle _lifecycle = _ViewerLifecycle.active;
   Future<void>? _disposeFuture;
   Future<void> _sceneResourceOperations = Future<void>.value();
 
@@ -143,8 +145,8 @@ class ThermionViewerFFI extends ThermionViewer {
     return current;
   }
 
-  void _throwIfDisposed() {
-    if (_disposed) {
+  void _throwIfNotActive() {
+    if (_lifecycle != _ViewerLifecycle.active) {
       throw ViewerDisposedException();
     }
   }
@@ -156,40 +158,120 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future<void> _dispose() async {
-    _disposed = true;
-    await setRendering(false);
+    _lifecycle = _ViewerLifecycle.disposing;
+    try {
+      // Do not free resources if stopping rendering fails. They may still be in use.
+      await setRendering(false);
 
-    // Finish any load/remove operation that was accepted before dispose, then
-    // detach and destroy every scene-level resource while the scene is valid.
-    await _sceneResourceOperations;
-    await _removeSkybox(destroy: true);
-    await _removeIbl(destroy: true);
-    await clearBackgroundImage(destroy: true);
+      // Finish queued scene operations before cleanup. Destroy viewer-owned
+      // resources while the scene is still valid.
+      await _serializeSceneResourceOperation(_disposeSceneResources);
+    } finally {
+      _onDispose.clear();
+      _lifecycle = _ViewerLifecycle.disposed;
+    }
+  }
 
-    await destroyAssets();
-    await destroyLights();
+  Future<void> _disposeSceneResources() async {
+    final errors = <(String, Object, StackTrace)>[];
+
+    try {
+      await _removeSkybox(destroy: true);
+    } catch (error, stackTrace) {
+      errors.add(('remove skybox', error, stackTrace));
+    }
+    try {
+      await _removeIbl(destroy: true);
+    } catch (error, stackTrace) {
+      errors.add(('remove IBL', error, stackTrace));
+    }
+    try {
+      await _clearBackgroundImage(destroy: true);
+    } catch (error, stackTrace) {
+      errors.add(('clear background image', error, stackTrace));
+    }
+
+    // _destroyAsset() removes each asset from _assets. Iterate over a copy.
+    for (final asset in _assets.toList()) {
+      try {
+        await _destroyAsset(asset);
+      } catch (error, stackTrace) {
+        errors.add(('destroy asset', error, stackTrace));
+      }
+    }
+    // Boxes shown for app-owned assets are still owned by the viewer.
+    for (final asset in _boundingBoxAssets.keys.toList()) {
+      try {
+        await hideBoundingBox(asset, destroy: true);
+      } catch (error, stackTrace) {
+        errors.add(('destroy bounding box', error, stackTrace));
+      }
+    }
+    for (final light in _lights.toList()) {
+      try {
+        await _removeLight(light);
+      } catch (error, stackTrace) {
+        errors.add(('destroy light', error, stackTrace));
+      }
+    }
 
     for (final callback in _onDispose) {
-      await callback.call();
+      try {
+        await callback();
+      } catch (error, stackTrace) {
+        errors.add(('run onDispose callback', error, stackTrace));
+      }
     }
 
-    await view.setHighlightOverlayEnabled(false);
-    await view.setCamera(null);
-    for (final camera in _cameras.toList()) {
-      await camera.destroy();
+    // The overlay uses the camera and view. If its cleanup fails, leave
+    // those resources alive. Otherwise, detach resources before destroying them.
+    try {
+      await view.setHighlightOverlayEnabled(false);
+      try {
+        await view.setCamera(null);
+        for (final camera in _cameras.toList()) {
+          try {
+            await camera.destroy();
+            _cameras.remove(camera);
+          } catch (error, stackTrace) {
+            errors.add(('destroy camera', error, stackTrace));
+          }
+        }
+      } catch (error, stackTrace) {
+        errors.add(('detach camera', error, stackTrace));
+      }
+      try {
+        await view.setScene(null);
+        try {
+          await _app.destroyScene(scene as FFIScene);
+        } catch (error, stackTrace) {
+          errors.add(('destroy scene', error, stackTrace));
+        }
+      } catch (error, stackTrace) {
+        errors.add(('detach scene', error, stackTrace));
+      }
+      try {
+        await _app.destroyView(view);
+      } catch (error, stackTrace) {
+        errors.add(('destroy view', error, stackTrace));
+      }
+    } catch (error, stackTrace) {
+      errors.add(('disable highlight overlay', error, stackTrace));
     }
-    _cameras.clear();
 
-    await view.setScene(null);
-
-    await _app.destroyScene(scene as FFIScene);
-    await _app.destroyView(view);
-
-    _onDispose.clear();
+    // Report later errors, then return the first error to the caller.
+    for (final (name, error, stackTrace) in errors.skip(1)) {
+      _logger.warning('Failed to $name during viewer disposal', error, stackTrace);
+    }
+    if (errors.isNotEmpty) {
+      final (_, error, stackTrace) = errors.first;
+      Error.throwWithStackTrace(error, stackTrace);
+    }
   }
 
   //
   void onDispose(Future Function() callback) {
+    _throwIfNotActive();
     _onDispose.add(callback);
   }
 
@@ -197,7 +279,14 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future clearBackgroundImage({bool destroy = false}) async {
+  Future<void> clearBackgroundImage({bool destroy = false}) {
+    if (_lifecycle != _ViewerLifecycle.active) {
+      return Future<void>.value();
+    }
+    return _serializeSceneResourceOperation(() => _clearBackgroundImage(destroy: destroy));
+  }
+
+  Future<void> _clearBackgroundImage({bool destroy = false}) async {
     if (_backgroundImage == null) {
       return;
     }
@@ -258,7 +347,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
   @override
   Future<Skybox> setBackgroundColor(double r, double g, double b, double alpha) {
-    _throwIfDisposed();
+    _throwIfNotActive();
     return _serializeSceneResourceOperation(() async {
       await _removeSkybox(destroy: true);
       final skybox = await _app.createColoredSkybox(r: r, g: g, b: b, a: alpha);
@@ -316,7 +405,7 @@ class ThermionViewerFFI extends ThermionViewer {
   //
   @override
   Future<Skybox> loadSkybox(String skyboxPath) {
-    _throwIfDisposed();
+    _throwIfNotActive();
     return _serializeSceneResourceOperation(() => _loadSkybox(skyboxPath));
   }
 
@@ -424,7 +513,7 @@ class ThermionViewerFFI extends ThermionViewer {
   //
   @override
   Future loadIbl(String lightingPath, {double intensity = 30000, bool destroyExisting = true}) {
-    _throwIfDisposed();
+    _throwIfNotActive();
     return _serializeSceneResourceOperation(
       () => _loadIbl(lightingPath, intensity: intensity, destroyExisting: destroyExisting),
     );
@@ -437,7 +526,7 @@ class ThermionViewerFFI extends ThermionViewer {
     double intensity = 30000,
     bool destroyExisting = true,
   }) {
-    _throwIfDisposed();
+    _throwIfNotActive();
     return _serializeSceneResourceOperation(
       () => _loadIblFromTexture(
         texture,
@@ -460,7 +549,7 @@ class ThermionViewerFFI extends ThermionViewer {
   //
   @override
   Future<Skybox?> removeSkybox() {
-    _throwIfDisposed();
+    _throwIfNotActive();
     return _serializeSceneResourceOperation(_removeSkybox);
   }
 
@@ -481,7 +570,7 @@ class ThermionViewerFFI extends ThermionViewer {
   //
   @override
   Future removeIbl({bool destroy = true}) {
-    _throwIfDisposed();
+    _throwIfNotActive();
     return _serializeSceneResourceOperation(() => _removeIbl(destroy: destroy));
   }
 
@@ -489,34 +578,61 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future<ThermionEntity> addDirectLight(DirectLight directLight) async {
-    var light = await _app.createDirectLight(directLight);
+  Future<ThermionEntity> addDirectLight(DirectLight directLight) {
+    _throwIfNotActive();
+    return _serializeSceneResourceOperation(() async {
+      var light = await _app.createDirectLight(directLight);
 
-    await scene.addEntity(light);
+      await scene.addEntity(light);
 
-    _lights.add(light);
+      _lights.add(light);
 
-    return light;
+      return light;
+    });
   }
 
   //
   @override
-  Future removeLight(ThermionEntity entity) async {
+  Future<void> removeLight(ThermionEntity entity) {
+    if (_lifecycle != _ViewerLifecycle.active) {
+      return Future<void>.value();
+    }
+    return _serializeSceneResourceOperation(() => _removeLight(entity));
+  }
+
+  Future<void> _removeLight(ThermionEntity entity) async {
+    // Another cleanup call may already have removed this light.
+    if (!_lights.remove(entity)) {
+      return;
+    }
     await scene.removeEntity(entity);
     _app.lightManager.destroyLight(entity);
-    _lights.remove(entity);
   }
 
   //
   @override
-  Future destroyLights() async {
+  Future<void> destroyLights() {
+    if (_lifecycle != _ViewerLifecycle.active) {
+      return Future<void>.value();
+    }
+    return _serializeSceneResourceOperation(_destroyLights);
+  }
+
+  Future<void> _destroyLights() async {
     for (final light in _lights.toList()) {
-      await removeLight(light);
+      await _removeLight(light);
     }
   }
 
-  final _assets = <ThermionAsset>{};
+  // NativeHandle.hashCode calls getNativeHandle(), which throws after destruction.
+  final _assets = Set<ThermionAsset>.identity();
   final _cameras = <Camera>{};
+
+  bool _ownsAsset(ThermionAsset asset) {
+    // Only owners are stored in _assets. Their instances have the same viewer ownership.
+    final owner = asset is FFIAsset ? asset.instanceOwner ?? asset : asset;
+    return _assets.contains(owner);
+  }
 
   //
   @override
@@ -529,6 +645,7 @@ class ThermionViewerFFI extends ThermionViewer {
     String? resourceUri,
     bool loadAsync = false,
   }) async {
+    _throwIfNotActive();
     final geometryRequirements = Set<SceneAssetGeometryCapability>.unmodifiable(requiredGeometryCapabilities);
     final data = await _app.loadResource(path);
     if (resourceUri == null) {
@@ -562,53 +679,83 @@ class ThermionViewerFFI extends ThermionViewer {
     Set<SceneAssetGeometryCapability> requiredGeometryCapabilities = const {},
     bool loadResourcesAsync = false,
     String? resourceUri,
-  }) async {
-    var asset = await _app.loadGltfFromBuffer(
-      data,
-      initialInstances: initialInstances,
-      releaseSourceData: releaseSourceData,
-      requiredGeometryCapabilities: requiredGeometryCapabilities,
-      loadResourcesAsync: loadResourcesAsync,
-      resourceUri: resourceUri,
-    );
+  }) {
+    _throwIfNotActive();
+    return _serializeSceneResourceOperation(() async {
+      var asset = await _app.loadGltfFromBuffer(
+        data,
+        initialInstances: initialInstances,
+        releaseSourceData: releaseSourceData,
+        requiredGeometryCapabilities: requiredGeometryCapabilities,
+        loadResourcesAsync: loadResourcesAsync,
+        resourceUri: resourceUri,
+      );
 
-    _assets.add(asset);
-    if (addToScene) {
-      await scene.add(asset);
-    }
+      _assets.add(asset);
+      if (addToScene) {
+        await scene.add(asset);
+      }
 
-    return asset;
+      return asset;
+    });
   }
 
   //
   @override
-  Future destroyAsset(ThermionAsset asset) async {
-    _assets.remove(asset);
-    await scene.remove(asset);
-    await view.removeStencilHighlight(asset);
+  Future<void> destroyAsset(ThermionAsset asset) {
+    if (_lifecycle != _ViewerLifecycle.active) {
+      return Future<void>.value();
+    }
+    return _serializeSceneResourceOperation(() => _destroyAsset(asset));
+  }
 
-    await hideBoundingBox(asset, destroy: true);
+  Future<void> _destroyAsset(ThermionAsset asset) async {
+    if (!_ownsAsset(asset)) {
+      return;
+    }
+    _assets.remove(asset);
+
+    // FilamentApp.destroyAsset() can destroy an asset without removing its boxes.
+    // Release the boxes before checking asset.isDestroyed.
+    for (final target in _boundingBoxAssets.keys.toList()) {
+      final owner = target is FFIAsset ? target.instanceOwner : null;
+      if (identical(target, asset) || identical(owner, asset)) {
+        await hideBoundingBox(target, destroy: true);
+      }
+    }
+
+    if (asset.isDestroyed) {
+      return;
+    }
+    await _removeFromScene(asset);
+
+    if (!asset.isInstance) {
+      for (final instance in await asset.getInstances()) {
+        if (instance.isDestroyed) {
+          continue;
+        }
+        await _removeFromScene(instance);
+      }
+    }
 
     await _app.destroyAsset(asset as FFIAsset);
   }
 
   //
   @override
-  Future destroyAssets() async {
-    _logger.info("Destroying ${_assets.length} assets");
-    for (final asset in _assets) {
-      _logger.info("Destroying asset ${asset.getNativeHandle()}");
-      await scene.remove(asset);
-      await hideBoundingBox(asset, destroy: true);
-
-      for (final instance in (await asset.getInstances())) {
-        await scene.remove(instance);
-        await hideBoundingBox(instance, destroy: true);
-      }
-      await _app.destroyAsset(asset as FFIAsset);
-      _logger.info("Destroyed asset");
+  Future<void> destroyAssets() {
+    if (_lifecycle != _ViewerLifecycle.active) {
+      return Future<void>.value();
     }
-    _assets.clear();
+    return _serializeSceneResourceOperation(_destroyAssets);
+  }
+
+  Future<void> _destroyAssets() async {
+    _logger.info("Destroying ${_assets.length} assets");
+    // _destroyAsset() removes each asset from _assets. Iterate over a copy.
+    for (final asset in _assets.toList()) {
+      await _destroyAsset(asset);
+    }
   }
 
   //
@@ -861,14 +1008,17 @@ class ThermionViewerFFI extends ThermionViewer {
     Geometry geometry, {
     List<MaterialInstance>? materialInstances,
     bool addToScene = true,
-  }) async {
-    final asset = await _app.createGeometry(geometry, materialInstances: materialInstances);
-    _assets.add(asset);
-    if (addToScene) {
-      await scene.add(asset);
-    }
+  }) {
+    _throwIfNotActive();
+    return _serializeSceneResourceOperation(() async {
+      final asset = await _app.createGeometry(geometry, materialInstances: materialInstances);
+      _assets.add(asset);
+      if (addToScene) {
+        await scene.add(asset);
+      }
 
-    return asset;
+      return asset;
+    });
   }
 
   final _gizmos = <GizmoType, GizmoAsset>{};
@@ -883,17 +1033,29 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   //
-  Future addToScene(ThermionAsset asset) async {
-    await scene.add(asset);
+  Future addToScene(ThermionAsset asset) {
+    _throwIfNotActive();
+    return _serializeSceneResourceOperation(() => scene.add(asset));
   }
 
   //
-  Future removeFromScene(ThermionAsset asset) async {
+  Future<void> removeFromScene(ThermionAsset asset) {
+    if (_lifecycle != _ViewerLifecycle.active) {
+      return Future<void>.value();
+    }
+    return _serializeSceneResourceOperation(() => _removeFromScene(asset));
+  }
+
+  Future<void> _removeFromScene(ThermionAsset asset) async {
+    if (asset.isDestroyed) {
+      return;
+    }
     await scene.remove(asset);
     await view.removeStencilHighlight(asset);
   }
 
-  final _boundingBoxAssets = <ThermionAsset, Completer<ThermionAsset>>{};
+  // Destroyed asset keys must remain usable without reading their native handles.
+  final _boundingBoxAssets = Map<ThermionAsset, Completer<ThermionAsset>>.identity();
 
   //
   Future showBoundingBox(ThermionAsset asset) async {
