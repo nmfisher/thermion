@@ -128,6 +128,7 @@ jobs:
             test/geometry_tests.dart \
             test/viewer_lifecycle_test.dart \
             test/asset_lifecycle_test.dart \
+            test/transform_tests.dart \
             test/view_tests.dart \
             test/pcss_controls_render_test.dart \
             test/postprocessing_tests.dart \
@@ -148,7 +149,6 @@ jobs:
             test/all_materials_smoke_test.dart \
             test/skybox_tests.dart \
             --concurrency=1
-          xvfb-run dart test test/transform_tests.dart --name 'FilamentApp.setParent' --concurrency=1
 
       - name: Run tests (Windows)
         if: matrix.name == 'Windows'
@@ -166,6 +166,7 @@ jobs:
             test/geometry_tests.dart `
             test/viewer_lifecycle_test.dart `
             test/asset_lifecycle_test.dart `
+            test/transform_tests.dart `
             test/view_tests.dart `
             test/pcss_controls_render_test.dart `
             test/postprocessing_tests.dart `
@@ -179,8 +180,6 @@ jobs:
             test/all_materials_smoke_test.dart `
             test/skybox_tests.dart `
             --concurrency=1
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dart test test/transform_tests.dart --name 'FilamentApp.setParent' --concurrency=1
 
       - name: Upload Dart test output candidate
         uses: actions/upload-artifact@v4
@@ -259,13 +258,13 @@ jobs:
             test/asset_tests.dart \
             test/viewer_lifecycle_test.dart \
             test/asset_lifecycle_test.dart \
+            test/transform_tests.dart \
             test/image_tests.dart \
             test/overlay_tests.dart \
             test/wireframe_renderable_test.dart \
             test/gizmo_tests_new.dart \
             test/skybox_tests.dart \
             --concurrency=1
-          dart test test/transform_tests.dart --name 'FilamentApp.setParent' --concurrency=1
 
       - name: Upload Dart test output candidate
         uses: actions/upload-artifact@v4
