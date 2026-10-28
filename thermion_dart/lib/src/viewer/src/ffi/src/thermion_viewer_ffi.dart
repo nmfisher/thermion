@@ -161,6 +161,8 @@ class ThermionViewerFFI extends ThermionViewer {
     _lifecycle = _ViewerLifecycle.disposing;
     await setRendering(false);
 
+    // Finish queued scene operations before cleanup. Destroy viewer-owned
+    // resources while the scene is still valid.
     await _serializeSceneResourceOperation(_disposeSceneResources);
     _lifecycle = _ViewerLifecycle.disposed;
   }
