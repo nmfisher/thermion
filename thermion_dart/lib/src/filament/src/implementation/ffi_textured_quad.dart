@@ -196,6 +196,10 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
   }
 
   @override
+  ThermionAsset? get owner => asset.owner;
+
+  @override
+  @Deprecated('Use owner. Check isInstance for native instances.')
   ThermionAsset<dynamic>? get instanceOwner => null;
 
   @override

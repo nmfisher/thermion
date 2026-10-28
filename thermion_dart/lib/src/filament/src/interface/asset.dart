@@ -92,11 +92,9 @@ abstract interface class MorphTargetSet {
 // entities.
 //
 abstract class ThermionAsset<T> extends NativeHandle<T> {
-  /// Returns true if FilamentApp.destroy has been called for this
-  /// asset (or, if this is an instance, its owner asset).
-  ///
-  /// If so, the asset is either scheduled for destruction or has already been destroyed;
-  /// in either case, the asset can no longer be accessed.
+  /// Returns true once destruction of this asset or its owner starts.
+  /// The asset can no longer be used. Cleanup may still be running or may
+  /// have failed. Await the destruction call to check whether cleanup succeeded.
   bool get isDestroyed;
 
   Set<SceneAssetGeometryCapability> get geometryCapabilities {
@@ -118,7 +116,18 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   // Whether or not this asset is an instance.
   bool get isInstance;
 
-  // If this asset is an instance, the asset that owns this instance.
+  /// Certain assets can be "owned" by another asset: 
+  /// - an instanced asset is owned by its parent,  
+  /// - a bounding box asset is owned by the asset it is attached to
+  /// This list may be expanded in future.
+  ///
+  /// Practically, this relationship exists to guarantee that destroying an 
+  /// owning asset will always destroy its owned assets (but not vice versa). 
+  // ignore: deprecated_member_use_from_same_package
+  ThermionAsset? get owner => instanceOwner;
+
+  /// The source asset for a native instance. Other owned assets return null.
+  @Deprecated('Use owner. Check isInstance for native instances.')
   ThermionAsset? get instanceOwner;
 
   //

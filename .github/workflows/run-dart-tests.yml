@@ -127,6 +127,7 @@ jobs:
             test/entity_tests.dart \
             test/geometry_tests.dart \
             test/viewer_lifecycle_test.dart \
+            test/asset_lifecycle_test.dart \
             test/view_tests.dart \
             test/pcss_controls_render_test.dart \
             test/postprocessing_tests.dart \
@@ -163,6 +164,7 @@ jobs:
             test/entity_tests.dart `
             test/geometry_tests.dart `
             test/viewer_lifecycle_test.dart `
+            test/asset_lifecycle_test.dart `
             test/view_tests.dart `
             test/pcss_controls_render_test.dart `
             test/postprocessing_tests.dart `
@@ -253,6 +255,7 @@ jobs:
           dart test -j1 \
             test/asset_tests.dart \
             test/viewer_lifecycle_test.dart \
+            test/asset_lifecycle_test.dart \
             test/image_tests.dart \
             test/overlay_tests.dart \
             test/wireframe_renderable_test.dart \
