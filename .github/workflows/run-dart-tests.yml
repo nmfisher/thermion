@@ -408,23 +408,23 @@ jobs:
           - name: Linux
             artifact: dart-test-output-Linux
             baseline_asset: dart-test-output-Linux.zip
-            baseline_sha256: aa83c5a6d756a53ada947a9bcff18c76f970a2f8b95b0765d6531d237416244c
+            baseline_sha256: 3d1320d5b5005b783d8b31be56fb4e90f61381bf00611853d1da5ee24b4fd0b0
           - name: Windows
             artifact: dart-test-output-Windows
             baseline_asset: dart-test-output-Windows.zip
-            baseline_sha256: cacfcdc63db9b55a641307432bc33439d9b67ee1d2d811f6436dd5c91806bbae
+            baseline_sha256: c1dde33528bc038bcb77f56f3c778fe4ea46a24220f7ba4be116602eae16e75f
           - name: macOS
             artifact: dart-test-output-macOS
             baseline_asset: dart-test-output-macOS.zip
-            baseline_sha256: c93ac751d335d088a78d429dff80721dc468bae1026b83fa44f39318e8c2da42
+            baseline_sha256: 1ea03e794b422d4b3656b0344816478310d767080db24fc2a209e44f5bd17a12
           - name: Linux opengl-only
             artifact: dart-material-output-Linux opengl-only
             baseline_asset: dart-material-output-Linux-opengl-only.zip
-            baseline_sha256: 465d1ba1e4514f831361214fe78bffba506f8f585a4a3e1c042f5e26d6fe467d
+            baseline_sha256: 09182187eb06f07381c8a06ed234d7bf95c37e0800cb4ee0c03edcd7b0867e3c
           - name: Windows vulkan-only
             artifact: dart-material-output-Windows vulkan-only
             baseline_asset: dart-material-output-Windows-vulkan-only.zip
-            baseline_sha256: e71d53bb538c00cd28548f32e1c1fd1820249c2e1bbc956fca75da5bd55ed835
+            baseline_sha256: 4d9825f3481ebb5e4a45f9eec1a498fca7b5b1da99d516ed5e6cb3db560c8435
     steps:
       - uses: actions/checkout@v4
         with:
@@ -443,7 +443,7 @@ jobs:
           # in baseline-review.json in the matching release. To refresh,
           # review captures, publish a new release, then update this tag
           # and the per-platform SHA-256 values above.
-          BASELINE_TAG: render-baselines-2026-10-28-transforms
+          BASELINE_TAG: render-baselines-2026-10-28-grid
           BASELINE_ASSET: ${{ matrix.baseline_asset }}
           BASELINE_SHA256: ${{ matrix.baseline_sha256 }}
         run: |
