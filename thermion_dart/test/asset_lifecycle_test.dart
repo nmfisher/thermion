@@ -177,6 +177,52 @@ void main() async {
       expect(identical(instance.owner, child), isTrue);
     });
 
+    test('$kind nested ownership finishes pending operations before root destruction', () async {
+      final owner = await createOwner();
+      try {
+        final instance = await owner.createInstance();
+        final box = await instance.getBoundingBoxAsset();
+        final boxInstance = await box.createInstance();
+        final nestedBox = await boxInstance.getBoundingBoxAsset();
+        final assets = [owner, instance, box, boxInstance, nestedBox];
+        final entities = <ThermionEntity>{};
+        for (final asset in assets) {
+          entities.add(asset.entity);
+          entities.addAll(await asset.getChildEntities());
+        }
+
+        // Instances share their source asset's queue. Each box has its own queue.
+        final boxLookup = instance.getBoundingBoxAsset();
+        final boxInstanceCreation = boxInstance.createInstance();
+        final nestedBoxLookup = boxInstance.getBoundingBoxAsset();
+        final nestedInstanceCreation = nestedBox.createInstance();
+        final destruction = app.destroyAsset(owner);
+
+        await Future.wait([
+          boxLookup,
+          boxInstanceCreation,
+          nestedBoxLookup,
+          nestedInstanceCreation,
+          destruction,
+        ]).timeout(const Duration(seconds: 10));
+
+        expect(identical(await boxLookup, box), isTrue);
+        expect(identical(await nestedBoxLookup, nestedBox), isTrue);
+        assets.addAll([await boxInstanceCreation, await nestedInstanceCreation]);
+        for (final asset in assets) {
+          expect(asset.isDestroyed, isTrue);
+          expect(() => asset.getNativeHandle(), throwsStateError);
+          entities.add(asset.entity);
+        }
+        for (final entity in entities) {
+          expect(app.renderableManager.hasComponent(entity), isFalse);
+          expect(app.transformManager.hasComponent(entity), isFalse);
+        }
+      } finally {
+        if (!owner.isDestroyed) await app.destroyAsset(owner).timeout(const Duration(seconds: 10));
+      }
+    });
+
     test('$kind parent waits for bounding box destruction already releasing its material', () async {
       final owner = await createOwner() as FFIAsset;
       final allocated = await app.createUbershaderMaterialInstance(unlit: true) as FFIMaterialInstance;
