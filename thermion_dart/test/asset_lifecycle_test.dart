@@ -3,15 +3,22 @@ import 'package:logging/logging.dart';
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'helpers.dart';
 
 void main() async {
   final helper = TestHelper('asset_lifecycle');
   await helper.setup();
-  final app = FilamentApp.instance!;
+  final nativeApp = FilamentApp.instance! as FFIFilamentApp;
+  final materialApp = _MaterialTrackingApp(nativeApp);
+  final FilamentApp app = materialApp;
   final gltfData = await app.loadResource('file://${helper.assetsDir}/cube.glb');
-  tearDownAll(app.destroy);
+  tearDownAll(nativeApp.destroy);
+  setUp(() {
+    materialApp.materials.clear();
+    materialApp.materialSetupError = null;
+  });
 
   for (final gltf in [false, true]) {
     final kind = gltf ? 'glTF' : 'geometry';
@@ -225,13 +232,10 @@ void main() async {
 
     test('$kind parent waits for bounding box destruction already releasing its material', () async {
       final owner = await createOwner() as FFIAsset;
-      final allocated = await app.createUbershaderMaterialInstance(unlit: true) as FFIMaterialInstance;
-      final material = _TrackedMaterialInstance(allocated, app);
       final child = await owner.getBoundingBoxAsset();
-      await child.setMaterialInstanceAt(material);
+      final material = materialApp.materials.single;
       material.entities.add(child.entity);
       material.allowDestruction = Completer<void>();
-      child.ownMaterialInstance(material);
       final childDestruction = app.destroyAsset(child);
       await material.destructionStarted.future.timeout(const Duration(seconds: 10));
       final ownerDestruction = app.destroyAsset(owner);
@@ -250,25 +254,28 @@ void main() async {
       expect(material.destroyed, isTrue);
     });
 
-    test('$kind instance materials are retained until the native owner is destroyed', () async {
-      final owner = await createOwner() as FFIAsset;
+    test('$kind instance destruction releases its box material and keeps the source box material alive', () async {
+      final owner = await createOwner();
       final instance = await owner.createInstance();
-      final allocated = await app.createUbershaderMaterialInstance(unlit: true) as FFIMaterialInstance;
-      final material = _TrackedMaterialInstance(allocated, app);
-      instance.ownMaterialInstance(material);
-      for (final entity in [instance.entity, ...await instance.getChildEntities()]) {
-        if (app.renderableManager.hasComponent(entity)) {
-          await instance.setMaterialInstanceAt(material, entity: entity);
-          material.entities.add(entity);
-        }
-      }
+      final ownerBox = await owner.getBoundingBoxAsset();
+      final instanceBox = await instance.getBoundingBoxAsset();
+      final boxInstance = await instanceBox.createInstance();
+      final ownerMaterial = materialApp.materials.first;
+      final instanceMaterial = materialApp.materials.last;
+      ownerMaterial.entities.add(ownerBox.entity);
+      instanceMaterial.entities.addAll([instanceBox.entity, boxInstance.entity]);
 
       await app.destroyAsset(instance);
-      expect(material.destroyCalls, 0);
-      await material.setParameterFloat4('baseColorFactor', 0, 1, 0, 1);
+      expect(instanceMaterial.destroyCalls, 1);
+      expect(instanceMaterial.destroyed, isTrue);
+      expect(ownerMaterial.destroyCalls, 0);
+      expect(ownerBox.isDestroyed, isFalse);
+      expect(owner.isDestroyed, isFalse);
+      await ownerMaterial.setParameterFloat4('baseColorFactor', 0, 1, 0, 1);
       await app.destroyAsset(owner);
-      expect(material.destroyCalls, 1);
-      expect(material.destroyed, isTrue);
+      expect(instanceMaterial.destroyCalls, 1);
+      expect(ownerMaterial.destroyCalls, 1);
+      expect(ownerMaterial.destroyed, isTrue);
     });
 
     test('$kind repeated destruction throws once cleanup starts', () async {
@@ -448,23 +455,24 @@ void main() async {
     });
   }
 
-  test('owned materials outlive geometry instances and are destroyed once', () async {
-    final allocated = await app.createUbershaderMaterialInstance(unlit: true) as FFIMaterialInstance;
-    final material = _TrackedMaterialInstance(allocated, app);
-    final owner = await app.createGeometry(GeometryUtils.cube(), materialInstances: [material]) as FFIAsset;
-    owner.ownMaterialInstance(material);
-    // Two wrappers for the same pointer still transfer one native resource.
-    owner.ownMaterialInstance(FFIMaterialInstance(material.pointer, app));
-    final first = await owner.createInstance();
-    final second = await owner.createInstance();
-    material.entities.addAll([owner.entity, first.entity, second.entity]);
+  test('generated box material outlives its geometry instances and is destroyed once', () async {
+    final owner = await app.createGeometry(GeometryUtils.cube());
+    final box = await owner.getBoundingBoxAsset();
+    final material = materialApp.materials.single;
+    final first = await box.createInstance();
+    final second = await box.createInstance();
+    material.entities.addAll([box.entity, first.entity, second.entity]);
 
     await app.destroyAsset(first);
     expect(material.destroyCalls, 0);
     await material.setParameterFloat4('baseColorFactor', 0, 1, 0, 1);
-    await app.destroyAsset(owner);
+    await app.destroyAsset(box);
     expect(material.destroyCalls, 1);
     expect(material.destroyed, isTrue);
+    expect(second.isDestroyed, isTrue);
+    expect(owner.isDestroyed, isFalse);
+    await app.destroyAsset(owner);
+    expect(material.destroyCalls, 1);
   });
 
   test('supplied materials remain borrowed across asset and instance destruction', () async {
@@ -483,6 +491,31 @@ void main() async {
     expect(material.destroyCalls, 1);
   });
 
+  test('replacing a box material keeps the replacement borrowed and releases the generated material', () async {
+    final owner = await app.createGeometry(GeometryUtils.cube());
+    final replacement = _TrackedMaterialInstance(
+      await app.createUbershaderMaterialInstance(unlit: true) as FFIMaterialInstance,
+      app,
+    );
+    try {
+      final box = await owner.getBoundingBoxAsset();
+      final generated = materialApp.materials.single;
+      generated.entities.add(box.entity);
+      replacement.entities.add(box.entity);
+      await box.setMaterialInstanceAt(replacement);
+
+      await app.destroyAsset(owner);
+      expect(generated.destroyCalls, 1);
+      expect(generated.destroyed, isTrue);
+      expect(replacement.destroyCalls, 0);
+      await replacement.setParameterFloat4('baseColorFactor', 0, 1, 0, 1);
+    } finally {
+      if (!owner.isDestroyed) await app.destroyAsset(owner);
+      await replacement.destroy();
+    }
+    expect(replacement.destroyCalls, 1);
+  });
+
   test('box cleanup failures do not skip sibling instances or destroy their native owner', () async {
     final owner = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
     final ownerHandle = owner.getNativeHandle();
@@ -491,19 +524,14 @@ void main() async {
     final materials = <_TrackedMaterialInstance>[];
     final sources = <FFIAsset>[];
     final sourceHandles = <Pointer<TSceneAsset>>[];
-    final generatedMaterials = <MaterialInstance>[];
     for (var i = 0; i < 3; i++) {
-      final allocated = await app.createUbershaderMaterialInstance(unlit: true) as FFIMaterialInstance;
-      final material = _TrackedMaterialInstance(allocated, app);
       final source = await owner.createInstance();
       final child = await source.getBoundingBoxAsset();
-      generatedMaterials.add(await child.getMaterialInstanceAt());
-      await child.setMaterialInstanceAt(material);
+      final material = materialApp.materials.last;
       sources.add(source);
       sourceHandles.add(source.getNativeHandle());
       expect(identical(child.owner, source), isTrue);
       material.entities.add(child.entity);
-      child.ownMaterialInstance(material);
       children.add(child);
       handles.add(child.getNativeHandle());
       materials.add(material);
@@ -560,7 +588,6 @@ void main() async {
       for (var i = 0; i < children.length; i++) {
         if (app.renderableManager.hasComponent(children[i].entity)) {
           await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(handles[i], requestId, cb));
-          await generatedMaterials[i].destroy();
         }
         materials[i].destructionError = null;
         if (!materials[i].destroyed) await materials[i].destroy();
@@ -574,32 +601,30 @@ void main() async {
     }
   });
 
-  test('material failure does not skip the asset remaining owned materials', () async {
-    final materials = <_TrackedMaterialInstance>[];
-    for (var i = 0; i < 2; i++) {
-      final allocated = await app.createUbershaderMaterialInstance(unlit: true) as FFIMaterialInstance;
-      materials.add(_TrackedMaterialInstance(allocated, app));
-    }
-    final owner = await app.createGeometry(GeometryUtils.cube(), materialInstances: [materials.first]) as FFIAsset;
-    final instance = await owner.createInstance(materialInstances: [materials.last]);
-    materials.first.entities.add(owner.entity);
-    materials.last.entities.add(instance.entity);
-    for (final material in materials) {
-      owner.ownMaterialInstance(material);
-    }
-    final error = StateError('first material destruction failed');
-    materials.first.destructionError = error;
+  test('bounding-box setup failure releases its generated material and permits another attempt', () async {
+    final owner = await app.createGeometry(GeometryUtils.cube());
+    final error = StateError('material setup failed');
+    materialApp.materialSetupError = error;
     try {
-      await expectLater(app.destroyAsset(owner), throwsA(same(error)));
-      expect(app.renderableManager.hasComponent(owner.entity), isFalse);
-      expect(app.renderableManager.hasComponent(instance.entity), isFalse);
-      expect(materials.map((material) => material.destroyCalls), [1, 1]);
-      expect(materials.last.destroyed, isTrue);
+      await expectLater(owner.getBoundingBoxAsset(), throwsA(same(error)));
+      final failedMaterial = materialApp.materials.single;
+      expect(failedMaterial.destroyCalls, 1);
+      expect(failedMaterial.destroyed, isTrue);
+      expect(owner.isDestroyed, isFalse);
+
+      materialApp.materialSetupError = null;
+      final box = await owner.getBoundingBoxAsset();
+      final material = materialApp.materials.last;
+      material.entities.add(box.entity);
+      expect(material.destroyCalls, 0);
+      expect(box.isDestroyed, isFalse);
+      await app.destroyAsset(owner);
+      expect(material.destroyCalls, 1);
+      expect(material.destroyed, isTrue);
+      expect(failedMaterial.destroyCalls, 1);
     } finally {
-      for (final material in materials) {
-        material.destructionError = null;
-        if (!material.destroyed) await material.destroy();
-      }
+      materialApp.materialSetupError = null;
+      if (!owner.isDestroyed) await app.destroyAsset(owner);
     }
   });
 
@@ -681,6 +706,36 @@ void main() async {
   });
 }
 
+// Shares the existing engine. Wraps material creation to observe real box cleanup.
+class _MaterialTrackingApp extends FFIFilamentApp {
+  final materials = <_TrackedMaterialInstance>[];
+  Object? materialSetupError;
+
+  _MaterialTrackingApp(FFIFilamentApp app)
+    : super(
+        app.engine,
+        app.gltfAssetLoader,
+        app.renderer,
+        app.transformManager.getNativeHandle(),
+        app.ubershaderMaterialProvider,
+        app.renderManager.getNativeHandle(),
+        app.renderThreadHandle,
+        app.nameComponentManager,
+        app.loadResource,
+        app.lightManager.getNativeHandle(),
+        app.renderableManager.getNativeHandle(),
+        app.animationManager.getNativeHandle(),
+      );
+
+  @override
+  Future<FFIMaterialInstance> createUnlitMaterialInstance() async {
+    final material = _TrackedMaterialInstance(await super.createUnlitMaterialInstance() as FFIMaterialInstance, this);
+    material.setupError = materialSetupError;
+    materials.add(material);
+    return material;
+  }
+}
+
 class _LegacyAsset extends ThermionAsset {
   final ThermionAsset? _source;
   _LegacyAsset(this._source);
@@ -701,8 +756,15 @@ class _TrackedMaterialInstance extends FFIMaterialInstance {
   bool destroyed = false;
   Object? destructionError;
   StackTrace? destructionStack;
+  Object? setupError;
 
   _TrackedMaterialInstance(FFIMaterialInstance material, this.app) : super(material.pointer, app);
+
+  @override
+  Future<void> setParameterFloat4(String name, double x, double y, double z, double w) async {
+    if (setupError != null) throw setupError!;
+    await super.setParameterFloat4(name, x, y, z, w);
+  }
 
   @override
   Future<void> destroy() async {

@@ -83,23 +83,6 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     _ownedAssets.add(child);
   }
 
-  /// Transfers a newly allocated material instance to this asset.
-  /// The caller must stop owning it and must not transfer it to another asset.
-  /// Materials supplied to geometry or native instance creation stay borrowed
-  /// unless explicitly transferred here.
-  /// Materials obtained from asset accessors are borrowed and must not be transferred.
-  /// Native instances retain transferred materials on their instance owner.
-  void ownMaterialInstance(FFIMaterialInstance material) {
-    _throwIfNotAlive();
-    if (isInstance) {
-      // Releasing a glTF instance returns it to its native pool. Its renderables
-      // can still reference the material until the native owner is destroyed.
-      _owner!.ownMaterialInstance(material);
-      return;
-    }
-    _ownedMaterialInstances.putIfAbsent(material.pointer.address, () => material);
-  }
-
   late final ThermionEntity entity;
 
   // Mutable only on the owning asset. Instance wrappers read the owner's value
@@ -544,7 +527,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       } finally {
         geometry.dispose();
       }
-      box.ownMaterialInstance(material);
+      // Destroying the box must release its material even if the target stays alive.
+      box._ownedMaterialInstances[material.pointer.address] = material;
       await box.setCastShadows(false);
       await box.setReceiveShadows(false);
       await _app.transformManager.setParent(box.entity, entity);
