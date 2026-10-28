@@ -23,3 +23,5 @@ test/thermion_dart.wasm
 # Assembly/bin material files are unused (build hook uses .c files)
 native/include/material/*.S
 native/include/material/*.bin
+# Reviewed rendering baselines are stored in release assets.
+test/goldens/

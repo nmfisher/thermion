@@ -128,6 +128,7 @@ jobs:
             test/geometry_tests.dart \
             test/viewer_lifecycle_test.dart \
             test/asset_lifecycle_test.dart \
+            test/transform_tests.dart \
             test/view_tests.dart \
             test/pcss_controls_render_test.dart \
             test/postprocessing_tests.dart \
@@ -165,6 +166,7 @@ jobs:
             test/geometry_tests.dart `
             test/viewer_lifecycle_test.dart `
             test/asset_lifecycle_test.dart `
+            test/transform_tests.dart `
             test/view_tests.dart `
             test/pcss_controls_render_test.dart `
             test/postprocessing_tests.dart `
@@ -256,6 +258,7 @@ jobs:
             test/asset_tests.dart \
             test/viewer_lifecycle_test.dart \
             test/asset_lifecycle_test.dart \
+            test/transform_tests.dart \
             test/image_tests.dart \
             test/overlay_tests.dart \
             test/wireframe_renderable_test.dart \
@@ -405,15 +408,15 @@ jobs:
           - name: Linux
             artifact: dart-test-output-Linux
             baseline_asset: dart-test-output-Linux.zip
-            baseline_sha256: 07c462256121c6e012adf49952f797341a5076fcb9875d2f2a803760efc874de
+            baseline_sha256: aa83c5a6d756a53ada947a9bcff18c76f970a2f8b95b0765d6531d237416244c
           - name: Windows
             artifact: dart-test-output-Windows
             baseline_asset: dart-test-output-Windows.zip
-            baseline_sha256: 8a2d4270fc6191e166ad12ba5d8c719e75e24e66f6b50ef134174ded755292e2
+            baseline_sha256: cacfcdc63db9b55a641307432bc33439d9b67ee1d2d811f6436dd5c91806bbae
           - name: macOS
             artifact: dart-test-output-macOS
             baseline_asset: dart-test-output-macOS.zip
-            baseline_sha256: 622db9ac802b40cd626bf8c7be5a7f56ce2f8c15d8a0f53be6404cfdaeae3039
+            baseline_sha256: c93ac751d335d088a78d429dff80721dc468bae1026b83fa44f39318e8c2da42
           - name: Linux opengl-only
             artifact: dart-material-output-Linux opengl-only
             baseline_asset: dart-material-output-Linux-opengl-only.zip
@@ -436,12 +439,11 @@ jobs:
       - name: Download reviewed platform baseline
         env:
           GH_TOKEN: ${{ github.token }}
-          # Preserve reviewed PNGs in releases so Actions retention cannot
-          # remove the baseline. Source: successful run 36846959241; all 631
-          # PNGs also match run 40479176422 pixel-for-pixel. For a refresh,
-          # review a capture run, publish a new release, then update this tag
-          # and the per-platform SHA-256 values above in a reviewed PR.
-          BASELINE_TAG: render-baselines-2026-10-27
+          # Reviewed PNGs live in release assets. Provenance is recorded
+          # in baseline-review.json in the matching release. To refresh,
+          # review captures, publish a new release, then update this tag
+          # and the per-platform SHA-256 values above.
+          BASELINE_TAG: render-baselines-2026-10-28-transforms
           BASELINE_ASSET: ${{ matrix.baseline_asset }}
           BASELINE_SHA256: ${{ matrix.baseline_sha256 }}
         run: |

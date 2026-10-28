@@ -135,18 +135,10 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       final transformManager = FilamentApp.instance!.transformManager;
 
-      // Note: Transform transactions require FFI bindings to be regenerated after
-      // adding the C API functions. Until then, the transaction methods are no-ops,
-      // but the test will still verify the basic transform functionality.
-
       // Create multiple entities for bulk transform updates
       final entities = <ThermionEntity>[];
-      final assets = <ThermionAsset>[];
 
       for (int i = 0; i < 5; i++) {
-        final entity = await FilamentApp.instance!.createEntity();
-        entities.add(entity);
-
         var materialInstance = await FilamentApp.instance!.createUnlitMaterialInstance();
         final cube = await viewer.createGeometry(
           GeometryUtils.cube(normals: false, uvs: false),
@@ -162,13 +154,13 @@ void main() async {
           1.0,
         );
 
-        // Associate the geometry with our entity
-        await transformManager.createComponent(entity);
-        assets.add(cube);
+        // Transform the rendered cube so the captures show the transaction.
+        entities.add(cube.entity);
         await viewer.addToScene(cube);
       }
 
-      await testHelper.capture(viewer.view, "before_transaction");
+      final before = await testHelper.capture(viewer.view, "before_transaction");
+      final beforePixels = Uint8List.fromList(before.values.single);
 
       // Open transaction for bulk updates
       transformManager.openLocalTransformTransaction();
@@ -192,7 +184,12 @@ void main() async {
       // Commit the transaction to apply all changes
       transformManager.commitLocalTransformTransaction();
 
-      await testHelper.capture(viewer.view, "after_transaction");
+      final after = await testHelper.capture(viewer.view, "after_transaction");
+      expect(
+        after.values.single,
+        isNot(orderedEquals(beforePixels)),
+        reason: 'The transaction must change the rendered cubes.',
+      );
 
       // Verify transforms were applied correctly by checking local transforms
       for (int i = 0; i < entities.length; i++) {
