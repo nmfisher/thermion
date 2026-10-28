@@ -116,13 +116,13 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   // Whether or not this asset is an instance.
   bool get isInstance;
 
-  /// Certain assets can be "owned" by another asset: 
-  /// - an instanced asset is owned by its parent,  
+  /// Certain assets can be "owned" by another asset:
+  /// - an instanced asset is owned by its parent,
   /// - a bounding box asset is owned by the asset it is attached to
   /// This list may be expanded in future.
   ///
-  /// Practically, this relationship exists to guarantee that destroying an 
-  /// owning asset will always destroy its owned assets (but not vice versa). 
+  /// Practically, this relationship exists to guarantee that destroying an
+  /// owning asset will always destroy its owned assets (but not vice versa).
   // ignore: deprecated_member_use_from_same_package
   ThermionAsset? get owner => instanceOwner;
 
