@@ -4,6 +4,11 @@
 
 ### Changes
 
+- Add `ThermionAsset.owner` for the immediate owning asset. Deprecate
+  `instanceOwner`; use `owner`, or `isInstance ? owner : null` for the native
+  instance source. The deprecated getter retains its existing behavior.
+  Classes using `implements ThermionAsset` must add `owner`. Subclasses can
+  inherit the compatibility default.
 - Remove the unused native `RenderManager_requestRender` API and make web pause
   controls nonblocking to prevent deadlocks with main-thread upload callbacks.
 - Let Dart isolates exit after their native void callbacks finish, without

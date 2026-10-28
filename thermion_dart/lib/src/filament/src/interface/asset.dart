@@ -116,7 +116,13 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   // Whether or not this asset is an instance.
   bool get isInstance;
 
-  // If this asset is an instance, the asset that owns this instance.
+  /// The asset whose destruction also destroys this asset. Null for a root asset.
+  /// Defaults to [instanceOwner] for existing implementations.
+  // ignore: deprecated_member_use_from_same_package
+  ThermionAsset? get owner => instanceOwner;
+
+  /// The source asset for a native instance. Other owned assets return null.
+  @Deprecated('Use owner. Check isInstance for native instances.')
   ThermionAsset? get instanceOwner;
 
   //

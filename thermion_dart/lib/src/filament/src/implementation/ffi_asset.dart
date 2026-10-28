@@ -58,7 +58,12 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   final bool isInstance;
 
+  @override
+  FFIAsset? get owner => _owner;
+
   /// The source asset for a native instance. Other owned assets return null.
+  @override
+  @Deprecated('Use owner. Check isInstance for native instances.')
   FFIAsset? get instanceOwner => isInstance ? _owner : null;
 
   /// Transfers an independently allocated asset to this asset's lifetime.

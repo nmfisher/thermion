@@ -26,9 +26,15 @@ void main() async {
       final instance = await child.createInstance();
       owner.ownAsset(child);
       child.ownAsset(grandchild);
+      expect(owner.owner, isNull);
+      expect(identical(child.owner, owner), isTrue);
+      expect(identical(grandchild.owner, child), isTrue);
       expect(child.isInstance, isFalse);
+      // ignore: deprecated_member_use_from_same_package
       expect(child.instanceOwner, isNull);
       expect(instance.isInstance, isTrue);
+      expect(identical(instance.owner, child), isTrue);
+      // ignore: deprecated_member_use_from_same_package
       expect(identical(instance.instanceOwner, child), isTrue);
 
       final destruction = app.destroyAsset(owner);
@@ -41,6 +47,8 @@ void main() async {
         expect(app.renderableManager.hasComponent(asset.entity), isFalse);
         expect(app.transformManager.hasComponent(asset.entity), isFalse);
       }
+      expect(identical(child.owner, owner), isTrue);
+      expect(identical(instance.owner, child), isTrue);
     });
 
     test('$kind child can be destroyed before its owner', () async {
@@ -404,6 +412,13 @@ void main() async {
     }
   });
 
+  test('owner supports legacy subclasses that only implement instanceOwner', () {
+    final root = _LegacyAsset(null);
+    final instance = _LegacyAsset(root);
+    expect(root.owner, isNull);
+    expect(identical(instance.owner, root), isTrue);
+  });
+
   test('ownership rejects a second owner and cycles', () async {
     final owner = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
     final child = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
@@ -482,10 +497,23 @@ void main() async {
 
   test('textured quad exposes its underlying asset destruction state', () async {
     final quad = await app.createTexturedQuad();
+    expect(quad.owner, isNull);
     expect(quad.isDestroyed, isFalse);
     await quad.destroy();
+    expect(quad.owner, isNull);
     expect(quad.isDestroyed, isTrue);
   });
+}
+
+class _LegacyAsset extends ThermionAsset {
+  final ThermionAsset? _source;
+  _LegacyAsset(this._source);
+
+  @override
+  ThermionAsset? get instanceOwner => _source;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _TrackedMaterialInstance extends FFIMaterialInstance {
