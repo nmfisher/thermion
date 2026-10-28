@@ -222,12 +222,13 @@ abstract class ThermionViewer {
     bool addToScene = true,
   });
 
-  /// Destroys a viewer-owned [asset] and its instances, excluding manually
-  /// created material instances. Instances of viewer-owned assets are owned
-  /// by this viewer too.
+  /// Destroys a viewer-owned [asset], its instances, and their bounding boxes.
+  /// Manually created material instances are excluded. Instances of
+  /// viewer-owned assets are owned by this viewer too.
   ///
-  /// Does nothing for an unowned or already destroyed asset, or once viewer
-  /// disposal starts. Destroy app-owned assets through [FilamentApp.destroyAsset].
+  /// If [asset] is already destroyed, its bounding boxes are still released.
+  /// Does nothing for unowned assets or once viewer disposal starts.
+  /// Destroy app-owned assets through [FilamentApp.destroyAsset].
   Future destroyAsset(ThermionAsset asset);
 
   /// Destroys all assets created or loaded through this viewer and their

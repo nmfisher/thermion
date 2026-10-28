@@ -173,6 +173,10 @@ class ThermionViewerFFI extends ThermionViewer {
     await _clearBackgroundImage(destroy: true);
 
     await _destroyAssets();
+    // Boxes shown for app-owned assets are still owned by the viewer.
+    for (final asset in _boundingBoxAssets.keys.toList()) {
+      await hideBoundingBox(asset, destroy: true);
+    }
     await _destroyLights();
 
     for (final callback in _onDispose) {
@@ -638,11 +642,20 @@ class ThermionViewerFFI extends ThermionViewer {
       return;
     }
     _assets.remove(asset);
+
+    // FilamentApp.destroyAsset() can destroy an asset without removing its boxes.
+    // Release the boxes before checking asset.isDestroyed.
+    for (final target in _boundingBoxAssets.keys.toList()) {
+      final owner = target is FFIAsset ? target.instanceOwner : null;
+      if (identical(target, asset) || identical(owner, asset)) {
+        await hideBoundingBox(target, destroy: true);
+      }
+    }
+
     if (asset.isDestroyed) {
       return;
     }
     await _removeFromScene(asset);
-    await hideBoundingBox(asset, destroy: true);
 
     if (!asset.isInstance) {
       for (final instance in await asset.getInstances()) {
@@ -650,7 +663,6 @@ class ThermionViewerFFI extends ThermionViewer {
           continue;
         }
         await _removeFromScene(instance);
-        await hideBoundingBox(instance, destroy: true);
       }
     }
 
@@ -970,7 +982,8 @@ class ThermionViewerFFI extends ThermionViewer {
     await view.removeStencilHighlight(asset);
   }
 
-  final _boundingBoxAssets = <ThermionAsset, Completer<ThermionAsset>>{};
+  // Destroyed asset keys must remain usable without reading their native handles.
+  final _boundingBoxAssets = Map<ThermionAsset, Completer<ThermionAsset>>.identity();
 
   //
   Future showBoundingBox(ThermionAsset asset) async {
