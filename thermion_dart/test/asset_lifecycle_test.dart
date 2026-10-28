@@ -298,6 +298,36 @@ void main() async {
     expect(material.destroyCalls, 1);
   });
 
+  test('material cleanup failure prevents native parent destruction', () async {
+    final owner = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
+    final ownerHandle = owner.getNativeHandle();
+    final allocated = await app.createUbershaderMaterialInstance(unlit: true) as FFIMaterialInstance;
+    final material = _TrackedMaterialInstance(allocated, app);
+    final child = await app.createGeometry(GeometryUtils.cube(), materialInstances: [material]) as FFIAsset;
+    material.entities.add(child.entity);
+    child.ownMaterialInstance(material);
+    owner.ownAsset(child);
+    final error = StateError('material destruction failed');
+    material.destructionError = error;
+    try {
+      await expectLater(app.destroyAsset(owner), throwsA(same(error)));
+      expect(owner.isDestroyed, isTrue);
+      expect(child.isDestroyed, isTrue);
+      expect(app.renderableManager.hasComponent(owner.entity), isTrue);
+      expect(app.renderableManager.hasComponent(child.entity), isFalse);
+      expect(material.destroyCalls, 1);
+      expect(() => app.destroyAsset(owner), throwsStateError);
+    } finally {
+      // The public API cannot retry partial destruction. Release the remaining
+      // native resources directly so this intentional failure does not leak.
+      material.destructionError = null;
+      if (!material.destroyed) await material.destroy();
+      if (app.renderableManager.hasComponent(owner.entity)) {
+        await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(ownerHandle, requestId, cb));
+      }
+    }
+  });
+
   test('ownership rejects a second owner and cycles', () async {
     final owner = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
     final child = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
@@ -389,6 +419,7 @@ class _TrackedMaterialInstance extends FFIMaterialInstance {
   Completer<void>? allowDestruction;
   int destroyCalls = 0;
   bool destroyed = false;
+  Object? destructionError;
 
   _TrackedMaterialInstance(FFIMaterialInstance material, this.app) : super(material.pointer, app);
 
@@ -403,6 +434,7 @@ class _TrackedMaterialInstance extends FFIMaterialInstance {
       );
     }
     if (!destructionStarted.isCompleted) destructionStarted.complete();
+    if (destructionError != null) throw destructionError!;
     await allowDestruction?.future;
     await super.destroy();
     destroyed = true;
