@@ -92,11 +92,9 @@ abstract interface class MorphTargetSet {
 // entities.
 //
 abstract class ThermionAsset<T> extends NativeHandle<T> {
-  /// Returns true if FilamentApp.destroy has been called for this
-  /// asset (or, if this is an instance, its owner asset).
-  ///
-  /// If so, the asset is either scheduled for destruction or has already been destroyed;
-  /// in either case, the asset can no longer be accessed.
+  /// Returns true once destruction of this asset or its owner starts.
+  /// The asset can no longer be used. Cleanup may still be running or may
+  /// have failed. Await the destruction call to check whether cleanup succeeded.
   bool get isDestroyed;
 
   Set<SceneAssetGeometryCapability> get geometryCapabilities {

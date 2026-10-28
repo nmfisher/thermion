@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:logging/logging.dart';
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
@@ -298,32 +299,107 @@ void main() async {
     expect(material.destroyCalls, 1);
   });
 
-  test('material cleanup failure prevents native parent destruction', () async {
+  test('child failures do not skip siblings or destroy the native parent', () async {
     final owner = await app.createGeometry(GeometryUtils.cube()) as FFIAsset;
     final ownerHandle = owner.getNativeHandle();
-    final allocated = await app.createUbershaderMaterialInstance(unlit: true) as FFIMaterialInstance;
-    final material = _TrackedMaterialInstance(allocated, app);
-    final child = await app.createGeometry(GeometryUtils.cube(), materialInstances: [material]) as FFIAsset;
-    material.entities.add(child.entity);
-    child.ownMaterialInstance(material);
-    owner.ownAsset(child);
-    final error = StateError('material destruction failed');
-    material.destructionError = error;
+    final children = <FFIAsset>[];
+    final handles = <Pointer<TSceneAsset>>[];
+    final materials = <_TrackedMaterialInstance>[];
+    for (var i = 0; i < 3; i++) {
+      final allocated = await app.createUbershaderMaterialInstance(unlit: true) as FFIMaterialInstance;
+      final material = _TrackedMaterialInstance(allocated, app);
+      final child = await app.createGeometry(GeometryUtils.cube(), materialInstances: [material]) as FFIAsset;
+      material.entities.add(child.entity);
+      child.ownMaterialInstance(material);
+      owner.ownAsset(child);
+      children.add(child);
+      handles.add(child.getNativeHandle());
+      materials.add(material);
+    }
+    final instance = await children.last.createInstance();
+    final instanceHandle = instance.getNativeHandle();
+    materials.last.entities.add(instance.entity);
+    final firstError = StateError('first child material destruction failed');
+    final firstStack = StackTrace.fromString('first child material destruction stack');
+    final secondError = StateError('second child material destruction failed');
+    materials[0].destructionError = firstError;
+    materials[0].destructionStack = firstStack;
+    materials[1].destructionError = secondError;
+    final records = <LogRecord>[];
+    final logLevel = Logger.root.level;
+    Logger.root.level = Level.WARNING;
+    addTearDown(() => Logger.root.level = logLevel);
+    final subscription = Logger.root.onRecord.listen(records.add);
+    addTearDown(subscription.cancel);
     try {
-      await expectLater(app.destroyAsset(owner), throwsA(same(error)));
+      Object? reportedError;
+      StackTrace? reportedStack;
+      await app
+          .destroyAsset(owner)
+          .then<void>(
+            (_) => fail('destruction should report the child failure'),
+            onError: (Object error, StackTrace stack) {
+              reportedError = error;
+              reportedStack = stack;
+            },
+          );
+      expect(reportedError, same(firstError));
+      expect(reportedStack.toString(), firstStack.toString());
       expect(owner.isDestroyed, isTrue);
-      expect(child.isDestroyed, isTrue);
       expect(app.renderableManager.hasComponent(owner.entity), isTrue);
-      expect(app.renderableManager.hasComponent(child.entity), isFalse);
-      expect(material.destroyCalls, 1);
+      for (final child in children) {
+        expect(child.isDestroyed, isTrue);
+        expect(app.renderableManager.hasComponent(child.entity), isFalse);
+      }
+      expect(app.renderableManager.hasComponent(instance.entity), isFalse);
+      expect(materials.map((material) => material.destroyCalls), [1, 1, 1]);
+      expect(materials.last.destroyed, isTrue);
+      expect(records.where((record) => identical(record.error, secondError)), hasLength(1));
       expect(() => app.destroyAsset(owner), throwsStateError);
     } finally {
       // The public API cannot retry partial destruction. Release the remaining
       // native resources directly so this intentional failure does not leak.
-      material.destructionError = null;
-      if (!material.destroyed) await material.destroy();
+      if (app.renderableManager.hasComponent(instance.entity)) {
+        await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(instanceHandle, requestId, cb));
+      }
+      for (var i = 0; i < children.length; i++) {
+        if (app.renderableManager.hasComponent(children[i].entity)) {
+          await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(handles[i], requestId, cb));
+        }
+        materials[i].destructionError = null;
+        if (!materials[i].destroyed) await materials[i].destroy();
+      }
       if (app.renderableManager.hasComponent(owner.entity)) {
         await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(ownerHandle, requestId, cb));
+      }
+    }
+  });
+
+  test('material failure does not skip the asset remaining owned materials', () async {
+    final materials = <_TrackedMaterialInstance>[];
+    for (var i = 0; i < 2; i++) {
+      final allocated = await app.createUbershaderMaterialInstance(unlit: true) as FFIMaterialInstance;
+      materials.add(_TrackedMaterialInstance(allocated, app));
+    }
+    final owner = await app.createGeometry(GeometryUtils.cube(), materialInstances: [materials.first]) as FFIAsset;
+    final instance = await owner.createInstance(materialInstances: [materials.last]);
+    materials.first.entities.add(owner.entity);
+    materials.last.entities.add(instance.entity);
+    for (final material in materials) {
+      owner.ownMaterialInstance(material);
+    }
+    final error = StateError('first material destruction failed');
+    materials.first.destructionError = error;
+    try {
+      await expectLater(app.destroyAsset(owner), throwsA(same(error)));
+      expect(app.renderableManager.hasComponent(owner.entity), isFalse);
+      expect(app.renderableManager.hasComponent(instance.entity), isFalse);
+      expect(materials.map((material) => material.destroyCalls), [1, 1]);
+      expect(materials.last.destroyed, isTrue);
+    } finally {
+      for (final material in materials) {
+        material.destructionError = null;
+        if (!material.destroyed) await material.destroy();
       }
     }
   });
@@ -420,6 +496,7 @@ class _TrackedMaterialInstance extends FFIMaterialInstance {
   int destroyCalls = 0;
   bool destroyed = false;
   Object? destructionError;
+  StackTrace? destructionStack;
 
   _TrackedMaterialInstance(FFIMaterialInstance material, this.app) : super(material.pointer, app);
 
@@ -434,7 +511,9 @@ class _TrackedMaterialInstance extends FFIMaterialInstance {
       );
     }
     if (!destructionStarted.isCompleted) destructionStarted.complete();
-    if (destructionError != null) throw destructionError!;
+    if (destructionError != null) {
+      Error.throwWithStackTrace(destructionError!, destructionStack ?? StackTrace.current);
+    }
     await allowDestruction?.future;
     await super.destroy();
     destroyed = true;

@@ -377,21 +377,47 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       // Register native instances that have not needed a Dart wrapper yet.
       _getInstances();
     }
+    final childErrors = <(int, Object, StackTrace)>[];
     for (final child in _ownedAssets.toList()) {
       // child.isDestroyed also sees this owner's destroying state.
       // Only the child's own status tells us whether its cleanup is complete.
       if (child._status != _AssetStatus.destroyed) {
-        await child._destroyFromOwner();
+        try {
+          await child._destroyFromOwner();
+        } catch (error, stackTrace) {
+          childErrors.add((child.entity, error, stackTrace));
+        }
       }
+    }
+    // Attempt every child. A failed child may still use this native asset or
+    // its materials, so leave them alive and report the error to the caller.
+    if (childErrors.isNotEmpty) {
+      for (final (entity, error, stackTrace) in childErrors.skip(1)) {
+        _logger.warning('Failed to destroy owned asset $entity', error, stackTrace);
+      }
+      final (_, error, stackTrace) = childErrors.first;
+      Error.throwWithStackTrace(error, stackTrace);
     }
     await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(_asset, requestId, cb));
     await dispose();
     // Geometry instances can share these materials. Release every dependent
     // asset and the native geometry before destroying the owned materials.
-    for (final material in _ownedMaterialInstances.values) {
-      await material.destroy();
+    final materialErrors = <(int, Object, StackTrace)>[];
+    for (final entry in _ownedMaterialInstances.entries.toList()) {
+      try {
+        await entry.value.destroy();
+        _ownedMaterialInstances.remove(entry.key);
+      } catch (error, stackTrace) {
+        materialErrors.add((entry.key, error, stackTrace));
+      }
     }
-    _ownedMaterialInstances.clear();
+    if (materialErrors.isNotEmpty) {
+      for (final (address, error, stackTrace) in materialErrors.skip(1)) {
+        _logger.warning('Failed to destroy owned material instance $address', error, stackTrace);
+      }
+      final (_, error, stackTrace) = materialErrors.first;
+      Error.throwWithStackTrace(error, stackTrace);
+    }
     _status = _AssetStatus.destroyed;
     _owner?._ownedAssets.remove(this);
     if (!isInstance) {
