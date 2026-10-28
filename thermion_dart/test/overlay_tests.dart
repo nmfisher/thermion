@@ -1,5 +1,7 @@
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
+import 'package:thermion_dart/src/filament/src/implementation/grid_overlay.dart';
 import 'helpers.dart';
 
 void main() async {
@@ -91,6 +93,100 @@ void main() async {
       }
       await ffiViewer.removeGridOverlay(destroy: true);
     });
+  });
+
+  test('transparent grid levels do not hide other levels', () async {
+    final app = FilamentApp.instance! as FFIFilamentApp;
+    final (viewer, swapChain) = await testHelper.createViewer();
+    try {
+      await viewer.setGridOverlayVisibility(true);
+      final grid = await GridOverlay.create(app);
+      final entities = grid.entities;
+
+      // The same grid color blends identically in either order without axes.
+      for (final entity in entities) {
+        final material = (await app.renderableManager.getMaterialInstanceAt(entity, 0))!;
+        await material.setParameterBool('showAxisX', false);
+        await material.setParameterBool('showAxisZ', false);
+      }
+      for (var i = 0; i < entities.length; i++) {
+        await app.renderableManager.setPriority(entities[i], i);
+      }
+      final forward = (await testHelper.capture(viewer.view, null)).values.single;
+      final forwardPixels = Float32List.fromList(Float32List.view(forward.buffer, forward.offsetInBytes));
+
+      // Transparent large levels must not hide the smaller visible levels.
+      for (var i = 0; i < entities.length; i++) {
+        await app.renderableManager.setPriority(entities[i], entities.length - i);
+      }
+      final reverse = (await testHelper.capture(viewer.view, null)).values.single;
+      final reversePixels = Float32List.view(reverse.buffer, reverse.offsetInBytes);
+      var signal = 0.0;
+      var difference = 0.0;
+      for (var i = 0; i < forwardPixels.length; i++) {
+        if (i % 4 == 3) continue;
+        signal += forwardPixels[i].abs();
+        difference += (forwardPixels[i] - reversePixels[i]).abs();
+      }
+      expect(signal, greaterThan(0));
+      expect(difference / signal, lessThan(0.01));
+    } finally {
+      await viewer.dispose();
+      await testHelper.disposeColorGradings();
+      await FilamentApp.instance!.destroySwapChain(swapChain);
+    }
+  });
+
+  test('grid remains occluded by opaque scene geometry', () async {
+    final app = FilamentApp.instance! as FFIFilamentApp;
+    final (viewer, swapChain) = await testHelper.createViewer();
+    MaterialInstance? material;
+    try {
+      final camera = await viewer.getActiveCamera();
+      await camera.lookAt(Vector3(0, 5, 0.005), focus: Vector3.zero());
+      await viewer.setGridOverlayVisibility(false);
+      final grid = await GridOverlay.create(app);
+      final gridMaterials = <MaterialInstance>[];
+      for (final entity in grid.entities) {
+        gridMaterials.add((await app.renderableManager.getMaterialInstanceAt(entity, 0))!);
+      }
+      material = await app.createUnlitMaterialInstance();
+      await material.setParameterFloat4('baseColorFactor', 0, 1, 0, 1);
+      final cube = await viewer.createGeometry(
+        GeometryUtils.cube(normals: false, uvs: false),
+        materialInstances: [material],
+      );
+      await cube.setTransform(Matrix4.diagonal3Values(0.5, 0.5, 0.5)..setTranslation(Vector3(0, 1, 0)));
+
+      final viewport = await viewer.view.getViewport();
+      final center = ((viewport.height ~/ 2) * viewport.width + viewport.width ~/ 2) * 4;
+      final plain = (await testHelper.capture(viewer.view, null)).values.single;
+      final plainPixels = Float32List.view(plain.buffer, plain.offsetInBytes);
+      final expected = plainPixels.sublist(center, center + 3);
+      expect(expected[1], greaterThan(0.5), reason: 'The center pixel must be inside the green cube.');
+
+      await viewer.setGridOverlayVisibility(true);
+      final occluded = (await testHelper.capture(viewer.view, null)).values.single;
+      final occludedPixels = Float32List.view(occluded.buffer, occluded.offsetInBytes);
+      expect(occludedPixels.sublist(center, center + 3), orderedEquals(expected));
+
+      // Prove that the grid covers this pixel when depth testing is disabled.
+      for (final gridMaterial in gridMaterials) {
+        await gridMaterial.setDepthCullingEnabled(false);
+      }
+      final overlaid = (await testHelper.capture(viewer.view, null)).values.single;
+      final overlaidPixels = Float32List.view(overlaid.buffer, overlaid.offsetInBytes);
+      var difference = 0.0;
+      for (var channel = 0; channel < 3; channel++) {
+        difference += (overlaidPixels[center + channel] - expected[channel]).abs();
+      }
+      expect(difference, greaterThan(0.01));
+    } finally {
+      await viewer.dispose();
+      await material?.destroy();
+      await testHelper.disposeColorGradings();
+      await FilamentApp.instance!.destroySwapChain(swapChain);
+    }
   });
 
   test('translation axis X', () async {
