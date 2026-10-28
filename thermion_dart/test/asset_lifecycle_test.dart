@@ -159,6 +159,37 @@ void main() async {
       }
     });
 
+    test('$kind replacement creation waits for pending instance destruction', () async {
+      final owner = await createOwner();
+      try {
+        final old = await owner.createInstance();
+        final oldAlias = (await owner.getInstances()).firstWhere((asset) => asset.entity == old.entity);
+        final oldHandle = old.getNativeHandle();
+        final destruction = app.destroyAsset(old);
+        final creation = owner.createInstance();
+
+        await Future.wait([destruction, creation]).timeout(const Duration(seconds: 10));
+        final replacement = await creation;
+        if (gltf) {
+          expect(replacement.getNativeHandle(), oldHandle);
+        }
+        final replacementAlias = (await owner.getInstances()).firstWhere((asset) => asset.entity == replacement.entity);
+        expect(identical(replacement, old), isFalse);
+        expect(identical(replacementAlias, replacement), isTrue);
+        expect(old.isDestroyed, isTrue);
+        expect(oldAlias.isDestroyed, isTrue);
+        expect(() => oldAlias.getNativeHandle(), throwsStateError);
+        expect(() => app.destroyAsset(oldAlias), throwsStateError);
+        expect(replacement.isDestroyed, isFalse);
+        expect(app.transformManager.hasComponent(replacement.entity), isTrue);
+
+        await app.destroyAsset(replacement).timeout(const Duration(seconds: 10));
+        expect(replacementAlias.isDestroyed, isTrue);
+      } finally {
+        await app.destroyAsset(owner).timeout(const Duration(seconds: 10));
+      }
+    });
+
     test('$kind parent destruction waits for accepted instance creation', () async {
       final owner = await createOwner();
       final created = owner.createInstance();
