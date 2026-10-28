@@ -1,23 +1,24 @@
 name: iOS device build
 
 on:
-  pull_request:
-    branches: [develop, main]
-    paths:
-      - '.github/workflows/ios-device-build.yml'
-      - 'filament.version'
-      - 'scripts/build_ios.sh'
-      - 'scripts/ios_device_libraries.py'
-      - 'thermion_dart/**'
-      - 'thermion_flutter/**'
-      - 'examples/flutter/quickstart/**'
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref (SHA or branch) to check out
+        required: false
+        type: string
   workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref (SHA or branch) to check out
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: ios-device-build-${{ github.event.pull_request.number || github.ref }}
+  group: ios-device-build-${{ github.workflow }}-${{ inputs.ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -37,6 +38,8 @@ jobs:
       BUILD_MODE: ${{ matrix.mode }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
