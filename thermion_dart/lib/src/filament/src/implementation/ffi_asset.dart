@@ -349,13 +349,18 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     return _destructionFuture = _enqueueOperation(_destroyNativeResources);
   }
 
+  // Destroys this asset when its owner requests cleanup. Public destroy()
+  // would throw after the owner starts destruction: isDestroyed checks the owner.
+  // Reuses any destruction already running so the native object is destroyed once.
   Future<void> _destroyFromOwner() {
     if (_destructionFuture != null) {
       return _destructionFuture!;
     }
     _status = _AssetStatus.destroying;
-    // Instances use the owner's queue, which is already running this cleanup.
-    // Independent assets have their own queue. Drain it before destroying them.
+    // A native instance shares the owner's queue. The owner is already waiting
+    // for this cleanup, so queuing it there would deadlock.
+    // A separately allocated child has its own queue. Run destruction after
+    // its accepted operations, such as createInstance(), have finished.
     return _destructionFuture = isInstance ? _destroyNativeResources() : _enqueueOperation(_destroyNativeResources);
   }
 
