@@ -159,47 +159,83 @@ class ThermionViewerFFI extends ThermionViewer {
 
   Future<void> _dispose() async {
     _lifecycle = _ViewerLifecycle.disposing;
-    await setRendering(false);
+    try {
+      // Do not free resources if stopping rendering fails. They may still be in use.
+      await setRendering(false);
 
-    // Finish queued scene operations before cleanup. Destroy viewer-owned
-    // resources while the scene is still valid.
-    await _serializeSceneResourceOperation(_disposeSceneResources);
-    _lifecycle = _ViewerLifecycle.disposed;
+      // Finish queued scene operations before cleanup. Destroy viewer-owned
+      // resources while the scene is still valid.
+      await _serializeSceneResourceOperation(_disposeSceneResources);
+    } finally {
+      _onDispose.clear();
+      _lifecycle = _ViewerLifecycle.disposed;
+    }
   }
 
   Future<void> _disposeSceneResources() async {
-    await _removeSkybox(destroy: true);
-    await _removeIbl(destroy: true);
-    await _clearBackgroundImage(destroy: true);
+    Object? firstError;
+    StackTrace? firstStackTrace;
+    Future<bool> cleanup(String name, Future Function() operation) async {
+      try {
+        await operation();
+        return true;
+      } catch (error, stackTrace) {
+        // Keep the first error for dispose(). Report later errors without
+        // skipping cleanup for the remaining resources.
+        if (firstError == null) {
+          firstError = error;
+          firstStackTrace = stackTrace;
+        } else {
+          _logger.warning('Failed to $name during viewer disposal', error, stackTrace);
+        }
+        return false;
+      }
+    }
 
-    await _destroyAssets();
+    await cleanup('remove skybox', () => _removeSkybox(destroy: true));
+    await cleanup('remove IBL', () => _removeIbl(destroy: true));
+    await cleanup('clear background image', () => _clearBackgroundImage(destroy: true));
+
+    // _destroyAsset() removes each asset from _assets. Iterate over a copy.
+    for (final asset in _assets.toList()) {
+      await cleanup('destroy asset', () => _destroyAsset(asset));
+    }
     // Boxes shown for app-owned assets are still owned by the viewer.
     for (final asset in _boundingBoxAssets.keys.toList()) {
-      await hideBoundingBox(asset, destroy: true);
+      await cleanup('destroy bounding box', () => hideBoundingBox(asset, destroy: true));
     }
-    await _destroyLights();
+    for (final light in _lights.toList()) {
+      await cleanup('destroy light', () => _removeLight(light));
+    }
 
     for (final callback in _onDispose) {
-      await callback.call();
+      await cleanup('run onDispose callback', callback);
     }
 
-    await view.setHighlightOverlayEnabled(false);
-    await view.setCamera(null);
-    for (final camera in _cameras.toList()) {
-      await camera.destroy();
+    // The overlay uses the camera and view. If its cleanup fails, leave
+    // those resources alive. Otherwise, detach resources before destroying them.
+    if (await cleanup('disable highlight overlay', () => view.setHighlightOverlayEnabled(false))) {
+      if (await cleanup('detach camera', () => view.setCamera(null))) {
+        for (final camera in _cameras.toList()) {
+          if (await cleanup('destroy camera', camera.destroy)) {
+            _cameras.remove(camera);
+          }
+        }
+      }
+      if (await cleanup('detach scene', () => view.setScene(null))) {
+        await cleanup('destroy scene', () => _app.destroyScene(scene as FFIScene));
+      }
+      await cleanup('destroy view', () => _app.destroyView(view));
     }
-    _cameras.clear();
 
-    await view.setScene(null);
-
-    await _app.destroyScene(scene as FFIScene);
-    await _app.destroyView(view);
-
-    _onDispose.clear();
+    if (firstError != null) {
+      Error.throwWithStackTrace(firstError!, firstStackTrace!);
+    }
   }
 
   //
   void onDispose(Future Function() callback) {
+    _throwIfNotActive();
     _onDispose.add(callback);
   }
 

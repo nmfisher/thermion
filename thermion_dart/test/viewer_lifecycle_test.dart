@@ -1,7 +1,15 @@
 @Timeout(const Duration(seconds: 600))
 import 'dart:async';
+import 'package:logging/logging.dart';
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_light_manager.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
+import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
+import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'helpers.dart';
 
 // Minimal isolation repro: does PURE viewer create/destroy (no loadGltf,
@@ -57,6 +65,155 @@ void main() async {
 
           expect(result.viewer.getCameraCount(), 0);
         });
+  });
+
+  for (final asynchronous in [false, true]) {
+    test(
+      'viewer releases native resources after a ${asynchronous ? 'future' : 'synchronous'} callback error',
+      () async {
+        final viewer = ThermionViewerFFI(app: app as FFIFilamentApp);
+        await viewer.initialized;
+        final asset = await viewer.createGeometry(GeometryUtils.cube());
+        final light = await viewer.addDirectLight(DirectLight.point());
+        final error = StateError('callback failed');
+        var laterCallbackRan = false;
+        viewer.onDispose(() {
+          if (asynchronous) return Future<void>.error(error);
+          throw error;
+        });
+        viewer.onDispose(() async => laterCallbackRan = true);
+
+        final disposal = viewer.dispose();
+        expect(identical(viewer.dispose(), disposal), isTrue);
+        await expectLater(disposal, throwsA(same(error)));
+
+        expect(laterCallbackRan, isTrue);
+        expect(asset.isDestroyed, isTrue);
+        expect(app.lightManager.hasComponent(light), isFalse);
+        expect(viewer.getCameraCount(), 0);
+        expect(identical(viewer.dispose(), disposal), isTrue);
+        await expectLater(viewer.dispose(), throwsA(same(error)));
+      },
+    );
+  }
+
+  group('disposal errors', () {
+    test('reports the first callback error after cleanup and logs later errors', () async {
+      final app = _DisposalApp();
+      final viewer = ThermionViewerFFI(app: app);
+      await viewer.initialized;
+      final first = StateError('first callback');
+      final firstStack = StackTrace.fromString('first callback stack');
+      final second = StateError('second callback');
+      final secondStack = StackTrace.fromString('second callback stack');
+      final records = <LogRecord>[];
+      final logLevel = Logger.root.level;
+      Logger.root.level = Level.WARNING;
+      addTearDown(() => Logger.root.level = logLevel);
+      final subscription = Logger.root.onRecord.listen(records.add);
+      addTearDown(subscription.cancel);
+      final callbackReached = Completer<void>();
+      final finishCallback = Completer<void>();
+      viewer.onDispose(() => Error.throwWithStackTrace(first, firstStack));
+      viewer.onDispose(() => Future<void>.error(second, secondStack));
+      viewer.onDispose(() async {
+        callbackReached.complete();
+        await finishCallback.future;
+      });
+
+      final disposal = viewer.dispose();
+      Object? reportedError;
+      StackTrace? reportedStack;
+      var completed = false;
+      final handled = disposal.then<void>(
+        (_) => fail('disposal should fail'),
+        onError: (Object error, StackTrace stack) {
+          reportedError = error;
+          reportedStack = stack;
+          completed = true;
+        },
+      );
+      try {
+        await callbackReached.future.timeout(const Duration(seconds: 10));
+        expect(completed, isFalse);
+        expect(app.calls, isNot(contains('destroy view')));
+        expect(identical(viewer.dispose(), disposal), isTrue);
+        expect(() => viewer.onDispose(() async {}), throwsA(isA<ViewerDisposedException>()));
+      } finally {
+        finishCallback.complete();
+      }
+      await handled;
+
+      expect(reportedError, same(first));
+      expect(reportedStack.toString(), firstStack.toString());
+      final logged = records.where((record) => identical(record.error, second)).single;
+      expect(logged.stackTrace.toString(), secondStack.toString());
+      expect(app.calls, containsAll(['destroy camera 0', 'destroy scene', 'destroy view']));
+      expect(() => viewer.onDispose(() async {}), throwsA(isA<ViewerDisposedException>()));
+      final calls = app.calls.toList();
+      await expectLater(viewer.dispose(), throwsA(same(first)));
+      expect(app.calls, calls);
+    });
+
+    test('one failed asset, light or camera does not skip other resources', () async {
+      final app = _DisposalApp();
+      final viewer = ThermionViewerFFI(app: app);
+      await viewer.initialized;
+      await viewer.createGeometry(GeometryUtils.cube());
+      final secondAsset = await viewer.createGeometry(GeometryUtils.cube());
+      await viewer.addDirectLight(DirectLight.point());
+      await viewer.addDirectLight(DirectLight.point());
+      await viewer.createCamera();
+      final first = StateError('asset destruction failed');
+      final stack = StackTrace.current;
+      app.failures.addAll({
+        'destroy asset 0': (first, stack),
+        'remove light 0': (StateError('light removal failed'), stack),
+        'destroy camera 0': (StateError('camera destruction failed'), stack),
+        'destroy scene': (StateError('scene destruction failed'), stack),
+      });
+      var callbackRan = false;
+      viewer.onDispose(() async => callbackRan = true);
+
+      await expectLater(viewer.dispose(), throwsA(same(first)));
+
+      expect(secondAsset.isDestroyed, isTrue);
+      expect(app.calls, isNot(contains('destroy light 0')));
+      expect(app.calls, containsAll(['destroy light 1', 'destroy camera 1', 'destroy view']));
+      expect(callbackRan, isTrue);
+      expect(() => viewer.createGeometry(GeometryUtils.cube()), throwsA(isA<ViewerDisposedException>()));
+    });
+
+    for (final (failure, skipped) in [
+      ('stop rendering', ['detach skybox', 'destroy asset 0', 'destroy scene', 'destroy view']),
+      ('remove asset 0', ['destroy asset 0']),
+      ('disable overlay', ['detach camera', 'destroy camera 0', 'destroy scene', 'destroy view']),
+      ('detach camera', ['destroy camera 0']),
+      ('detach scene', ['destroy scene']),
+    ]) {
+      test('does not destroy dependent resources after $failure fails', () async {
+        final app = _DisposalApp();
+        final viewer = ThermionViewerFFI(app: app);
+        await viewer.initialized;
+        await viewer.createGeometry(GeometryUtils.cube());
+        final error = StateError(failure);
+        app.failures[failure] = (error, StackTrace.current);
+
+        final disposal = viewer.dispose();
+        await expectLater(disposal, throwsA(same(error)));
+
+        for (final operation in skipped) {
+          expect(app.calls, isNot(contains(operation)));
+        }
+        if (failure != 'stop rendering' && failure != 'disable overlay') {
+          expect(app.calls, contains('destroy view'));
+        }
+        final calls = app.calls.toList();
+        expect(identical(viewer.dispose(), disposal), isTrue);
+        await expectLater(viewer.dispose(), throwsA(same(error)));
+        expect(app.calls, calls);
+      });
+    }
   });
 
   test('destroyAsset while destroyAssets is running', () async {
@@ -310,4 +467,162 @@ void main() async {
       expect(FilamentApp.instance!.lightManager.hasComponent(light), isFalse);
     });
   });
+}
+
+// These fakes fail individual native operations without passing invalid
+// pointers to Filament. The tests above also exercise real native cleanup.
+class _DisposalApp implements FFIFilamentApp {
+  final calls = <String>[];
+  final failures = <String, (Object, StackTrace)>{};
+  late final scene = _DisposalScene(this);
+  late final view = _DisposalView(this);
+  @override
+  late final RenderManager renderManager = _DisposalRenderManager(this);
+  @override
+  late final FFILightManager lightManager = _DisposalLightManager(this);
+  int _assets = 0;
+  int _lights = 0;
+  int _cameras = 0;
+
+  void record(String operation) {
+    calls.add(operation);
+    final failure = failures[operation];
+    if (failure != null) Error.throwWithStackTrace(failure.$1, failure.$2);
+  }
+
+  @override
+  Future<View> createView({bool createScene = false}) async => view;
+  @override
+  Future<Camera> createCamera({ThermionEntity? targetEntity}) async => _DisposalCamera(this, _cameras++);
+  @override
+  Future<void> setClearOptions(
+    double r,
+    double g,
+    double b,
+    double a, {
+    int clearStencil = 0,
+    bool discard = false,
+    bool clear = true,
+  }) async {}
+  @override
+  Future<ThermionAsset> createGeometry(
+    Geometry geometry, {
+    List<MaterialInstance>? materialInstances,
+    bool addToScene = true,
+  }) async => _DisposalAsset(_assets++);
+  @override
+  Future<ThermionEntity> createDirectLight(DirectLight light) async => _lights++;
+  @override
+  Future<void> destroyAsset(covariant _DisposalAsset asset) async {
+    record('destroy asset ${asset.entity}');
+    asset.isDestroyed = true;
+  }
+
+  @override
+  Future<void> destroyScene(covariant FFIScene scene) async => record('destroy scene');
+  @override
+  Future<void> destroyView(View view) async => record('destroy view');
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _DisposalView implements View {
+  final _DisposalApp app;
+  _DisposalView(this.app);
+  @override
+  Future<void> setName(String name) async {}
+  @override
+  Future<Scene> getScene() async => app.scene;
+  @override
+  Future<void> setScene(Scene? scene) async {
+    if (scene == null) app.record('detach scene');
+  }
+
+  @override
+  Future<void> setCamera(Camera? camera) async {
+    if (camera == null) app.record('detach camera');
+  }
+
+  @override
+  Future<void> setHighlightOverlayEnabled(bool enabled) async => app.record('disable overlay');
+  @override
+  Future<void> removeStencilHighlight(ThermionAsset asset) async {}
+  @override
+  Future<Viewport> getViewport() async => Viewport(0, 0, 1, 1);
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _DisposalScene implements FFIScene {
+  final _DisposalApp app;
+  _DisposalScene(this.app);
+  @override
+  Future<Skybox?> getSkybox() async => null;
+  @override
+  Future<void> setSkybox(Skybox? skybox) async => app.record('detach skybox');
+  @override
+  Future<IndirectLight?> getIndirectLight() async => null;
+  @override
+  Future<void> setIndirectLight(IndirectLight? light) async => app.record('detach IBL');
+  @override
+  Future<void> add(ThermionAsset asset) async {}
+  @override
+  Future<void> addEntity(ThermionEntity entity) async {}
+  @override
+  Future<void> remove(ThermionAsset asset) async => app.record('remove asset ${asset.entity}');
+  @override
+  Future<void> removeEntity(ThermionEntity entity) async => app.record('remove light $entity');
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _DisposalAsset implements FFIAsset {
+  @override
+  final ThermionEntity entity;
+  _DisposalAsset(this.entity);
+  @override
+  bool isDestroyed = false;
+  @override
+  FFIAsset? get instanceOwner => null;
+  @override
+  bool get isInstance => false;
+  @override
+  Future<List<FFIAsset>> getInstances() async => [];
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _DisposalCamera implements FFICamera {
+  final _DisposalApp app;
+  final int id;
+  _DisposalCamera(this.app, this.id);
+  @override
+  Future<void> setLensProjection({
+    double near = 0.1,
+    double far = 1000,
+    double aspect = 1,
+    double focalLength = 28,
+  }) async {}
+  @override
+  Future<void> destroy() async => app.record('destroy camera $id');
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _DisposalRenderManager implements RenderManager {
+  final _DisposalApp app;
+  _DisposalRenderManager(this.app);
+  @override
+  Future<void> setRenderable(View view, bool renderable) async => app.record('stop rendering');
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _DisposalLightManager implements FFILightManager {
+  final _DisposalApp app;
+  _DisposalLightManager(this.app);
+  @override
+  void destroyLight(ThermionEntity entity) => app.record('destroy light $entity');
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

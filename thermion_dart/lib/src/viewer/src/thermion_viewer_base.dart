@@ -48,7 +48,12 @@ abstract class ThermionViewer {
   /// Do not use the viewer for other work after calling this method.
   /// Assets created directly through [FilamentApp] remain the caller's
   /// responsibility, even if they were added to this viewer's scene.
-  Future dispose();
+  ///
+  /// Cleanup continues after errors where it is safe to do so. The returned
+  /// future reports the first error after cleanup. Further errors are logged.
+  /// The viewer cannot be used again, even if cleanup fails. Repeated calls
+  /// return the same future and do not retry cleanup.
+  Future<void> dispose();
 
   // Return the textured quad used for the background image.
   Future<TexturedQuad> getBackgroundImage();
@@ -289,7 +294,13 @@ abstract class ThermionViewer {
   // Only one gizmo can be visible at any given time for this viewer.
   Future<GizmoAsset> getGizmo(GizmoType type);
 
-  // Register a callback to be invoked when this viewer is disposed.
+  /// Register cleanup to run during disposal, before cameras, scene and view
+  /// are destroyed. Register callbacks before disposal starts.
+  ///
+  /// A callback error does not stop the remaining callbacks or viewer cleanup.
+  /// [dispose] reports the first error and logs later errors. Do not await
+  /// this viewer's [dispose] from a callback: disposal is already waiting
+  /// for that callback.
   void onDispose(Future Function() callback);
 
   // Gets the 3D axis aligned bounding box for the given entity.
