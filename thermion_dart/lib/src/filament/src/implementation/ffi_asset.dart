@@ -17,6 +17,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   // The owner keeps one Dart object for each native instance.
   final _instances = <int, FFIAsset>{};
   Future<void> _pendingOperations = Future<void>.value();
+  // Destroying the owner also destroys this asset.
   FFIAsset? _owner;
   final _ownedAssets = Set<FFIAsset>.identity();
   final _ownedMaterialInstances = <int, FFIMaterialInstance>{};
@@ -39,8 +40,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   // Instance operations use their owner's queue so owner destruction waits
   // for pending operations on its instances.
   Future<T> _enqueueOperation<T>(Future<T> Function() operation) {
-    if (instanceOwner != null) {
-      return instanceOwner!._enqueueOperation(operation);
+    if (isInstance) {
+      return _owner!._enqueueOperation(operation);
     }
     final previous = _pendingOperations;
     final current = () async {
@@ -57,6 +58,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   final bool isInstance;
 
+  /// The source asset for a native instance. Other owned assets return null.
   FFIAsset? get instanceOwner => isInstance ? _owner : null;
 
   /// Transfers an independently allocated asset to this asset's lifetime.
@@ -94,7 +96,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (isInstance) {
       // Releasing a glTF instance returns it to its native pool. Its renderables
       // can still reference the material until the native owner is destroyed.
-      instanceOwner!.ownMaterialInstance(material);
+      _owner!.ownMaterialInstance(material);
       return;
     }
     _ownedMaterialInstances.putIfAbsent(material.pointer.address, () => material);
@@ -109,26 +111,26 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   // The owning asset's released state; on an instance this reads through to
   // the instance owner.
-  bool get _sourceDataReleased => isInstance ? instanceOwner!._sourceDataReleased : _released;
+  bool get _sourceDataReleased => isInstance ? _owner!._sourceDataReleased : _released;
 
   final FFIFilamentApp _app;
 
   factory FFIAsset(Pointer<TSceneAsset> asset, {FFIAsset? instanceOwner, required FFIFilamentApp app}) {
     if (instanceOwner != null) {
-      return instanceOwner._instances.putIfAbsent(
-        asset.address,
-        () => FFIAsset._(asset, instanceOwner: instanceOwner, app: app),
-      );
+      return instanceOwner._wrapInstance(asset);
     }
     return FFIAsset._(asset, app: app);
   }
 
-  FFIAsset._(Pointer<TSceneAsset> asset, {FFIAsset? instanceOwner, required FFIFilamentApp app})
+  FFIAsset _wrapInstance(Pointer<TSceneAsset> asset) {
+    return _instances.putIfAbsent(asset.address, () => FFIAsset._(asset, owner: this, isInstance: true, app: _app));
+  }
+
+  FFIAsset._(Pointer<TSceneAsset> asset, {FFIAsset? owner, this.isInstance = false, required FFIFilamentApp app})
     : _asset = asset,
-      isInstance = instanceOwner != null,
       _app = app {
     entity = SceneAsset_getEntity(asset);
-    instanceOwner?._ownAsset(this);
+    owner?._ownAsset(this);
   }
 
   @override
@@ -243,7 +245,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       if (instance == nullptr) {
         throw Exception("No instance available at index $index");
       }
-      return FFIAsset(instance, instanceOwner: this, app: _app);
+      return _wrapInstance(instance);
     });
   }
 
@@ -252,7 +254,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   Future<FFIAsset> createInstance({List<MaterialInstance>? materialInstances = null}) async {
     _throwIfNotAlive();
     if (isInstance) {
-      return instanceOwner!.createInstance(materialInstances: materialInstances);
+      return _owner!.createInstance(materialInstances: materialInstances);
     }
     return _enqueueOperation(() async {
       if (_sourceDataReleased) {
@@ -289,7 +291,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       if (_instances[created.address]?._status == _AssetStatus.destroyed) {
         _instances.remove(created.address);
       }
-      return FFIAsset(created, instanceOwner: this, app: _app);
+      return _wrapInstance(created);
     });
   }
 
@@ -315,7 +317,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       if (instance == nullptr) {
         throw Exception("Failed to get asset instance at index $i");
       }
-      return FFIAsset(instance, instanceOwner: this, app: _app);
+      return _wrapInstance(instance);
     });
 
     return result;
@@ -392,7 +394,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     } else if (!pooledInstance) {
       // Geometry instances are deleted outright. Only pooled native instances
       // stay in the owner's cache after destruction.
-      instanceOwner!._instances.remove(_asset.address);
+      _owner!._instances.remove(_asset.address);
     }
   }
 
