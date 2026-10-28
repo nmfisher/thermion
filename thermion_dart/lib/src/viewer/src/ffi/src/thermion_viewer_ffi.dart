@@ -1056,7 +1056,7 @@ class ThermionViewerFFI extends ThermionViewer {
   final _boundingBoxAssets = Map<ThermionAsset, ThermionAsset>.identity();
 
   @override
-  Future<ThermionAsset> showBoundingBox(ThermionAsset asset) {
+  Future showBoundingBox(ThermionAsset asset) {
     _throwIfNotActive();
     return _serializeSceneResourceOperation(() async {
       final box = await asset.getBoundingBoxAsset();

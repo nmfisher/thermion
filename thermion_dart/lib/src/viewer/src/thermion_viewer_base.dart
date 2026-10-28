@@ -309,7 +309,7 @@ abstract class ThermionViewer {
   Future<Aabb3> getRenderableBoundingBox(ThermionEntity entity);
 
   /// Shows the asset-owned bounding-box geometry in this viewer's scene.
-  Future<ThermionAsset> showBoundingBox(ThermionAsset asset);
+  Future showBoundingBox(ThermionAsset asset);
 
   /// Detaches the bounding box from this viewer's scene.
   /// The asset keeps its cached box. Use [ThermionAsset.destroyBoundingBox]
