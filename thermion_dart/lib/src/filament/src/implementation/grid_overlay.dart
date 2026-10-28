@@ -217,6 +217,9 @@ class GridOverlay {
       builder.geometry(0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, indices.length);
       builder.material(0, materialInstance);
       builder.priority(6);
+      // Entity ID reuse can change the order of these overlapping levels and
+      // let a transparent level hide the grid. Draw small levels first.
+      builder.blendOrder(0, i);
       // Layer mask: 0xFF select, 1 << 7 (Overlay layer) value
       builder.layerMask(0xFF, 1 << 7);
       // Disable culling - the shader calculates world-space coordinates

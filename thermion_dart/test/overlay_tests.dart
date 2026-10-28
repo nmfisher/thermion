@@ -55,6 +55,44 @@ void main() async {
     }, postProcessing: true);
   });
 
+  test('grid rendering does not depend on entity allocation', () async {
+    await testHelper.withViewer((viewer) async {
+      final app = FilamentApp.instance!;
+      final ffiViewer = viewer as ThermionViewerFFI;
+      await viewer.setGridOverlayVisibility(true);
+      final expected = (await testHelper.capture(viewer.view, null)).values.single;
+      final expectedPixels = Float32List.view(expected.buffer, expected.offsetInBytes);
+
+      // Filament reuses entity IDs after enough entities have been freed.
+      // Reach that point at different stages of grid creation.
+      for (final count in [1024, 1025, 1026, 1030]) {
+        await ffiViewer.removeGridOverlay(destroy: true);
+        final unusedEntities = <ThermionEntity>[];
+        for (var i = 0; i < count; i++) {
+          unusedEntities.add(await app.createEntity(createTransformComponent: false));
+        }
+        for (final entity in unusedEntities) {
+          await app.destroyEntity(entity);
+        }
+        await app.render();
+        await app.flush();
+        await viewer.setGridOverlayVisibility(true);
+        final actual = (await testHelper.capture(viewer.view, null)).values.single;
+        final actualPixels = Float32List.view(actual.buffer, actual.offsetInBytes);
+        var signal = 0.0;
+        var difference = 0.0;
+        for (var i = 0; i < expectedPixels.length; i++) {
+          if (i % 4 == 3) continue;
+          signal += expectedPixels[i].abs();
+          difference += (expectedPixels[i] - actualPixels[i]).abs();
+        }
+        expect(signal, greaterThan(0));
+        expect(difference / signal, lessThan(0.00001), reason: 'Grid changed after allocating $count unused entities');
+      }
+      await ffiViewer.removeGridOverlay(destroy: true);
+    });
+  });
+
   test('translation axis X', () async {
     await testHelper.withViewer((viewer) async {
       final camera = await viewer.getActiveCamera();
