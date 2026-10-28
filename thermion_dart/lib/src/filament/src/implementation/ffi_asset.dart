@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:logging/logging.dart';
+
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -16,6 +17,11 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   // The owner keeps one Dart object for each native instance.
   final _instances = <int, FFIAsset>{};
   Future<void> _pendingOperations = Future<void>.value();
+  // Destroying the owner also destroys this asset.
+  FFIAsset? _owner;
+  final _ownedAssets = Set<FFIAsset>.identity();
+  final _ownedMaterialInstances = <int, FFIMaterialInstance>{};
+  Future<void>? _destructionFuture;
 
   Pointer<TSceneAsset> get asset {
     _throwIfNotAlive();
@@ -23,7 +29,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   }
 
   @override
-  bool get isDestroyed => _status != _AssetStatus.alive || (instanceOwner?.isDestroyed ?? false);
+  bool get isDestroyed => _status != _AssetStatus.alive || (_owner?.isDestroyed ?? false);
 
   void _throwIfNotAlive() {
     if (isDestroyed) {
@@ -34,8 +40,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   // Instance operations use their owner's queue so owner destruction waits
   // for pending operations on its instances.
   Future<T> _enqueueOperation<T>(Future<T> Function() operation) {
-    if (instanceOwner != null) {
-      return instanceOwner!._enqueueOperation(operation);
+    if (isInstance) {
+      return _owner!._enqueueOperation(operation);
     }
     final previous = _pendingOperations;
     final current = () async {
@@ -50,9 +56,48 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     return asset;
   }
 
-  bool get isInstance => instanceOwner != null;
+  final bool isInstance;
 
-  final FFIAsset? instanceOwner;
+  @override
+  FFIAsset? get owner => _owner;
+
+  /// The source asset for a native instance. Other owned assets return null.
+  @override
+  @Deprecated('Use owner. Check isInstance for native instances.')
+  FFIAsset? get instanceOwner => isInstance ? _owner : null;
+
+  void _ownAsset(FFIAsset child) {
+    if (child._owner != null) {
+      throw StateError('Asset already has an owner.');
+    }
+    if (!identical(_app, child._app)) {
+      throw StateError('Owned assets must belong to the same FilamentApp.');
+    }
+    for (FFIAsset? ancestor = this; ancestor != null; ancestor = ancestor._owner) {
+      if (identical(ancestor, child)) {
+        throw StateError('Asset ownership cannot contain cycles.');
+      }
+    }
+    child._owner = this;
+    _ownedAssets.add(child);
+  }
+
+  /// Transfers a newly allocated material instance to this asset.
+  /// The caller must stop owning it and must not transfer it to another asset.
+  /// Materials supplied to geometry or native instance creation stay borrowed
+  /// unless explicitly transferred here.
+  /// Materials obtained from asset accessors are borrowed and must not be transferred.
+  /// Native instances retain transferred materials on their instance owner.
+  void ownMaterialInstance(FFIMaterialInstance material) {
+    _throwIfNotAlive();
+    if (isInstance) {
+      // Releasing a glTF instance returns it to its native pool. Its renderables
+      // can still reference the material until the native owner is destroyed.
+      _owner!.ownMaterialInstance(material);
+      return;
+    }
+    _ownedMaterialInstances.putIfAbsent(material.pointer.address, () => material);
+  }
 
   late final ThermionEntity entity;
 
@@ -63,24 +108,26 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   // The owning asset's released state; on an instance this reads through to
   // the instance owner.
-  bool get _sourceDataReleased => isInstance ? instanceOwner!._sourceDataReleased : _released;
+  bool get _sourceDataReleased => isInstance ? _owner!._sourceDataReleased : _released;
 
   final FFIFilamentApp _app;
 
   factory FFIAsset(Pointer<TSceneAsset> asset, {FFIAsset? instanceOwner, required FFIFilamentApp app}) {
     if (instanceOwner != null) {
-      return instanceOwner._instances.putIfAbsent(
-        asset.address,
-        () => FFIAsset._(asset, instanceOwner: instanceOwner, app: app),
-      );
+      return instanceOwner._wrapInstance(asset);
     }
     return FFIAsset._(asset, app: app);
   }
 
-  FFIAsset._(Pointer<TSceneAsset> asset, {this.instanceOwner, required FFIFilamentApp app})
+  FFIAsset _wrapInstance(Pointer<TSceneAsset> asset) {
+    return _instances.putIfAbsent(asset.address, () => FFIAsset._(asset, owner: this, isInstance: true, app: _app));
+  }
+
+  FFIAsset._(Pointer<TSceneAsset> asset, {FFIAsset? owner, this.isInstance = false, required FFIFilamentApp app})
     : _asset = asset,
       _app = app {
     entity = SceneAsset_getEntity(asset);
+    owner?._ownAsset(this);
   }
 
   @override
@@ -195,7 +242,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       if (instance == nullptr) {
         throw Exception("No instance available at index $index");
       }
-      return FFIAsset(instance, instanceOwner: this, app: _app);
+      return _wrapInstance(instance);
     });
   }
 
@@ -204,7 +251,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   Future<FFIAsset> createInstance({List<MaterialInstance>? materialInstances = null}) async {
     _throwIfNotAlive();
     if (isInstance) {
-      return instanceOwner!.createInstance(materialInstances: materialInstances);
+      return _owner!.createInstance(materialInstances: materialInstances);
     }
     return _enqueueOperation(() async {
       if (_sourceDataReleased) {
@@ -241,7 +288,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       if (_instances[created.address]?._status == _AssetStatus.destroyed) {
         _instances.remove(created.address);
       }
-      return FFIAsset(created, instanceOwner: this, app: _app);
+      return _wrapInstance(created);
     });
   }
 
@@ -267,7 +314,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       if (instance == nullptr) {
         throw Exception("Failed to get asset instance at index $i");
       }
-      return FFIAsset(instance, instanceOwner: this, app: _app);
+      return _wrapInstance(instance);
     });
 
     return result;
@@ -296,7 +343,22 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   Future<void> destroy() {
     _throwIfNotAlive();
     _status = _AssetStatus.destroying;
-    return _enqueueOperation(_destroyNativeResources);
+    return _destructionFuture = _enqueueOperation(_destroyNativeResources);
+  }
+
+  // Destroys this asset when its owner requests cleanup. Public destroy()
+  // would throw after the owner starts destruction: isDestroyed checks the owner.
+  // Reuses any destruction already running so the native object is destroyed once.
+  Future<void> _destroyFromOwner() {
+    if (_destructionFuture != null) {
+      return _destructionFuture!;
+    }
+    _status = _AssetStatus.destroying;
+    // A native instance shares the owner's queue. The owner is already waiting
+    // for this cleanup, so queuing it there would deadlock.
+    // A separately allocated child has its own queue. Run destruction after
+    // its accepted operations, such as createInstance(), have finished.
+    return _destructionFuture = isInstance ? _destroyNativeResources() : _enqueueOperation(_destroyNativeResources);
   }
 
   Future<void> _destroyNativeResources() async {
@@ -309,19 +371,58 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     // internally; public handle access is already invalid at this point.
     _removeAnimationComponent();
     if (!isInstance) {
-      for (final instance in _getInstances()) {
-        await instance._destroyNativeResources();
+      // Register native instances that have not needed a Dart wrapper yet.
+      _getInstances();
+    }
+    final childErrors = <(int, Object, StackTrace)>[];
+    for (final child in _ownedAssets.toList()) {
+      // child.isDestroyed also sees this owner's destroying state.
+      // Only the child's own status tells us whether its cleanup is complete.
+      if (child._status != _AssetStatus.destroyed) {
+        try {
+          await child._destroyFromOwner();
+        } catch (error, stackTrace) {
+          childErrors.add((child.entity, error, stackTrace));
+        }
       }
+    }
+    // Attempt every child. A failed child may still use this native asset or
+    // its materials, so leave them alive and report the error to the caller.
+    if (childErrors.isNotEmpty) {
+      for (final (entity, error, stackTrace) in childErrors.skip(1)) {
+        _logger.warning('Failed to destroy owned asset $entity', error, stackTrace);
+      }
+      final (_, error, stackTrace) = childErrors.first;
+      Error.throwWithStackTrace(error, stackTrace);
     }
     await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(_asset, requestId, cb));
     await dispose();
+    // Geometry instances can share these materials. Release every dependent
+    // asset and the native geometry before destroying the owned materials.
+    final materialErrors = <(int, Object, StackTrace)>[];
+    for (final entry in _ownedMaterialInstances.entries.toList()) {
+      try {
+        await entry.value.destroy();
+        _ownedMaterialInstances.remove(entry.key);
+      } catch (error, stackTrace) {
+        materialErrors.add((entry.key, error, stackTrace));
+      }
+    }
+    if (materialErrors.isNotEmpty) {
+      for (final (address, error, stackTrace) in materialErrors.skip(1)) {
+        _logger.warning('Failed to destroy owned material instance $address', error, stackTrace);
+      }
+      final (_, error, stackTrace) = materialErrors.first;
+      Error.throwWithStackTrace(error, stackTrace);
+    }
     _status = _AssetStatus.destroyed;
+    _owner?._ownedAssets.remove(this);
     if (!isInstance) {
       _instances.clear();
     } else if (!pooledInstance) {
       // Geometry instances are deleted outright. Only pooled native instances
       // stay in the owner's cache after destruction.
-      instanceOwner!._instances.remove(_asset.address);
+      _owner!._instances.remove(_asset.address);
     }
   }
 

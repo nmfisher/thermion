@@ -630,7 +630,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
   bool _ownsAsset(ThermionAsset asset) {
     // Only owners are stored in _assets. Their instances have the same viewer ownership.
-    final owner = asset is FFIAsset ? asset.instanceOwner ?? asset : asset;
+    final owner = asset is FFIAsset && asset.isInstance ? asset.owner ?? asset : asset;
     return _assets.contains(owner);
   }
 
@@ -718,7 +718,7 @@ class ThermionViewerFFI extends ThermionViewer {
     // FilamentApp.destroyAsset() can destroy an asset without removing its boxes.
     // Release the boxes before checking asset.isDestroyed.
     for (final target in _boundingBoxAssets.keys.toList()) {
-      final owner = target is FFIAsset ? target.instanceOwner : null;
+      final owner = target is FFIAsset && target.isInstance ? target.owner : null;
       if (identical(target, asset) || identical(owner, asset)) {
         await hideBoundingBox(target, destroy: true);
       }

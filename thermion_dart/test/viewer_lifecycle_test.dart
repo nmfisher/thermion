@@ -585,6 +585,8 @@ class _DisposalAsset implements FFIAsset {
   @override
   FFIAsset? get instanceOwner => null;
   @override
+  FFIAsset? get owner => null;
+  @override
   bool get isInstance => false;
   @override
   Future<List<FFIAsset>> getInstances() async => [];
