@@ -525,6 +525,7 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future<void> _removeLight(ThermionEntity entity) async {
+    // Another cleanup call may already have removed this light.
     if (!_lights.remove(entity)) {
       return;
     }
@@ -552,6 +553,7 @@ class ThermionViewerFFI extends ThermionViewer {
   final _cameras = <Camera>{};
 
   bool _ownsAsset(ThermionAsset asset) {
+    // Only owners are stored in _assets. Their instances have the same viewer ownership.
     final owner = asset is FFIAsset ? asset.instanceOwner ?? asset : asset;
     return _assets.contains(owner);
   }
@@ -666,6 +668,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
   Future<void> _destroyAssets() async {
     _logger.info("Destroying ${_assets.length} assets");
+    // _destroyAsset() removes each asset from _assets. Iterate over a copy.
     for (final asset in _assets.toList()) {
       await _destroyAsset(asset);
     }
