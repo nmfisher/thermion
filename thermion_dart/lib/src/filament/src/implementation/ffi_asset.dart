@@ -547,7 +547,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       box.ownMaterialInstance(material);
       await box.setCastShadows(false);
       await box.setReceiveShadows(false);
-      TransformManager_setParent(Engine_getTransformManager(_app.engine), box.entity, entity, false);
+      await _app.transformManager.setParent(box.entity, entity);
       _ownAsset(box);
       _boundingBoxAsset = box;
       return box;
