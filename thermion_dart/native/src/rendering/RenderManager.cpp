@@ -280,6 +280,8 @@ namespace thermion
       mEngine->flush();
     }
     mEngine->execute();
+    // TODO should this be called for non-web platforms too? Otherwise we need to wait for a frame to render
+    // to handle user callbacks, which is risky when an application is paused as messages can pile up.
     mEngine->pumpMessageQueues();
 #endif
 
