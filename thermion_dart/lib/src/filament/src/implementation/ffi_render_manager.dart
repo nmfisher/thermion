@@ -215,7 +215,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   }
 
   Future render({int? frameTimeInNanos}) async {
-    // Previously there was a check here for running on web (and if so, the method simply returned 
+    // Previously there was a check here for running on web (and if so, the method simply returned
     // because the compiled Thermion web library managed its own main loop & frame rendering).
     // This check has been moved to RenderThread (which decides whether its worker owns rendering or this call
     // drives a canvas-thread frame. Worker mode completes without queuing work).
