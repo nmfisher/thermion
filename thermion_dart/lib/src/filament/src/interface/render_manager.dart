@@ -24,9 +24,10 @@ abstract class RenderManager<T> extends NativeHandle<T> {
   /// When omitted, uses the current native steady-clock time. The returned
   /// [Future] completes when the render pipeline step has finished.
   ///
-  /// On web, rendering runs independently on the worker's animation frames.
-  /// This method returns immediately without requesting or waiting for a frame;
-  /// [frameTimeInNanos] is ignored.
+  /// The default web engine renders independently on its worker's animation
+  /// frames: this method completes without requesting or waiting for a frame,
+  /// and ignores [frameTimeInNanos]. A web engine built with
+  /// THERMION_WEB_MAIN_THREAD instead renders on the calling thread.
   Future render({int? frameTimeInNanos});
 
   void destroy();

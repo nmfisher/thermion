@@ -156,6 +156,10 @@ private:
     #else
     void startWebWorker(const char* canvasSelector);
     void pumpTasks();
+
+    /// Drain commands after a synchronous main-thread operation. The normal
+    /// worker and native paths submit commands through their existing loops.
+    void flushCommands();
     #endif
 
     // Appends one command to the queue. Native workers are woken immediately;

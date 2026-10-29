@@ -129,6 +129,29 @@ flutter run -d chrome
 
 When set, the build hook copies `thermion_dart.{js,wasm}` from `thermion_dart/native/web/build/build/out/` into your app's `web/` directory instead of downloading from R2. Remove the flag (or set it to `false`) to go back to the pinned prebuilt.
 
+#### Main-thread rendering for standalone web clients
+
+Custom browser clients can build the web engine with
+`-DTHERMION_WEB_MAIN_THREAD=ON` (default: `OFF`). Initialize the engine and
+call Thermion from the browser's main thread. Commands and completion
+callbacks execute on that calling thread. Thermion does not create its own
+render worker or transfer the canvas to one.
+
+Serialize calls on that thread. Drive frames by calling `FilamentApp.render()`
+from the application's animation loop. Command dispatch also drains pending
+Filament commands and upload-release callbacks without requiring a frame.
+Asynchronous glTF loading yields between progress polls so decoder tasks and
+browser events can run.
+
+The default build continues rendering through its worker loop. In that
+build, `FilamentApp.render()` runs Dart's request-frame hooks but does not
+request or await a rendered frame.
+
+The main-thread option does not disable Emscripten pthread support or
+Filament's internal helpers. Enabling it requires rebuilding the Wasm engine.
+A Dart define or an existing worker bundle cannot enable it. No performance
+improvement is implied by the option.
+
 #### Running the test suite on web
 
 The package:test suite runs on Chrome via a wrapper. Do not invoke `dart test -p chrome` directly — the multithreaded WASM build needs `crossOriginIsolated` (a COOP/COEP proxy), and each test file needs an HTML host that loads `thermion_dart.js` and the `thermion_canvas`. The wrapper handles both:

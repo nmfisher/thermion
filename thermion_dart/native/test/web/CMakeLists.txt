@@ -22,3 +22,20 @@ target_link_options(web_upload_drain_test PRIVATE
   -sINITIAL_MEMORY=134217728 -sSTACK_SIZE=10485760
   -sFULL_ES3=1 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2
   -sENVIRONMENT=node -sEXIT_RUNTIME=1)
+
+add_executable(web_canvas_thread_test
+  web_canvas_thread_test.cpp
+  ../../src/rendering/RenderThread.cpp
+  ../../src/rendering/RenderManager.cpp)
+target_compile_features(web_canvas_thread_test PRIVATE cxx_std_17)
+target_compile_definitions(web_canvas_thread_test PRIVATE THERMION_WEB_MAIN_THREAD=1)
+target_include_directories(web_canvas_thread_test PRIVATE
+  ../../include ../../web/include "${FILAMENT_TEST_LIB_DIR}/include")
+target_compile_options(web_canvas_thread_test PRIVATE -pthread -fno-exceptions)
+target_link_libraries(web_canvas_thread_test PRIVATE
+  -Wl,--start-group ${FILAMENT_TEST_LIBRARIES} -Wl,--end-group)
+target_link_options(web_canvas_thread_test PRIVATE
+  -pthread -sPTHREAD_POOL_SIZE=1 -sALLOW_BLOCKING_ON_MAIN_THREAD=1
+  -sINITIAL_MEMORY=134217728 -sSTACK_SIZE=10485760
+  -sFULL_ES3=1 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2
+  -sENVIRONMENT=node -sEXIT_RUNTIME=1)
