@@ -1,4 +1,4 @@
-name: Web canvas-thread mode
+name: Web main-thread mode
 
 on:
   pull_request:
@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   web-modes:
-    name: Build web modes and test canvas dispatch
+    name: Build web modes and test main-thread dispatch
     runs-on: ubuntu-22.04
     environment: pr-approval
     steps:
@@ -44,7 +44,7 @@ jobs:
             --output "$RUNNER_TEMP/filament-web.zip"
           unzip -q "$RUNNER_TEMP/filament-web.zip" -d "$filament_libs"
 
-      - name: Compile worker and canvas-thread engines
+      - name: Compile worker and main-thread engines
         run: |
           for mode in OFF ON; do
             build_dir="$RUNNER_TEMP/thermion-web-$mode"

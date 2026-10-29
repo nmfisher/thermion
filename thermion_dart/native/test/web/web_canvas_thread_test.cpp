@@ -35,7 +35,7 @@ int main() {
         // There is no DOM/canvas in Node. This also proves that construction
         // neither transfers a canvas nor starts Thermion's render pthread.
         thermion::RenderThread thread("#canvas-that-does-not-exist");
-        check(!thread.creationFailed(), "canvas-thread construction succeeds without a DOM");
+        check(!thread.creationFailed(), "main-thread construction succeeds without a DOM");
         check(thermion::RenderThread::mLiveWorkerCount.load() == 0, "no render worker starts");
         thread.setRenderManager(&manager);
         const auto caller = std::this_thread::get_id();
@@ -67,5 +67,5 @@ int main() {
     engine->destroy(texture);
     engine->destroy(renderer);
     Engine::destroy(&engine);
-    std::puts("PASS: canvas-thread dispatch, nested commands, upload release and teardown");
+    std::puts("PASS: main-thread dispatch, nested commands, upload release and teardown");
 }

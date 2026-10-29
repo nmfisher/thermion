@@ -60,7 +60,7 @@ namespace thermion
         /// frame or its callbacks to finish.
         void setPaused(bool paused);
 
-        /// Canvas-thread mode: submit commands and deliver upload releases
+        /// Main-thread mode: submit commands and deliver upload releases
         /// without drawing an intermediate frame.
         void flushCommands();
 

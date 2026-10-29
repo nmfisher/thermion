@@ -4,7 +4,7 @@ set(PROJECT_NAME "thermion_dart")
 project(${PROJECT_NAME})
 
 option(THERMION_WEB_MAIN_THREAD
-  "Run Thermion commands on the calling canvas thread instead of a render worker" OFF)
+  "Run Thermion commands on the calling thread instead of a render worker" OFF)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")

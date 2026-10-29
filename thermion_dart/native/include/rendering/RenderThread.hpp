@@ -162,7 +162,7 @@ private:
     // web workers service the queue on their next animation-frame iteration.
     void enqueue(std::function<void()> task);
 
-    /// Drain commands after a synchronous canvas-thread operation. The normal
+    /// Drain commands after a synchronous main-thread operation. The normal
     /// worker and native paths submit commands through their existing loops.
     void flushCommands();
 

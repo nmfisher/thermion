@@ -218,7 +218,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
     // Previously there was a check here for running on web (and if so, the method simply returned
     // because the compiled Thermion web library managed its own main loop & frame rendering).
     // This check has been moved to RenderThread (which decides whether its worker owns rendering or this call
-    // drives a canvas-thread frame. Worker mode completes without queuing work).
+    // drives a frame on the calling thread. Worker mode completes without queuing work).
     final timestamp = frameTimeInNanos ?? FrameScheduler_steadyClockUs().toInt() * 1000;
     await withVoidCallback((requestId, cb) {
       RenderManager_renderRenderThread(pointer, timestamp.toBigInt, requestId, cb);
