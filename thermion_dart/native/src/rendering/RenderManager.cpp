@@ -273,7 +273,16 @@ namespace thermion
     }
 
 #ifdef __EMSCRIPTEN__
+    // Without a rendered frame there is no endFrame() to submit uploads.
+    // Submit them before draining the backend, then deliver their release
+    // callbacks even when no visible frame was rendered.
+    if (!anyRendered) {
+      mEngine->flush();
+    }
     mEngine->execute();
+    // TODO should this be called for non-web platforms too? Otherwise we need to wait for a frame to render
+    // to handle user callbacks, which is risky when an application is paused as messages can pile up.
+    mEngine->pumpMessageQueues();
 #endif
 
     return anyRendered;
