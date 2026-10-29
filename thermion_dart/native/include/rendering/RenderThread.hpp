@@ -156,15 +156,15 @@ private:
     #else
     void startWebWorker(const char* canvasSelector);
     void pumpTasks();
+
+    /// Drain commands after a synchronous main-thread operation. The normal
+    /// worker and native paths submit commands through their existing loops.
+    void flushCommands();
     #endif
 
     // Appends one command to the queue. Native workers are woken immediately;
     // web workers service the queue on their next animation-frame iteration.
     void enqueue(std::function<void()> task);
-
-    /// Drain commands after a synchronous main-thread operation. The normal
-    /// worker and native paths submit commands through their existing loops.
-    void flushCommands();
 
     std::mutex _taskMutex;
     std::condition_variable _cv;

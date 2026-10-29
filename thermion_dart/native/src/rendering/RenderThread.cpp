@@ -191,12 +191,6 @@ void RenderThread::enqueue(std::function<void()> task) {
 #endif
 }
 
-void RenderThread::flushCommands() {
-#if defined(__EMSCRIPTEN__) && defined(THERMION_WEB_MAIN_THREAD)
-    if (_renderManager) _renderManager->flushCommands();
-#endif
-}
-
 #ifdef __EMSCRIPTEN__
 // Bound each batch so uploads reach tick() and its command-buffer drain even
 // when completions keep queuing more work. Filament calls stay on the worker;
@@ -214,6 +208,10 @@ void RenderThread::pumpTasks() {
         taskLock.lock();
     }
     taskLock.unlock();
+}
+
+void RenderThread::flushCommands() {
+    if (_renderManager) _renderManager->flushCommands();
 }
 
 void RenderThread::iter() {
