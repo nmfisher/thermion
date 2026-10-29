@@ -60,6 +60,10 @@ namespace thermion
         /// frame or its callbacks to finish.
         void setPaused(bool paused);
 
+        /// Canvas-thread mode: submit commands and deliver upload releases
+        /// without drawing an intermediate frame.
+        void flushCommands();
+
         /// Web path: called once per rAF from RenderThread::iter().
         /// Renders all attached swapchains synchronously (in practice there
         /// is only one on web — see ARCHITECTURE.md), then calls

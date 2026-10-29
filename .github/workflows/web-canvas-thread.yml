@@ -1,0 +1,66 @@
+name: Web canvas-thread mode
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/web-canvas-thread.yml'
+      - 'filament.version'
+      - 'thermion_dart/native/include/rendering/**'
+      - 'thermion_dart/native/src/rendering/**'
+      - 'thermion_dart/native/src/c_api/ThermionDartRenderThreadApi.cpp'
+      - 'thermion_dart/native/web/**'
+      - 'thermion_dart/native/test/web/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-canvas-thread-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-modes:
+    name: Build web modes and test canvas dispatch
+    runs-on: ubuntu-22.04
+    environment: pr-approval
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '6.0.4'
+          actions-cache-folder: 'emsdk-cache'
+
+      - name: Download matching Filament web libraries
+        run: |
+          filament_version="$(awk '{print $2}' filament.version)"
+          filament_libs="$GITHUB_WORKSPACE/thermion_dart/native/web/lib/release"
+          mkdir -p "$filament_libs"
+          curl --fail --location --retry 3 \
+            "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${filament_version}-web-release.zip" \
+            --output "$RUNNER_TEMP/filament-web.zip"
+          unzip -q "$RUNNER_TEMP/filament-web.zip" -d "$filament_libs"
+
+      - name: Compile worker and canvas-thread engines
+        run: |
+          for mode in OFF ON; do
+            build_dir="$RUNNER_TEMP/thermion-web-$mode"
+            emcmake cmake -S thermion_dart/native/web -B "$build_dir" \
+              -DCMAKE_BUILD_TYPE=Release -DTHERMION_WEB_MAIN_THREAD="$mode"
+            cmake --build "$build_dir" --parallel 2
+          done
+
+      - name: Run real Filament Wasm queue regressions
+        run: |
+          build_dir="$RUNNER_TEMP/thermion-web-tests"
+          emcmake cmake -S thermion_dart/native/test/web -B "$build_dir" \
+            -DFILAMENT_TEST_LIB_DIR="$GITHUB_WORKSPACE/thermion_dart/native/web/lib/release" \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build "$build_dir" --parallel 2
+          node "$build_dir/web_upload_drain_test.js"
+          node "$build_dir/web_canvas_thread_test.js"
+          node thermion_dart/native/test/web/worker_render_noop_test.cjs \
+            "$RUNNER_TEMP/thermion-web-OFF/build/out/thermion_dart.js"

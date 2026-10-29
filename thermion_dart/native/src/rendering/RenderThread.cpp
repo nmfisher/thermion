@@ -28,6 +28,7 @@ std::atomic<int32_t> RenderThread::mLiveWorkerCount{0};
 #include <mimalloc.h>
 #include "ThermionWebApi.h"
 
+#ifndef THERMION_WEB_MAIN_THREAD
 std::chrono::high_resolution_clock::time_point loopStart;
 std::chrono::high_resolution_clock::time_point loopExitTime;
 bool loopExitTimeValid = false;
@@ -77,6 +78,7 @@ static void *startHelper(void * parm) {
 }
 
 #endif
+#endif
 
 RenderThread::RenderThread(const char* canvasSelector)
     : _canvasSelector(canvasSelector != nullptr ? canvasSelector : "#thermion_canvas")
@@ -85,13 +87,15 @@ RenderThread::RenderThread(const char* canvasSelector)
     #ifdef __EMSCRIPTEN__
     Log("Starting RenderThread")
     outer = pthread_self();
+#ifndef THERMION_WEB_MAIN_THREAD
     startWebWorker(canvasSelector);
+#endif
     #else
     _thread = new std::thread([this]() { runNativeLoop(); });
     #endif
 }
 
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_MAIN_THREAD)
 // Start the worker pthread and transfer the canvas to it. On failure,
 // _creationFailed lets the C API return a null handle instead of a worker
 // that would hang every queued task forever.
@@ -152,7 +156,9 @@ RenderThread::~RenderThread()
     // without blocking. Callers that need to wait for the worker to actually
     // finish exiting (e.g. before constructing a replacement RenderThread)
     // should poll mLiveWorkerCount from Dart.
+#ifndef THERMION_WEB_MAIN_THREAD
     pthread_detach(_thread);
+#endif
     #else
     TRACE("Joining RenderThread thread..");
     _thread->join();
@@ -171,6 +177,10 @@ void RenderThread::shutdown()
 }
 
 void RenderThread::enqueue(std::function<void()> task) {
+#if defined(__EMSCRIPTEN__) && defined(THERMION_WEB_MAIN_THREAD)
+    task();
+    flushCommands();
+#else
     {
         std::lock_guard<std::mutex> lock(_taskMutex);
         _tasks.push_back(std::move(task));
@@ -178,6 +188,13 @@ void RenderThread::enqueue(std::function<void()> task) {
     #ifndef __EMSCRIPTEN__
     _cv.notify_one();
     #endif
+#endif
+}
+
+void RenderThread::flushCommands() {
+#if defined(__EMSCRIPTEN__) && defined(THERMION_WEB_MAIN_THREAD)
+    if (_renderManager) _renderManager->flushCommands();
+#endif
 }
 
 #ifdef __EMSCRIPTEN__

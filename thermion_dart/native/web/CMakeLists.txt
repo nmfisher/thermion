@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.22)
 set(PROJECT_NAME "thermion_dart")
 project(${PROJECT_NAME})
 
+option(THERMION_WEB_MAIN_THREAD
+  "Run Thermion commands on the calling canvas thread instead of a render worker" OFF)
+
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif(NOT CMAKE_BUILD_TYPE)
@@ -158,6 +161,9 @@ endif()
 
 message(STATUS "Total source files being compiled: ${SOURCES}")
 add_executable(${MODULE_NAME} ${SOURCES} ${MATERIAL_SOURCES})
+if(THERMION_WEB_MAIN_THREAD)
+  target_compile_definitions(${MODULE_NAME} PRIVATE THERMION_WEB_MAIN_THREAD=1)
+endif()
 
 set_target_properties(${MODULE_NAME} PROPERTIES
   CXX_VISIBILITY_PRESET hidden)
