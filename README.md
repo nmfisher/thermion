@@ -132,7 +132,7 @@ When set, the build hook copies `thermion_dart.{js,wasm}` from `thermion_dart/na
 #### Calling-thread rendering for standalone web clients
 
 Custom browser clients can build the web engine with
-`-DTHERMION_WEB_SINGLE_THREADED=ON` (default: `OFF`). Thermion then executes
+`-DTHERMION_WEB_MAIN_THREAD=ON` (default: `OFF`). Thermion then executes
 commands and completion callbacks on the calling canvas thread, without
 transferring its canvas to a render pthread. Each command drains pending
 Filament uploads without drawing an intermediate frame.

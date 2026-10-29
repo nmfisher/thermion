@@ -27,7 +27,7 @@ abstract class RenderManager<T> extends NativeHandle<T> {
   /// The default web engine renders independently on its worker's animation
   /// frames: this method completes without requesting or waiting for a frame,
   /// and ignores [frameTimeInNanos]. A web engine built with
-  /// THERMION_WEB_SINGLE_THREADED instead renders on the calling canvas thread.
+  /// THERMION_WEB_MAIN_THREAD instead renders on the calling canvas thread.
   Future render({int? frameTimeInNanos});
 
   void destroy();

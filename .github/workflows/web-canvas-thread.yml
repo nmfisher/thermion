@@ -49,7 +49,7 @@ jobs:
           for mode in OFF ON; do
             build_dir="$RUNNER_TEMP/thermion-web-$mode"
             emcmake cmake -S thermion_dart/native/web -B "$build_dir" \
-              -DCMAKE_BUILD_TYPE=Release -DTHERMION_WEB_SINGLE_THREADED="$mode"
+              -DCMAKE_BUILD_TYPE=Release -DTHERMION_WEB_MAIN_THREAD="$mode"
             cmake --build "$build_dir" --parallel 2
           done
 

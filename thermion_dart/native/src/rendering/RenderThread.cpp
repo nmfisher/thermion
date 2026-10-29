@@ -28,7 +28,7 @@ std::atomic<int32_t> RenderThread::mLiveWorkerCount{0};
 #include <mimalloc.h>
 #include "ThermionWebApi.h"
 
-#ifndef THERMION_WEB_SINGLE_THREADED
+#ifndef THERMION_WEB_MAIN_THREAD
 std::chrono::high_resolution_clock::time_point loopStart;
 std::chrono::high_resolution_clock::time_point loopExitTime;
 bool loopExitTimeValid = false;
@@ -87,7 +87,7 @@ RenderThread::RenderThread(const char* canvasSelector)
     #ifdef __EMSCRIPTEN__
     Log("Starting RenderThread")
     outer = pthread_self();
-#ifndef THERMION_WEB_SINGLE_THREADED
+#ifndef THERMION_WEB_MAIN_THREAD
     startWebWorker(canvasSelector);
 #endif
     #else
@@ -95,7 +95,7 @@ RenderThread::RenderThread(const char* canvasSelector)
     #endif
 }
 
-#if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_SINGLE_THREADED)
+#if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_MAIN_THREAD)
 // Start the worker pthread and transfer the canvas to it. On failure,
 // _creationFailed lets the C API return a null handle instead of a worker
 // that would hang every queued task forever.
@@ -156,7 +156,7 @@ RenderThread::~RenderThread()
     // without blocking. Callers that need to wait for the worker to actually
     // finish exiting (e.g. before constructing a replacement RenderThread)
     // should poll mLiveWorkerCount from Dart.
-#ifndef THERMION_WEB_SINGLE_THREADED
+#ifndef THERMION_WEB_MAIN_THREAD
     pthread_detach(_thread);
 #endif
     #else
@@ -177,7 +177,7 @@ void RenderThread::shutdown()
 }
 
 void RenderThread::enqueue(std::function<void()> task) {
-#if defined(__EMSCRIPTEN__) && defined(THERMION_WEB_SINGLE_THREADED)
+#if defined(__EMSCRIPTEN__) && defined(THERMION_WEB_MAIN_THREAD)
     task();
     flushCommands();
 #else
@@ -192,7 +192,7 @@ void RenderThread::enqueue(std::function<void()> task) {
 }
 
 void RenderThread::flushCommands() {
-#if defined(__EMSCRIPTEN__) && defined(THERMION_WEB_SINGLE_THREADED)
+#if defined(__EMSCRIPTEN__) && defined(THERMION_WEB_MAIN_THREAD)
     if (_renderManager) _renderManager->flushCommands();
 #endif
 }

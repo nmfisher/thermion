@@ -28,7 +28,7 @@ add_executable(web_canvas_thread_test
   ../../src/rendering/RenderThread.cpp
   ../../src/rendering/RenderManager.cpp)
 target_compile_features(web_canvas_thread_test PRIVATE cxx_std_17)
-target_compile_definitions(web_canvas_thread_test PRIVATE THERMION_WEB_SINGLE_THREADED=1)
+target_compile_definitions(web_canvas_thread_test PRIVATE THERMION_WEB_MAIN_THREAD=1)
 target_include_directories(web_canvas_thread_test PRIVATE
   ../../include ../../web/include "${FILAMENT_TEST_LIB_DIR}/include")
 target_compile_options(web_canvas_thread_test PRIVATE -pthread -fno-exceptions)

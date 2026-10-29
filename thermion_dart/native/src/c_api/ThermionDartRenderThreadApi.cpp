@@ -54,7 +54,7 @@ using namespace std::chrono_literals;
 #include <time.h>
 #include <cinttypes>
 
-#if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_SINGLE_THREADED)
+#if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_MAIN_THREAD)
 #define PROXY(call)                                           \
   auto startTime = std::chrono::high_resolution_clock::now(); \
   TRACE("PROXYING");                                          \
@@ -338,7 +338,7 @@ extern "C"
     uint32_t requestId,
     VoidCallback onComplete)
   {
-#if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_SINGLE_THREADED)
+#if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_MAIN_THREAD)
     // The worker already draws on its own rAF. Preserve the web render()
     // no-op without putting another frame or callback on its task queue.
     onComplete(requestId);
@@ -348,7 +348,7 @@ extern "C"
     rt->addDetachedTask([=]() mutable {
       auto startedAt = std::chrono::steady_clock::now();
       float queueMs = std::chrono::duration_cast<std::chrono::nanoseconds>(startedAt - queuedAt).count() / 1e6f;
-#if defined(__EMSCRIPTEN__) && defined(THERMION_WEB_SINGLE_THREADED)
+#if defined(__EMSCRIPTEN__) && defined(THERMION_WEB_MAIN_THREAD)
       reinterpret_cast<RenderManager*>(tRenderManager)->tick(frameTimeInNanos);
 #else
       RenderManager_render(tRenderManager, frameTimeInNanos);

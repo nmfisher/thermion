@@ -61,7 +61,7 @@ extern "C"
     attr.depth = EM_TRUE;
     attr.stencil = EM_TRUE;
     attr.antialias = EM_FALSE;
-#ifdef THERMION_WEB_SINGLE_THREADED
+#ifdef THERMION_WEB_MAIN_THREAD
     attr.explicitSwapControl = EM_FALSE;
 #else
     attr.explicitSwapControl = EM_TRUE;
