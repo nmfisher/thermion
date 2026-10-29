@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import '../../../bindings/bindings.dart' as bindings;
 import 'package:thermion_dart/thermion_dart.dart';
 import 'ffi_buffer_object.dart';
@@ -47,18 +48,19 @@ class FFIVertexBuffer extends VertexBuffer {
         'requiredGeometryCapabilities containing writableVertices.',
       );
     }
-    final byteData = data.asUint8List();
-    await withVoidCallback((requestId, cb) {
-      bindings.VertexBuffer_setBufferAtRenderThread(
-        _engine,
-        _ptr,
-        bufferIndex,
-        byteData.address.cast(),
-        byteData.lengthInBytes,
-        byteOffset,
-        requestId,
-        cb,
-      );
+    await data.pass<void>((byteData) {
+      return withVoidCallback((requestId, cb) {
+        bindings.VertexBuffer_setBufferAtRenderThread(
+          _engine,
+          _ptr,
+          bufferIndex,
+          byteData.address.cast(),
+          byteData.lengthInBytes,
+          byteOffset,
+          requestId,
+          cb,
+        );
+      });
     });
   }
 

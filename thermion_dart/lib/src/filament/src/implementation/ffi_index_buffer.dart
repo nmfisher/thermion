@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import '../../../bindings/bindings.dart' as bindings;
 import 'package:thermion_dart/thermion_dart.dart';
 
@@ -18,17 +19,18 @@ class FFIIndexBuffer extends IndexBuffer {
 
   @override
   Future setBuffer(TypedData data, {int byteOffset = 0}) async {
-    final byteData = data.asUint8List();
-    await withVoidCallback((requestId, cb) {
-      bindings.IndexBuffer_setBufferRenderThread(
-        _engine,
-        _ptr,
-        byteData.address.cast(),
-        byteData.length,
-        byteOffset,
-        requestId,
-        cb,
-      );
+    await data.pass<void>((byteData) {
+      return withVoidCallback((requestId, cb) {
+        bindings.IndexBuffer_setBufferRenderThread(
+          _engine,
+          _ptr,
+          byteData.address.cast(),
+          byteData.lengthInBytes,
+          byteOffset,
+          requestId,
+          cb,
+        );
+      });
     });
   }
 

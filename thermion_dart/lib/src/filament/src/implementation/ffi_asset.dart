@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import 'dart:async';
 
 import 'package:logging/logging.dart';
@@ -255,14 +256,11 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
         );
       }
 
-      var created = await withPointerCallback<TSceneAsset>((cb) {
-        SceneAsset_createInstanceRenderThread(_asset, ptrList.address.cast(), materialInstances?.length ?? 0, cb);
+      final created = await ptrList.pass((byteData) {
+        return withPointerCallback<TSceneAsset>((cb) {
+          SceneAsset_createInstanceRenderThread(_asset, byteData.address.cast(), ptrList.length, cb);
+        });
       });
-
-      if (FILAMENT_WASM) {
-        //stackRestore(stackPtr);
-        ptrList.free();
-      }
 
       if (created == nullptr) {
         throw Exception("Failed to create instance");

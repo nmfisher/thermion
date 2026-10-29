@@ -30,7 +30,7 @@ jobs:
         with:
           node-version: 24
 
-      - name: Run pointer callback regression tests (Node)
+      - name: Run JavaScript callback and buffer ownership tests (Node)
         working-directory: thermion_dart
         run: |
           # dart test starts through the VM and fires the package build hook,
@@ -48,7 +48,7 @@ jobs:
                 skip_native_build: true
           EOF
           dart pub get
-          dart test -p node test/js_pointer_callback_test.dart -r expanded
+          dart test -p node test/js_pointer_callback_test.dart test/js_geometry_memory_test.dart -r expanded
 
   dart-tests:
     name: Dart Tests (${{ matrix.name }})
