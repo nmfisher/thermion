@@ -1258,7 +1258,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           // Canvas-thread callbacks can complete synchronously. Yield to
           // decoder tasks and browser events between progress polls.
           if (FILAMENT_WASM) {
-            await Future<void>.delayed(const Duration(milliseconds: 1));
+            await Future<void>.delayed(Duration.zero);
           }
           GltfResourceLoader_asyncUpdateLoadRenderThread(gltfResourceLoader);
           progress = await withFloatCallback(
