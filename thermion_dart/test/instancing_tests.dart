@@ -39,6 +39,21 @@ void main() async {
     }, bg: kRed);
   });
 
+  test('geometry instance uses the supplied material handle', () async {
+    final app = FilamentApp.instance!;
+    final material = await app.createUnlitMaterialInstance();
+    final asset = await app.createGeometry(GeometryUtils.cube());
+    try {
+      final originalMaterial = await asset.getMaterialInstanceAt();
+      final instance = await asset.createInstance(materialInstances: [material]);
+      expect((await instance.getMaterialInstanceAt()).getNativeHandle(), material.getNativeHandle());
+      expect((await asset.getMaterialInstanceAt()).getNativeHandle(), originalMaterial.getNativeHandle());
+    } finally {
+      await app.destroyAsset(asset);
+      await material.destroy();
+    }
+  });
+
   test("loadGltf throws an Exception when initialInstances is 0", () async {
     await testHelper.withViewer((viewer) async {
       await expectLater(
