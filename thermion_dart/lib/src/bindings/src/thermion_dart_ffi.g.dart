@@ -3710,9 +3710,6 @@ external void Skybox_setColor(ffi.Pointer<TSkybox> tSkybox, double r, double g, 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TSkybox>, ffi.Uint8, ffi.Uint8)>(isLeaf: true)
 external void Skybox_setLayerMask(ffi.Pointer<TSkybox> tSkybox, int select, int values);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Char>)>(isLeaf: true)
-external void StringCallback_free(ffi.Pointer<ffi.Char> text);
-
 @ffi.Native<ffi.Pointer<TSurfaceOrientation> Function(ffi.Pointer<TSurfaceOrientationBuilder>)>(isLeaf: true)
 external ffi.Pointer<TSurfaceOrientation> SurfaceOrientationBuilder_build(
   ffi.Pointer<TSurfaceOrientationBuilder> builder,
@@ -4731,11 +4728,18 @@ external TFogOptions View_getFogOptions(ffi.Pointer<TView> tView);
 external ffi.Pointer<ffi.Char> View_getName(ffi.Pointer<TView> tView);
 
 @ffi.Native<
-  ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Char>)>>)
+  ffi.Void Function(
+    ffi.Pointer<TView>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Size,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Size)>>,
+  )
 >(isLeaf: true)
 external void View_getNameJobThread(
   ffi.Pointer<TView> tView,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Char>)>> onComplete,
+  ffi.Pointer<ffi.Char> buffer,
+  int capacity,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Size)>> onComplete,
 );
 
 @ffi.Native<ffi.Pointer<TRenderTarget> Function(ffi.Pointer<TView>)>(isLeaf: true)

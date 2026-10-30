@@ -1878,7 +1878,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
 
   /// Sets bits in a visibility mask (see filament::Skybox::setLayerMask).
   external void _Skybox_setLayerMask(Pointer<TSkybox> tSkybox, int select, int values);
-  external void _StringCallback_free(Pointer<Char> text);
   external Pointer<TSurfaceOrientation> _SurfaceOrientationBuilder_build(Pointer<TSurfaceOrientationBuilder> builder);
   external Pointer<TSurfaceOrientationBuilder> _SurfaceOrientationBuilder_create();
   external void _SurfaceOrientationBuilder_destroy(Pointer<TSurfaceOrientationBuilder> builder);
@@ -2398,7 +2397,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<Char> _View_getName(Pointer<TView> tView);
   external void _View_getNameJobThread(
     Pointer<TView> tView,
-    Pointer<NativeFunction<void Function(PointerClass<Char>)>> onComplete,
+    Pointer<Char> buffer,
+    size_t capacity,
+    Pointer<NativeFunction<void Function(size_t)>> onComplete,
   );
   external Pointer<TRenderTarget> _View_getRenderTarget(Pointer<TView> tView);
   external Pointer<TScene> _View_getScene(Pointer<TView> tView);
@@ -7536,11 +7537,6 @@ void Skybox_setLayerMask(Pointer<TSkybox> tSkybox, int select, int values) {
   return result;
 }
 
-void StringCallback_free(Pointer<Char> text) {
-  final result = GeneratedBindings.instance._StringCallback_free(text);
-  return result;
-}
-
 Pointer<TSurfaceOrientation> SurfaceOrientationBuilder_build(Pointer<TSurfaceOrientationBuilder> builder) {
   final result = GeneratedBindings.instance._SurfaceOrientationBuilder_build(builder.cast());
   return Pointer<TSurfaceOrientation>(result);
@@ -8944,8 +8940,13 @@ Pointer<Char> View_getName(Pointer<TView> tView) {
   return Pointer<Char>(result);
 }
 
-void View_getNameJobThread(Pointer<TView> tView, Pointer<NativeFunction<void Function(Pointer<Char>)>> onComplete) {
-  final result = GeneratedBindings.instance._View_getNameJobThread(tView.cast(), onComplete.cast());
+void View_getNameJobThread(
+  Pointer<TView> tView,
+  Pointer<Char> buffer,
+  Dartsize_t capacity,
+  Pointer<NativeFunction<void Function(size_t)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._View_getNameJobThread(tView.cast(), buffer, capacity, onComplete.cast());
   return result;
 }
 

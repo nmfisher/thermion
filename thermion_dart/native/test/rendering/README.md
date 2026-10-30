@@ -138,33 +138,39 @@ Web worker completions are posted through a module-lifetime proxy queue. Dart
 awaits each completion without polling a worker's queue. Main-thread web builds
 still call completions directly.
 
-String callbacks transfer ownership on both native and web. For example,
-`View_getNameJobThread()` allocates a null-terminated UTF-8 copy before calling
-its callback. A later rename or deletion cannot change that copy. The producer
-must not free it when the C callback returns: `NativeCallable.listener` only
-queues delivery to Dart at that point.
+Dart owns string output buffers. `View_getNameJobThread()` takes a `char*` buffer
+and its capacity in bytes. It checks the size and copies the name in one queued
+job. Its callback reports the required UTF-8 byte count, including the null
+terminator. Zero means null; an empty string needs one byte. An undersized buffer
+is left unchanged. A null buffer with zero capacity can query the required size.
 
-`withStringCallback()` decodes the result and calls `StringCallback_free()` in
-`finally`, including when decoding fails. A null pointer produces null and needs
-no release. The native function must call the callback exactly once. The Dart
-dispatch function may throw only before handing the callback to native code.
+`readString()` allocates the buffer in native/Wasm heap memory. It waits for
+completion, decodes only the returned text bytes and frees the buffer in
+`finally`. If more space is needed, it frees that attempt and retries with the
+reported capacity. Native code never owns or frees the caller's buffer. Each
+request must complete exactly once, after native code has stopped using it.
+A dispatch error must occur before native code accepts the buffer or callback.
 
-Only pass owned results allocated for this API. Borrowed pointers from
-`View_getName()`, `std::string::c_str()`, stack memory and Dart-allocated buffers
-must not go through this helper. `StringCallback_free()` uses the allocator that
-created the result. Do not replace it with Dart's `free()`.
+The source must stay alive and unchanged across retries. `FFIView` orders name
+reads and renames. `destroy()` rejects new name operations and waits for accepted
+ones, including retries, before deleting the view. A failed read reports its
+error to its caller and still allows later reads and destruction to proceed.
+Direct C API callers must arrange the same ordering themselves.
 
-The JavaScript tests check null results, UTF-8 conversion, release exactly once
-and callback-table cleanup on success and failure. Run from `thermion_dart/`:
+The JavaScript tests check output-buffer lifetime, resizing, empty and Unicode
+text, null results, invalid UTF-8 and cleanup after dispatch errors. Run from
+`thermion_dart/`:
 
 ```sh
 dart test -p node test/js_pointer_callback_test.dart
 ```
 
-The native tests block the Dart isolate until a queued rename or deletion has
-finished. This forces delivery after the view's original name has been released.
-They also check null results, invalid UTF-8 and dispatch errors. CI runs these on
-Linux, Windows and macOS. To run locally from the repository root:
+The native tests check exact and insufficient capacities with guard bytes. A
+barrier blocks Dart until a queued rename or deletion has finished, proving that
+the caller's copied bytes survive delayed completion delivery. Separate public
+view tests verify long-name retries complete before rename/deletion, and that a
+decode error cannot block destruction. CI runs these on Linux, Windows and macOS.
+To run locally from the repository root:
 
 ```sh
 cmake -S thermion_dart/native/test/rendering -B /tmp/thermion-string-callbacks

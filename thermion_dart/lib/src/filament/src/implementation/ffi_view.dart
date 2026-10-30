@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:thermion_dart/src/bindings/string_buffer.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.dart';
@@ -20,6 +21,19 @@ class FFIView extends View<Pointer<TView>> {
   final Pointer<TView> view;
   final FFIFilamentApp _app;
 
+  // Reading a name can take several native calls while the buffer grows.
+  // Finish the whole read before renaming or destroying its source view.
+  Future<void> _nameOperations = Future.value();
+  bool _destroyRequested = false;
+
+  Future<T> _serializeNameOperation<T>(Future<T> Function() operation) {
+    if (_destroyRequested) return Future.error(StateError('View destruction has started'));
+    final result = _nameOperations.then((_) => operation());
+    // A failed read still finishes its turn. It must not block later cleanup.
+    _nameOperations = result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return result;
+  }
+
   Pointer<TView> getNativeHandle() => view;
 
   RenderTarget? renderTarget;
@@ -36,6 +50,8 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   Future destroy() async {
+    _destroyRequested = true;
+    await _nameOperations;
     _onPickResultHolder.dispose();
     await withVoidCallback((requestId, cb) => Engine_destroyViewJobThread(_app.engine, view, requestId, cb));
   }
@@ -650,13 +666,20 @@ class FFIView extends View<Pointer<TView>> {
     }
   }
 
-  Future setName(String name) async {
+  Future setName(String name) => _serializeNameOperation(() async {
     final ptr = name.toNativeUtf8();
-    await withVoidCallback((requestId, cb) => View_setNameJobThread(getNativeHandle(), ptr.cast(), requestId, cb));
-    free(ptr);
-  }
+    try {
+      await withVoidCallback((requestId, cb) => View_setNameJobThread(getNativeHandle(), ptr.cast(), requestId, cb));
+    } finally {
+      free(ptr);
+    }
+  });
 
-  Future<String?> getName() => withStringCallback((cb) => View_getNameJobThread(getNativeHandle(), cb));
+  Future<String?> getName() => _serializeNameOperation(() {
+    return readString((buffer, capacity) {
+      return withSizeCallback((callback) => View_getNameJobThread(getNativeHandle(), buffer, capacity, callback));
+    });
+  });
 
   Future setTransparentPickingEnabled(bool enabled) async {
     await withVoidCallback(

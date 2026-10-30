@@ -1,15 +1,18 @@
 // Full-module browser smoke test. See README.md for compile/run commands.
 import 'dart:async';
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
+import 'package:thermion_dart/src/bindings/string_buffer.dart';
 import 'package:http/http.dart' as http;
-import 'package:thermion_dart/src/bindings/src/js_interop.dart';
+import 'package:thermion_dart/src/bindings/bindings.dart';
 import 'package:thermion_dart/thermion_dart.dart' show Backend, FilamentApp, ThermionViewerFFI, Vector3;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 
 void progress(String message) => globalContext['testProgress'] = message.toJS;
 
-Future<String?> readName(Pointer<TView> view) => withStringCallback((callback) {
-  View_getNameJobThread(view, callback);
+Future<String?> readName(Pointer<TView> view) => readString((buffer, capacity) {
+  return withSizeCallback((callback) => View_getNameJobThread(view, buffer, capacity, callback));
 });
 
 Future<void> main() async {
@@ -35,8 +38,8 @@ Future<void> main() async {
       final name = 'worker-$round'.toNativeUtf8().cast<Char>();
       await withVoidCallback((id, cb) => View_setNameJobThread(view, name, id, cb));
       free(name);
-      // The result owns its text. Renaming the view before callback delivery
-      // must not change it.
+      // The first copy fits this buffer. A later rename must not change the
+      // caller-owned bytes before completion reaches Dart.
       final pendingName = readName(view);
       final replacement = 'renamed-worker-$round'.toNativeUtf8().cast<Char>();
       await withVoidCallback((id, cb) => View_setNameJobThread(view, replacement, id, cb));
@@ -102,6 +105,18 @@ Future<void> main() async {
     if (await viewer.view.getName() != debugName) {
       throw StateError('Public view name was not copied during callback delivery');
     }
+    final namedView = await FilamentApp.instance!.createView() as FFIView;
+    await namedView.setName(debugName);
+    final beforeRename = namedView.getName();
+    final renamed = namedView.setName('replacement');
+    if (await beforeRename != debugName) throw StateError('Name resize raced a rename');
+    await renamed;
+    await namedView.setName(debugName);
+    final beforeDelete = namedView.getName();
+    final deleted = namedView.destroy();
+    if (await beforeDelete != debugName) throw StateError('Name resize raced view deletion');
+    await deleted;
+
     final camera = await viewer.getActiveCamera();
     await camera.lookAt(Vector3(2, 3, 4));
     final position = await camera.getPosition();
