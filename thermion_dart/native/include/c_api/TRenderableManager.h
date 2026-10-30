@@ -110,7 +110,7 @@ extern "C"
 
     // Skinning
     // These synchronous setters borrow the arrays until build(). Dart submits
-    // its inputs through buildWithSkinningRenderThread instead.
+    // its inputs through buildWithSkinningJobThread instead.
     EMSCRIPTEN_KEEPALIVE void RenderableBuilder_skinningFromMat4(TRenderableBuilder *builder, size_t boneCount, const float *transforms);
     EMSCRIPTEN_KEEPALIVE void RenderableBuilder_skinningFromBone(TRenderableBuilder *builder, size_t boneCount, const float *bones);
     EMSCRIPTEN_KEEPALIVE void RenderableBuilder_enableSkinningBuffers(TRenderableBuilder *builder, bool enabled);

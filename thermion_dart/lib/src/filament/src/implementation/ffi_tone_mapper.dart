@@ -11,37 +11,37 @@ class FFIToneMapper extends ToneMapper {
   Pointer<TToneMapper> getNativeHandle() => _pointer;
 
   static Future<ToneMapper> linear(FilamentApp app) async {
-    final pointer = await withPointerCallback<TToneMapper>((cb) => ToneMapper_createLinearRenderThread(app.engine, cb));
+    final pointer = await withPointerCallback<TToneMapper>((cb) => ToneMapper_createLinearJobThread(app.engine, cb));
     return FFIToneMapper._(pointer);
   }
 
   static Future<ToneMapper> aces(FilamentApp app) async {
-    final pointer = await withPointerCallback<TToneMapper>((cb) => ToneMapper_createACESRenderThread(app.engine, cb));
+    final pointer = await withPointerCallback<TToneMapper>((cb) => ToneMapper_createACESJobThread(app.engine, cb));
     return FFIToneMapper._(pointer);
   }
 
   static Future<ToneMapper> acesLegacy(FilamentApp app) async {
     final pointer = await withPointerCallback<TToneMapper>(
-      (cb) => ToneMapper_createACESLegacyRenderThread(app.engine, cb),
+      (cb) => ToneMapper_createACESLegacyJobThread(app.engine, cb),
     );
     return FFIToneMapper._(pointer);
   }
 
   static Future<ToneMapper> filmic(FilamentApp app) async {
-    final pointer = await withPointerCallback<TToneMapper>((cb) => ToneMapper_createFilmicRenderThread(app.engine, cb));
+    final pointer = await withPointerCallback<TToneMapper>((cb) => ToneMapper_createFilmicJobThread(app.engine, cb));
     return FFIToneMapper._(pointer);
   }
 
   static Future<ToneMapper> pbrNeutral(FilamentApp app) async {
     final pointer = await withPointerCallback<TToneMapper>(
-      (cb) => ToneMapper_createPBRNeutralRenderThread(app.engine, cb),
+      (cb) => ToneMapper_createPBRNeutralJobThread(app.engine, cb),
     );
     return FFIToneMapper._(pointer);
   }
 
   static Future<ToneMapper> agx(FilamentApp app, {AgxLook look = AgxLook.none}) async {
     final pointer = await withPointerCallback<TToneMapper>(
-      (cb) => ToneMapper_createAGXWithLookRenderThread(app.engine, look.index, cb),
+      (cb) => ToneMapper_createAGXWithLookJobThread(app.engine, look.index, cb),
     );
     return FFIToneMapper._(pointer);
   }
@@ -54,14 +54,14 @@ class FFIToneMapper extends ToneMapper {
     double hdrMax = 10.0,
   }) async {
     final pointer = await withPointerCallback<TToneMapper>(
-      (cb) => ToneMapper_createGenericRenderThread(app.engine, contrast, midGrayIn, midGrayOut, hdrMax, cb),
+      (cb) => ToneMapper_createGenericJobThread(app.engine, contrast, midGrayIn, midGrayOut, hdrMax, cb),
     );
     return FFIToneMapper._(pointer);
   }
 
   static Future<ToneMapper> displayRange(FilamentApp app) async {
     final pointer = await withPointerCallback<TToneMapper>(
-      (cb) => ToneMapper_createDisplayRangeRenderThread(app.engine, cb),
+      (cb) => ToneMapper_createDisplayRangeJobThread(app.engine, cb),
     );
     return FFIToneMapper._(pointer);
   }
@@ -73,7 +73,7 @@ class FFIToneMapper extends ToneMapper {
     }
     _disposed = true;
     await withVoidCallback((requestId, cb) {
-      ToneMapper_destroyRenderThread(_pointer, requestId, cb);
+      ToneMapper_destroyJobThread(_pointer, requestId, cb);
     });
   }
 }

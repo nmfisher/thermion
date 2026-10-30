@@ -25,7 +25,7 @@ target_link_options(web_upload_drain_test PRIVATE
 
 add_executable(web_canvas_thread_test
   web_canvas_thread_test.cpp
-  ../../src/rendering/RenderThread.cpp
+  ../../src/rendering/JobThread.cpp
   ../../src/rendering/RenderManager.cpp)
 target_compile_features(web_canvas_thread_test PRIVATE cxx_std_17)
 target_compile_definitions(web_canvas_thread_test PRIVATE THERMION_WEB_MAIN_THREAD=1)

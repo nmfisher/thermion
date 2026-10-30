@@ -184,7 +184,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
       }
 
       await withVoidCallback(
-        (requestId, cb) => RenderManager_setRenderableRenderThread(
+        (requestId, cb) => RenderManager_setRenderableJobThread(
           pointer,
           swapChainHandle,
           pointers.cast(),
@@ -202,8 +202,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   Future detachAll(SwapChain swapChain) {
     return _serialize(() async {
       await withVoidCallback(
-        (requestId, cb) =>
-            RenderManager_removeSwapChainRenderThread(pointer, swapChain.getNativeHandle(), requestId, cb),
+        (requestId, cb) => RenderManager_removeSwapChainJobThread(pointer, swapChain.getNativeHandle(), requestId, cb),
       );
       _attachmentState.detachAll(swapChain.getNativeHandle());
     });
@@ -217,11 +216,11 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   Future render({int? frameTimeInNanos}) async {
     // Previously there was a check here for running on web (and if so, the method simply returned
     // because the compiled Thermion web library managed its own main loop & frame rendering).
-    // This check has been moved to RenderThread (which decides whether its worker owns rendering or this call
+    // This check has been moved to JobThread (which decides whether its worker owns rendering or this call
     // drives a frame on the calling thread. Worker mode completes without queuing work).
     final timestamp = frameTimeInNanos ?? FrameScheduler_steadyClockUs().toInt() * 1000;
     await withVoidCallback((requestId, cb) {
-      RenderManager_renderRenderThread(pointer, timestamp.toBigInt, requestId, cb);
+      RenderManager_renderJobThread(pointer, timestamp.toBigInt, requestId, cb);
     });
   }
 

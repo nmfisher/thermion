@@ -17,7 +17,7 @@ class FailingSkyboxApp extends FFIFilamentApp {
         app.transformManager.getNativeHandle(),
         app.ubershaderMaterialProvider,
         app.renderManager.getNativeHandle(),
-        app.renderThreadHandle,
+        app.jobThreadHandle,
         app.nameComponentManager,
         app.loadResource,
         app.lightManager.getNativeHandle(),
@@ -62,7 +62,7 @@ void main() {
       final blocked = fixture.lookup<ffi.NativeFunction<ffi.Void Function()>>('waitForTaskRelease');
       final bundle = await FFIKtx1Bundle.create(app, bytes);
       reset();
-      ffi.RenderThread_addTask(blocked);
+      ffi.JobThread_addTask(blocked);
       late Future<Texture> textureCreated;
       var released = false;
       final uploadReleased =

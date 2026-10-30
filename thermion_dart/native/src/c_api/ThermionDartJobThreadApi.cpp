@@ -36,9 +36,9 @@
 #include "c_api/TVertexBuffer.h"
 #include "c_api/TIndexBuffer.h"
 #include "c_api/TBufferObject.h"
-#include "c_api/ThermionDartRenderThreadApi.h"
+#include "c_api/ThermionDartJobThreadApi.h"
 
-#include "rendering/RenderThread.hpp"
+#include "rendering/JobThread.hpp"
 #include "rendering/RenderManager.hpp"
 #include "Log.hpp"
 #include "MathUtils.hpp"
@@ -69,22 +69,22 @@ extern "C"
   // Owner-keyed thread registry.
   //
   // Multi-engine web (one engine per viewer) runs each engine on its own
-  // RenderThread / pthread / canvas. Every `*RenderThread` function below
+  // JobThread / pthread / canvas. Every `*JobThread` function below
   // dispatches to the thread that owns the object it operates on, resolved
   // from g_threadByOwner. Entries are recorded at object-creation tasks
   // (creation runs on the owning thread) and at the direct-API getters via
-  // RenderThread_registerOwnerFromOwner.
+  // JobThread_registerOwnerFromOwner.
   //
   // Single-engine apps — and every native build — fall through to
-  // `_renderThread` (or the most recently created thread), preserving the
+  // `_jobThread` (or the most recently created thread), preserving the
   // historical singleton behavior exactly.
   // ─────────────────────────────────────────────────────────────────────────
-  std::unique_ptr<RenderThread> _renderThread;
-  std::unordered_map<void *, RenderThread *> g_threadByOwner;
-  std::unordered_map<void *, std::unique_ptr<RenderThread>> _renderThreads;
-  RenderThread *g_activeThread = nullptr;
+  std::unique_ptr<JobThread> _jobThread;
+  std::unordered_map<void *, JobThread *> g_threadByOwner;
+  std::unordered_map<void *, std::unique_ptr<JobThread>> _jobThreads;
+  JobThread *g_activeThread = nullptr;
 
-  // g_threadByOwner is written from RenderThread worker tasks (object
+  // g_threadByOwner is written from JobThread worker tasks (object
   // creation registers the new handle on the thread that produced it — see
   // the ~60 `setOwner(...)` sites below) and read from the Dart thread on
   // every dispatch via RT(). std::unordered_map is not concurrency-safe: an
@@ -98,7 +98,7 @@ extern "C"
   // ... handle the operation targets; nullptr means "creation-time task" —
   // the most recently created thread, which is the one the Dart side just
   // built for this engine (Dart serialises engine creation).
-  RenderThread *RT(void *owner)
+  JobThread *RT(void *owner)
   {
     if (owner != nullptr)
     {
@@ -113,12 +113,12 @@ extern "C"
     {
       return g_activeThread;
     }
-    return _renderThread.get();
+    return _jobThread.get();
   }
 
   // Record that `owner` belongs to `rt`. Called from worker-thread creation
   // tasks and from the Dart thread; always under the exclusive lock.
-  static void setOwner(void *owner, RenderThread *rt)
+  static void setOwner(void *owner, JobThread *rt)
   {
     if (owner == nullptr || rt == nullptr)
     {
@@ -130,7 +130,7 @@ extern "C"
 
   // Remove every owner registration that maps to `rt`. Call AFTER the thread's
   // worker has been joined (otherwise an in-flight creation task on that worker
-  // could re-add an entry pointing at the about-to-be-freed RenderThread, and a
+  // could re-add an entry pointing at the about-to-be-freed JobThread, and a
   // recycled handle address would later resolve to freed memory via RT()).
   static void unregisterOwnersOf(void *rt)
   {
@@ -155,13 +155,13 @@ extern "C"
   // Record that `owner` (created on the main thread via a direct-API getter,
   // e.g. Engine_getTransformManager) belongs to the thread of `knownOwner`
   // (an engine-scoped handle already in the registry).
-  EMSCRIPTEN_KEEPALIVE void RenderThread_registerOwnerFromOwner(void *owner, void *knownOwner)
+  EMSCRIPTEN_KEEPALIVE void JobThread_registerOwnerFromOwner(void *owner, void *knownOwner)
   {
     if (owner == nullptr || knownOwner == nullptr)
     {
       return;
     }
-    RenderThread *rt;
+    JobThread *rt;
     {
       std::shared_lock<std::shared_mutex> lock(g_ownerMutex);
       auto it = g_threadByOwner.find(knownOwner);
@@ -170,7 +170,7 @@ extern "C"
     // Preserve RT()'s fallback semantics for an unregistered knownOwner.
     if (rt == nullptr)
     {
-      rt = g_activeThread != nullptr ? g_activeThread : _renderThread.get();
+      rt = g_activeThread != nullptr ? g_activeThread : _jobThread.get();
     }
     if (rt == nullptr)
     {
@@ -180,32 +180,32 @@ extern "C"
   }
 
   // Web-only: the CSS selector of the canvas owned by the most recently
-  // created RenderThread, used by Engine_create to create the WebGL context
+  // created JobThread, used by Engine_create to create the WebGL context
   // on the right canvas.
-  EMSCRIPTEN_KEEPALIVE const char *RenderThread_getActiveCanvasSelector()
+  EMSCRIPTEN_KEEPALIVE const char *JobThread_getActiveCanvasSelector()
   {
-    RenderThread *rt = g_activeThread != nullptr ? g_activeThread : _renderThread.get();
+    JobThread *rt = g_activeThread != nullptr ? g_activeThread : _jobThread.get();
     return rt != nullptr ? rt->canvasSelector() : "#thermion_canvas";
   }
 
-  EMSCRIPTEN_KEEPALIVE void* RenderThread_create()
+  EMSCRIPTEN_KEEPALIVE void* JobThread_create()
   {
-    TRACE("RenderThread_create");
-    RenderThread *stale = _renderThread ? _renderThread.get() : nullptr;
+    TRACE("JobThread_create");
+    JobThread *stale = _jobThread ? _jobThread.get() : nullptr;
     if (stale != nullptr)
     {
-      Log("WARNING - you are attempting to create a RenderThread when the previous one has not been disposed.");
+      Log("WARNING - you are attempting to create a JobThread when the previous one has not been disposed.");
     }
-    auto thread = std::make_unique<RenderThread>();
+    auto thread = std::make_unique<JobThread>();
     if (thread->creationFailed())
     {
       // pthread_create failed on web (e.g. worker pool exhausted); a null
       // handle lets Dart fail loudly instead of hanging on never-run tasks.
-      Log("RenderThread worker failed to start; returning null handle");
+      Log("JobThread worker failed to start; returning null handle");
       return nullptr;
     }
-    _renderThread = std::move(thread);
-    // The move-assignment above destroyed the previous RenderThread (and joined
+    _jobThread = std::move(thread);
+    // The move-assignment above destroyed the previous JobThread (and joined
     // its worker). Sweep stale owner registrations AFTER the join — the dying
     // worker's last creation task can't then re-add an entry pointing at freed
     // memory, and a recycled handle address can't resolve to it via RT().
@@ -213,57 +213,57 @@ extern "C"
     {
       unregisterOwnersOf(stale);
     }
-    g_activeThread = _renderThread.get();
-    TRACE("RenderThread created");
-    return _renderThread.get();
+    g_activeThread = _jobThread.get();
+    TRACE("JobThread created");
+    return _jobThread.get();
   }
 
-  EMSCRIPTEN_KEEPALIVE void* RenderThread_createForCanvas(const char *canvasSelector)
+  EMSCRIPTEN_KEEPALIVE void* JobThread_createForCanvas(const char *canvasSelector)
   {
-    TRACE("RenderThread_createForCanvas %s", canvasSelector);
-    auto thread = std::make_unique<RenderThread>(canvasSelector);
+    TRACE("JobThread_createForCanvas %s", canvasSelector);
+    auto thread = std::make_unique<JobThread>(canvasSelector);
     if (thread->creationFailed())
     {
-      Log("RenderThread worker failed to start for canvas %s; returning null handle", canvasSelector);
+      Log("JobThread worker failed to start for canvas %s; returning null handle", canvasSelector);
       return nullptr;
     }
     auto *raw = thread.get();
     g_activeThread = raw;
-    _renderThreads[raw] = std::move(thread);
-    TRACE("RenderThread created for canvas %s", canvasSelector);
+    _jobThreads[raw] = std::move(thread);
+    TRACE("JobThread created for canvas %s", canvasSelector);
     return raw;
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderThread_destroy(void *renderThread)
+  EMSCRIPTEN_KEEPALIVE void JobThread_destroy(void *jobThread)
   {
-    TRACE("RenderThread_destroy");
-    if (renderThread == nullptr)
+    TRACE("JobThread_destroy");
+    if (jobThread == nullptr)
     {
       return;
     }
-    if (renderThread == _renderThread.get())
+    if (jobThread == _jobThread.get())
     {
-      _renderThread = nullptr;
+      _jobThread = nullptr;
     }
     else
     {
-      auto it = _renderThreads.find(renderThread);
-      if (it != _renderThreads.end())
+      auto it = _jobThreads.find(jobThread);
+      if (it != _jobThreads.end())
       {
-        _renderThreads.erase(it);
+        _jobThreads.erase(it);
       }
     }
-    if (g_activeThread == renderThread)
+    if (g_activeThread == jobThread)
     {
       g_activeThread = nullptr;
     }
-    // _renderThread = nullptr / _renderThreads.erase above already destroyed
-    // the RenderThread (and joined its worker), so it's safe to drop any owner
+    // _jobThread = nullptr / _jobThreads.erase above already destroyed
+    // the JobThread (and joined its worker), so it's safe to drop any owner
     // registrations that still point at it.
-    unregisterOwnersOf(renderThread);
+    unregisterOwnersOf(jobThread);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)())
+  EMSCRIPTEN_KEEPALIVE void JobThread_addTask(void (*task)())
   {
     auto *rt = RT(nullptr);
     std::packaged_task<void()> lambda(
@@ -274,7 +274,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderManager_attachToRenderThread(TRenderManager *tRenderManager)
+  EMSCRIPTEN_KEEPALIVE void RenderManager_attachToJobThread(TRenderManager *tRenderManager)
   {
 #ifdef __EMSCRIPTEN__
     bool ownersEmpty;
@@ -282,8 +282,8 @@ extern "C"
       std::shared_lock<std::shared_mutex> lock(g_ownerMutex);
       ownersEmpty = g_threadByOwner.empty();
     }
-    if (!_renderThread && ownersEmpty) {
-      Log("WARNING - RenderManager_attachToRenderThread called with no RenderThread active.");
+    if (!_jobThread && ownersEmpty) {
+      Log("WARNING - RenderManager_attachToJobThread called with no JobThread active.");
       return;
     }
     auto *rm = reinterpret_cast<RenderManager *>(tRenderManager);
@@ -295,10 +295,10 @@ extern "C"
 #endif
   }
 
-  // Inverse of RenderManager_attachToRenderThread. Call before deleting a
+  // Inverse of RenderManager_attachToJobThread. Call before deleting a
   // RenderManager so the worker's iter() doesn't dereference a freed pointer
   // on its next tick.
-  EMSCRIPTEN_KEEPALIVE void RenderManager_detachFromRenderThread(TRenderManager *tRenderManager)
+  EMSCRIPTEN_KEEPALIVE void RenderManager_detachFromJobThread(TRenderManager *tRenderManager)
   {
 #ifdef __EMSCRIPTEN__
     auto *rt = RT(tRenderManager);
@@ -314,7 +314,7 @@ extern "C"
 #endif
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderableRenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderableJobThread(
     TRenderManager *tRenderer,
     TSwapChain *tSwapChain,
     TView **tViews,
@@ -332,7 +332,7 @@ extern "C"
 
     }
 
-  EMSCRIPTEN_KEEPALIVE void RenderManager_renderRenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderManager_renderJobThread(
     TRenderManager *tRenderManager,
     uint64_t frameTimeInNanos,
     uint32_t requestId,
@@ -366,7 +366,7 @@ extern "C"
 #endif
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderManager_addAnimationManagerRenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderManager_addAnimationManagerJobThread(
     TRenderManager *tRenderManager,
     TAnimationManager *tAnimationManager,
     uint32_t requestId,
@@ -382,7 +382,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderManager_removeAnimationManagerRenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderManager_removeAnimationManagerJobThread(
     TRenderManager *tRenderManager,
     TAnimationManager *tAnimationManager,
     uint32_t requestId,
@@ -398,7 +398,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderManager_removeSwapChainRenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderManager_removeSwapChainJobThread(
     TRenderManager *tRenderManager,
     TSwapChain *tSwapChain,
     uint32_t requestId,
@@ -414,7 +414,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createRenderThread(
+  EMSCRIPTEN_KEEPALIVE void Engine_createJobThread(
       TBackend backend,
       void *platform,
       void *sharedContext,
@@ -434,7 +434,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createRendererRenderThread(TEngine *tEngine, void (*onComplete)(TRenderer *))
+  EMSCRIPTEN_KEEPALIVE void Engine_createRendererJobThread(TEngine *tEngine, void (*onComplete)(TRenderer *))
   {
     auto *rt = RT(tEngine);
 
@@ -448,7 +448,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createSwapChainRenderThread(TEngine *tEngine, void *window, uint64_t flags, void (*onComplete)(TSwapChain *))
+  EMSCRIPTEN_KEEPALIVE void Engine_createSwapChainJobThread(TEngine *tEngine, void *window, uint64_t flags, void (*onComplete)(TSwapChain *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -460,7 +460,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createHeadlessSwapChainRenderThread(TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags, void (*onComplete)(TSwapChain *))
+  EMSCRIPTEN_KEEPALIVE void Engine_createHeadlessSwapChainJobThread(TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags, void (*onComplete)(TSwapChain *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -472,7 +472,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroySwapChainRenderThread(TEngine *tEngine, TSwapChain *tSwapChain, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroySwapChainJobThread(TEngine *tEngine, TSwapChain *tSwapChain, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -484,7 +484,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyRendererRenderThread(TEngine *tEngine, TRenderer *tRenderer, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyRendererJobThread(TEngine *tEngine, TRenderer *tRenderer, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -496,7 +496,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyViewRenderThread(TEngine *tEngine, TView *tView, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyViewJobThread(TEngine *tEngine, TView *tView, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -508,7 +508,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroySceneRenderThread(TEngine *tEngine, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroySceneJobThread(TEngine *tEngine, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -520,7 +520,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createCameraRenderThread(TEngine *tEngine, EntityId entityId, void (*onComplete)(TCamera *))
+  EMSCRIPTEN_KEEPALIVE void Engine_createCameraJobThread(TEngine *tEngine, EntityId entityId, void (*onComplete)(TCamera *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -533,7 +533,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyCameraRenderThread(TEngine *tEngine, TCamera *tCamera, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyCameraJobThread(TEngine *tEngine, TCamera *tCamera, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -545,7 +545,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createViewRenderThread(TEngine *tEngine, void (*onComplete)(TView *))
+  EMSCRIPTEN_KEEPALIVE void Engine_createViewJobThread(TEngine *tEngine, void (*onComplete)(TView *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -558,7 +558,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyRenderThread(TEngine *tEngine, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyJobThread(TEngine *tEngine, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -570,7 +570,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureRenderThread(TEngine *engine, TTexture *tTexture, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureJobThread(TEngine *engine, TTexture *tTexture, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(engine);
     std::packaged_task<void()> lambda(
@@ -582,7 +582,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroySkyboxRenderThread(TEngine *tEngine, TSkybox *tSkybox, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroySkyboxJobThread(TEngine *tEngine, TSkybox *tSkybox, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -594,7 +594,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyIndirectLightRenderThread(TEngine *tEngine, TIndirectLight *tIndirectLight, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyIndirectLightJobThread(TEngine *tEngine, TIndirectLight *tIndirectLight, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -606,7 +606,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialJobThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *))
   {
     auto *rt = RT(tEngine);
     // Snapshot borrowed FFI storage before returning to Dart. The task owns it.
@@ -625,7 +625,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialRenderThread(TEngine *tEngine, TMaterial *tMaterial, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialJobThread(TEngine *tEngine, TMaterial *tMaterial, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -637,7 +637,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstanceRenderThread(TEngine *tEngine, TMaterialInstance *tMaterialInstance, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstanceJobThread(TEngine *tEngine, TMaterialInstance *tMaterialInstance, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -649,7 +649,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createFenceRenderThread(TEngine *tEngine, void (*onComplete)(TFence *))
+  EMSCRIPTEN_KEEPALIVE void Engine_createFenceJobThread(TEngine *tEngine, void (*onComplete)(TFence *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -662,7 +662,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Fence_waitAndDestroyRenderThread(TFence *tFence, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Fence_waitAndDestroyJobThread(TFence *tFence, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tFence);
     
@@ -675,7 +675,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyFenceRenderThread(TEngine *tEngine, TFence *tFence, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyFenceJobThread(TEngine *tEngine, TFence *tFence, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -687,7 +687,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_flushAndWaitRenderThread(TEngine *tEngine, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_flushAndWaitJobThread(TEngine *tEngine, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -699,7 +699,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_executeRenderThread(TEngine *tEngine, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_executeJobThread(TEngine *tEngine, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -724,7 +724,7 @@ extern "C"
 #endif
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildSkyboxRenderThread(TEngine *tEngine, TTexture *tTexture, bool showSun, float intensity, uint8_t priority, void (*onComplete)(TSkybox *))
+  EMSCRIPTEN_KEEPALIVE void Engine_buildSkyboxJobThread(TEngine *tEngine, TTexture *tTexture, bool showSun, float intensity, uint8_t priority, void (*onComplete)(TSkybox *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -736,7 +736,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildColoredSkyboxRenderThread(TEngine *tEngine, float r, float g, float b, float a, bool showSun, float intensity, uint8_t priority, void (*onComplete)(TSkybox *))
+  EMSCRIPTEN_KEEPALIVE void Engine_buildColoredSkyboxJobThread(TEngine *tEngine, float r, float g, float b, float a, bool showSun, float intensity, uint8_t priority, void (*onComplete)(TSkybox *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -748,7 +748,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightFromIrradianceTextureRenderThread(
+  EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightFromIrradianceTextureJobThread(
     TEngine *tEngine,
     TTexture *tReflectionsTexture,
     TTexture* tIrradianceTexture,
@@ -764,7 +764,7 @@ extern "C"
       auto fut = rt->addTask(lambda);
   }
   
-  EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightFromIrradianceHarmonicsRenderThread(
+  EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightFromIrradianceHarmonicsJobThread(
     TEngine *tEngine,
     TTexture *tReflectionsTexture,
     float *harmonics,
@@ -785,7 +785,7 @@ extern "C"
   }
 
 
-  EMSCRIPTEN_KEEPALIVE void Renderer_beginFrameRenderThread(TRenderer *tRenderer, TSwapChain *tSwapChain, uint64_t frameTimeInNanos, void (*onComplete)(bool))
+  EMSCRIPTEN_KEEPALIVE void Renderer_beginFrameJobThread(TRenderer *tRenderer, TSwapChain *tSwapChain, uint64_t frameTimeInNanos, void (*onComplete)(bool))
   {
     auto *rt = RT(tRenderer);
     std::packaged_task<void()> lambda(
@@ -796,7 +796,7 @@ extern "C"
         });
     auto fut = rt->addTask(lambda);
   }
-  EMSCRIPTEN_KEEPALIVE void Renderer_endFrameRenderThread(TRenderer *tRenderer, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Renderer_endFrameJobThread(TRenderer *tRenderer, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tRenderer);
     std::packaged_task<void()> lambda(
@@ -808,7 +808,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Renderer_renderRenderThread(TRenderer *tRenderer, TView *tView, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Renderer_renderJobThread(TRenderer *tRenderer, TView *tView, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tRenderer);
     std::packaged_task<void()> lambda(
@@ -820,7 +820,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneViewRenderThread(TRenderer *tRenderer, TView *tView, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneViewJobThread(TRenderer *tRenderer, TView *tView, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tRenderer);
     std::packaged_task<void()> lambda(
@@ -832,7 +832,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Renderer_setClearOptionsRenderThread(
+  EMSCRIPTEN_KEEPALIVE void Renderer_setClearOptionsJobThread(
       TRenderer *tRenderer,
       double clearR,
       double clearG,
@@ -852,7 +852,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Renderer_readPixelsRenderThread(
+  EMSCRIPTEN_KEEPALIVE void Renderer_readPixelsJobThread(
       TRenderer *tRenderer,
       uint32_t width, uint32_t height, uint32_t xOffset, uint32_t yOffset,
       TRenderTarget *tRenderTarget,
@@ -872,7 +872,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialJobThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -885,7 +885,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createGizmoMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createGizmoMaterialJobThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -898,7 +898,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createSilhouetteMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createSilhouetteMaterialJobThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -911,7 +911,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createEdgeOutlineMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createEdgeOutlineMaterialJobThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -924,7 +924,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createWireframeMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createWireframeMaterialJobThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -937,7 +937,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createTranslationAxisMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createTranslationAxisMaterialJobThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -950,7 +950,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createBoneOverlayMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createBoneOverlayMaterialJobThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -963,7 +963,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *))
+  EMSCRIPTEN_KEEPALIVE void Material_createInstanceJobThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *))
   {
     auto *rt = RT(tMaterial);
     std::packaged_task<void()> lambda(
@@ -976,7 +976,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterTextureRenderThread(
+  EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterTextureJobThread(
       TMaterialInstance *tMaterialInstance,
       const char *propertyName,
       TTexture* tTexture,
@@ -994,7 +994,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_destroyRenderThread(TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_destroyJobThread(TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tSceneAsset);
     std::packaged_task<void()> lambda(
@@ -1007,7 +1007,7 @@ extern "C"
   }
 
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetJobThread(
       TEngine *tEngine,
       TGltfAssetLoader *tAssetLoader,
       TNameComponentManager *tNameComponentManager,
@@ -1028,7 +1028,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromBuffersRenderThread(
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromBuffersJobThread(
       TEngine *tEngine,
       TVertexBuffer *tVertexBuffer,
       TIndexBuffer *tIndexBuffer,
@@ -1061,7 +1061,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceRenderThread(
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceJobThread(
       TSceneAsset *asset, TMaterialInstance **tMaterialInstances,
       int materialInstanceCount,
       void (*callback)(TSceneAsset *))
@@ -1080,7 +1080,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceDataRenderThread(
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceDataJobThread(
       TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tSceneAsset);
@@ -1093,7 +1093,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_setFlatShadingRenderThread(
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_setFlatShadingJobThread(
       TSceneAsset *tSceneAsset, bool flatShading, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tSceneAsset);
@@ -1106,7 +1106,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void MaterialProvider_createMaterialInstanceRenderThread(
+  EMSCRIPTEN_KEEPALIVE void MaterialProvider_createMaterialInstanceJobThread(
       TMaterialProvider *tMaterialProvider,
       bool doubleSided,
       bool unlit,
@@ -1197,7 +1197,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_createRenderThread(void (*onComplete)(TColorGradingBuilder *))
+  EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_createJobThread(void (*onComplete)(TColorGradingBuilder *))
   {
     auto *rt = RT(nullptr);
     std::packaged_task<void()> lambda(
@@ -1210,7 +1210,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_buildRenderThread(TColorGradingBuilder *tBuilder, TEngine *tEngine, void (*onComplete)(TColorGrading *))
+  EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_buildJobThread(TColorGradingBuilder *tBuilder, TEngine *tEngine, void (*onComplete)(TColorGrading *))
   {
     auto *rt = RT(tBuilder);
     std::packaged_task<void()> lambda(
@@ -1222,7 +1222,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_destroyRenderThread(TColorGradingBuilder *tBuilder, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_destroyJobThread(TColorGradingBuilder *tBuilder, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tBuilder);
     std::packaged_task<void()> lambda(
@@ -1234,7 +1234,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createLinearRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createLinearJobThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -1247,7 +1247,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createACESRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createACESJobThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -1260,7 +1260,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createACESLegacyRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createACESLegacyJobThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -1273,7 +1273,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createFilmicRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createFilmicJobThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -1286,7 +1286,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createPBRNeutralRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createPBRNeutralJobThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -1299,7 +1299,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createAGXRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createAGXJobThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -1312,7 +1312,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createAGXWithLookRenderThread(TEngine *tEngine, int look, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createAGXWithLookJobThread(TEngine *tEngine, int look, void (*onComplete)(TToneMapper *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -1325,7 +1325,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createGenericRenderThread(TEngine *tEngine, float contrast, float midGrayIn, float midGrayOut, float hdrMax, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createGenericJobThread(TEngine *tEngine, float contrast, float midGrayIn, float midGrayOut, float hdrMax, void (*onComplete)(TToneMapper *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -1338,7 +1338,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createDisplayRangeRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createDisplayRangeJobThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -1351,7 +1351,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_destroyRenderThread(TToneMapper *tToneMapper, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_destroyJobThread(TToneMapper *tToneMapper, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tToneMapper);
     std::packaged_task<void()> lambda(
@@ -1363,7 +1363,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyColorGradingRenderThread(TEngine *tEngine, TColorGrading *tColorGrading, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyColorGradingJobThread(TEngine *tEngine, TColorGrading *tColorGrading, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -1375,7 +1375,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_pickRenderThread(TView *tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback)
+  EMSCRIPTEN_KEEPALIVE void View_pickJobThread(TView *tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback)
   {
     auto *rt = RT(tView);
     auto *view = reinterpret_cast<View *>(tView);
@@ -1383,7 +1383,7 @@ extern "C"
                { PROXY(callback(requestId, utils::Entity::smuggle(result.renderable), result.depth, result.fragCoords.x, result.fragCoords.y, result.fragCoords.z)); });
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setColorGradingRenderThread(TView *tView, TColorGrading *tColorGrading, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setColorGradingJobThread(TView *tView, TColorGrading *tColorGrading, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1395,7 +1395,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setBloomJobThread(TView *tView, bool enabled, double strength, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1407,7 +1407,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setCameraRenderThread(TView *tView, TCamera *tCamera, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setCameraJobThread(TView *tView, TCamera *tCamera, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1419,7 +1419,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_getNameRenderThread(TView *tView, void (*onComplete)(const char *))
+  EMSCRIPTEN_KEEPALIVE void View_getNameJobThread(TView *tView, void (*onComplete)(const char *))
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1431,7 +1431,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setNameRenderThread(TView *tView, const char *name, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setNameJobThread(TView *tView, const char *name, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1443,7 +1443,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setViewportRenderThread(TView *tView, uint32_t width, uint32_t height, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setViewportJobThread(TView *tView, uint32_t width, uint32_t height, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1455,7 +1455,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setRenderTargetRenderThread(TView *tView, TRenderTarget *tRenderTarget, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setRenderTargetJobThread(TView *tView, TRenderTarget *tRenderTarget, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1467,7 +1467,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setAntiAliasingRenderThread(TView *tView, bool msaa, bool fxaa, bool taa, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setAntiAliasingJobThread(TView *tView, bool msaa, bool fxaa, bool taa, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1479,7 +1479,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setPostProcessingRenderThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setPostProcessingJobThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1491,7 +1491,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabledRenderThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabledJobThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1503,7 +1503,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setStencilBufferEnabledRenderThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setStencilBufferEnabledJobThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1515,7 +1515,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setDitheringEnabledRenderThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setDitheringEnabledJobThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1527,7 +1527,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setRenderQualityRenderThread(TView *tView, int qualityLevel, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setRenderQualityJobThread(TView *tView, int qualityLevel, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1539,7 +1539,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setSceneRenderThread(TView *tView, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setSceneJobThread(TView *tView, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1551,7 +1551,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setLayerEnabledRenderThread(TView *tView, int layer, bool visible, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setLayerEnabledJobThread(TView *tView, int layer, bool visible, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1563,7 +1563,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setBlendModeRenderThread(TView *tView, int blendMode, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setBlendModeJobThread(TView *tView, int blendMode, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1575,7 +1575,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setFogOptionsRenderThread(TView *tView, TFogOptions tFogOptions, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setFogOptionsJobThread(TView *tView, TFogOptions tFogOptions, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1587,7 +1587,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setAmbientOcclusionOptionsRenderThread(TView *tView, TAmbientOcclusionOptions options, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setAmbientOcclusionOptionsJobThread(TView *tView, TAmbientOcclusionOptions options, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1599,7 +1599,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setFrontFaceWindingInvertedRenderThread(TView *tView, bool inverted, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setFrontFaceWindingInvertedJobThread(TView *tView, bool inverted, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1611,7 +1611,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setShadowsEnabledRenderThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setShadowsEnabledJobThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1623,7 +1623,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setShadowTypeRenderThread(TView *tView, int shadowType, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setShadowTypeJobThread(TView *tView, int shadowType, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1635,7 +1635,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setSoftShadowOptionsRenderThread(TView *tView, TSoftShadowOptions options, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setSoftShadowOptionsJobThread(TView *tView, TSoftShadowOptions options, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1647,7 +1647,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setVsmShadowOptionsRenderThread(TView *tView, TVsmShadowOptions options, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setVsmShadowOptionsJobThread(TView *tView, TVsmShadowOptions options, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1659,7 +1659,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setTransparentPickingEnabledRenderThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setTransparentPickingEnabledJobThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
@@ -1671,7 +1671,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPoseRenderThread(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete) {
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPoseJobThread(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete) {
     auto *rt = RT(tAnimationManager);
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -1682,7 +1682,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void AnimationManager_createRenderThread(TEngine *tEngine, void (*onComplete)(TAnimationManager *))
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_createJobThread(TEngine *tEngine, void (*onComplete)(TAnimationManager *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -1695,7 +1695,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void AnimationManager_destroyRenderThread(TAnimationManager *tAnimationManager, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_destroyJobThread(TAnimationManager *tAnimationManager, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tAnimationManager);
     std::packaged_task<void()> lambda(
@@ -1707,7 +1707,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void AnimationManager_updateRenderThread(TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete) {
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_updateJobThread(TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete) {
     auto *rt = RT(tAnimationManager);
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -1723,7 +1723,7 @@ extern "C"
   // sibling animation mutator, the plain AnimationManager_setGltfAnimationTime
   // dispatched synchronously on the caller's thread and panicked for morph
   // animations — this wrapper runs it on the render thread like the others.
-  EMSCRIPTEN_KEEPALIVE void AnimationManager_setGltfAnimationTimeRenderThread(
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_setGltfAnimationTimeJobThread(
       TAnimationManager *tAnimationManager,
       TSceneAsset *tSceneAsset,
       int animationIndex,
@@ -1740,7 +1740,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesRenderThread(
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesJobThread(
       TAnimationManager *tAnimationManager,
       TSceneAsset *sceneAsset,
       void (*callback)(bool))
@@ -1755,7 +1755,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void AnimationManager_setMorphTargetWeightsRenderThread(
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_setMorphTargetWeightsJobThread(
       TAnimationManager *tAnimationManager,
       EntityId entityId,
       const float *const morphData,
@@ -1779,7 +1779,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_createEmptyRenderThread(uint32_t width, uint32_t height, uint32_t channel, void (*onComplete)(TLinearImage *))
+  EMSCRIPTEN_KEEPALIVE void Image_createEmptyJobThread(uint32_t width, uint32_t height, uint32_t channel, void (*onComplete)(TLinearImage *))
   {
     auto *rt = RT(nullptr);
     std::packaged_task<void()> lambda(
@@ -1792,7 +1792,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_decodeRenderThread(uint8_t *data, size_t length, const char *name, bool alpha, void (*onComplete)(TLinearImage *))
+  EMSCRIPTEN_KEEPALIVE void Image_decodeJobThread(uint8_t *data, size_t length, const char *name, bool alpha, void (*onComplete)(TLinearImage *))
   {
     auto *rt = RT(data);
     std::packaged_task<void()> lambda(
@@ -1805,7 +1805,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_getBytesRenderThread(TLinearImage *tLinearImage, void (*onComplete)(float *))
+  EMSCRIPTEN_KEEPALIVE void Image_getBytesJobThread(TLinearImage *tLinearImage, void (*onComplete)(float *))
   {
     auto *rt = RT(tLinearImage);
     std::packaged_task<void()> lambda(
@@ -1817,7 +1817,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_destroyRenderThread(TLinearImage *tLinearImage, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Image_destroyJobThread(TLinearImage *tLinearImage, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tLinearImage);
     std::packaged_task<void()> lambda(
@@ -1829,7 +1829,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_getWidthRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
+  EMSCRIPTEN_KEEPALIVE void Image_getWidthJobThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
   {
     auto *rt = RT(tLinearImage);
     std::packaged_task<void()> lambda(
@@ -1841,7 +1841,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_getHeightRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
+  EMSCRIPTEN_KEEPALIVE void Image_getHeightJobThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
   {
     auto *rt = RT(tLinearImage);
     std::packaged_task<void()> lambda(
@@ -1853,7 +1853,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_getChannelsRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
+  EMSCRIPTEN_KEEPALIVE void Image_getChannelsJobThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
   {
     auto *rt = RT(tLinearImage);
     std::packaged_task<void()> lambda(
@@ -1865,7 +1865,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Texture_buildRenderThread(
+  EMSCRIPTEN_KEEPALIVE void Texture_buildJobThread(
       TEngine *tEngine,
       uint32_t width,
       uint32_t height,
@@ -1887,7 +1887,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Texture_setExternalImageRenderThread(TEngine *tEngine, TTexture *tTexture, void *externalImage, uint32_t requestId, VoidCallback onComplete) {
+  EMSCRIPTEN_KEEPALIVE void Texture_setExternalImageJobThread(TEngine *tEngine, TTexture *tTexture, void *externalImage, uint32_t requestId, VoidCallback onComplete) {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -1898,7 +1898,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Texture_generateMipMapsRenderThread(TTexture *tTexture, TEngine *tEngine, uint32_t requestId, VoidCallback onComplete) {
+  EMSCRIPTEN_KEEPALIVE void Texture_generateMipMapsJobThread(TTexture *tTexture, TEngine *tEngine, uint32_t requestId, VoidCallback onComplete) {
     auto *rt = RT(tTexture);
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -1932,7 +1932,7 @@ extern "C"
   // render thread. We also copy the input bytes synchronously here so the
   // lambda doesn't dangle when data was stack-allocated by the caller (the
   // ffigen_js Uint8List.address path uses stackAlloc for buffers < 32KB).
-  EMSCRIPTEN_KEEPALIVE void Ktx2Reader_createTextureRenderThread(
+  EMSCRIPTEN_KEEPALIVE void Ktx2Reader_createTextureJobThread(
     TEngine *tEngine, uint8_t* data, size_t size, void (*onComplete)(TTexture *)) {
     auto *rt = RT(tEngine);
     std::vector<uint8_t> bytes(data, data + size);
@@ -1946,7 +1946,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Ktx1Reader_createTextureRenderThread(
+  EMSCRIPTEN_KEEPALIVE void Ktx1Reader_createTextureJobThread(
     TEngine *tEngine, TKtx1Bundle *tBundle, uint32_t requestId, VoidCallback onTextureUploadComplete, void (*onComplete)(TTexture *)) {
     auto *rt = RT(tEngine);
 
@@ -1972,7 +1972,7 @@ extern "C"
   }
 
 
-  EMSCRIPTEN_KEEPALIVE void Texture_loadImageRenderThread(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage,
+  EMSCRIPTEN_KEEPALIVE void Texture_loadImageJobThread(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage,
                                                           TPixelDataFormat bufferFormat, TPixelDataType pixelDataType,
                                                           int level,
                                                           void (*onComplete)(bool))
@@ -1987,7 +1987,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Texture_setImageRenderThread(
+  EMSCRIPTEN_KEEPALIVE void Texture_setImageJobThread(
       TEngine *tEngine,
       TTexture *tTexture,
       uint32_t level,
@@ -2032,7 +2032,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderTarget_getColorTextureRenderThread(TRenderTarget *tRenderTarget, void (*onComplete)(TTexture *))
+  EMSCRIPTEN_KEEPALIVE void RenderTarget_getColorTextureJobThread(TRenderTarget *tRenderTarget, void (*onComplete)(TTexture *))
   {
     auto *rt = RT(tRenderTarget);
     std::packaged_task<void()> lambda(
@@ -2044,7 +2044,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderTarget_createRenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderTarget_createJobThread(
       TEngine *tEngine,
       TTexture *tColor,
       TTexture *tDepth,
@@ -2064,7 +2064,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderTarget_destroyRenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderTarget_destroyJobThread(
       TEngine *tEngine,
       TRenderTarget *tRenderTarget,
       uint32_t requestId, VoidCallback onComplete)
@@ -2079,7 +2079,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_createRenderThread(void (*onComplete)(TTextureSampler *))
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_createJobThread(void (*onComplete)(TTextureSampler *))
   {
     auto *rt = RT(nullptr);
     std::packaged_task<void()> lambda(
@@ -2092,7 +2092,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithFilteringRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithFilteringJobThread(
       TSamplerMinFilter minFilter,
       TSamplerMagFilter magFilter,
       TSamplerWrapMode wrapS,
@@ -2111,7 +2111,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithComparisonRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithComparisonJobThread(
       TSamplerCompareMode compareMode,
       TSamplerCompareFunc compareFunc,
       void (*onComplete)(TTextureSampler *))
@@ -2127,7 +2127,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_setMinFilterRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setMinFilterJobThread(
       TTextureSampler *sampler,
       TSamplerMinFilter filter,
       uint32_t requestId, VoidCallback onComplete)
@@ -2142,7 +2142,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_setMagFilterRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setMagFilterJobThread(
       TTextureSampler *sampler,
       TSamplerMagFilter filter,
       uint32_t requestId, VoidCallback onComplete)
@@ -2157,7 +2157,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeSRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeSJobThread(
       TTextureSampler *sampler,
       TSamplerWrapMode mode,
       uint32_t requestId, VoidCallback onComplete)
@@ -2172,7 +2172,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeTRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeTJobThread(
       TTextureSampler *sampler,
       TSamplerWrapMode mode,
       uint32_t requestId, VoidCallback onComplete)
@@ -2187,7 +2187,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeRRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeRJobThread(
       TTextureSampler *sampler,
       TSamplerWrapMode mode,
       uint32_t requestId, VoidCallback onComplete)
@@ -2202,7 +2202,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_setAnisotropyRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setAnisotropyJobThread(
       TTextureSampler *sampler,
       double anisotropy,
       uint32_t requestId, VoidCallback onComplete)
@@ -2217,7 +2217,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_setCompareModeRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setCompareModeJobThread(
       TTextureSampler *sampler,
       TSamplerCompareMode mode,
       TTextureSamplerCompareFunc func,
@@ -2233,7 +2233,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_destroyRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_destroyJobThread(
       TTextureSampler *sampler,
       uint32_t requestId, VoidCallback onComplete)
   {
@@ -2247,7 +2247,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_createRenderThread(
+  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_createJobThread(
     TEngine *tEngine,
     TMaterialProvider *tMaterialProvider,
     TNameComponentManager *tNameComponentManager,
@@ -2264,7 +2264,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_destroyRenderThread(
+  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_destroyJobThread(
     TGltfAssetLoader *tAssetLoader,
     uint32_t requestId,
     VoidCallback onComplete)
@@ -2279,7 +2279,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
   
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createRenderThread(TEngine *tEngine, void (*callback)(TGltfResourceLoader *)) {
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createJobThread(TEngine *tEngine, void (*callback)(TGltfResourceLoader *)) {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
       [=]() mutable
@@ -2292,7 +2292,7 @@ extern "C"
   }
 
 
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroyRenderThread(TEngine *tEngine, TGltfResourceLoader *tResourceLoader, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroyJobThread(TEngine *tEngine, TGltfResourceLoader *tResourceLoader, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
@@ -2304,7 +2304,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_loadResourcesRenderThread(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool))
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_loadResourcesJobThread(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool))
   {
     auto *rt = RT(tGltfResourceLoader);
     std::packaged_task<void()> lambda(
@@ -2316,7 +2316,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceDataRenderThread(
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceDataJobThread(
       TGltfResourceLoader *tGltfResourceLoader,
       const char *uri,
       uint8_t *data,
@@ -2343,7 +2343,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncBeginLoadRenderThread(
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncBeginLoadJobThread(
       TGltfResourceLoader *tGltfResourceLoader,
       TFilamentAsset *tFilamentAsset,
       void (*callback)(bool))
@@ -2358,7 +2358,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncUpdateLoadRenderThread(
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncUpdateLoadJobThread(
       TGltfResourceLoader *tGltfResourceLoader)
   {
     auto *rt = RT(tGltfResourceLoader);
@@ -2370,7 +2370,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncGetLoadProgressRenderThread(
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncGetLoadProgressJobThread(
       TGltfResourceLoader *tGltfResourceLoader,
       void (*callback)(float))
   {
@@ -2384,7 +2384,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_loadRenderThread(
+  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_loadJobThread(
       TEngine *tEngine,
       TGltfAssetLoader *tAssetLoader,
       uint8_t *data,
@@ -2406,7 +2406,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetRenderThread(TScene *tScene, TFilamentAsset *tAsset, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetJobThread(TScene *tScene, TFilamentAsset *tAsset, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tScene);
     std::packaged_task<void()> lambda(
@@ -2418,7 +2418,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void FilamentAsset_getWireframeRenderThread(TFilamentAsset *tFilamentAsset, void (*onComplete)(EntityId))
+  EMSCRIPTEN_KEEPALIVE void FilamentAsset_getWireframeJobThread(TFilamentAsset *tFilamentAsset, void (*onComplete)(EntityId))
   {
     auto *rt = RT(tFilamentAsset);
     std::packaged_task<void()> lambda(
@@ -2430,7 +2430,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Scene_addEntityRenderThread(TScene *tScene, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Scene_addEntityJobThread(TScene *tScene, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tScene);
     std::packaged_task<void()> lambda(
@@ -2442,7 +2442,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Scene_removeEntityRenderThread(TScene *tScene, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Scene_removeEntityJobThread(TScene *tScene, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tScene);
     std::packaged_task<void()> lambda(
@@ -2454,7 +2454,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_addToSceneRenderThread(TSceneAsset *tSceneAsset, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_addToSceneJobThread(TSceneAsset *tSceneAsset, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tSceneAsset);
     std::packaged_task<void()> lambda(
@@ -2466,7 +2466,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_removeFromSceneRenderThread(TSceneAsset *tSceneAsset, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_removeFromSceneJobThread(TSceneAsset *tSceneAsset, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tSceneAsset);
     std::packaged_task<void()> lambda(
@@ -2478,7 +2478,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Scene_setSkyboxRenderThread(TScene *tScene, TSkybox *tSkybox, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Scene_setSkyboxJobThread(TScene *tScene, TSkybox *tSkybox, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tScene);
     std::packaged_task<void()> lambda(
@@ -2490,7 +2490,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Scene_setIndirectLightRenderThread(TScene *tScene, TIndirectLight *tIndirectLight, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Scene_setIndirectLightJobThread(TScene *tScene, TIndirectLight *tIndirectLight, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tScene);
     std::packaged_task<void()> lambda(
@@ -2502,7 +2502,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Gizmo_createRenderThread(
+  EMSCRIPTEN_KEEPALIVE void Gizmo_createJobThread(
       TEngine *tEngine,
       TGltfAssetLoader *tAssetLoader,
       TGltfResourceLoader *tGltfResourceLoader,
@@ -2523,7 +2523,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_buildRenderThread(
+  EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_buildJobThread(
       TVertexBufferBuilder *tBuilder,
       TEngine *tEngine,
       void (*onComplete)(TVertexBuffer *))
@@ -2539,7 +2539,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void VertexBuffer_destroyRenderThread(
+  EMSCRIPTEN_KEEPALIVE void VertexBuffer_destroyJobThread(
       TEngine *tEngine,
       TVertexBuffer *tBuffer,
       uint32_t requestId,
@@ -2555,7 +2555,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferAtRenderThread(
+  EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferAtJobThread(
       TEngine* tEngine,
       TVertexBuffer* tBuffer,
       uint8_t bufferIndex,
@@ -2593,7 +2593,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferObjectAtRenderThread(
+  EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferObjectAtJobThread(
       TEngine* tEngine,
       TVertexBuffer* tBuffer,
       uint8_t bufferIndex,
@@ -2609,7 +2609,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void BufferObjectBuilder_buildRenderThread(
+  EMSCRIPTEN_KEEPALIVE void BufferObjectBuilder_buildJobThread(
       TBufferObjectBuilder* tBuilder,
       TEngine* tEngine,
       void (*onComplete)(TBufferObject*))
@@ -2623,7 +2623,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void BufferObject_setBufferRenderThread(
+  EMSCRIPTEN_KEEPALIVE void BufferObject_setBufferJobThread(
       TEngine* tEngine,
       TBufferObject* tBuffer,
       void* data,
@@ -2653,7 +2653,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void BufferObject_destroyRenderThread(
+  EMSCRIPTEN_KEEPALIVE void BufferObject_destroyJobThread(
       TEngine* tEngine,
       TBufferObject* tBuffer,
       uint32_t requestId,
@@ -2667,7 +2667,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void IndexBufferBuilder_buildRenderThread(
+  EMSCRIPTEN_KEEPALIVE void IndexBufferBuilder_buildJobThread(
       TIndexBufferBuilder *tBuilder,
       TEngine *tEngine,
       void (*onComplete)(TIndexBuffer *))
@@ -2683,7 +2683,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void IndexBuffer_destroyRenderThread(
+  EMSCRIPTEN_KEEPALIVE void IndexBuffer_destroyJobThread(
       TEngine *tEngine,
       TIndexBuffer *tBuffer,
       uint32_t requestId,
@@ -2699,7 +2699,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void IndexBuffer_setBufferRenderThread(
+  EMSCRIPTEN_KEEPALIVE void IndexBuffer_setBufferJobThread(
       TEngine* tEngine,
       TIndexBuffer* tBuffer,
       void* data,
@@ -2736,7 +2736,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderableBuilder_buildRenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableBuilder_buildJobThread(
       TRenderableBuilder *tBuilder,
       TEngine *tEngine,
       EntityId entityId,
@@ -2756,7 +2756,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderableBuilder_buildWithSkinningRenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableBuilder_buildWithSkinningJobThread(
       TRenderableBuilder *tBuilder,
       TEngine *tEngine,
       EntityId entityId,
@@ -2788,7 +2788,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void EntityManager_createEntityRenderThread(TEntityManager *tEntityManager, void (*onComplete)(EntityId))
+  EMSCRIPTEN_KEEPALIVE void EntityManager_createEntityJobThread(TEntityManager *tEntityManager, void (*onComplete)(EntityId))
   {
     auto *rt = RT(tEntityManager);
     std::packaged_task<void()> lambda(
@@ -2800,7 +2800,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void EntityManager_destroyEntityRenderThread(TEntityManager *tEntityManager, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void EntityManager_destroyEntityJobThread(TEntityManager *tEntityManager, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(tEntityManager);
     std::packaged_task<void()> lambda(
@@ -2812,7 +2812,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformJobThread(
       TTransformManager *tTransformManager,
       EntityId entityId,
       double4x4 transform,
@@ -2829,7 +2829,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformNativeRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformNativeJobThread(
       TTransformManager *manager, EntityId entity, TMat4 *matrix,
       uint32_t requestId, VoidCallback onComplete)
   {
@@ -2844,7 +2844,7 @@ extern "C"
     });
   }
 
-  EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformFromBufferRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformFromBufferJobThread(
       TTransformManager *manager, EntityId entity, const double *matrix16,
       uint32_t requestId, VoidCallback onComplete)
   {
@@ -2860,7 +2860,7 @@ extern "C"
     });
   }
 
-  EMSCRIPTEN_KEEPALIVE void TransformManager_setParentRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TransformManager_setParentJobThread(
       TTransformManager *tTransformManager,
       EntityId child,
       EntityId parent,
@@ -2878,7 +2878,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TransformManager_createComponentRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TransformManager_createComponentJobThread(
       TTransformManager *tTransformManager,
       EntityId entityId,
       uint32_t requestId,
@@ -2894,7 +2894,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TransformManager_removeComponentRenderThread(
+  EMSCRIPTEN_KEEPALIVE void TransformManager_removeComponentJobThread(
       TTransformManager *tTransformManager,
       EntityId entityId,
       uint32_t requestId,
@@ -2910,7 +2910,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderableManager_destroyEntityRenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_destroyEntityJobThread(
       TRenderableManager *tRenderableManager,
       EntityId entityId,
       uint32_t requestId,
@@ -2929,7 +2929,7 @@ extern "C"
   // Copy the caller-owned payload before returning across the FFI boundary.
   // Native Dart typed data is pinned only for the duration of the leaf call,
   // and ffigen_js uses Emscripten stack storage for makeFloat32List().
-  EMSCRIPTEN_KEEPALIVE void RenderableManager_setMorphWeightsRenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setMorphWeightsJobThread(
       TRenderableManager *tRenderableManager,
       EntityId entityId,
       const float *weights,
@@ -2955,7 +2955,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromMat4RenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromMat4JobThread(
       TRenderableManager *tRenderableManager,
       EntityId entityId,
       const float *transforms,
@@ -2977,7 +2977,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromBoneRenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromBoneJobThread(
       TRenderableManager *tRenderableManager,
       EntityId entityId,
       const float *bones,
@@ -3001,9 +3001,9 @@ extern "C"
 
   // The lambda captures only scalars and pointers to filament-owned objects,
   // so no heap payload is needed: the VertexBuffer handle stays valid because
-  // Dart only destroys it through VertexBuffer_destroyRenderThread, which is
+  // Dart only destroys it through VertexBuffer_destroyJobThread, which is
   // queued behind this task on the same render thread.
-  EMSCRIPTEN_KEEPALIVE void RenderableManager_setGeometryAtNonIndexedRenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setGeometryAtNonIndexedJobThread(
       TRenderableManager *tRenderableManager,
       EntityId entityId,
       int primitiveIndex,
@@ -3028,7 +3028,7 @@ extern "C"
   // RenderableManager/LightManager are not concurrency-safe, so the
   // non-render-thread setters race the renderer and the flags don't take
   // (realtime shadows never appear).
-  EMSCRIPTEN_KEEPALIVE void RenderableManager_setCastShadowsRenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setCastShadowsJobThread(
       TRenderableManager *tRenderableManager,
       EntityId entityId,
       bool enabled,
@@ -3045,7 +3045,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderableManager_setReceiveShadowsRenderThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setReceiveShadowsJobThread(
       TRenderableManager *tRenderableManager,
       EntityId entityId,
       bool enabled,
@@ -3062,7 +3062,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void LightManager_setShadowCasterRenderThread(
+  EMSCRIPTEN_KEEPALIVE void LightManager_setShadowCasterJobThread(
       TLightManager *tLightManager,
       EntityId entityId,
       bool enabled,
@@ -3079,7 +3079,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void LightManager_setShadowOptionsRenderThread(
+  EMSCRIPTEN_KEEPALIVE void LightManager_setShadowOptionsJobThread(
       TLightManager *tLightManager,
       EntityId entityId,
       TShadowOptions options,

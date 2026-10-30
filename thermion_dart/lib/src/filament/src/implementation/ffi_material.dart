@@ -33,14 +33,14 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
   @override
   Future<MaterialInstance> createInstance() async {
     var ptr = await withPointerCallback<TMaterialInstance>((cb) {
-      Material_createInstanceRenderThread(pointer, cb);
+      Material_createInstanceJobThread(pointer, cb);
     });
     return FFIMaterialInstance(ptr, _app);
   }
 
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
-      Engine_destroyMaterialRenderThread(_app.engine, pointer, requestId, cb);
+      Engine_destroyMaterialJobThread(_app.engine, pointer, requestId, cb);
     });
   }
 
@@ -188,7 +188,7 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
 
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
-      Engine_destroyMaterialInstanceRenderThread(_app.engine, this.pointer, requestId, cb);
+      Engine_destroyMaterialInstanceJobThread(_app.engine, this.pointer, requestId, cb);
     });
   }
 

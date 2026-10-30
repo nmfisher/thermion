@@ -583,20 +583,20 @@ void main() async {
       // The public API cannot retry partial destruction. Release the remaining
       // native resources directly so this intentional failure does not leak.
       if (app.renderableManager.hasComponent(instance.entity)) {
-        await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(instanceHandle, requestId, cb));
+        await withVoidCallback((requestId, cb) => SceneAsset_destroyJobThread(instanceHandle, requestId, cb));
       }
       for (var i = 0; i < children.length; i++) {
         if (app.renderableManager.hasComponent(children[i].entity)) {
-          await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(handles[i], requestId, cb));
+          await withVoidCallback((requestId, cb) => SceneAsset_destroyJobThread(handles[i], requestId, cb));
         }
         materials[i].destructionError = null;
         if (!materials[i].destroyed) await materials[i].destroy();
         if (app.renderableManager.hasComponent(sources[i].entity)) {
-          await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(sourceHandles[i], requestId, cb));
+          await withVoidCallback((requestId, cb) => SceneAsset_destroyJobThread(sourceHandles[i], requestId, cb));
         }
       }
       if (app.renderableManager.hasComponent(owner.entity)) {
-        await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(ownerHandle, requestId, cb));
+        await withVoidCallback((requestId, cb) => SceneAsset_destroyJobThread(ownerHandle, requestId, cb));
       }
     }
   });
@@ -719,7 +719,7 @@ class _MaterialTrackingApp extends FFIFilamentApp {
         app.transformManager.getNativeHandle(),
         app.ubershaderMaterialProvider,
         app.renderManager.getNativeHandle(),
-        app.renderThreadHandle,
+        app.jobThreadHandle,
         app.nameComponentManager,
         app.loadResource,
         app.lightManager.getNativeHandle(),

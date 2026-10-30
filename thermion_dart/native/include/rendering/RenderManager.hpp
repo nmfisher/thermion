@@ -64,7 +64,7 @@ namespace thermion
         /// without drawing an intermediate frame.
         void flushCommands();
 
-        /// Web path: called once per rAF from RenderThread::iter().
+        /// Web path: called once per rAF from JobThread::iter().
         /// Renders all attached swapchains synchronously (in practice there
         /// is only one on web — see ARCHITECTURE.md), then calls
         /// mEngine->execute() to drain the Filament WebGL backend command
@@ -114,7 +114,7 @@ namespace thermion
         // mEngine->execute() still runs so the backend command buffer keeps
         // draining (matches native "scheduler keeps ticking" pause semantics).
         // Note: this gates *rendering only* — task queue drain in
-        // RenderThread::iter() is outside this flag, so FFI state changes
+        // JobThread::iter() is outside this flag, so FFI state changes
         // (setTransform, addEntity, etc.) continue to apply while paused.
         // Main-thread controls must not take mMutex: tick() can hold it while
         // a Filament upload callback waits for that same main thread.

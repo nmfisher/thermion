@@ -20,9 +20,7 @@ class FFIColorGrading extends ColorGrading {
       return;
     }
     _disposed = true;
-    await withVoidCallback(
-      (requestId, cb) => Engine_destroyColorGradingRenderThread(_app.engine, pointer, requestId, cb),
-    );
+    await withVoidCallback((requestId, cb) => Engine_destroyColorGradingJobThread(_app.engine, pointer, requestId, cb));
   }
 }
 
@@ -209,7 +207,7 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
   Future<ColorGrading> build() async {
     _checkNotDisposed();
     final ptr = await withPointerCallback<TColorGrading>(
-      (cb) => ColorGradingBuilder_buildRenderThread(_builder, _app.engine, cb),
+      (cb) => ColorGradingBuilder_buildJobThread(_builder, _app.engine, cb),
     );
     if (ptr == nullptr) {
       throw Exception('Failed to build ColorGrading');
@@ -223,6 +221,6 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
       return;
     }
     _disposed = true;
-    await withVoidCallback((requestId, cb) => ColorGradingBuilder_destroyRenderThread(_builder, requestId, cb));
+    await withVoidCallback((requestId, cb) => ColorGradingBuilder_destroyJobThread(_builder, requestId, cb));
   }
 }

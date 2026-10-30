@@ -21,7 +21,7 @@ class FFIIndexBuffer extends IndexBuffer {
   Future setBuffer(TypedData data, {int byteOffset = 0}) async {
     await data.pass<void>((byteData) {
       return withVoidCallback((requestId, cb) {
-        bindings.IndexBuffer_setBufferRenderThread(
+        bindings.IndexBuffer_setBufferJobThread(
           _engine,
           _ptr,
           byteData.address.cast(),
@@ -37,7 +37,7 @@ class FFIIndexBuffer extends IndexBuffer {
   @override
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
-      bindings.IndexBuffer_destroyRenderThread(_engine, _ptr, requestId, cb);
+      bindings.IndexBuffer_destroyJobThread(_engine, _ptr, requestId, cb);
     });
   }
 }
@@ -81,7 +81,7 @@ class FFIIndexBufferBuilder implements IndexBufferBuilder {
     _checkNotBuilt();
 
     final indexBufferPtr = await withPointerCallback<bindings.TIndexBuffer>(
-      (cb) => bindings.IndexBufferBuilder_buildRenderThread(_builderPtr!, _engine, cb),
+      (cb) => bindings.IndexBufferBuilder_buildJobThread(_builderPtr!, _engine, cb),
     );
 
     bindings.IndexBufferBuilder_destroy(_builderPtr!);

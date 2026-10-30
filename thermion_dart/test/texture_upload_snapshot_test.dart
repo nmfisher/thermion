@@ -43,7 +43,7 @@ void main() {
       );
       final bytes = Uint8List.fromList([17, 43, 91, 255]);
       reset();
-      ffi.RenderThread_addTask(wait);
+      ffi.JobThread_addTask(wait);
       late Future<void> upload;
       try {
         upload = texture.setImage(0, bytes, 1, 1, PixelDataFormat.RGBA, PixelDataType.UBYTE);
@@ -60,7 +60,7 @@ void main() {
         final pixels = ffi.calloc<Uint8>(4);
         try {
           await withVoidCallback((id, cb) {
-            Renderer_readPixelsRenderThread(
+            Renderer_readPixelsJobThread(
               app.renderer,
               1,
               1,
@@ -75,7 +75,7 @@ void main() {
               cb,
             );
           });
-          await withVoidCallback((id, cb) => Engine_flushAndWaitRenderThread(app.engine, id, cb));
+          await withVoidCallback((id, cb) => Engine_flushAndWaitJobThread(app.engine, id, cb));
           expect(pixels.asTypedList(4), [17, 43, 91, 255]);
         } finally {
           ffi.calloc.free(pixels);

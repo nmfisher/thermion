@@ -18,12 +18,12 @@ On Android, we create multiple `SurfaceTexture` (each having their own ANativeWi
 
 ## Threading / Task Queue
 
-Filament requires certain tasks to be performed on the same thread that created an `Engine`. Since Dart/Flutter applications cannot (currently) pin isolates to threads, we need to create our own thread and task queue (see `RenderThread.hpp`). On the Dart side, we never call Filament methods directly, we always call the binding method to enqueue the task on the render thread (see `ThermionDartRenderThreadApi.cpp`).
+Filament requires certain tasks to be performed on the same thread that created an `Engine`. Since Dart/Flutter applications cannot (currently) pin isolates to threads, we need to create our own thread and task queue (see `JobThread.hpp`). On the Dart side, we never call Filament methods directly, we always call the binding method to enqueue the task on the render thread (see `ThermionDartJobThreadApi.cpp`).
 
 Tasks drain FIFO, one per `iter()`, so there is no preemption: a slow FFI call queued just before a render will delay that render until it finishes.
 The deque is lock-protected (`_taskMutex`); `iter()` holds the lock only long enough to pop, releases it to run the task, then re-acquires. This means Dart can enqueue new work while a render is in flight — it just won't run until the current task yields.
 
-Every Dart → Filament call (e.g. moving a camera, adding an entity) goes through a `*_RenderThread` shim that queues a task onto the same `RenderThread::_tasks` deque used by `RenderManager_renderRenderThread`.  Most FFI operations complete in microseconds so this is rarely visible, but bulk operations (e.g. loading a large glTF) can cause a single dropped frame because `_rendering` is still `true` when the next vsync fires.
+Every Dart → Filament call (e.g. moving a camera, adding an entity) goes through a `*_JobThread` shim that queues a task onto the same `JobThread::_tasks` deque used by `RenderManager_renderJobThread`.  Most FFI operations complete in microseconds so this is rarely visible, but bulk operations (e.g. loading a large glTF) can cause a single dropped frame because `_rendering` is still `true` when the next vsync fires.
 
 ## Frame synchronization
 
@@ -95,10 +95,10 @@ On each vsync tick, the following runs:
 3. **`FFIFilamentApp.render()`** (`thermion_dart/lib/src/filament/src/implementation/ffi_filament_app.dart`) runs registered render hooks, then on the native branch:
    ```dart
    await withVoidCallback((requestId, cb) =>
-       RenderManager_renderRenderThread(renderManager, frameTimeInNanos, requestId, cb));
+       RenderManager_renderJobThread(renderManager, frameTimeInNanos, requestId, cb));
    ```
-   This packages a `std::packaged_task` onto `RenderThread::_tasks` and returns a Dart future that resolves when the callback proxies back.
-4. **`RenderThread::iter()`** (non-emscripten branch) pops one task from the deque, runs it, then `condition_variable::wait_for(2000μs)` for the next. No polling.
+   This packages a `std::packaged_task` onto `JobThread::_tasks` and returns a Dart future that resolves when the callback proxies back.
+4. **`JobThread::iter()`** (non-emscripten branch) pops one task from the deque, runs it, then `condition_variable::wait_for(2000μs)` for the next. No polling.
 5. **`RenderManager::render()`** runs synchronously on the render thread under `mMutex`:
    - `updateAnimationsAndPlugins(frameTimeInNanos)`
    - for each attached swapchain: `Renderer::beginFrame` → `Renderer::render(view)` per view → `Renderer::endFrame`
@@ -107,7 +107,7 @@ On each vsync tick, the following runs:
 7. Back in `_renderFrame`, for each `PlatformTextureDescriptor` we call **`markTextureFrameAvailable()`**.
 8. The Texture widget schedules a repaint; Flutter's compositor samples the updated hardware texture on its next frame.
 
-Steps 3–6 are represented by a single Dart `Future`. The timing callback starts that work without awaiting it; the `_rendering` guard skips later ticks until the future completes. Rendering runs on the dedicated `RenderThread`, not the platform thread or Dart isolate.
+Steps 3–6 are represented by a single Dart `Future`. The timing callback starts that work without awaiting it; the `_rendering` guard skips later ticks until the future completes. Rendering runs on the dedicated `JobThread`, not the platform thread or Dart isolate.
 
 ### `markTextureFrameAvailable`
 
@@ -146,7 +146,7 @@ their platform-specific resize behavior.
 
 **The invariant (both platforms): pause stops rendering only. The task queue keeps draining.**
 
-`pauseFrameScheduler()` / `resumeFrameScheduler()` gate the **render pipeline** — on native, Dart declines to dispatch the frame handler (so no `RenderManager_render` task is queued); on web, `RenderManager::tick()` skips `updateAnimationsAndPlugins` + the swapchain loop. Neither path touches `RenderThread::_tasks`, so every `*_RenderThread` FFI call (`setTransform`, `addEntity`, material/camera updates, etc.) continues to queue and execute exactly as it does when running. `await`-ing an FFI call during pause will not hang; state accumulated during pause is visible on the first render after resume.
+`pauseFrameScheduler()` / `resumeFrameScheduler()` gate the **render pipeline** — on native, Dart declines to dispatch the frame handler (so no `RenderManager_render` task is queued); on web, `RenderManager::tick()` skips `updateAnimationsAndPlugins` + the swapchain loop. Neither path touches `JobThread::_tasks`, so every `*_JobThread` FFI call (`setTransform`, `addEntity`, material/camera updates, etc.) continues to queue and execute exactly as it does when running. `await`-ing an FFI call during pause will not hang; state accumulated during pause is visible on the first render after resume.
 
 App lifecycle suspension is separate from an explicit caller pause. `hidden`,
 `paused`, and `detached` suspend rendering; `inactive` does not, because the app
@@ -247,19 +247,19 @@ Web is fundamentally single-swapchain. `emscripten_pthread_attr_settransferredca
 Two threads matter:
 
 - **Main browser thread**: where Dart executes (Flutter's engine runs on the main thread on web). All `FilamentApp` method calls originate here.
-- **Render worker**: a pthread spun up at startup by `RenderThread::RenderThread()` via `pthread_create` with `emscripten_pthread_attr_settransferredcanvases(&attr, "#thermion_canvas")`. This transfers ownership of the OffscreenCanvas to the worker, which then owns the WebGL context for the lifetime of the app. The worker's entry point installs `emscripten_set_main_loop_arg(&mainLoop, ...)` so that `RenderThread::iter()` is called on the worker's own `requestAnimationFrame` cadence.
+- **Render worker**: a pthread spun up at startup by `JobThread::JobThread()` via `pthread_create` with `emscripten_pthread_attr_settransferredcanvases(&attr, "#thermion_canvas")`. This transfers ownership of the OffscreenCanvas to the worker, which then owns the WebGL context for the lifetime of the app. The worker's entry point installs `emscripten_set_main_loop_arg(&mainLoop, ...)` so that `JobThread::iter()` is called on the worker's own `requestAnimationFrame` cadence.
 
-Dart and the worker communicate via emscripten's proxying queue + a lock-protected task deque (`RenderThread::_tasks`). Dart never calls Filament directly from the main thread — every call crosses the thread boundary as a packaged task.
+Dart and the worker communicate via emscripten's proxying queue + a lock-protected task deque (`JobThread::_tasks`). Dart never calls Filament directly from the main thread — every call crosses the thread boundary as a packaged task.
 
 ### Dart → worker call pattern
 
-Every generated FFI binding that needs to touch Filament takes the `*_RenderThread` shape — e.g. `Renderer_beginFrameRenderThread(..., requestId, onComplete)`. The Dart side wraps these with `withVoidCallback` / `withPointerCallback` / etc., which:
+Every generated FFI binding that needs to touch Filament takes the `*_JobThread` shape — e.g. `Renderer_beginFrameJobThread(..., requestId, onComplete)`. The Dart side wraps these with `withVoidCallback` / `withPointerCallback` / etc., which:
 
 1. Register a callback port keyed by a fresh `requestId`.
-2. Call the `*_RenderThread` FFI function. The C wrapper packages the target call + a capture of `(requestId, onComplete)` into a `std::packaged_task`, pushes it onto `RenderThread::_tasks`, and returns immediately.
+2. Call the `*_JobThread` FFI function. The C wrapper packages the target call + a capture of `(requestId, onComplete)` into a `std::packaged_task`, pushes it onto `JobThread::_tasks`, and returns immediately.
 3. Dart awaits the completer associated with `requestId`.
 
-On the worker side, `RenderThread::iter()` (emscripten branch) drains every queued task synchronously, each of which runs its underlying Filament call and then fires `onComplete(requestId)`. The callback is proxied back to the main thread via `emscripten::ProxyingQueue::proxySync` (the `PROXY(...)` macro in `ThermionDartRenderThreadApi.cpp`), which resolves the Dart future.
+On the worker side, `JobThread::iter()` (emscripten branch) drains every queued task synchronously, each of which runs its underlying Filament call and then fires `onComplete(requestId)`. The callback is proxied back to the main thread via `emscripten::ProxyingQueue::proxySync` (the `PROXY(...)` macro in `ThermionDartJobThreadApi.cpp`), which resolves the Dart future.
 
 The net effect is that Dart code can `await` a Filament call as if it were synchronous, but the actual GL work happens on the worker where the canvas lives.
 
@@ -267,10 +267,10 @@ The net effect is that Dart code can `await` a Filament call as if it were synch
 
 Unlike the native path, Dart on web does **not** await individual renders. `FFIFilamentApp.render()` branches on `FILAMENT_SINGLE_THREADED`:
 
-- **Native** queues a `RenderManager_renderRenderThread` task and awaits its completion. `RenderManager::render()` runs the whole pipeline (animations + plugins + all swapchains' beginFrame/render/endFrame + `mEngine->execute()`) as one synchronous task.
+- **Native** queues a `RenderManager_renderJobThread` task and awaits its completion. `RenderManager::render()` runs the whole pipeline (animations + plugins + all swapchains' beginFrame/render/endFrame + `mEngine->execute()`) as one synchronous task.
 - **Web** returns immediately. Drawing runs independently on the worker, so there is no native frame-request call. Completing this Future does not mean a frame has been drawn.
 
-Rendering is driven entirely from the worker's mainLoop. Each worker rAF, `RenderThread::iter()` drains the task queue and calls `RenderManager::tick(now)`. `tick()`:
+Rendering is driven entirely from the worker's mainLoop. Each worker rAF, `JobThread::iter()` drains the task queue and calls `RenderManager::tick(now)`. `tick()`:
 
 1. Runs `updateAnimationsAndPlugins(now)`.
 2. For each attached swapchain: `renderSwapChainAt(i)` (beginFrame → render each view → endFrame).
@@ -298,9 +298,9 @@ See [Pause/resume](#pauseresume) in the native lifecycle section — the invaria
 
 ### Key files
 
-- `thermion_dart/native/src/rendering/RenderThread.cpp` — pthread + emscripten mainLoop, task queue.
+- `thermion_dart/native/src/rendering/JobThread.cpp` — pthread + emscripten mainLoop, task queue.
 - `thermion_dart/native/src/rendering/RenderManager.cpp` — `render()` (native), `tick()` (web).
-- `thermion_dart/native/src/c_api/ThermionDartRenderThreadApi.cpp` — `*_RenderThread` C shims + proxy-back callbacks.
+- `thermion_dart/native/src/c_api/ThermionDartJobThreadApi.cpp` — `*_JobThread` C shims + proxy-back callbacks.
 - `thermion_dart/lib/src/filament/src/implementation/ffi_filament_app.dart` — `FFIFilamentApp.render()` branches on `FILAMENT_SINGLE_THREADED`.
 - `thermion_dart/hook/build.dart` — web artifact download + `THERMION_WEB_LOCAL` override.
 
