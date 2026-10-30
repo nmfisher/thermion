@@ -1,8 +1,5 @@
 import 'dart:convert';
 import 'bindings.dart';
-import 'src/string_buffer_allocator_native.dart'
-    if (dart.library.js_interop) 'src/string_buffer_allocator_web.dart'
-    as memory;
 
 /// Reads UTF-8 text into a buffer owned by Dart.
 ///
@@ -18,7 +15,7 @@ import 'src/string_buffer_allocator_native.dart'
 Future<String?> readString(Future<int> Function(Pointer<Char> buffer, int capacity) read) async {
   var capacity = 256;
   while (true) {
-    final buffer = memory.allocate(capacity);
+    final buffer = allocate<Char>(capacity);
     if (buffer == nullptr) throw StateError('String buffer allocation failed');
     try {
       final requiredBytes = await read(buffer, capacity);
@@ -28,7 +25,7 @@ Future<String?> readString(Future<int> Function(Pointer<Char> buffer, int capaci
       }
       capacity = requiredBytes;
     } finally {
-      memory.free(buffer);
+      free(buffer);
     }
   }
 }

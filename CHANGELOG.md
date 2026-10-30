@@ -13,7 +13,8 @@
 
 - Deliver web worker completions through a module-lifetime callback queue,
   without Dart polling. Read view names into caller-owned UTF-8 buffers on native
-  and web, with capacity checks and ordered resize retries.
+  and web, with capacity checks and ordered resize retries. Use `ffigen_js`
+  0.0.17-pre so Wasm buffers use the existing allocation/free API.
 
 - `RenderManager.destroy()` now returns `Future<void>`. Await it before
   destroying engine resources. Manager detachment and deletion run on the
