@@ -1371,11 +1371,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       orientationBuilder.triangleCount(geometry.indices.length ~/ 3);
       if (geometry.indexType == IndexType.UINT) {
         orientationBuilder.trianglesUint32(
-          makeUint32List(geometry.indices.length)..setRange(0, geometry.indices.length, geometry.indices),
+          Uint32List(geometry.indices.length)..setRange(0, geometry.indices.length, geometry.indices),
         );
       } else {
         orientationBuilder.trianglesUint16(
-          makeUint16List(geometry.indices.length)..setRange(0, geometry.indices.length, geometry.indices),
+          Uint16List(geometry.indices.length)..setRange(0, geometry.indices.length, geometry.indices),
         );
       }
 
@@ -1469,10 +1469,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final indexBuffer = await indexBufferBuilder.build() as FFIIndexBuffer;
     final indexTypedData = switch (geometry.indexType) {
-      IndexType.UINT => makeUint32List(geometry.indices.length)..setRange(0, geometry.indices.length, geometry.indices),
-      IndexType.USHORT => makeUint16List(
-        geometry.indices.length,
-      )..setRange(0, geometry.indices.length, geometry.indices),
+      IndexType.UINT => Uint32List(geometry.indices.length)..setRange(0, geometry.indices.length, geometry.indices),
+      IndexType.USHORT => Uint16List(geometry.indices.length)..setRange(0, geometry.indices.length, geometry.indices),
     };
     await indexBuffer.setBuffer(indexTypedData);
 

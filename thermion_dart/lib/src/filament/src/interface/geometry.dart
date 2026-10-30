@@ -46,11 +46,11 @@ class Geometry {
 
     if (colors == null) {
       if (createDummyColors) {
-        colors = makeFloat32List(vertices.length ~/ 3 * 4);
+        colors = Float32List(vertices.length ~/ 3 * 4);
         colors.fillRange(0, colors.length, 1);
         _logger.info("Created dummy colors");
       } else {
-        colors = makeFloat32List(0);
+        colors = Float32List(0);
       }
     }
     this.colors = colors;
@@ -60,10 +60,10 @@ class Geometry {
 
     if (uvs == null) {
       if (createDummyUvs) {
-        uvs = makeFloat32List(vertices.length ~/ 3 * 2);
+        uvs = Float32List(vertices.length ~/ 3 * 2);
         uvs.fillRange(0, uvs.length, 0.0);
       } else {
-        uvs = makeFloat32List(0);
+        uvs = Float32List(0);
       }
     }
     this.uvs = uvs;
@@ -81,11 +81,11 @@ class Geometry {
         if (this.uvs.isNotEmpty) {
           this.uvs1 = Float32List.fromList(this.uvs);
         } else {
-          this.uvs1 = makeFloat32List(vertices.length ~/ 3 * 2);
+          this.uvs1 = Float32List(vertices.length ~/ 3 * 2);
           this.uvs1.fillRange(0, this.uvs1.length, 0.0);
         }
       } else {
-        this.uvs1 = makeFloat32List(0);
+        this.uvs1 = Float32List(0);
       }
     } else {
       this.uvs1 = uvs1;

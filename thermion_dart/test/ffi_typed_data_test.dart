@@ -24,6 +24,34 @@ void main() {
         expect(sourceBytes.last, 0x3c);
       });
     }
+
+    test('batch scope borrows every input view', () async {
+      final inputs = <TypedData>[
+        Uint16List.sublistView(Uint16List.fromList([99, 1, 2, 99]), 1, 3),
+        Int64List.sublistView(Int64List.fromList([99, 0x100000001, 0x200000002, 99]), 1, 3),
+      ];
+      await inputs.pass<void>((bytes) {
+        for (var i = 0; i < inputs.length; i++) {
+          final source = inputs[i];
+          final sourceBytes = source.buffer.asUint8List(source.offsetInBytes, source.lengthInBytes);
+          _expectMatchingBytes(source, bytes[i]);
+          sourceBytes.first = 0x7a;
+          expect(bytes[i].first, 0x7a);
+          bytes[i].last = 0x3c;
+          expect(sourceBytes.last, 0x3c);
+        }
+      });
+    });
+
+    test('output scope writes directly into the caller view', () async {
+      final target = Float32List.fromList([99, 0, 0, 99]);
+      final output = Float32List.sublistView(target, 1, 3);
+      await output.passOutput<void>((bytes) {
+        bytes.buffer.asFloat32List(bytes.offsetInBytes, 2).setAll(0, [7, 8]);
+        expect(target, [99, 7, 8, 99]);
+      });
+      expect(target, [99, 7, 8, 99]);
+    });
   });
 
   group('TypedData asUint8List', () {

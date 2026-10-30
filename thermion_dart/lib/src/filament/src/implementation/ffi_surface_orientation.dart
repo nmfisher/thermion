@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import 'dart:typed_data';
 import '../../../bindings/bindings.dart' as bindings;
 import '../interface/surface_orientation.dart';
@@ -27,26 +28,24 @@ class FFISurfaceOrientation extends SurfaceOrientation {
 
     final bufferSize = quatCount * elementSize;
 
-    // Allocate buffer for output
     final output = switch (format) {
-      QuaternionFormat.FLOAT4 => bindings.makeFloat32List(bufferSize ~/ 4),
-      QuaternionFormat.SHORT4 => bindings.makeInt16List(bufferSize ~/ 2),
-      QuaternionFormat.HALF4 => bindings.makeUint16List(bufferSize ~/ 2),
+      QuaternionFormat.FLOAT4 => Float32List(bufferSize ~/ 4),
+      QuaternionFormat.SHORT4 => Int16List(bufferSize ~/ 2),
+      QuaternionFormat.HALF4 => Uint16List(bufferSize ~/ 2),
     };
-
-    final outputBytes = output.asUint8List();
-    switch (format) {
-      case QuaternionFormat.FLOAT4:
-        bindings.SurfaceOrientation_getQuats_float4(_ptr, outputBytes.address.cast(), quatCount, stride);
-        break;
-      case QuaternionFormat.SHORT4:
-        bindings.SurfaceOrientation_getQuats_short4(_ptr, outputBytes.address.cast(), quatCount, stride);
-        break;
-      case QuaternionFormat.HALF4:
-        bindings.SurfaceOrientation_getQuats_half4(_ptr, outputBytes.address.cast(), quatCount, stride);
-        break;
-    }
-
+    await output.passOutput<void>((bytes) {
+      switch (format) {
+        case QuaternionFormat.FLOAT4:
+          bindings.SurfaceOrientation_getQuats_float4(_ptr, bytes.address.cast(), quatCount, stride);
+          break;
+        case QuaternionFormat.SHORT4:
+          bindings.SurfaceOrientation_getQuats_short4(_ptr, bytes.address.cast(), quatCount, stride);
+          break;
+        case QuaternionFormat.HALF4:
+          bindings.SurfaceOrientation_getQuats_half4(_ptr, bytes.address.cast(), quatCount, stride);
+          break;
+      }
+    });
     return output;
   }
 
@@ -131,46 +130,37 @@ class FFISurfaceOrientationBuilder implements SurfaceOrientationBuilder {
   Future<SurfaceOrientation> build() async {
     _checkNotBuilt();
 
-    // Optional inputs use empty lists so every .address stays a direct FFI
-    // argument. Their zero lengths tell native code to omit those inputs.
-    // Web needs temporary WASM views; native Dart borrows the retained lists.
-    final stack = bindings.FILAMENT_WASM ? bindings.stackSave() : bindings.nullptr;
-    Float32List floatInput(Float32List? input) {
-      final data = input ?? _emptyFloats;
-      return bindings.FILAMENT_WASM ? (bindings.makeFloat32List(data.length)..setAll(0, data)) : data;
-    }
-
-    try {
-      final normals = floatInput(_normals);
-      final tangents = floatInput(_tangents);
-      final uvs = floatInput(_uvs);
-      final positions = floatInput(_positions);
-      final indices32 = _triangles32 ?? _emptyIndices32;
-      final indices16 = _triangles16 ?? _emptyIndices16;
-      final triangles32 = bindings.FILAMENT_WASM
-          ? (bindings.makeUint32List(indices32.length)..setAll(0, indices32))
-          : indices32;
-      final triangles16 = bindings.FILAMENT_WASM
-          ? (bindings.makeUint16List(indices16.length)..setAll(0, indices16))
-          : indices16;
+    final normals = _normals ?? _emptyFloats;
+    final tangents = _tangents ?? _emptyFloats;
+    final uvs = _uvs ?? _emptyFloats;
+    final positions = _positions ?? _emptyFloats;
+    final triangles32 = _triangles32 ?? _emptyIndices32;
+    final triangles16 = _triangles16 ?? _emptyIndices16;
+    return <TypedData>[normals, tangents, uvs, positions, triangles32, triangles16].pass<SurfaceOrientation>((inputs) {
+      final normalInput = inputs[0];
+      final tangentInput = inputs[1];
+      final uvInput = inputs[2];
+      final positionInput = inputs[3];
+      final triangleInput32 = inputs[4];
+      final triangleInput16 = inputs[5];
       final orientationPtr = bindings.SurfaceOrientation_build(
         _vertexCount,
-        normals.address,
+        normalInput.address.cast(),
         normals.length,
         _normalStride,
-        tangents.address,
+        tangentInput.address.cast(),
         tangents.length,
         _tangentStride,
-        uvs.address,
+        uvInput.address.cast(),
         uvs.length,
         _uvStride,
-        positions.address,
+        positionInput.address.cast(),
         positions.length,
         _positionStride,
         _triangleCount,
-        triangles32.address,
+        triangleInput32.address.cast(),
         triangles32.length,
-        triangles16.address,
+        triangleInput16.address.cast(),
         triangles16.length,
       );
       _isBuilt = true;
@@ -178,9 +168,6 @@ class FFISurfaceOrientationBuilder implements SurfaceOrientationBuilder {
       _triangles32 = null;
       _triangles16 = null;
       return FFISurfaceOrientation(orientationPtr);
-    } finally {
-      // All input reads finish before returning; no stack storage spans an await.
-      if (bindings.FILAMENT_WASM) bindings.stackRestore(stack);
-    }
+    });
   }
 }

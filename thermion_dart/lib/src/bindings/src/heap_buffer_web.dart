@@ -31,6 +31,40 @@ extension TypedDataPass on TypedData {
       storage.dispose();
     }
   }
+
+  /// Copies completed output here before freeing the Wasm storage.
+  Future<T> passOutput<T>(FutureOr<T> Function(Uint8List data) operation) async {
+    final storage = _HeapBuffer(lengthInBytes);
+    try {
+      final result = await operation(storage.data);
+      buffer.asUint8List(offsetInBytes, lengthInBytes).setAll(0, storage.data);
+      return result;
+    } finally {
+      storage.dispose();
+    }
+  }
+}
+
+/// Callback byte views are borrowed. Do not retain or return them.
+extension TypedDataListPass on List<TypedData> {
+  /// Allocates all inputs before forming views, then frees them after the callback.
+  Future<T> pass<T>(FutureOr<T> Function(List<Uint8List> data) operation) async {
+    final storage = <_HeapBuffer>[];
+    try {
+      for (final source in this) {
+        final input = _HeapBuffer(source.lengthInBytes);
+        storage.add(input);
+        input.data.setAll(0, source.buffer.asUint8List(source.offsetInBytes, source.lengthInBytes));
+      }
+      // A later allocation may grow Wasm memory and replace the backing buffer.
+      final bytes = [for (final input in storage) input.data];
+      return await operation(bytes);
+    } finally {
+      for (final input in storage) {
+        input.dispose();
+      }
+    }
+  }
 }
 
 class _HeapBuffer {
