@@ -176,7 +176,8 @@ Future<double> withFloatCallback(Function(Pointer<NativeFunction<Void Function(F
   return completer.future;
 }
 
-Future<int> withIntCallback(Function(Pointer<NativeFunction<Void Function(Int32)>>) func) async {
+/// Waits for one signed 32-bit result.
+Future<int> withInt32Callback(Function(Pointer<NativeFunction<Void Function(Int32)>>) func) async {
   final completer = Completer<int>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {

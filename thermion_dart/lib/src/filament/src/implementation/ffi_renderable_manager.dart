@@ -645,11 +645,11 @@ class FFIRenderableBuilder implements RenderableBuilder {
     final skinningData = _skinningBones ?? _skinningMatrices;
     final int result;
     if (skinningData == null) {
-      result = await withIntCallback(
+      result = await withInt32Callback(
         (cb) => bindings.RenderableBuilder_buildJobThread(_builderPtr!, _app.engine, entity, cb.cast()),
       );
     } else {
-      result = await withIntCallback((cb) {
+      result = await withInt32Callback((cb) {
         // Web needs a WASM-memory view for FFI; native borrows the Dart list directly.
         final stack = FILAMENT_WASM ? stackSave() : nullptr;
         final input = FILAMENT_WASM ? (makeFloat32List(skinningData.length)..setAll(0, skinningData)) : skinningData;
