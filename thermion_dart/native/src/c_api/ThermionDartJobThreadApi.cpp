@@ -286,32 +286,46 @@ extern "C"
       Log("WARNING - RenderManager_attachToJobThread called with no JobThread active.");
       return;
     }
-    auto *rm = reinterpret_cast<RenderManager *>(tRenderManager);
+#endif
     auto *rt = RT(tRenderManager);
     setOwner(tRenderManager, rt);
-    rt->setRenderManager(rm);
-#else
-    (void)tRenderManager; // no-op on native
+#ifdef __EMSCRIPTEN__
+    auto *rm = reinterpret_cast<RenderManager *>(tRenderManager);
+    rt->addDetachedTask([rt, rm] { rt->setRenderManager(rm); });
 #endif
   }
 
-  // Inverse of RenderManager_attachToJobThread. Call before deleting a
-  // RenderManager so the worker's iter() doesn't dereference a freed pointer
-  // on its next tick.
+  // Queue detachment without deleting the manager. Await queued destruction
+  // before freeing engine resources used by the manager.
   EMSCRIPTEN_KEEPALIVE void RenderManager_detachFromJobThread(TRenderManager *tRenderManager)
   {
 #ifdef __EMSCRIPTEN__
     auto *rt = RT(tRenderManager);
     if (rt) {
-      rt->setRenderManager(nullptr);
+      rt->addDetachedTask([rt] { rt->setRenderManager(nullptr); });
     }
-    {
-      std::lock_guard<std::shared_mutex> lock(g_ownerMutex);
-      g_threadByOwner.erase(tRenderManager);
-    }
+    // Keep the owner mapping until deletion. Queued destruction must still
+    // reach this manager's worker when another engine is active.
 #else
     (void)tRenderManager; // no-op on native
 #endif
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderManager_destroyJobThread(
+      TRenderManager* manager, uint32_t requestId, VoidCallback onComplete)
+  {
+    auto* rt = RT(manager);
+    rt->addDetachedTask([=] {
+#ifdef __EMSCRIPTEN__
+      rt->setRenderManager(nullptr);
+#endif
+      RenderManager_destroy(manager);
+      {
+        std::lock_guard<std::shared_mutex> lock(g_ownerMutex);
+        g_threadByOwner.erase(manager);
+      }
+      PROXY(onComplete(requestId));
+    });
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderableJobThread(

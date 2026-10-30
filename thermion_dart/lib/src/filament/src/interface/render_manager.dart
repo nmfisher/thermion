@@ -30,5 +30,11 @@ abstract class RenderManager<T> extends NativeHandle<T> {
   /// THERMION_WEB_MAIN_THREAD instead renders on the calling thread.
   Future render({int? frameTimeInNanos});
 
-  void destroy();
+  /// Detaches this manager and destroys it on its owning thread after earlier
+  /// queued work. Await this before destroying its animation managers, renderer,
+  /// or engine. Stop submitting work to this manager before calling destroy.
+  ///
+  /// Completion means the manager has been deleted; it does not shut down the
+  /// worker. Engine and worker teardown are owned by the Filament app.
+  Future<void> destroy();
 }
