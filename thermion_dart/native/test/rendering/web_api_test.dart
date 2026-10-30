@@ -8,16 +8,9 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 
 void progress(String message) => globalContext['testProgress'] = message.toJS;
 
-// Copy a borrowed string during callback delivery, before native storage expires.
-Future<String> readName(Pointer<TView> view) async {
-  final result = Completer<String>();
-  void callback(Pointer<Char> name) => result.complete(name.cast<Utf8>().toDartString());
-  final pointer = callback.addFunction();
-  View_getNameJobThread(view, pointer.cast());
-  final name = await result.future;
-  pointer.dispose();
-  return name;
-}
+Future<String?> readName(Pointer<TView> view) => withStringCallback((callback) {
+  View_getNameJobThread(view, callback);
+});
 
 Future<void> main() async {
   try {
@@ -42,14 +35,21 @@ Future<void> main() async {
       final name = 'worker-$round'.toNativeUtf8().cast<Char>();
       await withVoidCallback((id, cb) => View_setNameJobThread(view, name, id, cb));
       free(name);
-      // Queue a rename before awaiting the name callback. Its old native
-      // storage may be replaced before the browser receives that callback.
+      // The result owns its text. Renaming the view before callback delivery
+      // must not change it.
       final pendingName = readName(view);
       final replacement = 'renamed-worker-$round'.toNativeUtf8().cast<Char>();
       await withVoidCallback((id, cb) => View_setNameJobThread(view, replacement, id, cb));
       free(replacement);
       final returnedName = await pendingName;
       if (returnedName != 'worker-$round') throw StateError('Invalid string callback: $returnedName');
+      final disposableView = await withPointerCallback<TView>((cb) => Engine_createViewJobThread(engine, cb));
+      final disposableName = 'deleted-view-Ω🚗'.toNativeUtf8().cast<Char>();
+      await withVoidCallback((id, cb) => View_setNameJobThread(disposableView, disposableName, id, cb));
+      free(disposableName);
+      final beforeDestroy = readName(disposableView);
+      await withVoidCallback((id, cb) => Engine_destroyViewJobThread(engine, disposableView, id, cb));
+      if (await beforeDestroy != 'deleted-view-Ω🚗') throw StateError('View deletion invalidated its name callback');
       // Successful KTX creation and buffer release must also finish while
       // worker animation-frame callbacks are disabled.
       progress('engine $round KTX upload');

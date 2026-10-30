@@ -138,15 +138,44 @@ Web worker completions are posted through a module-lifetime proxy queue. Dart
 awaits each completion without polling a worker's queue. Main-thread web builds
 still call completions directly.
 
-View names are copied for delivery because a later queued rename or deletion
-can invalidate the original string. `withStringCallback()` copies the text into
-Dart before that temporary native string is released. The JavaScript callback
-tests cover asynchronous delivery, borrowed text, null results and cleanup after
-failures. Run them from `thermion_dart/`:
+String callbacks transfer ownership on both native and web. For example,
+`View_getNameJobThread()` allocates a null-terminated UTF-8 copy before calling
+its callback. A later rename or deletion cannot change that copy. The producer
+must not free it when the C callback returns: `NativeCallable.listener` only
+queues delivery to Dart at that point.
+
+`withStringCallback()` decodes the result and calls `StringCallback_free()` in
+`finally`, including when decoding fails. A null pointer produces null and needs
+no release. The native function must call the callback exactly once. The Dart
+dispatch function may throw only before handing the callback to native code.
+
+Only pass owned results allocated for this API. Borrowed pointers from
+`View_getName()`, `std::string::c_str()`, stack memory and Dart-allocated buffers
+must not go through this helper. `StringCallback_free()` uses the allocator that
+created the result. Do not replace it with Dart's `free()`.
+
+The JavaScript tests check null results, UTF-8 conversion, release exactly once
+and callback-table cleanup on success and failure. Run from `thermion_dart/`:
 
 ```sh
 dart test -p node test/js_pointer_callback_test.dart
 ```
+
+The native tests block the Dart isolate until a queued rename or deletion has
+finished. This forces delivery after the view's original name has been released.
+They also check null results, invalid UTF-8 and dispatch errors. CI runs these on
+Linux, Windows and macOS. To run locally from the repository root:
+
+```sh
+cmake -S thermion_dart/native/test/rendering -B /tmp/thermion-string-callbacks
+cmake --build /tmp/thermion-string-callbacks --target string_callback_fixture
+cd thermion_dart
+THERMION_STRING_CALLBACK_FIXTURE=/tmp/thermion-string-callbacks/libstring_callback_fixture.dylib \
+  dart test test/ffi_string_callback_test.dart
+```
+
+Use `.so` on Linux. With the default Visual Studio generator on Windows, build
+with `--config Release` and set the variable to `Release/string_callback_fixture.dll`.
 
 The full-module browser fixture checks pointer, void and string callbacks,
 public view-name reads, KTX upload/release, skybox/IBL loading and four engine

@@ -11,12 +11,14 @@ void main() {
   // Exercise the JS bindings without loading Filament or a Wasm engine.
   final callbacks = <int, JSFunction>{};
   final removed = <int>[];
+  final freedStrings = <int>[];
   var next = 0;
   void Function()? pump;
 
   setUp(() {
     callbacks.clear();
     removed.clear();
+    freedStrings.clear();
     next = 0;
     pump = null;
     final module = JSObject();
@@ -35,6 +37,7 @@ void main() {
       }).toJS,
     );
     module.setProperty('_execute_queue'.toJS, (() => pump?.call()).toJS);
+    module.setProperty('_StringCallback_free'.toJS, ((int address) => freedStrings.add(address)).toJS);
     NativeLibrary.instance = module as NativeLibrary;
   });
 
@@ -84,7 +87,7 @@ void main() {
     expect(removed, [1]);
   });
 
-  test('string completion copies borrowed text before the callback returns', () async {
+  test('string completion copies and frees the owned text', () async {
     var text = 'original view name';
     NativeLibrary.instance.setProperty('UTF8ToString'.toJS, ((int _) => text.toJS).toJS);
     final result = await withStringCallback((callback) {
@@ -93,6 +96,7 @@ void main() {
     });
 
     expect(result, 'original view name');
+    expect(freedStrings, [0x1234]);
     expect(callbacks, isEmpty);
     expect(removed, [1]);
   });
@@ -103,6 +107,7 @@ void main() {
     });
 
     expect(result, isNull);
+    expect(freedStrings, isEmpty);
     expect(callbacks, isEmpty);
     expect(removed, [1]);
   });
@@ -111,6 +116,7 @@ void main() {
     final error = StateError('string dispatch failed');
     await expectLater(withStringCallback((_) => throw error), throwsA(same(error)));
 
+    expect(freedStrings, isEmpty);
     expect(callbacks, isEmpty);
     expect(removed, [1]);
   });
@@ -124,7 +130,28 @@ void main() {
     });
 
     await expectLater(pending, throwsA(same(error)));
+
+    expect(freedStrings, [0x1234]);
     expect(callbacks, isEmpty);
     expect(removed, [1]);
   });
+
+  for (final text in ['', 'view Ω🚗']) {
+    test('asynchronous string completion preserves "$text" and frees it after decoding', () async {
+      NativeLibrary.instance.setProperty(
+        'UTF8ToString'.toJS,
+        ((int _) {
+          expect(freedStrings, isEmpty);
+          return text.toJS;
+        }).toJS,
+      );
+      final pending = withStringCallback((callback) {
+        Timer.run(() => callbacks[callback.address]!.callAsFunction(null, 0x1234.toJS));
+      });
+      expect(await pending, text);
+      expect(freedStrings, [0x1234]);
+      expect(callbacks, isEmpty);
+      expect(removed, [1]);
+    });
+  }
 }

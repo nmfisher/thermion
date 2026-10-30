@@ -104,7 +104,17 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
   }
 }
 
-/// Copies borrowed text before the native callback returns.
+/// Reads one owned, null-terminated UTF-8 string from [func].
+///
+/// The native function must call the callback exactly once, with null or a
+/// string allocated for this result by Thermion. The callback takes ownership.
+/// Do not pass borrowed strings, stack memory or Dart-allocated buffers.
+/// This helper copies the text and calls StringCallback_free, even if decoding
+/// fails. Null produces null.
+///
+/// Native FFI listeners run later. Keep the allocation valid and unchanged
+/// until this helper frees it. [func] may throw only before handing the callback
+/// to native code.
 Future<String?> withStringCallback(Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>) func) async {
   final completer = Completer<String?>();
   void callback(Pointer<Char> text) {
@@ -112,6 +122,8 @@ Future<String?> withStringCallback(Function(Pointer<NativeFunction<Void Function
       completer.complete(text == nullptr ? null : text.cast<Utf8>().toDartString());
     } catch (error, stack) {
       completer.completeError(error, stack);
+    } finally {
+      if (text != nullptr) StringCallback_free(text);
     }
   }
 

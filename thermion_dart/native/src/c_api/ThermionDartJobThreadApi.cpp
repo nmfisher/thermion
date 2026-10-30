@@ -1429,22 +1429,28 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_getNameJobThread(TView *tView, void (*onComplete)(const char *))
+  EMSCRIPTEN_KEEPALIVE void StringCallback_free(char *text)
+  {
+    delete[] text;
+  }
+
+  EMSCRIPTEN_KEEPALIVE void View_getNameJobThread(TView *tView, void (*onComplete)(char *))
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
         [=]
         {
-          auto name = View_getName(tView);
-#ifdef __EMSCRIPTEN__
-          // A subsequent rename/destroy can run before the browser receives
-          // this completion. Own the string through callback delivery.
-          rt->dispatchCallback([onComplete, hasName = name != nullptr, name = std::string(name ? name : "")] {
-            onComplete(hasName ? name.c_str() : nullptr);
-          });
-#else
-          PROXY(onComplete(name));
-#endif
+          const auto *name = View_getName(tView);
+          char *copy = nullptr;
+          if (name != nullptr) {
+            const auto size = std::strlen(name) + 1;
+            copy = new char[size];
+            std::memcpy(copy, name, size);
+          }
+          // Dart's native listener and web worker callbacks run later. A queued
+          // rename or deletion can free the view's name before Dart reads it.
+          // Give the callback its own copy. Dart releases it after decoding.
+          PROXY(onComplete(copy));
         });
     auto fut = rt->addTask(lambda);
   }

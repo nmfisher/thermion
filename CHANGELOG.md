@@ -12,7 +12,8 @@
   Rebuild native/Wasm libraries together with the updated Dart bindings.
 
 - Deliver web worker completions through a module-lifetime callback queue,
-  without Dart polling. Copy borrowed view-name text during callback delivery.
+  without Dart polling. String callbacks transfer an owned UTF-8 copy on native
+  and web. `withStringCallback()` decodes it and calls `StringCallback_free()`.
 
 - `RenderManager.destroy()` now returns `Future<void>`. Await it before
   destroying engine resources. Manager detachment and deletion run on the
