@@ -131,3 +131,41 @@ dart run native/test/rendering/run_web_dispatch_test.dart /tmp/thermion-web-fram
 
 These manual tests cover headless Chrome. They do not establish behavior under
 full browser suspension, mobile browser policies, or other browser engines.
+
+## Web callback delivery
+
+Web worker completions are posted through a module-lifetime proxy queue. Dart
+awaits each completion without polling a worker's queue. Main-thread web builds
+still call completions directly.
+
+View names are copied for delivery because a later queued rename or deletion
+can invalidate the original string. `withStringCallback()` copies the text into
+Dart before that temporary native string is released. The JavaScript callback
+tests cover asynchronous delivery, borrowed text, null results and cleanup after
+failures. Run them from `thermion_dart/`:
+
+```sh
+dart test -p node test/js_pointer_callback_test.dart
+```
+
+The full-module browser fixture checks pointer, void and string callbacks,
+public view-name reads, KTX upload/release, skybox/IBL loading and four engine
+lifecycles. It uses the shared runner introduced with the manager regression.
+Build and prepare it from the repository root with matching web Filament libraries:
+
+```sh
+emcmake cmake -S thermion_dart/native/web -B /tmp/thermion-web-callbacks \
+  -DCMAKE_BUILD_TYPE=Release
+cmake --build /tmp/thermion-web-callbacks -j 4
+cp thermion_dart/native/test/rendering/web_api_test.html /tmp/thermion-web-callbacks/build/out/index.html
+cp examples/assets/materials_studio_ibl.ktx /tmp/thermion-web-callbacks/build/out/texture.ktx
+cp examples/assets/default_env_skybox.ktx /tmp/thermion-web-callbacks/build/out/skybox.ktx
+cd thermion_dart
+dart compile js native/test/rendering/web_api_test.dart -o /tmp/thermion-web-callbacks/build/out/test.js
+dart run native/test/rendering/run_web_dispatch_test.dart /tmp/thermion-web-callbacks/build/out
+```
+
+Run the same fixture with `-DTHERMION_WEB_MAIN_THREAD=ON` in a separate build
+folder to check synchronous callback delivery. Worker command processing still
+uses animation frames in this patch; independent wakeups and worker shutdown
+remain in #347.

@@ -656,13 +656,7 @@ class FFIView extends View<Pointer<TView>> {
     free(ptr);
   }
 
-  Future<String?> getName() async {
-    final ptr = await withPointerCallback<Char>((cb) => View_getNameJobThread(getNativeHandle(), cb));
-    if (ptr != nullptr) {
-      return ptr.cast<Utf8>().toDartString();
-    }
-    return null;
-  }
+  Future<String?> getName() => withStringCallback((cb) => View_getNameJobThread(getNativeHandle(), cb));
 
   Future setTransparentPickingEnabled(bool enabled) async {
     await withVoidCallback(

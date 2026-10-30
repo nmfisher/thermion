@@ -134,6 +134,11 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
   return ptr;
 }
 
+Future<String?> withStringCallback(Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>) func) async {
+  final pointer = await withPointerCallback<Char>(func);
+  return pointer == nullptr ? null : pointer.cast<Utf8>().toDartString();
+}
+
 Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
   final completer = Completer<bool>();
   // ignore: prefer_function_declarations_over_variables

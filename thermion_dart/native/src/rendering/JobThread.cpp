@@ -7,6 +7,7 @@
 #endif
 
 #include <functional>
+#include <cstdlib>
 #include <stdlib.h>
 #include <time.h>
 #include <chrono>
@@ -16,6 +17,28 @@
 namespace thermion {
 
 std::atomic<int32_t> JobThread::mLiveWorkerCount{0};
+
+#ifdef __EMSCRIPTEN__
+// A callback must remain deliverable after its JobThread is destroyed.
+// Keep this queue until the Wasm module is unloaded.
+static emscripten::ProxyingQueue& callbacks() {
+    static auto* queue = new emscripten::ProxyingQueue();
+    return *queue;
+}
+void JobThread::dispatchCallback(std::function<void()> callback) const {
+#ifdef THERMION_WEB_MAIN_THREAD
+    callback();
+#else
+    if (!callbacks().proxyAsync(outer, std::move(callback))) {
+        Log("Failed to post render completion");
+        std::abort();
+    }
+#endif
+}
+
+void JobThread::executeCallbacks() { callbacks().execute(); }
+
+#endif
 
 #ifdef __EMSCRIPTEN__
 #define GL_GLEXT_PROTOTYPES

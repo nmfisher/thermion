@@ -1,6 +1,8 @@
 @TestOn('js')
 library;
 
+import 'dart:async';
+
 import 'package:test/test.dart';
 
 import '../lib/src/bindings/src/js_interop.dart';
@@ -71,11 +73,57 @@ void main() {
     expect(removed, [1]);
   });
 
-  test('queue pump failure releases its table entry and preserves the error', () async {
-    final error = StateError('queue pump failed');
-    pump = () => throw error;
-    await expectLater(withPointerCallback<TMaterial>((_) {}), throwsA(same(error)));
+  test('asynchronous pointer completion does not poll the native queue', () async {
+    pump = () => throw StateError('native queue must not be polled');
+    final pending = withPointerCallback<TMaterial>((callback) {
+      Timer.run(() => callbacks[callback.address]!.callAsFunction(null, 0x5678.toJS));
+    });
 
+    expect((await pending).address, 0x5678);
+    expect(callbacks, isEmpty);
+    expect(removed, [1]);
+  });
+
+  test('string completion copies borrowed text before the callback returns', () async {
+    var text = 'original view name';
+    NativeLibrary.instance.setProperty('UTF8ToString'.toJS, ((int _) => text.toJS).toJS);
+    final result = await withStringCallback((callback) {
+      callbacks[callback.address]!.callAsFunction(null, 0x1234.toJS);
+      text = 'native string is no longer valid';
+    });
+
+    expect(result, 'original view name');
+    expect(callbacks, isEmpty);
+    expect(removed, [1]);
+  });
+
+  test('null string completion returns null and releases its table entry', () async {
+    final result = await withStringCallback((callback) {
+      callbacks[callback.address]!.callAsFunction(null, 0.toJS);
+    });
+
+    expect(result, isNull);
+    expect(callbacks, isEmpty);
+    expect(removed, [1]);
+  });
+
+  test('string dispatch failure releases its table entry and preserves the error', () async {
+    final error = StateError('string dispatch failed');
+    await expectLater(withStringCallback((_) => throw error), throwsA(same(error)));
+
+    expect(callbacks, isEmpty);
+    expect(removed, [1]);
+  });
+
+  test('asynchronous string conversion failure releases its table entry', () async {
+    final error = StateError('invalid string');
+    JSString failConversion(int _) => throw error;
+    NativeLibrary.instance.setProperty('UTF8ToString'.toJS, failConversion.toJS);
+    final pending = withStringCallback((callback) {
+      Timer.run(() => callbacks[callback.address]!.callAsFunction(null, 0x1234.toJS));
+    });
+
+    await expectLater(pending, throwsA(same(error)));
     expect(callbacks, isEmpty);
     expect(removed, [1]);
   });

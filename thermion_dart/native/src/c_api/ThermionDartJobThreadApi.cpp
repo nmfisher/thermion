@@ -54,11 +54,8 @@ using namespace std::chrono_literals;
 #include <time.h>
 #include <cinttypes>
 
-#if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_MAIN_THREAD)
-#define PROXY(call)                                           \
-  auto startTime = std::chrono::high_resolution_clock::now(); \
-  TRACE("PROXYING");                                          \
-  rt->queue.proxySync(rt->outer, [=]() { call; });
+#ifdef __EMSCRIPTEN__
+#define PROXY(call) rt->dispatchCallback([=]() { call; })
 #else
 #define PROXY(call) call
 #endif
@@ -732,9 +729,8 @@ extern "C"
 
   EMSCRIPTEN_KEEPALIVE void execute_queue()
   {
-    auto *rt = RT(nullptr);
 #ifdef __EMSCRIPTEN__
-    rt->queue.execute();
+    JobThread::executeCallbacks();
 #endif
   }
 
@@ -1440,7 +1436,15 @@ extern "C"
         [=]
         {
           auto name = View_getName(tView);
+#ifdef __EMSCRIPTEN__
+          // A subsequent rename/destroy can run before the browser receives
+          // this completion. Own the string through callback delivery.
+          rt->dispatchCallback([onComplete, hasName = name != nullptr, name = std::string(name ? name : "")] {
+            onComplete(hasName ? name.c_str() : nullptr);
+          });
+#else
           PROXY(onComplete(name));
+#endif
         });
     auto fut = rt->addTask(lambda);
   }
