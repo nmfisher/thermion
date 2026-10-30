@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:test/test.dart';
 import 'helpers.dart';
 
@@ -8,6 +9,32 @@ void main() async {
   final testHelper = TestHelper("picking");
   await testHelper.setup();
   Logger.root.level = Level.ALL;
+
+  test('destroying an unrendered view cancels its pending picks', () async {
+    final view = await FilamentApp.instance!.createView();
+    await view.setViewport(100, 80);
+    var handled = false;
+    await view.pick(10, 12, (_) => handled = true);
+    await view.pick(20, 24, (_) => handled = true);
+
+    // Filament returns these queries from view destruction, without rendering.
+    await FilamentApp.instance!.destroyView(view).timeout(const Duration(seconds: 5));
+    await Future<void>.delayed(Duration.zero);
+    expect(handled, isFalse);
+    await expectLater(view.pick(0, 0, (_) {}), throwsStateError);
+  });
+
+  test('destruction cancels a pick before its native submission', () async {
+    final view = await FilamentApp.instance!.createView() as FFIView;
+    await view.setViewport(100, 80);
+    var handled = false;
+    final submitted = view.pick(10, 12, (_) => handled = true);
+    // pick() is awaiting the viewport when destruction starts.
+    final destroyed = view.destroy();
+    await submitted;
+    await destroyed.timeout(const Duration(seconds: 5));
+    expect(handled, isFalse);
+  });
 
   test('pick opaque cube', () async {
     await ViewerBuilder(testHelper)

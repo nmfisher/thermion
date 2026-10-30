@@ -39,6 +39,16 @@ class FFIView extends View<Pointer<TView>> {
   RenderTarget? renderTarget;
 
   late CallbackHolder<PickCallbackFunction> _onPickResultHolder;
+  int _pendingPickCount = 0;
+  bool _viewDestroyed = false;
+
+  void _disposePickCallbackIfFinished() {
+    // Filament can finish a GPU pick after destroying its view. Keep the
+    // callback registered until those results arrive, then release it.
+    if (_viewDestroyed && _pendingPickCount == 0) {
+      _onPickResultHolder.dispose();
+    }
+  }
 
   FFIView(this.view, this._app) {
     final renderTargetPtr = View_getRenderTarget(view);
@@ -51,9 +61,11 @@ class FFIView extends View<Pointer<TView>> {
 
   Future destroy() async {
     _destroyRequested = true;
+    _pickRequests.fillRange(0, _pickRequests.length, null);
     await _nameOperations;
-    _onPickResultHolder.dispose();
     await withVoidCallback((requestId, cb) => Engine_destroyViewJobThread(_app.engine, view, requestId, cb));
+    _viewDestroyed = true;
+    _disposePickCallbackIfFinished();
   }
 
   @override
@@ -214,7 +226,7 @@ class FFIView extends View<Pointer<TView>> {
   int _pickRequestId = -1;
 
   static int kMaxPickRequests = 1024;
-  final _pickRequests = List<({void Function(PickResult) handler, int x, int y})?>.generate(
+  final _pickRequests = List<({void Function(PickResult) handler, int x, int y, int viewportHeight})?>.generate(
     kMaxPickRequests,
     (idx) => null,
   );
@@ -224,17 +236,33 @@ class FFIView extends View<Pointer<TView>> {
   ///
   @override
   Future pick(int x, int y, void Function(PickResult) resultHandler) async {
+    if (_destroyRequested) throw StateError('View destruction has started');
+    final viewport = await getViewport();
+    // Destruction may have started while we awaited the viewport.
+    if (_destroyRequested) return;
+
     _pickRequestId++;
     var pickRequestId = _pickRequestId;
 
-    _pickRequests[_pickRequestId % kMaxPickRequests] = (handler: resultHandler, x: x, y: y);
+    _pickRequests[pickRequestId % kMaxPickRequests] = (
+      handler: resultHandler,
+      x: x,
+      y: y,
+      viewportHeight: viewport.height,
+    );
 
-    var viewport = await getViewport();
     y = viewport.height - y;
-    if (FILAMENT_WASM) {
-      View_pickJobThread(view, pickRequestId, x, y, _onPickResultHolder.pointer);
-    } else {
-      View_pick(view, pickRequestId, x, y, _onPickResultHolder.pointer);
+    _pendingPickCount++;
+    try {
+      if (FILAMENT_WASM) {
+        View_pickJobThread(view, pickRequestId, x, y, _onPickResultHolder.pointer);
+      } else {
+        View_pick(view, pickRequestId, x, y, _onPickResultHolder.pointer);
+      }
+    } catch (_) {
+      _pendingPickCount--;
+      _pickRequests[pickRequestId % kMaxPickRequests] = null;
+      rethrow;
     }
   }
 
@@ -246,6 +274,12 @@ class FFIView extends View<Pointer<TView>> {
     double fragY,
     double fragZ,
   ) async {
+    _pendingPickCount--;
+    if (_destroyRequested) {
+      _disposePickCallbackIfFinished();
+      return;
+    }
+
     final modRequestId = requestId % kMaxPickRequests;
     if (_pickRequests[modRequestId] == null) {
       _logger.severe(
@@ -254,10 +288,8 @@ class FFIView extends View<Pointer<TView>> {
       );
       return;
     }
-    final (:handler, :x, :y) = _pickRequests[modRequestId]!;
+    final (:handler, :x, :y, :viewportHeight) = _pickRequests[modRequestId]!;
     _pickRequests[modRequestId] = null;
-
-    final viewport = await getViewport();
 
     handler.call((
       entity: entityId,
@@ -265,7 +297,7 @@ class FFIView extends View<Pointer<TView>> {
       y: y,
       depth: depth,
       fragX: fragX,
-      fragY: viewport.height - fragY,
+      fragY: viewportHeight - fragY,
       fragZ: fragZ,
     ));
   }
