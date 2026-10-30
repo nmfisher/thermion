@@ -2,6 +2,7 @@ export 'thermion_dart_ffi.g.dart';
 
 export 'dart:typed_data';
 import 'dart:async';
+import 'dart:ffi' as ffi;
 import 'dart:io';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'void_callback_registry.dart';
@@ -134,6 +135,21 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
   return ptr;
 }
 
+/// Waits for one native size_t result and closes the callback on completion.
+/// [operation] must deliver exactly one result or throw before native code
+/// accepts the callback.
+Future<int> withSizeCallback(void Function(Pointer<NativeFunction<Void Function(ffi.Size)>>) operation) async {
+  final completer = Completer<int>();
+  void callback(int size) => completer.complete(size);
+  final nativeCallable = NativeCallable<Void Function(ffi.Size)>.listener(callback);
+  try {
+    operation(nativeCallable.nativeFunction);
+    return await completer.future;
+  } finally {
+    nativeCallable.close();
+  }
+}
+
 Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
   final completer = Completer<bool>();
   // ignore: prefer_function_declarations_over_variables
@@ -160,7 +176,8 @@ Future<double> withFloatCallback(Function(Pointer<NativeFunction<Void Function(F
   return completer.future;
 }
 
-Future<int> withIntCallback(Function(Pointer<NativeFunction<Void Function(Int32)>>) func) async {
+/// Waits for one signed 32-bit result.
+Future<int> withInt32Callback(Function(Pointer<NativeFunction<Void Function(Int32)>>) func) async {
   final completer = Completer<int>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {

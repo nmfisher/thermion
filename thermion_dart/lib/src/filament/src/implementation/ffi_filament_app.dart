@@ -1592,7 +1592,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   //
   Future<ThermionEntity> createEntity({bool createTransformComponent = true}) async {
-    final entity = await withIntCallback(
+    final entity = await withInt32Callback(
       (cb) => EntityManager_createEntityJobThread(Engine_getEntityManager(engine), cb),
     );
     if (createTransformComponent) {

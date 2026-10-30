@@ -131,3 +131,70 @@ dart run native/test/rendering/run_web_dispatch_test.dart /tmp/thermion-web-fram
 
 These manual tests cover headless Chrome. They do not establish behavior under
 full browser suspension, mobile browser policies, or other browser engines.
+
+## Web callback delivery
+
+Web worker completions are posted through a module-lifetime proxy queue. Dart
+awaits each completion without polling a worker's queue. Main-thread web builds
+still call completions directly.
+
+Dart owns string output buffers. `View_getNameJobThread()` takes a `char*` buffer
+and its capacity in bytes. It checks the size and copies the name in one queued
+job. Its callback reports the required UTF-8 byte count, including the null
+terminator. Zero means null; an empty string needs one byte. An undersized buffer
+is left unchanged. A null buffer with zero capacity can query the required size.
+
+`readString()` allocates the buffer in native/Wasm heap memory. It waits for
+completion, decodes only the returned text bytes and frees the buffer in
+`finally`. If more space is needed, it frees that attempt and retries with the
+reported capacity. Native code never owns or frees the caller's buffer. Each
+request must complete exactly once, after native code has stopped using it.
+A dispatch error must occur before native code accepts the buffer or callback.
+
+The source must stay alive and unchanged across retries. `FFIView` orders name
+reads and renames. `destroy()` rejects new name operations and waits for accepted
+ones, including retries, before deleting the view. A failed read reports its
+error to its caller and still allows later reads and destruction to proceed.
+Direct C API callers must arrange the same ordering themselves.
+
+The JavaScript tests check output-buffer lifetime, resizing, empty and Unicode
+text, null results, invalid UTF-8 and cleanup after dispatch errors. Run from
+`thermion_dart/`:
+
+```sh
+dart test -p node test/js_pointer_callback_test.dart
+```
+
+The native tests check exact and insufficient capacities with guard bytes.
+They await a queued rename or deletion before decoding the caller-owned buffer,
+so the view's original name is no longer needed when Dart reads the result.
+Separate public view tests verify long-name retries finish before rename/deletion,
+and that a decode error cannot block destruction. These tests use the existing
+native APIs and run through Dart without an extra fixture or environment setup.
+CI runs them on Linux, Windows and macOS. Run from `thermion_dart/`:
+
+```sh
+dart test test/ffi_string_callback_test.dart
+```
+
+The full-module browser fixture checks pointer, void and string callbacks,
+public view-name reads, KTX upload/release, skybox/IBL loading and four engine
+lifecycles. It uses the shared runner introduced with the manager regression.
+Build and prepare it from the repository root with matching web Filament libraries:
+
+```sh
+emcmake cmake -S thermion_dart/native/web -B /tmp/thermion-web-callbacks \
+  -DCMAKE_BUILD_TYPE=Release
+cmake --build /tmp/thermion-web-callbacks -j 4
+cp thermion_dart/native/test/rendering/web_api_test.html /tmp/thermion-web-callbacks/build/out/index.html
+cp examples/assets/materials_studio_ibl.ktx /tmp/thermion-web-callbacks/build/out/texture.ktx
+cp examples/assets/default_env_skybox.ktx /tmp/thermion-web-callbacks/build/out/skybox.ktx
+cd thermion_dart
+dart compile js native/test/rendering/web_api_test.dart -o /tmp/thermion-web-callbacks/build/out/test.js
+dart run native/test/rendering/run_web_dispatch_test.dart /tmp/thermion-web-callbacks/build/out
+```
+
+Run the same fixture with `-DTHERMION_WEB_MAIN_THREAD=ON` in a separate build
+folder to check synchronous callback delivery. Worker command processing still
+uses animation frames in this patch; independent wakeups and worker shutdown
+remain in #347.

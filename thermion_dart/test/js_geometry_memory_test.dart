@@ -83,22 +83,19 @@ void main() {
         callbacks.remove(address);
       }).toJS,
     );
-    export(
-      '_execute_queue',
-      (() {
-        if (autoComplete) {
-          final complete = pending;
-          pending = null;
-          complete?.call();
-        }
-      }).toJS,
-    );
+    void rejectPolling() => throw StateError('Upload completions must not require Dart polling');
+    export('_execute_queue', rejectPolling.toJS);
     void upload(int address, int size, int offset, int request, int callback) {
       if (failDispatch) throw StateError('upload dispatch failed');
       uploadAddress = address;
       uploadLength = size;
       uploadOffset = offset;
-      pending = () => callbacks[callback]!.callAsFunction(null, request.toJS);
+      void complete() => callbacks[callback]!.callAsFunction(null, request.toJS);
+      if (autoComplete) {
+        scheduleMicrotask(complete);
+      } else {
+        pending = complete;
+      }
     }
 
     export(
@@ -217,6 +214,9 @@ void main() {
       expect(heap.buffer.asUint32List(uploadAddress, data.length).first, 123);
       expect(heap.buffer.asUint32List(uploadAddress, data.length).last, 123);
       autoComplete = true;
+      final complete = pending!;
+      pending = null;
+      complete();
       await operation;
     });
   }

@@ -11,6 +11,12 @@
   `FFIFilamentApp.renderThreadHandle` becomes `jobThreadHandle`.
   Rebuild native/Wasm libraries together with the updated Dart bindings.
 
+- Deliver web worker completions through a module-lifetime callback queue,
+  without Dart polling. Read view names into caller-owned UTF-8 buffers on native
+  and web, with capacity checks and ordered resize retries. Use `ffigen_js`
+  0.0.17-pre so Wasm buffers use the existing allocation/free API. Rename
+  `withIntCallback` to `withInt32Callback` to make its native width explicit.
+
 - `RenderManager.destroy()` now returns `Future<void>`. Await it before
   destroying engine resources. Manager detachment and deletion run on the
   owning thread after earlier commands.

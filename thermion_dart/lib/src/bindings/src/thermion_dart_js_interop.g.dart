@@ -2397,7 +2397,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<Char> _View_getName(Pointer<TView> tView);
   external void _View_getNameJobThread(
     Pointer<TView> tView,
-    Pointer<NativeFunction<void Function(PointerClass<Char>)>> onComplete,
+    Pointer<Char> buffer,
+    size_t capacity,
+    Pointer<NativeFunction<void Function(size_t)>> onComplete,
   );
   external Pointer<TRenderTarget> _View_getRenderTarget(Pointer<TView> tView);
   external Pointer<TScene> _View_getScene(Pointer<TView> tView);
@@ -8938,8 +8940,13 @@ Pointer<Char> View_getName(Pointer<TView> tView) {
   return Pointer<Char>(result);
 }
 
-void View_getNameJobThread(Pointer<TView> tView, Pointer<NativeFunction<void Function(Pointer<Char>)>> onComplete) {
-  final result = GeneratedBindings.instance._View_getNameJobThread(tView.cast(), onComplete.cast());
+void View_getNameJobThread(
+  Pointer<TView> tView,
+  Pointer<Char> buffer,
+  Dartsize_t capacity,
+  Pointer<NativeFunction<void Function(size_t)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._View_getNameJobThread(tView.cast(), buffer, capacity, onComplete.cast());
   return result;
 }
 
