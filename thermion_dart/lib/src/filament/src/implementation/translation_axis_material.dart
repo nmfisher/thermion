@@ -27,7 +27,7 @@ class FFITranslationAxisMaterial {
     // Create translation axis material
     final material = FFIMaterial(
       await withPointerCallback<TMaterial>(
-        (callback) => Material_createTranslationAxisMaterialRenderThread(app.engine, callback),
+        (callback) => Material_createTranslationAxisMaterialJobThread(app.engine, callback),
       ),
       app,
     );

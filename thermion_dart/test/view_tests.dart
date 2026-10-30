@@ -1412,11 +1412,11 @@ void main() async {
 //       final renderer = FilamentApp.instance!.renderer;
 
 //       final beginFrame = await withBoolCallback((cb) {
-//         Renderer_beginFrameRenderThread(
+//         Renderer_beginFrameJobThread(
 //             renderer, swapChain.getNativeHandle(), 0.toBigInt, cb);
 //       });
 //       await withVoidCallback((requestId, cb) {
-//         Renderer_renderRenderThread(
+//         Renderer_renderJobThread(
 //             renderer, views[0].getNativeHandle(), requestId, cb);
 //       });
 
@@ -1425,13 +1425,13 @@ void main() async {
 //       await FilamentApp.instance!.flush;
 
 //       await withVoidCallback((requestId, cb) {
-//         Renderer_renderRenderThread(
+//         Renderer_renderJobThread(
 //             renderer, views[1].getNativeHandle(), requestId, cb);
 //       });
 //       var out = Uint8List(500 * 500 * 4 * 4);
 
 //       await withVoidCallback((requestId, cb) {
-//         Renderer_readPixelsRenderThread(
+//         Renderer_readPixelsJobThread(
 //             renderer,
 //             views[0].getNativeHandle(),
 //             renderTarget.getNativeHandle(),
@@ -1444,7 +1444,7 @@ void main() async {
 //       });
 
 //       await withVoidCallback((requestId, cb) {
-//         Renderer_endFrameRenderThread(renderer, requestId, cb);
+//         Renderer_endFrameJobThread(renderer, requestId, cb);
 //       });
 
 //       await FilamentApp.instance!.flush();

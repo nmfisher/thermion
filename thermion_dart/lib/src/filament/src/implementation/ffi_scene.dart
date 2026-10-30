@@ -18,37 +18,37 @@ class FFIScene extends Scene<Pointer<TScene>> {
   @override
   Future add(ThermionAsset asset) async {
     await withVoidCallback(
-      (requestId, cb) => SceneAsset_addToSceneRenderThread(asset.getNativeHandle(), scene, requestId, cb),
+      (requestId, cb) => SceneAsset_addToSceneJobThread(asset.getNativeHandle(), scene, requestId, cb),
     );
   }
 
   @override
   Future addEntity(ThermionEntity entity) async {
-    await withVoidCallback((requestId, cb) => Scene_addEntityRenderThread(scene, entity, requestId, cb));
+    await withVoidCallback((requestId, cb) => Scene_addEntityJobThread(scene, entity, requestId, cb));
   }
 
   @override
   Future remove(ThermionAsset asset) async {
     await withVoidCallback(
-      (requestId, cb) => SceneAsset_removeFromSceneRenderThread(asset.getNativeHandle(), scene, requestId, cb),
+      (requestId, cb) => SceneAsset_removeFromSceneJobThread(asset.getNativeHandle(), scene, requestId, cb),
     );
   }
 
   @override
   Future removeEntity(ThermionEntity entity) async {
-    await withVoidCallback((requestId, cb) => Scene_removeEntityRenderThread(scene, entity, requestId, cb));
+    await withVoidCallback((requestId, cb) => Scene_removeEntityJobThread(scene, entity, requestId, cb));
   }
 
   IndirectLight? _indirectLight;
 
   Future setIndirectLight(IndirectLight? indirectLight) async {
     if (indirectLight == null) {
-      await withVoidCallback((requestId, cb) => Scene_setIndirectLightRenderThread(scene, nullptr, requestId, cb));
+      await withVoidCallback((requestId, cb) => Scene_setIndirectLightJobThread(scene, nullptr, requestId, cb));
       _indirectLight = null;
     } else {
       await withVoidCallback(
         (requestId, cb) =>
-            Scene_setIndirectLightRenderThread(scene, (indirectLight as FFIIndirectLight).pointer, requestId, cb),
+            Scene_setIndirectLightJobThread(scene, (indirectLight as FFIIndirectLight).pointer, requestId, cb),
       );
       _indirectLight = indirectLight;
     }
@@ -66,10 +66,10 @@ class FFIScene extends Scene<Pointer<TScene>> {
   ///
   Future setSkybox(Skybox? skybox) async {
     if (skybox == null) {
-      await withVoidCallback((requestId, cb) => Scene_setSkyboxRenderThread(scene, nullptr, requestId, cb));
+      await withVoidCallback((requestId, cb) => Scene_setSkyboxJobThread(scene, nullptr, requestId, cb));
     } else {
       await withVoidCallback(
-        (requestId, cb) => Scene_setSkyboxRenderThread(scene, (skybox as FFISkybox).pointer, requestId, cb),
+        (requestId, cb) => Scene_setSkyboxJobThread(scene, (skybox as FFISkybox).pointer, requestId, cb),
       );
     }
   }
@@ -89,6 +89,6 @@ class FFIScene extends Scene<Pointer<TScene>> {
   /// Destroys this scene and releases its resources.
   ///
   Future destroy() async {
-    await withVoidCallback((requestId, cb) => Engine_destroySceneRenderThread(_app.engine, scene, requestId, cb));
+    await withVoidCallback((requestId, cb) => Engine_destroySceneJobThread(_app.engine, scene, requestId, cb));
   }
 }

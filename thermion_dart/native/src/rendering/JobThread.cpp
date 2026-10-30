@@ -1,4 +1,4 @@
-#include "rendering/RenderThread.hpp"
+#include "rendering/JobThread.hpp"
 // Web only: iter() calls into RenderManager. The native worker never touches
 // the manager, so the standalone queue test can compile this file without
 // Filament headers.
@@ -15,7 +15,7 @@
 
 namespace thermion {
 
-std::atomic<int32_t> RenderThread::mLiveWorkerCount{0};
+std::atomic<int32_t> JobThread::mLiveWorkerCount{0};
 
 #ifdef __EMSCRIPTEN__
 #define GL_GLEXT_PROTOTYPES
@@ -34,19 +34,19 @@ std::chrono::high_resolution_clock::time_point loopExitTime;
 bool loopExitTimeValid = false;
 
 // Heap arg for the worker: owns a shared_ptr copy of the stop flag so the
-// flag outlives the RenderThread (web detach lets the destructor return
+// flag outlives the JobThread (web detach lets the destructor return
 // before the worker's next iteration). The worker frees this struct itself
 // on exit — the destructor never touches it.
 struct WorkerArg {
-    RenderThread *rt;
-    std::shared_ptr<RenderThread::StopFlag> stop;
+    JobThread *rt;
+    std::shared_ptr<JobThread::StopFlag> stop;
 };
 
 static void mainLoop(void* arg) {
     // Check the stop flag BEFORE touching `rt` — the destructor may have
     // returned (via pthread_detach) and `*this` may already be freed. The
     // flag is heap-shared, so the read is safe; the worker never dereferences
-    // the RenderThread after observing stop.
+    // the JobThread after observing stop.
     auto *workerArg = static_cast<WorkerArg *>(arg);
     if (workerArg->stop->value.load()) {
         emscripten_cancel_main_loop();
@@ -55,7 +55,7 @@ static void mainLoop(void* arg) {
         // mimalloc reserves a per-thread arena (~32 MiB initial on wasm32)
         // that survives pthread_exit unless we explicitly release it.
         mi_thread_done();
-        RenderThread::mLiveWorkerCount.fetch_sub(1, std::memory_order_relaxed);
+        JobThread::mLiveWorkerCount.fetch_sub(1, std::memory_order_relaxed);
         // emscripten_set_main_loop_arg(..., simulate_infinite_loop=true) threw
         // to unwind startHelper, so the pthread function never returned. The
         // JS-side worker would otherwise stay alive in the event loop after
@@ -72,7 +72,7 @@ static void mainLoop(void* arg) {
 
 static void *startHelper(void * parm) {
     loopStart = std::chrono::high_resolution_clock::now();
-    RenderThread::mLiveWorkerCount.fetch_add(1, std::memory_order_relaxed);
+    JobThread::mLiveWorkerCount.fetch_add(1, std::memory_order_relaxed);
     emscripten_set_main_loop_arg(&mainLoop, parm, 0, true);
     return nullptr;
 }
@@ -80,12 +80,12 @@ static void *startHelper(void * parm) {
 #endif
 #endif
 
-RenderThread::RenderThread(const char* canvasSelector)
+JobThread::JobThread(const char* canvasSelector)
     : _canvasSelector(canvasSelector != nullptr ? canvasSelector : "#thermion_canvas")
 {
     srand(time(NULL));
     #ifdef __EMSCRIPTEN__
-    Log("Starting RenderThread")
+    Log("Starting JobThread")
     outer = pthread_self();
 #ifndef THERMION_WEB_MAIN_THREAD
     startWebWorker(canvasSelector);
@@ -99,7 +99,7 @@ RenderThread::RenderThread(const char* canvasSelector)
 // Start the worker pthread and transfer the canvas to it. On failure,
 // _creationFailed lets the C API return a null handle instead of a worker
 // that would hang every queued task forever.
-void RenderThread::startWebWorker(const char* canvasSelector) {
+void JobThread::startWebWorker(const char* canvasSelector) {
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     emscripten_pthread_attr_settransferredcanvases(&attr, canvasSelector);
@@ -115,14 +115,14 @@ void RenderThread::startWebWorker(const char* canvasSelector) {
 }
 #endif
 
-RenderThread::~RenderThread()
+JobThread::~JobThread()
 {
     size_t pendingTaskCount;
     {
         std::lock_guard<std::mutex> lock(_taskMutex);
         pendingTaskCount = _tasks.size();
     }
-    TRACE("Destroying RenderThread (%zu tasks remaining)", pendingTaskCount);
+    TRACE("Destroying JobThread (%zu tasks remaining)", pendingTaskCount);
     shutdown();
 
     #ifdef __EMSCRIPTEN__
@@ -154,21 +154,21 @@ RenderThread::~RenderThread()
     // mi_thread_done + pthread_exit, terminating the pthread cleanly. Detach
     // hands the OS responsibility for reaping it so the destructor can return
     // without blocking. Callers that need to wait for the worker to actually
-    // finish exiting (e.g. before constructing a replacement RenderThread)
+    // finish exiting (e.g. before constructing a replacement JobThread)
     // should poll mLiveWorkerCount from Dart.
 #ifndef THERMION_WEB_MAIN_THREAD
     pthread_detach(_thread);
 #endif
     #else
-    TRACE("Joining RenderThread thread..");
+    TRACE("Joining JobThread thread..");
     _thread->join();
     delete _thread;
     #endif
 
-    TRACE("RenderThread destructor complete");
+    TRACE("JobThread destructor complete");
 }
 
-void RenderThread::shutdown()
+void JobThread::shutdown()
 {
     _stop->value.store(true, std::memory_order_release);
     #ifndef __EMSCRIPTEN__
@@ -176,7 +176,7 @@ void RenderThread::shutdown()
     #endif
 }
 
-void RenderThread::enqueue(std::function<void()> task) {
+void JobThread::enqueue(std::function<void()> task) {
 #if defined(__EMSCRIPTEN__) && defined(THERMION_WEB_MAIN_THREAD)
     task();
     flushCommands();
@@ -195,7 +195,7 @@ void RenderThread::enqueue(std::function<void()> task) {
 // Bound each batch so uploads reach tick() and its command-buffer drain even
 // when completions keep queuing more work. Filament calls stay on the worker;
 // the queue mutex is released while each task executes.
-void RenderThread::pumpTasks() {
+void JobThread::pumpTasks() {
     std::unique_lock<std::mutex> taskLock(_taskMutex);
 
     unsigned taskCount = 0;
@@ -210,11 +210,11 @@ void RenderThread::pumpTasks() {
     taskLock.unlock();
 }
 
-void RenderThread::flushCommands() {
+void JobThread::flushCommands() {
     if (_renderManager) _renderManager->flushCommands();
 }
 
-void RenderThread::iter() {
+void JobThread::iter() {
     // FPS measurement
     auto now = std::chrono::high_resolution_clock::now();
 
@@ -230,7 +230,7 @@ void RenderThread::iter() {
     }
 }
 #else
-void RenderThread::runNativeLoop() {
+void JobThread::runNativeLoop() {
     std::unique_lock<std::mutex> taskLock(_taskMutex);
 
     while (true) {

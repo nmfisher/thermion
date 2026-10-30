@@ -37,25 +37,25 @@ class RenderManager;
  * the worker. Worker affinity during web teardown is therefore not guaranteed;
  * fixing that lifecycle is separate from this rearrangement.
  */
-class RenderThread {
+class JobThread {
 public:
     /**
-     * @brief Constructs a new RenderThread and starts the render thread.
+     * @brief Constructs a new JobThread and starts the render thread.
      *
      * @param canvasSelector Web-only: the CSS selector of the canvas element
      *        transferred to this thread's worker (default "#thermion_canvas").
      *        Each engine-per-viewer thread owns its own canvas.
      */
-    explicit RenderThread(const char* canvasSelector = "#thermion_canvas");
+    explicit JobThread(const char* canvasSelector = "#thermion_canvas");
 
     /**
-     * @brief Destroys the RenderThread and stops the render thread.
+     * @brief Destroys the JobThread and stops the render thread.
      *
      * Signals the worker to exit. Native destruction joins after the worker
      * drains its queue. Web destruction drains remaining commands on the
      * caller's thread and detaches, without waiting for the worker to exit.
      */
-    ~RenderThread();
+    ~JobThread();
 
     /**
      * @brief The CSS selector of the canvas transferred to this thread's
@@ -133,7 +133,7 @@ public:
      * a separate lifecycle fix.
      *
      * Per-instance, not static: with one engine per thread, destroying one
-     * engine's RenderThread must not signal another engine's worker (a shared
+     * engine's JobThread must not signal another engine's worker (a shared
      * static flag would stop every worker in the module).
      */
     struct StopFlag {
@@ -145,7 +145,7 @@ public:
     /**
      * Live worker count. Incremented on worker entry, decremented just before
      * the worker exits. Polled from the main thread before constructing a
-     * replacement RenderThread on web, since pthread_detach lets the destructor
+     * replacement JobThread on web, since pthread_detach lets the destructor
      * return before the worker has actually exited.
      */
     static std::atomic<int32_t> mLiveWorkerCount;
@@ -170,7 +170,7 @@ private:
     std::condition_variable _cv;
     std::deque<std::function<void()>> _tasks;
     // Owned copy: the Dart side frees its UTF8 buffer right after
-    // RenderThread_createForCanvas returns, and Engine_create reads the
+    // JobThread_createForCanvas returns, and Engine_create reads the
     // selector later (during the same serialized engine creation).
     std::string _canvasSelector = "#thermion_canvas";
     bool _creationFailed = false;
@@ -185,7 +185,7 @@ private:
 
 // Template implementation
 template <class Rt>
-auto RenderThread::addTask(std::packaged_task<Rt()>& task) -> std::future<Rt> {
+auto JobThread::addTask(std::packaged_task<Rt()>& task) -> std::future<Rt> {
     auto result = task.get_future();
     addDetachedTask([task = std::make_shared<std::packaged_task<Rt()>>(
                          std::move(task))] { (*task)(); });

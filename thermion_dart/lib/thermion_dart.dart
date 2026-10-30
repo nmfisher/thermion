@@ -28,5 +28,5 @@ export 'src/bindings/bindings.dart'
         TransformManager_getLocalTransformInto,
         TransformManager_getWorldTransformInto,
         TransformManager_setTransformFromBuffer,
-        TransformManager_setTransformNativeRenderThread,
-        TransformManager_setTransformFromBufferRenderThread;
+        TransformManager_setTransformNativeJobThread,
+        TransformManager_setTransformFromBufferJobThread;

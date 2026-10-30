@@ -50,7 +50,7 @@ class FFIVertexBuffer extends VertexBuffer {
     }
     await data.pass<void>((byteData) {
       return withVoidCallback((requestId, cb) {
-        bindings.VertexBuffer_setBufferAtRenderThread(
+        bindings.VertexBuffer_setBufferAtJobThread(
           _engine,
           _ptr,
           bufferIndex,
@@ -79,7 +79,7 @@ class FFIVertexBuffer extends VertexBuffer {
       throw ArgumentError.value(bufferObject, 'bufferObject', 'must belong to the same Filament engine');
     }
     await withVoidCallback((requestId, cb) {
-      bindings.VertexBuffer_setBufferObjectAtRenderThread(
+      bindings.VertexBuffer_setBufferObjectAtJobThread(
         _engine,
         _ptr,
         bufferIndex,
@@ -96,7 +96,7 @@ class FFIVertexBuffer extends VertexBuffer {
       throw StateError('Cannot destroy a VertexBuffer borrowed from a ThermionAsset');
     }
     await withVoidCallback((requestId, cb) {
-      bindings.VertexBuffer_destroyRenderThread(_engine, _ptr, requestId, cb);
+      bindings.VertexBuffer_destroyJobThread(_engine, _ptr, requestId, cb);
     });
   }
 }
@@ -175,7 +175,7 @@ class FFIVertexBufferBuilder implements VertexBufferBuilder {
     final storageMode = vertexBufferStorageModeFromNative(bindings.VertexBufferBuilder_getStorageMode(_builderPtr!));
 
     final vertexBufferPtr = await withPointerCallback<bindings.TVertexBuffer>(
-      (cb) => bindings.VertexBufferBuilder_buildRenderThread(_builderPtr!, _engine, cb),
+      (cb) => bindings.VertexBufferBuilder_buildJobThread(_builderPtr!, _engine, cb),
     );
 
     bindings.VertexBufferBuilder_destroy(_builderPtr!);

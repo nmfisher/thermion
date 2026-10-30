@@ -79,7 +79,7 @@ void TransformManager_setTransformFromBufferTypedData(
 }
 
 /// Borrows 16 column-major doubles for the duration of the leaf call.
-void TransformManager_setTransformFromBufferRenderThreadTypedData(
+void TransformManager_setTransformFromBufferJobThreadTypedData(
   ffi.Pointer<TTransformManager> manager,
   int entity,
   typed_data.Float64List matrix16,
@@ -87,5 +87,5 @@ void TransformManager_setTransformFromBufferRenderThreadTypedData(
   VoidCallback onComplete,
 ) {
   assert(matrix16.length == 16, 'Expected 16 doubles');
-  TransformManager_setTransformFromBufferRenderThread(manager, entity, matrix16.address, requestId, onComplete);
+  TransformManager_setTransformFromBufferJobThread(manager, entity, matrix16.address, requestId, onComplete);
 }

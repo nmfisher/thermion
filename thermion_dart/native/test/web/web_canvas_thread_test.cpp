@@ -1,4 +1,4 @@
-#include "rendering/RenderThread.hpp"
+#include "rendering/JobThread.hpp"
 #include "rendering/RenderManager.hpp"
 
 #include <filament/Texture.h>
@@ -34,9 +34,9 @@ int main() {
     {
         // There is no DOM/canvas in Node. This also proves that construction
         // neither transfers a canvas nor starts Thermion's render pthread.
-        thermion::RenderThread thread("#canvas-that-does-not-exist");
+        thermion::JobThread thread("#canvas-that-does-not-exist");
         check(!thread.creationFailed(), "main-thread construction succeeds without a DOM");
-        check(thermion::RenderThread::mLiveWorkerCount.load() == 0, "no render worker starts");
+        check(thermion::JobThread::mLiveWorkerCount.load() == 0, "no render worker starts");
         thread.setRenderManager(&manager);
         const auto caller = std::this_thread::get_id();
         std::packaged_task<int()> task([&] {
@@ -63,7 +63,7 @@ int main() {
         });
         check(released == 1, "dispatch drains the real upload without drawing or a later rAF");
     }
-    check(thermion::RenderThread::mLiveWorkerCount.load() == 0, "teardown has no render pthread to join");
+    check(thermion::JobThread::mLiveWorkerCount.load() == 0, "teardown has no render pthread to join");
     engine->destroy(texture);
     engine->destroy(renderer);
     Engine::destroy(&engine);

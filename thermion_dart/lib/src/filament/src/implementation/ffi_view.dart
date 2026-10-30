@@ -37,12 +37,12 @@ class FFIView extends View<Pointer<TView>> {
 
   Future destroy() async {
     _onPickResultHolder.dispose();
-    await withVoidCallback((requestId, cb) => Engine_destroyViewRenderThread(_app.engine, view, requestId, cb));
+    await withVoidCallback((requestId, cb) => Engine_destroyViewJobThread(_app.engine, view, requestId, cb));
   }
 
   @override
   Future setViewport(int width, int height) async {
-    await withVoidCallback((requestId, cb) => View_setViewportRenderThread(view, width, height, requestId, cb));
+    await withVoidCallback((requestId, cb) => View_setViewportJobThread(view, width, height, requestId, cb));
 
     await _highlightOverlayManager?.setViewport(width, height);
   }
@@ -66,11 +66,11 @@ class FFIView extends View<Pointer<TView>> {
 
     if (renderTarget != null) {
       await withVoidCallback(
-        (requestId, cb) => View_setRenderTargetRenderThread(view, renderTarget.getNativeHandle(), requestId, cb),
+        (requestId, cb) => View_setRenderTargetJobThread(view, renderTarget.getNativeHandle(), requestId, cb),
       );
       this.renderTarget = renderTarget;
     } else {
-      await withVoidCallback((requestId, cb) => View_setRenderTargetRenderThread(view, nullptr, requestId, cb));
+      await withVoidCallback((requestId, cb) => View_setRenderTargetJobThread(view, nullptr, requestId, cb));
       this.renderTarget = null;
     }
   }
@@ -78,11 +78,9 @@ class FFIView extends View<Pointer<TView>> {
   @override
   Future setCamera(Camera? camera) async {
     if (camera == null) {
-      await withVoidCallback((requestId, cb) => View_setCameraRenderThread(view, nullptr, requestId, cb));
+      await withVoidCallback((requestId, cb) => View_setCameraJobThread(view, nullptr, requestId, cb));
     } else {
-      await withVoidCallback(
-        (requestId, cb) => View_setCameraRenderThread(view, camera.getNativeHandle(), requestId, cb),
-      );
+      await withVoidCallback((requestId, cb) => View_setCameraJobThread(view, camera.getNativeHandle(), requestId, cb));
     }
 
     // Sync the silhouette view's camera with the main view
@@ -103,31 +101,29 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
-    await withVoidCallback((requestId, cb) => View_setAntiAliasingRenderThread(view, msaa, fxaa, taa, requestId, cb));
+    await withVoidCallback((requestId, cb) => View_setAntiAliasingJobThread(view, msaa, fxaa, taa, requestId, cb));
   }
 
   @override
   Future setPostProcessing(bool enabled) async {
-    await withVoidCallback((requestId, cb) => View_setPostProcessingRenderThread(view, enabled, requestId, cb));
+    await withVoidCallback((requestId, cb) => View_setPostProcessingJobThread(view, enabled, requestId, cb));
   }
 
   @override
   Future setFrustumCullingEnabled(bool enabled) async {
-    await withVoidCallback((requestId, cb) => View_setFrustumCullingEnabledRenderThread(view, enabled, requestId, cb));
+    await withVoidCallback((requestId, cb) => View_setFrustumCullingEnabledJobThread(view, enabled, requestId, cb));
   }
 
   @override
   Future setBloom(bool enabled, double strength) async {
     await withVoidCallback((requestId, cb) {
-      View_setBloomRenderThread(view, enabled, strength, requestId, cb);
+      View_setBloomJobThread(view, enabled, strength, requestId, cb);
     });
   }
 
   @override
   Future<ColorGradingBuilder> createColorGradingBuilder() async {
-    final builderPtr = await withPointerCallback<TColorGradingBuilder>(
-      (cb) => ColorGradingBuilder_createRenderThread(cb),
-    );
+    final builderPtr = await withPointerCallback<TColorGradingBuilder>((cb) => ColorGradingBuilder_createJobThread(cb));
     if (builderPtr == nullptr) {
       throw Exception('Failed to create ColorGradingBuilder');
     }
@@ -140,8 +136,7 @@ class FFIView extends View<Pointer<TView>> {
     // responsible for destroying the grading (after dissociating it from all
     // views) - see [View.setColorGrading].
     await withVoidCallback(
-      (requestId, cb) =>
-          View_setColorGradingRenderThread(view, colorGrading?.getNativeHandle() ?? nullptr, requestId, cb),
+      (requestId, cb) => View_setColorGradingJobThread(view, colorGrading?.getNativeHandle() ?? nullptr, requestId, cb),
     );
   }
 
@@ -155,7 +150,7 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   Future setStencilBufferEnabled(bool enabled) async {
-    await withVoidCallback((requestId, cb) => View_setStencilBufferEnabledRenderThread(view, enabled, requestId, cb));
+    await withVoidCallback((requestId, cb) => View_setStencilBufferEnabledJobThread(view, enabled, requestId, cb));
   }
 
   Future<bool> isStencilBufferEnabled() async {
@@ -163,7 +158,7 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   Future setDithering(bool enabled) async {
-    await withVoidCallback((requestId, cb) => View_setDitheringEnabledRenderThread(view, enabled, requestId, cb));
+    await withVoidCallback((requestId, cb) => View_setDitheringEnabledJobThread(view, enabled, requestId, cb));
   }
 
   Future<bool> isDitheringEnabled() async {
@@ -172,24 +167,22 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setRenderQuality(QualityLevel quality) async {
-    await withVoidCallback((requestId, cb) => View_setRenderQualityRenderThread(view, quality.index, requestId, cb));
+    await withVoidCallback((requestId, cb) => View_setRenderQualityJobThread(view, quality.index, requestId, cb));
   }
 
   Future setScene(Scene? scene) async {
     await withVoidCallback(
-      (requestId, cb) => View_setSceneRenderThread(view, scene?.getNativeHandle() ?? nullptr, requestId, cb),
+      (requestId, cb) => View_setSceneJobThread(view, scene?.getNativeHandle() ?? nullptr, requestId, cb),
     );
   }
 
   @override
   Future setLayerVisibility(VisibilityLayers layer, bool visible) async {
-    await withVoidCallback(
-      (requestId, cb) => View_setLayerEnabledRenderThread(view, layer.value, visible, requestId, cb),
-    );
+    await withVoidCallback((requestId, cb) => View_setLayerEnabledJobThread(view, layer.value, visible, requestId, cb));
   }
 
   Future setBlendMode(BlendMode blendMode) async {
-    await withVoidCallback((requestId, cb) => View_setBlendModeRenderThread(view, blendMode.index, requestId, cb));
+    await withVoidCallback((requestId, cb) => View_setBlendModeJobThread(view, blendMode.index, requestId, cb));
   }
 
   FFIScene? _scene;
@@ -223,7 +216,7 @@ class FFIView extends View<Pointer<TView>> {
     var viewport = await getViewport();
     y = viewport.height - y;
     if (FILAMENT_WASM) {
-      View_pickRenderThread(view, pickRequestId, x, y, _onPickResultHolder.pointer);
+      View_pickJobThread(view, pickRequestId, x, y, _onPickResultHolder.pointer);
     } else {
       View_pick(view, pickRequestId, x, y, _onPickResultHolder.pointer);
     }
@@ -279,7 +272,7 @@ class FFIView extends View<Pointer<TView>> {
     tFogOptions.linearColorG = options.linearColor.g;
     tFogOptions.linearColorB = options.linearColor.b;
     tFogOptions.enabled = options.enabled;
-    await withVoidCallback((requestId, cb) => View_setFogOptionsRenderThread(this.view, tFogOptions, requestId, cb));
+    await withVoidCallback((requestId, cb) => View_setFogOptionsJobThread(this.view, tFogOptions, requestId, cb));
   }
 
   @override
@@ -348,7 +341,7 @@ class FFIView extends View<Pointer<TView>> {
     tAmbientOcclusionOptions.gtao.linearThickness = options.gtao.linearThickness;
 
     await withVoidCallback(
-      (requestId, cb) => View_setAmbientOcclusionOptionsRenderThread(view, tAmbientOcclusionOptions, requestId, cb),
+      (requestId, cb) => View_setAmbientOcclusionOptionsJobThread(view, tAmbientOcclusionOptions, requestId, cb),
     );
   }
 
@@ -395,18 +388,16 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setFrontFaceWindingInverted(bool inverted) async {
-    await withVoidCallback(
-      (requestId, cb) => View_setFrontFaceWindingInvertedRenderThread(view, inverted, requestId, cb),
-    );
+    await withVoidCallback((requestId, cb) => View_setFrontFaceWindingInvertedJobThread(view, inverted, requestId, cb));
   }
 
   Future setShadowsEnabled(bool enabled) async {
-    await withVoidCallback((requestId, cb) => View_setShadowsEnabledRenderThread(this.view, enabled, requestId, cb));
+    await withVoidCallback((requestId, cb) => View_setShadowsEnabledJobThread(this.view, enabled, requestId, cb));
   }
 
   @override
   Future setShadowType(ShadowType shadowType) async {
-    await withVoidCallback((requestId, cb) => View_setShadowTypeRenderThread(view, shadowType.index, requestId, cb));
+    await withVoidCallback((requestId, cb) => View_setShadowTypeJobThread(view, shadowType.index, requestId, cb));
   }
 
   @override
@@ -423,7 +414,7 @@ class FFIView extends View<Pointer<TView>> {
     tSoftShadowOptions.maxPenumbraRatio = options.maxPenumbraRatio;
     tSoftShadowOptions.maxSearchRadius = options.maxSearchRadius;
     await withVoidCallback(
-      (requestId, cb) => View_setSoftShadowOptionsRenderThread(view, tSoftShadowOptions, requestId, cb),
+      (requestId, cb) => View_setSoftShadowOptionsJobThread(view, tSoftShadowOptions, requestId, cb),
     );
   }
 
@@ -451,7 +442,7 @@ class FFIView extends View<Pointer<TView>> {
     tVsmShadowOptions.minVarianceScale = options.minVarianceScale;
     tVsmShadowOptions.lightBleedReduction = options.lightBleedReduction;
     await withVoidCallback(
-      (requestId, cb) => View_setVsmShadowOptionsRenderThread(view, tVsmShadowOptions, requestId, cb),
+      (requestId, cb) => View_setVsmShadowOptionsJobThread(view, tVsmShadowOptions, requestId, cb),
     );
   }
 
@@ -661,12 +652,12 @@ class FFIView extends View<Pointer<TView>> {
 
   Future setName(String name) async {
     final ptr = name.toNativeUtf8();
-    await withVoidCallback((requestId, cb) => View_setNameRenderThread(getNativeHandle(), ptr.cast(), requestId, cb));
+    await withVoidCallback((requestId, cb) => View_setNameJobThread(getNativeHandle(), ptr.cast(), requestId, cb));
     free(ptr);
   }
 
   Future<String?> getName() async {
-    final ptr = await withPointerCallback<Char>((cb) => View_getNameRenderThread(getNativeHandle(), cb));
+    final ptr = await withPointerCallback<Char>((cb) => View_getNameJobThread(getNativeHandle(), cb));
     if (ptr != nullptr) {
       return ptr.cast<Utf8>().toDartString();
     }
@@ -675,7 +666,7 @@ class FFIView extends View<Pointer<TView>> {
 
   Future setTransparentPickingEnabled(bool enabled) async {
     await withVoidCallback(
-      (requestId, cb) => View_setTransparentPickingEnabledRenderThread(getNativeHandle(), enabled, requestId, cb),
+      (requestId, cb) => View_setTransparentPickingEnabledJobThread(getNativeHandle(), enabled, requestId, cb),
     );
   }
 
@@ -684,7 +675,7 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   static Future<View> create(FFIFilamentApp app) async {
-    final ptr = await withPointerCallback<TView>((cb) => Engine_createViewRenderThread(app.engine, cb));
+    final ptr = await withPointerCallback<TView>((cb) => Engine_createViewJobThread(app.engine, cb));
     return FFIView(ptr, app);
   }
 }
