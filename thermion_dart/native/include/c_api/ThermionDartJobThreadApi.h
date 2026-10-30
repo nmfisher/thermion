@@ -34,6 +34,11 @@ namespace thermion
         // Copies all 16 column-major doubles before returning. The caller may
         // immediately reuse/free matrix16 while the queued task is pending.
         EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformFromBufferJobThread(TTransformManager *manager, EntityId entity, const double *matrix16, uint32_t requestId, VoidCallback onComplete);
+        // Detach and delete the manager on its owning thread after earlier work.
+        // Stop submitting work to manager before calling. onComplete means it
+        // is deleted; only then may the renderer/engine be destroyed. This does
+        // not stop or wait for the worker itself.
+        EMSCRIPTEN_KEEPALIVE void RenderManager_destroyJobThread(TRenderManager *manager, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderableJobThread(TRenderManager *tRenderer, TSwapChain *tSwapChain, TView **tViews, uint8_t numViews, uint32_t requestId, VoidCallback onComplete);
 
         EMSCRIPTEN_KEEPALIVE void RenderManager_renderJobThread(TRenderManager *tRenderManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete);

@@ -11,6 +11,10 @@
   `FFIFilamentApp.renderThreadHandle` becomes `jobThreadHandle`.
   Rebuild native/Wasm libraries together with the updated Dart bindings.
 
+- `RenderManager.destroy()` now returns `Future<void>`. Await it before
+  destroying engine resources. Manager detachment and deletion run on the
+  owning thread after earlier commands.
+
 - Add `ThermionAsset.owner` for the immediate owning asset. Deprecate
   `instanceOwner`; use `owner`, or `isInstance ? owner : null` for the native
   instance source. The deprecated getter retains its existing behavior.

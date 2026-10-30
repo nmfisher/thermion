@@ -96,3 +96,38 @@ backend (Metal on macOS). They gate the worker to verify release is still pendin
 exercise cubemap/mipmapped/2D uploads followed by explicit bundle destruction,
 and check public skybox/IBL failure delivery. Dart's native build hook builds
 Thermion and obtains Filament.
+
+## Render-manager destruction
+
+Render-manager attachment, detachment and deletion run on its owning worker.
+Await `RenderManager.destroy()` before destroying its animation managers,
+renderer or engine. `FilamentApp.destroy()` handles this ordering. The manager
+remains registered to its worker until deletion, including after a separate
+`RenderManager_detachFromJobThread()` call.
+
+This patch uses the existing animation-frame command loop and callback delivery.
+Main-thread web builds run the same operations directly on the calling thread.
+The callback-delivery and worker-shutdown changes are separate dependent patches.
+
+### Teardown while drawing
+
+The drawing-enabled fixture creates two real engines and 32×32 views. It checks
+that both draw, one can pause/resume independently, and destroying one leaves the
+other drawing. It waits for both workers to exit. Frame histories establish
+progress, not physical presentation intervals or a particular FPS limit.
+Its native helpers are opt-in test sources, excluded from normal builds.
+Run from the repository root, using a separate build directory:
+
+```sh
+emcmake cmake -S thermion_dart/native/web -B /tmp/thermion-web-frames \
+  -DCMAKE_BUILD_TYPE=Release \
+  "-DEXTERNAL_PROJECTS=$PWD/thermion_dart/native/test/rendering/web_frame_fixture.cmake"
+cmake --build /tmp/thermion-web-frames -j 4
+cp thermion_dart/native/test/rendering/web_frame_test.html /tmp/thermion-web-frames/build/out/index.html
+cd thermion_dart
+dart compile js native/test/rendering/web_frame_test.dart -o /tmp/thermion-web-frames/build/out/test.js
+dart run native/test/rendering/run_web_dispatch_test.dart /tmp/thermion-web-frames/build/out
+```
+
+These manual tests cover headless Chrome. They do not establish behavior under
+full browser suspension, mobile browser policies, or other browser engines.

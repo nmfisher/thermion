@@ -1,0 +1,85 @@
+// Browser integration helpers for the real RenderManager / Filament pipeline.
+// Compiled only when web_frame_fixture.cmake is explicitly supplied to CMake.
+#include "rendering/JobThread.hpp"
+#include "rendering/RenderManager.hpp"
+#include <filament/Engine.h>
+#include <filament/Renderer.h>
+#include <filament/Scene.h>
+#include <filament/View.h>
+#include <utils/EntityManager.h>
+#include <algorithm>
+#include <emscripten.h>
+
+using namespace thermion;
+// The production dispatcher resolves each engine to its owning worker.
+extern "C" JobThread* RT(void* owner);
+
+struct TestScene {
+    filament::SwapChain* swapChain = nullptr;
+    filament::View* view = nullptr;
+    filament::Scene* scene = nullptr;
+    utils::Entity camera;
+};
+// Each slot is accessed only on its owning worker.
+static TestScene scenes[2];
+
+// Use the same synchronous callback delivery as the production dispatcher.
+static void complete(JobThread* thread, std::function<void()> callback) {
+#ifndef THERMION_WEB_MAIN_THREAD
+    thread->queue.proxySync(thread->outer, std::move(callback));
+#else
+    callback();
+#endif
+}
+
+extern "C" {
+EMSCRIPTEN_KEEPALIVE void WebTest_attachScene(filament::Engine* engine,
+        RenderManager* manager, int slot, uint32_t id, void (*done)(uint32_t)) {
+    auto* rt = RT(engine);
+    rt->addDetachedTask([=] {
+        auto& s = scenes[slot];
+        s.swapChain = engine->createSwapChain(nullptr);
+        s.scene = engine->createScene();
+        s.view = engine->createView();
+        s.camera = utils::EntityManager::get().create();
+        s.view->setCamera(engine->createCamera(s.camera));
+        s.view->setScene(s.scene);
+        s.view->setViewport({0, 0, 32, 32});
+        s.view->setPostProcessingEnabled(false);
+        manager->setRenderable(s.swapChain, &s.view, 1);
+        complete(rt, [=] { done(id); });
+    });
+}
+
+EMSCRIPTEN_KEEPALIVE void WebTest_frameId(filament::Engine* engine,
+        filament::Renderer* renderer, void (*done)(uint32_t)) {
+    auto* rt = RT(engine);
+    rt->addDetachedTask([=] {
+        uint32_t latest = 0;
+        for (const auto& frame : renderer->getFrameInfoHistory()) {
+            latest = std::max(latest, frame.frameId);
+        }
+        complete(rt, [=] { done(latest); });
+    });
+}
+
+// Called only after the public RenderManager_destroyJobThread completes.
+EMSCRIPTEN_KEEPALIVE void WebTest_destroyScene(filament::Engine* engine,
+        int slot, uint32_t id, void (*done)(uint32_t)) {
+    auto* rt = RT(engine);
+    rt->addDetachedTask([=] {
+        auto& s = scenes[slot];
+        engine->destroy(s.view);
+        engine->destroy(s.scene);
+        engine->destroyCameraComponent(s.camera);
+        utils::EntityManager::get().destroy(s.camera);
+        engine->destroy(s.swapChain);
+        s = {};
+        complete(rt, [=] { done(id); });
+    });
+}
+
+EMSCRIPTEN_KEEPALIVE int WebTest_liveWorkers() {
+    return JobThread::mLiveWorkerCount.load();
+}
+}

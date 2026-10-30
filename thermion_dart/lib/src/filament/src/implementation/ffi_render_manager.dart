@@ -208,10 +208,12 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
     });
   }
 
-  void destroy() {
+  Future<void> destroy() => _serialize(() async {
+    await withVoidCallback((requestId, callback) {
+      RenderManager_destroyJobThread(pointer, requestId, callback);
+    });
     _attachmentState.clear();
-    RenderManager_destroy(pointer);
-  }
+  });
 
   Future render({int? frameTimeInNanos}) async {
     // Previously there was a check here for running on web (and if so, the method simply returned
