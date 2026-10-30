@@ -165,23 +165,17 @@ text, null results, invalid UTF-8 and cleanup after dispatch errors. Run from
 dart test -p node test/js_pointer_callback_test.dart
 ```
 
-The native tests check exact and insufficient capacities with guard bytes. A
-barrier blocks Dart until a queued rename or deletion has finished, proving that
-the caller's copied bytes survive delayed completion delivery. Separate public
-view tests verify long-name retries complete before rename/deletion, and that a
-decode error cannot block destruction. CI runs these on Linux, Windows and macOS.
-To run locally from the repository root:
+The native tests check exact and insufficient capacities with guard bytes.
+They await a queued rename or deletion before decoding the caller-owned buffer,
+so the view's original name is no longer needed when Dart reads the result.
+Separate public view tests verify long-name retries finish before rename/deletion,
+and that a decode error cannot block destruction. These tests use the existing
+native APIs and run through Dart without an extra fixture or environment setup.
+CI runs them on Linux, Windows and macOS. Run from `thermion_dart/`:
 
 ```sh
-cmake -S thermion_dart/native/test/rendering -B /tmp/thermion-string-callbacks
-cmake --build /tmp/thermion-string-callbacks --target string_callback_fixture
-cd thermion_dart
-THERMION_STRING_CALLBACK_FIXTURE=/tmp/thermion-string-callbacks/libstring_callback_fixture.dylib \
-  dart test test/ffi_string_callback_test.dart
+dart test test/ffi_string_callback_test.dart
 ```
-
-Use `.so` on Linux. With the default Visual Studio generator on Windows, build
-with `--config Release` and set the variable to `Release/string_callback_fixture.dll`.
 
 The full-module browser fixture checks pointer, void and string callbacks,
 public view-name reads, KTX upload/release, skybox/IBL loading and four engine

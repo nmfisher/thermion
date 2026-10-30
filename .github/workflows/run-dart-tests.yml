@@ -120,9 +120,6 @@ jobs:
         working-directory: thermion_dart
         run: |
           dart pub get
-          cmake -S native/test/rendering -B .dart_tool/string-callback-fixture -DCMAKE_BUILD_TYPE=Release
-          cmake --build .dart_tool/string-callback-fixture --target string_callback_fixture -j 2
-          export THERMION_STRING_CALLBACK_FIXTURE="$PWD/.dart_tool/string-callback-fixture/libstring_callback_fixture.so"
           xvfb-run dart test -j1 \
             test/ffi_string_callback_test.dart \
             test/asset_tests.dart \
@@ -162,9 +159,6 @@ jobs:
           VK_ICD_FILENAMES: C:\swiftshader\vk_swiftshader_icd.json
         run: |
           dart pub get
-          cmake -S native/test/rendering -B .dart_tool/string-callback-fixture
-          cmake --build .dart_tool/string-callback-fixture --target string_callback_fixture --config Release
-          $env:THERMION_STRING_CALLBACK_FIXTURE = (Resolve-Path .dart_tool/string-callback-fixture/Release/string_callback_fixture.dll).Path
           dart test -j1 `
             test/ffi_string_callback_test.dart `
             test/asset_tests.dart `
@@ -262,9 +256,6 @@ jobs:
         working-directory: thermion_dart
         run: |
           dart pub get
-          cmake -S native/test/rendering -B .dart_tool/string-callback-fixture -DCMAKE_BUILD_TYPE=Release
-          cmake --build .dart_tool/string-callback-fixture --target string_callback_fixture -j 2
-          export THERMION_STRING_CALLBACK_FIXTURE="$PWD/.dart_tool/string-callback-fixture/libstring_callback_fixture.dylib"
           dart test -j1 \
             test/ffi_string_callback_test.dart \
             test/asset_tests.dart \

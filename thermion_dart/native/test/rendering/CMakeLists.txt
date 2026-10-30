@@ -12,9 +12,6 @@ find_package(Threads REQUIRED)
 add_library(upload_lifetime_fixture SHARED upload_lifetime_fixture.cpp)
 target_compile_features(upload_lifetime_fixture PRIVATE cxx_std_17)
 target_link_libraries(upload_lifetime_fixture PRIVATE Threads::Threads)
-add_library(string_callback_fixture SHARED string_callback_fixture.cpp)
-target_compile_features(string_callback_fixture PRIVATE cxx_std_17)
-target_link_libraries(string_callback_fixture PRIVATE Threads::Threads)
 add_executable(scheduling_test
     scheduling_test.cpp
     ../../src/rendering/FrameScheduler.cpp)

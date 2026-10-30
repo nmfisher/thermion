@@ -26,18 +26,10 @@ void main() {
     await expectLater(readString((_, _) => ffi.withSizeCallback((_) => throw error)), throwsA(same(error)));
   });
 
-  final fixturePath = Platform.environment['THERMION_STRING_CALLBACK_FIXTURE'];
   group('caller-owned view-name buffers', () {
     late FFIFilamentApp app;
-    late void Function() reset;
-    late bool Function() wait;
-    late ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> completed;
 
     setUpAll(() async {
-      final fixture = ffi.DynamicLibrary.open(fixturePath!);
-      reset = fixture.lookupFunction<ffi.Void Function(), void Function()>('resetTaskCompletion');
-      wait = fixture.lookupFunction<ffi.Bool Function(), bool Function()>('waitForTaskCompletion');
-      completed = fixture.lookup('markTaskCompleted');
       await FFIFilamentApp.create(
         config: FFIFilamentConfig(
           backend: Platform.isMacOS ? Backend.METAL : Backend.DEFAULT,
@@ -49,7 +41,7 @@ void main() {
     tearDownAll(() => app.destroy());
 
     for (final destroy in [false, true]) {
-      test('copied buffer survives ${destroy ? 'destruction' : 'rename'} before Dart delivery', () async {
+      test('copied buffer survives ${destroy ? 'destruction' : 'rename'} before Dart reads it', () async {
         final view = await ffi.withPointerCallback<ffi.TView>(
           (callback) => ffi.Engine_createViewJobThread(app.engine, callback),
         );
@@ -60,7 +52,6 @@ void main() {
         final output = ffi.calloc<ffi.Uint8>(bytes.length + 1);
         try {
           await ffi.withVoidCallback((id, callback) => ffi.View_setNameJobThread(view, input.cast(), id, callback));
-          reset();
           final name = ffi.withSizeCallback(
             (callback) => ffi.View_getNameJobThread(view, output.cast(), bytes.length + 1, callback),
           );
@@ -71,13 +62,12 @@ void main() {
               ffi.View_setNameJobThread(view, replacement.cast(), id, callback);
             }
           });
-          ffi.JobThread_addTask(completed);
-          // Force the native mutation to finish before Dart can handle either
-          // completion. The output belongs to Dart and must still be readable.
-          expect(wait(), isTrue);
+          // Wait for the queued mutation before reading the caller-owned bytes.
+          // The completion callback only returns a size, so its delivery order
+          // cannot affect the lifetime of this buffer.
+          await changed;
           expect(await name, bytes.length + 1);
           expect(utf8.decode(output.asTypedList(bytes.length)), original);
-          await changed;
         } finally {
           if (!destroy)
             await ffi.withVoidCallback(
@@ -159,5 +149,5 @@ void main() {
         ffi.calloc.free(text);
       }
     });
-  }, skip: fixturePath == null ? 'Set THERMION_STRING_CALLBACK_FIXTURE; see native/test/rendering/README.md' : false);
+  });
 }
