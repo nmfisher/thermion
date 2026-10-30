@@ -1878,6 +1878,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
 
   /// Sets bits in a visibility mask (see filament::Skybox::setLayerMask).
   external void _Skybox_setLayerMask(Pointer<TSkybox> tSkybox, int select, int values);
+  external void _StringCallback_free(Pointer<Char> text);
   external Pointer<TSurfaceOrientation> _SurfaceOrientationBuilder_build(Pointer<TSurfaceOrientationBuilder> builder);
   external Pointer<TSurfaceOrientationBuilder> _SurfaceOrientationBuilder_create();
   external void _SurfaceOrientationBuilder_destroy(Pointer<TSurfaceOrientationBuilder> builder);
@@ -7532,6 +7533,11 @@ void Skybox_setColor(Pointer<TSkybox> tSkybox, double r, double g, double b, dou
 /// Sets bits in a visibility mask (see filament::Skybox::setLayerMask).
 void Skybox_setLayerMask(Pointer<TSkybox> tSkybox, int select, int values) {
   final result = GeneratedBindings.instance._Skybox_setLayerMask(tSkybox.cast(), select, values);
+  return result;
+}
+
+void StringCallback_free(Pointer<Char> text) {
+  final result = GeneratedBindings.instance._StringCallback_free(text);
   return result;
 }
 

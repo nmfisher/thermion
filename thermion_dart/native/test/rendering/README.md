@@ -131,3 +131,70 @@ dart run native/test/rendering/run_web_dispatch_test.dart /tmp/thermion-web-fram
 
 These manual tests cover headless Chrome. They do not establish behavior under
 full browser suspension, mobile browser policies, or other browser engines.
+
+## Web callback delivery
+
+Web worker completions are posted through a module-lifetime proxy queue. Dart
+awaits each completion without polling a worker's queue. Main-thread web builds
+still call completions directly.
+
+String callbacks transfer ownership on both native and web. For example,
+`View_getNameJobThread()` allocates a null-terminated UTF-8 copy before calling
+its callback. A later rename or deletion cannot change that copy. The producer
+must not free it when the C callback returns: `NativeCallable.listener` only
+queues delivery to Dart at that point.
+
+`withStringCallback()` decodes the result and calls `StringCallback_free()` in
+`finally`, including when decoding fails. A null pointer produces null and needs
+no release. The native function must call the callback exactly once. The Dart
+dispatch function may throw only before handing the callback to native code.
+
+Only pass owned results allocated for this API. Borrowed pointers from
+`View_getName()`, `std::string::c_str()`, stack memory and Dart-allocated buffers
+must not go through this helper. `StringCallback_free()` uses the allocator that
+created the result. Do not replace it with Dart's `free()`.
+
+The JavaScript tests check null results, UTF-8 conversion, release exactly once
+and callback-table cleanup on success and failure. Run from `thermion_dart/`:
+
+```sh
+dart test -p node test/js_pointer_callback_test.dart
+```
+
+The native tests block the Dart isolate until a queued rename or deletion has
+finished. This forces delivery after the view's original name has been released.
+They also check null results, invalid UTF-8 and dispatch errors. CI runs these on
+Linux, Windows and macOS. To run locally from the repository root:
+
+```sh
+cmake -S thermion_dart/native/test/rendering -B /tmp/thermion-string-callbacks
+cmake --build /tmp/thermion-string-callbacks --target string_callback_fixture
+cd thermion_dart
+THERMION_STRING_CALLBACK_FIXTURE=/tmp/thermion-string-callbacks/libstring_callback_fixture.dylib \
+  dart test test/ffi_string_callback_test.dart
+```
+
+Use `.so` on Linux. With the default Visual Studio generator on Windows, build
+with `--config Release` and set the variable to `Release/string_callback_fixture.dll`.
+
+The full-module browser fixture checks pointer, void and string callbacks,
+public view-name reads, KTX upload/release, skybox/IBL loading and four engine
+lifecycles. It uses the shared runner introduced with the manager regression.
+Build and prepare it from the repository root with matching web Filament libraries:
+
+```sh
+emcmake cmake -S thermion_dart/native/web -B /tmp/thermion-web-callbacks \
+  -DCMAKE_BUILD_TYPE=Release
+cmake --build /tmp/thermion-web-callbacks -j 4
+cp thermion_dart/native/test/rendering/web_api_test.html /tmp/thermion-web-callbacks/build/out/index.html
+cp examples/assets/materials_studio_ibl.ktx /tmp/thermion-web-callbacks/build/out/texture.ktx
+cp examples/assets/default_env_skybox.ktx /tmp/thermion-web-callbacks/build/out/skybox.ktx
+cd thermion_dart
+dart compile js native/test/rendering/web_api_test.dart -o /tmp/thermion-web-callbacks/build/out/test.js
+dart run native/test/rendering/run_web_dispatch_test.dart /tmp/thermion-web-callbacks/build/out
+```
+
+Run the same fixture with `-DTHERMION_WEB_MAIN_THREAD=ON` in a separate build
+folder to check synchronous callback delivery. Worker command processing still
+uses animation frames in this patch; independent wakeups and worker shutdown
+remain in #347.
