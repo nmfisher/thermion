@@ -117,6 +117,17 @@ Future<void> main() async {
     if (await beforeDelete != debugName) throw StateError('Name resize raced view deletion');
     await deleted;
 
+    final pickView = await app.createView();
+    await pickView.setViewport(32, 32);
+    var pickedAfterDestruction = false;
+    await pickView.pick(10, 12, (_) => pickedAfterDestruction = true);
+    await pickView.pick(20, 24, (_) => pickedAfterDestruction = true);
+    // Destroy without rendering. Filament returns these pending queries while
+    // destroying the view. Their Dart callbacks must remain valid and ignore them.
+    await app.destroyView(pickView);
+    await Future<void>.delayed(Duration.zero);
+    if (pickedAfterDestruction) throw StateError('A destroyed view delivered a pick result');
+
     final camera = await viewer.getActiveCamera();
     await camera.lookAt(Vector3(2, 3, 4));
     final position = await camera.getPosition();
