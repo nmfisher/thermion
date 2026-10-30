@@ -145,7 +145,13 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void View_setColorGradingJobThread(TView *tView, TColorGrading *tColorGrading, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setBloomJobThread(TView *tView, bool enabled, double strength, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setCameraJobThread(TView *tView, TCamera *tCamera, uint32_t requestId,  VoidCallback onComplete);
-        EMSCRIPTEN_KEEPALIVE void View_getNameJobThread(TView *tView, void (*onComplete)(const char *));
+        // Copies the name into the caller's buffer if capacity is sufficient.
+        // Calls onComplete once with the required byte count, including the null
+        // terminator. Zero means no name; an empty name needs one byte. A buffer
+        // that is too small is left unchanged. Null with zero capacity is allowed.
+        // Keep buffer alive until completion. Keep the view alive and unchanged
+        // across any resize/retry calls. Size checking and copying run in one job.
+        EMSCRIPTEN_KEEPALIVE void View_getNameJobThread(TView *tView, char *buffer, size_t capacity, void (*onComplete)(size_t));
         EMSCRIPTEN_KEEPALIVE void View_setNameJobThread(TView *tView, const char *name, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setViewportJobThread(TView *tView, uint32_t width, uint32_t height, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setRenderTargetJobThread(TView *tView, TRenderTarget *tRenderTarget, uint32_t requestId, VoidCallback onComplete);

@@ -14,12 +14,6 @@ const FILAMENT_SINGLE_THREADED = true;
 const FILAMENT_WASM = true;
 const IS_WINDOWS = false;
 
-extension type _NativeLibrary(NativeLibrary _) implements JSObject {
-  static _NativeLibrary get instance => NativeLibrary.instance as _NativeLibrary;
-
-  external void _execute_queue();
-}
-
 typedef IntPtrList = Int32List;
 typedef Utf8 = Char;
 typedef Float = Float32;
@@ -87,10 +81,6 @@ Future<void> withVoidCallback(Function(int, Pointer<NativeFunction<Void Function
     _completers.remove(requestId);
     rethrow;
   }
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
-  }
   await completer.future;
 }
 
@@ -108,14 +98,24 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
   try {
     func.call(onComplete_interopFnPtr.cast());
 
-    while (!completer.isCompleted) {
-      _NativeLibrary.instance._execute_queue();
-      await Future.delayed(Duration(milliseconds: 1));
-    }
-
     return await completer.future;
   } finally {
     onComplete_interopFnPtr.dispose();
+  }
+}
+
+/// Waits for one native size_t result and removes the callback on completion.
+/// [operation] must deliver exactly one result or throw before native code
+/// accepts the callback.
+Future<int> withSizeCallback(void Function(Pointer<NativeFunction<Void Function(int)>>) operation) async {
+  final completer = Completer<int>();
+  void callback(int size) => completer.complete(size);
+  final pointer = callback.addFunction();
+  try {
+    operation(pointer.cast());
+    return await completer.future;
+  } finally {
+    pointer.dispose();
   }
 }
 
@@ -130,11 +130,6 @@ Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool
 
   try {
     func.call(onComplete_interopFnPtr.cast());
-
-    while (!completer.isCompleted) {
-      _NativeLibrary.instance._execute_queue();
-      await Future.delayed(Duration(milliseconds: 1));
-    }
 
     return await completer.future;
   } finally {
@@ -151,10 +146,6 @@ Future<double> withFloatCallback(void Function(Pointer<NativeFunction<void Funct
   var ptr = callback.addFunction();
   try {
     func.call(ptr);
-    while (!completer.isCompleted) {
-      _NativeLibrary.instance._execute_queue();
-      await Future.delayed(Duration(milliseconds: 1));
-    }
     return await completer.future;
   } finally {
     ptr.dispose();
@@ -170,10 +161,6 @@ Future<int> withIntCallback(Function(Pointer<NativeFunction<void Function(int)>>
   var ptr = callback.addFunction();
   try {
     func.call(ptr);
-    while (!completer.isCompleted) {
-      _NativeLibrary.instance._execute_queue();
-      await Future.delayed(Duration(milliseconds: 1));
-    }
     return await completer.future;
   } finally {
     ptr.dispose();

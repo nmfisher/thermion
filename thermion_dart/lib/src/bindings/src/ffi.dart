@@ -2,6 +2,7 @@ export 'thermion_dart_ffi.g.dart';
 
 export 'dart:typed_data';
 import 'dart:async';
+import 'dart:ffi' as ffi;
 import 'dart:io';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'void_callback_registry.dart';
@@ -132,6 +133,21 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
   var ptr = await completer.future;
   nativeCallable.close();
   return ptr;
+}
+
+/// Waits for one native size_t result and closes the callback on completion.
+/// [operation] must deliver exactly one result or throw before native code
+/// accepts the callback.
+Future<int> withSizeCallback(void Function(Pointer<NativeFunction<Void Function(ffi.Size)>>) operation) async {
+  final completer = Completer<int>();
+  void callback(int size) => completer.complete(size);
+  final nativeCallable = NativeCallable<Void Function(ffi.Size)>.listener(callback);
+  try {
+    operation(nativeCallable.nativeFunction);
+    return await completer.future;
+  } finally {
+    nativeCallable.close();
+  }
 }
 
 Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {

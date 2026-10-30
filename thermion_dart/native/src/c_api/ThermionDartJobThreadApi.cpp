@@ -54,11 +54,8 @@ using namespace std::chrono_literals;
 #include <time.h>
 #include <cinttypes>
 
-#if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_MAIN_THREAD)
-#define PROXY(call)                                           \
-  auto startTime = std::chrono::high_resolution_clock::now(); \
-  TRACE("PROXYING");                                          \
-  rt->queue.proxySync(rt->outer, [=]() { call; });
+#ifdef __EMSCRIPTEN__
+#define PROXY(call) rt->dispatchCallback([=]() { call; })
 #else
 #define PROXY(call) call
 #endif
@@ -732,9 +729,8 @@ extern "C"
 
   EMSCRIPTEN_KEEPALIVE void execute_queue()
   {
-    auto *rt = RT(nullptr);
 #ifdef __EMSCRIPTEN__
-    rt->queue.execute();
+    JobThread::executeCallbacks();
 #endif
   }
 
@@ -1433,14 +1429,21 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_getNameJobThread(TView *tView, void (*onComplete)(const char *))
+  EMSCRIPTEN_KEEPALIVE void View_getNameJobThread(TView *tView, char *buffer, size_t capacity, void (*onComplete)(size_t))
   {
     auto *rt = RT(tView);
     std::packaged_task<void()> lambda(
         [=]
         {
-          auto name = View_getName(tView);
-          PROXY(onComplete(name));
+          const auto *name = View_getName(tView);
+          size_t requiredBytes = 0;
+          if (name != nullptr) {
+            requiredBytes = std::strlen(name) + 1;
+            if (capacity >= requiredBytes) {
+              std::memcpy(buffer, name, requiredBytes);
+            }
+          }
+          PROXY(onComplete(requiredBytes));
         });
     auto fut = rt->addTask(lambda);
   }

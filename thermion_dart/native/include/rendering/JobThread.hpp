@@ -111,7 +111,11 @@ public:
      */
     void iter();
 
-    emscripten::ProxyingQueue queue;
+    // Completions must remain deliverable after this worker is destroyed.
+    // Main-thread web builds call the completion directly.
+    void dispatchCallback(std::function<void()> callback) const;
+    static void executeCallbacks();
+
     pthread_t outer;
 
     // Web-only: iter() invokes _renderManager->tick() on each rAF so rendering

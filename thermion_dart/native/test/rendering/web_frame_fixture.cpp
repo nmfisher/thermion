@@ -23,15 +23,6 @@ struct TestScene {
 // Each slot is accessed only on its owning worker.
 static TestScene scenes[2];
 
-// Use the same synchronous callback delivery as the production dispatcher.
-static void complete(JobThread* thread, std::function<void()> callback) {
-#ifndef THERMION_WEB_MAIN_THREAD
-    thread->queue.proxySync(thread->outer, std::move(callback));
-#else
-    callback();
-#endif
-}
-
 extern "C" {
 EMSCRIPTEN_KEEPALIVE void WebTest_attachScene(filament::Engine* engine,
         RenderManager* manager, int slot, uint32_t id, void (*done)(uint32_t)) {
@@ -47,7 +38,7 @@ EMSCRIPTEN_KEEPALIVE void WebTest_attachScene(filament::Engine* engine,
         s.view->setViewport({0, 0, 32, 32});
         s.view->setPostProcessingEnabled(false);
         manager->setRenderable(s.swapChain, &s.view, 1);
-        complete(rt, [=] { done(id); });
+        rt->dispatchCallback([=] { done(id); });
     });
 }
 
@@ -59,7 +50,7 @@ EMSCRIPTEN_KEEPALIVE void WebTest_frameId(filament::Engine* engine,
         for (const auto& frame : renderer->getFrameInfoHistory()) {
             latest = std::max(latest, frame.frameId);
         }
-        complete(rt, [=] { done(latest); });
+        rt->dispatchCallback([=] { done(latest); });
     });
 }
 
@@ -75,7 +66,7 @@ EMSCRIPTEN_KEEPALIVE void WebTest_destroyScene(filament::Engine* engine,
         utils::EntityManager::get().destroy(s.camera);
         engine->destroy(s.swapChain);
         s = {};
-        complete(rt, [=] { done(id); });
+        rt->dispatchCallback([=] { done(id); });
     });
 }
 
