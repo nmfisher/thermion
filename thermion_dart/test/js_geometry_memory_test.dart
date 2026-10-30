@@ -102,13 +102,13 @@ void main() {
     }
 
     export(
-      '_VertexBuffer_setBufferAtRenderThread',
+      '_VertexBuffer_setBufferAtJobThread',
       ((int engine, int buffer, int index, int address, int size, int offset, int request, int callback) {
         upload(address, size, offset, request, callback);
       }).toJS,
     );
     export(
-      '_IndexBuffer_setBufferRenderThread',
+      '_IndexBuffer_setBufferJobThread',
       ((int engine, int buffer, int address, int size, int offset, int request, int callback) {
         upload(address, size, offset, request, callback);
       }).toJS,
@@ -163,7 +163,7 @@ void main() {
     );
     export('_SceneAsset_getEntity', ((int asset) => 1).toJS);
     export(
-      '_SceneAsset_createInstanceRenderThread',
+      '_SceneAsset_createInstanceJobThread',
       ((int asset, int materials, int count, int callback) {
         expect(heap.buffer.asInt32List(materials, count), [12, 34]);
         callbacks[callback]!.callAsFunction(null, 99.toJS);

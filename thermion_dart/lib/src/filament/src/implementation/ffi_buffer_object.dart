@@ -15,7 +15,7 @@ class FFIBufferObject extends BufferObject {
   Future<void> setBuffer(TypedData data, {int byteOffset = 0}) async {
     final bytes = data.asUint8List();
     await withVoidCallback((requestId, cb) {
-      bindings.BufferObject_setBufferRenderThread(
+      bindings.BufferObject_setBufferJobThread(
         _engine,
         _ptr,
         bytes.address.cast(),
@@ -30,7 +30,7 @@ class FFIBufferObject extends BufferObject {
   @override
   Future<void> destroy() async {
     await withVoidCallback((requestId, cb) {
-      bindings.BufferObject_destroyRenderThread(_engine, _ptr, requestId, cb);
+      bindings.BufferObject_destroyJobThread(_engine, _ptr, requestId, cb);
     });
   }
 }
@@ -63,7 +63,7 @@ class FFIBufferObjectBuilder implements BufferObjectBuilder {
   Future<BufferObject> build() async {
     _checkNotBuilt();
     final pointer = await withPointerCallback<bindings.TBufferObject>(
-      (cb) => bindings.BufferObjectBuilder_buildRenderThread(_builder!, _engine, cb),
+      (cb) => bindings.BufferObjectBuilder_buildJobThread(_builder!, _engine, cb),
     );
     bindings.BufferObjectBuilder_destroy(_builder!);
     _builder = null;

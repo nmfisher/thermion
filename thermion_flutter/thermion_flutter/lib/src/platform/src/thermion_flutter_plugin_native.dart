@@ -88,7 +88,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       await FFIFilamentApp.create(config: config);
       FilamentApp.instance!.onBeforeDestroy(() async {
         // Stop and drain the native scheduler while its RenderManager and
-        // RenderThread pointers are still valid.
+        // JobThread pointers are still valid.
         _lifecycle.stop();
       });
       FilamentApp.instance!.onDestroy(() async {

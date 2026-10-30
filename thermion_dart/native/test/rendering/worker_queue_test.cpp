@@ -1,4 +1,4 @@
-#include "rendering/RenderThread.hpp"
+#include "rendering/JobThread.hpp"
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -15,7 +15,7 @@ int main() {
         int executed = 0;
         const auto caller = std::this_thread::get_id();
         {
-            RenderThread worker;
+            JobThread worker;
             std::packaged_task<int()> query([caller] {
                 check(std::this_thread::get_id() != caller);
                 return 42;

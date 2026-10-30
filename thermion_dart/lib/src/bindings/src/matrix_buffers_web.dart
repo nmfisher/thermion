@@ -32,7 +32,7 @@ void TransformManager_setTransformFromBufferTypedData(
   int entity,
   Float64List matrix,
 ) => _withMatrix(matrix, (ptr) => TransformManager_setTransformFromBuffer(manager, entity, ptr));
-void TransformManager_setTransformFromBufferRenderThreadTypedData(
+void TransformManager_setTransformFromBufferJobThreadTypedData(
   Pointer<TTransformManager> manager,
   int entity,
   Float64List matrix,
@@ -40,7 +40,7 @@ void TransformManager_setTransformFromBufferRenderThreadTypedData(
   VoidCallback callback,
 ) => _withMatrix(
   matrix,
-  (ptr) => TransformManager_setTransformFromBufferRenderThread(manager, entity, ptr, requestId, callback),
+  (ptr) => TransformManager_setTransformFromBufferJobThread(manager, entity, ptr, requestId, callback),
 );
 void Camera_setModelMatrixFromBufferTypedData(Pointer<TCamera> camera, Float64List matrix) =>
     _withMatrix(matrix, (ptr) => Camera_setModelMatrixFromBuffer(camera, ptr));

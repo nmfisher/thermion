@@ -23,7 +23,7 @@ import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart'
     as js;
 
 /// One engine per viewer on web: each viewer owns a canvas element, a
-/// RenderThread (worker), a WebGL context and a headless swapchain. All
+/// JobThread (worker), a WebGL context and a headless swapchain. All
 /// per-viewer state lives in this bundle; the plugin-wide statics are shared
 /// across engines (rAF loop, FPS pacing, pause state).
 class _WebViewerApp {
@@ -134,7 +134,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     }
 
     // Each viewer gets its own canvas, transferred to its own worker by
-    // RenderThread_createForCanvas (called inside FFIFilamentApp.create via
+    // JobThread_createForCanvas (called inside FFIFilamentApp.create via
     // the canvasSelector). A caller-provided id adopts an existing element
     // (or creates one with that id); otherwise a default id is generated.
     final String resolvedCanvasId;

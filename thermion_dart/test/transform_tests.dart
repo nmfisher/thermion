@@ -232,7 +232,7 @@ class _ParentingTestApp extends FFIFilamentApp {
         app.transformManager.getNativeHandle(),
         app.ubershaderMaterialProvider,
         app.renderManager.getNativeHandle(),
-        app.renderThreadHandle,
+        app.jobThreadHandle,
         app.nameComponentManager,
         app.loadResource,
         app.lightManager.getNativeHandle(),

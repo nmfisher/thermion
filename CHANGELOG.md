@@ -4,6 +4,13 @@
 
 ### Changes
 
+- Rename `RenderThread` to `JobThread` throughout the C++ implementation,
+  C API entry points and Dart bindings/callers. For example,
+  `RenderThread_create` becomes `JobThread_create`, and
+  `Engine_createRenderThread` becomes `Engine_createJobThread`.
+  `FFIFilamentApp.renderThreadHandle` becomes `jobThreadHandle`.
+  Rebuild native/Wasm libraries together with the updated Dart bindings.
+
 - Add `ThermionAsset.owner` for the immediate owning asset. Deprecate
   `instanceOwner`; use `owner`, or `isInstance ? owner : null` for the native
   instance source. The deprecated getter retains its existing behavior.

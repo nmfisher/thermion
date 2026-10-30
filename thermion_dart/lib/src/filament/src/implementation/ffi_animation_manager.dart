@@ -107,7 +107,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
     // channels via the backend CommandStream, which asserts it runs on the
     // render thread. The non-RT variant panicked for morph animations.
     await withVoidCallback(
-      (requestId, cb) => AnimationManager_setGltfAnimationTimeRenderThread(
+      (requestId, cb) => AnimationManager_setGltfAnimationTimeJobThread(
         animationManager,
         asset.getNativeHandle(),
         animationIndex,
@@ -380,7 +380,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
     }
 
     return await withBoolCallback(
-      (cb) => AnimationManager_updateBoneMatricesRenderThread(animationManager, asset.getNativeHandle(), cb),
+      (cb) => AnimationManager_updateBoneMatricesJobThread(animationManager, asset.getNativeHandle(), cb),
     );
   }
 
@@ -396,15 +396,14 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
     await withVoidCallback(
       (requestId, cb) =>
-          AnimationManager_resetToRestPoseRenderThread(animationManager, asset.getNativeHandle(), requestId, cb),
+          AnimationManager_resetToRestPoseJobThread(animationManager, asset.getNativeHandle(), requestId, cb),
     );
   }
 
   @override
   Future update(int frameTimeInNanos) async {
     await withVoidCallback(
-      (requestId, cb) =>
-          AnimationManager_updateRenderThread(animationManager, frameTimeInNanos.toBigInt, requestId, cb),
+      (requestId, cb) => AnimationManager_updateJobThread(animationManager, frameTimeInNanos.toBigInt, requestId, cb),
     );
   }
 }

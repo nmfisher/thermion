@@ -7,7 +7,7 @@ on:
       - 'filament.version'
       - 'thermion_dart/native/include/rendering/**'
       - 'thermion_dart/native/src/rendering/**'
-      - 'thermion_dart/native/src/c_api/ThermionDartRenderThreadApi.cpp'
+      - 'thermion_dart/native/src/c_api/ThermionDartJobThreadApi.cpp'
       - 'thermion_dart/native/web/**'
       - 'thermion_dart/native/test/web/**'
   workflow_dispatch:
