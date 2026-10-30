@@ -63,7 +63,6 @@ on:
 # Fork PRs (pull_request where head.repo != this repository) run the full
 # regeneration + tests, but skip every pushing step: the PR branch exists
 # only in the contributor's fork, which this workflow must never modify.
-# Tests run at the PR event's head SHA instead of a post-push ref.
 permissions:
   contents: write
 
@@ -113,8 +112,6 @@ jobs:
     needs: [triage]
     if: needs.triage.outputs.mode == 'full'
     runs-on: ubuntu-24.04
-    outputs:
-      sha: ${{ steps.resolve-sha.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -341,22 +338,6 @@ jobs:
         with:
           name: web-wasm-${{ github.sha }}
           path: thermion_dart/native/web/build/build/out/
-
-      - name: Resolve post-push SHA
-        if: ${{ !inputs.verify }}
-        id: resolve-sha
-        env:
-          PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
-        run: |
-          # Fork PR: the checked-out tree IS the PR head; the branch is not
-          # reachable from origin, so use the event payload's head SHA.
-          if [ "${{ steps.fork.outputs.is-fork-pr }}" = "true" ]; then
-            echo "sha=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          git fetch origin "$PUSH_BRANCH" --depth=1
-          SHA=$(git rev-parse "origin/$PUSH_BRANCH")
-          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
 
   # Materials-only path (every branch except develop / PRs to develop):
   # inherits the behavior of the former regenerate-materials.yml — run the
