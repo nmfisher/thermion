@@ -127,7 +127,7 @@ void main() {
       for (final bytes in [withVersion(69), ...malformedPackages().values.where((bytes) => bytes.isNotEmpty)]) {
         try {
           final material = await withPointerCallback<TMaterial>((callback) {
-            Engine_buildMaterialJobThread(app.engine, bytes.address, bytes.length, callback);
+            Engine_buildMaterialJobThread(app.jobThreadHandle, app.engine, bytes.address, bytes.length, callback);
           }).timeout(const Duration(seconds: 5));
           expect(material, nullptr);
         } finally {

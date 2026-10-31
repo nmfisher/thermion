@@ -43,7 +43,7 @@ void main() {
     for (final destroy in [false, true]) {
       test('copied buffer survives ${destroy ? 'destruction' : 'rename'} before Dart reads it', () async {
         final view = await ffi.withPointerCallback<ffi.TView>(
-          (callback) => ffi.Engine_createViewJobThread(app.engine, callback),
+          (callback) => ffi.Engine_createViewJobThread(app.jobThreadHandle, app.engine, callback),
         );
         final original = List.filled(128, 'original view name Ω🚗').join();
         final bytes = utf8.encode(original);
@@ -51,15 +51,18 @@ void main() {
         final replacement = 'replacement'.toNativeUtf8();
         final output = ffi.calloc<ffi.Uint8>(bytes.length + 1);
         try {
-          await ffi.withVoidCallback((id, callback) => ffi.View_setNameJobThread(view, input.cast(), id, callback));
+          await ffi.withVoidCallback(
+            (id, callback) => ffi.View_setNameJobThread(app.jobThreadHandle, view, input.cast(), id, callback),
+          );
           final name = ffi.withSizeCallback(
-            (callback) => ffi.View_getNameJobThread(view, output.cast(), bytes.length + 1, callback),
+            (callback) =>
+                ffi.View_getNameJobThread(app.jobThreadHandle, view, output.cast(), bytes.length + 1, callback),
           );
           final changed = ffi.withVoidCallback((id, callback) {
             if (destroy) {
-              ffi.Engine_destroyViewJobThread(app.engine, view, id, callback);
+              ffi.Engine_destroyViewJobThread(app.jobThreadHandle, app.engine, view, id, callback);
             } else {
-              ffi.View_setNameJobThread(view, replacement.cast(), id, callback);
+              ffi.View_setNameJobThread(app.jobThreadHandle, view, replacement.cast(), id, callback);
             }
           });
           // Wait for the queued mutation before reading the caller-owned bytes.
@@ -71,7 +74,7 @@ void main() {
         } finally {
           if (!destroy)
             await ffi.withVoidCallback(
-              (id, callback) => ffi.Engine_destroyViewJobThread(app.engine, view, id, callback),
+              (id, callback) => ffi.Engine_destroyViewJobThread(app.jobThreadHandle, app.engine, view, id, callback),
             );
           ffi.calloc.free(input);
           ffi.calloc.free(replacement);
@@ -109,7 +112,7 @@ void main() {
       try {
         await view.setName(name);
         Future<int> read(ffi.Pointer<ffi.Char> output, int capacity) => ffi.withSizeCallback((callback) {
-          ffi.View_getNameJobThread(view.getNativeHandle(), output, capacity, callback);
+          ffi.View_getNameJobThread(app.jobThreadHandle, view.getNativeHandle(), output, capacity, callback);
         });
         expect(await read(ffi.nullptr, 0), required);
         buffer.asTypedList(required + 8).fillRange(0, required + 8, 0x5a);
@@ -139,7 +142,8 @@ void main() {
       final text = ffi.calloc<ffi.Uint8>(2)..[0] = 0xff;
       try {
         await ffi.withVoidCallback(
-          (id, callback) => ffi.View_setNameJobThread(view.getNativeHandle(), text.cast(), id, callback),
+          (id, callback) =>
+              ffi.View_setNameJobThread(app.jobThreadHandle, view.getNativeHandle(), text.cast(), id, callback),
         );
         final read = view.getName();
         final destroyed = view.destroy();

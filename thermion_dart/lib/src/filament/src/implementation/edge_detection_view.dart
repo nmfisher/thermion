@@ -103,11 +103,13 @@ class EdgeDetectionView extends FFIView {
     required int height,
   }) async {
     // Create view
-    final viewPtr = await withPointerCallback<TView>((cb) => Engine_createViewJobThread(app.engine, cb));
+    final viewPtr = await withPointerCallback<TView>(
+      (cb) => Engine_createViewJobThread(app.jobThreadHandle, app.engine, cb),
+    );
 
     // Create edge material
     final materialPtr = await withPointerCallback<TMaterial>(
-      (cb) => Material_createEdgeOutlineMaterialJobThread(app.engine, cb),
+      (cb) => Material_createEdgeOutlineMaterialJobThread(app.jobThreadHandle, app.engine, cb),
     );
     final edgeMaterial = FFIMaterial(materialPtr, app);
 
@@ -208,7 +210,9 @@ class EdgeDetectionView extends FFIView {
     // benefiting from other post-processing effects (anti-aliasing, dithering).
     final linearToneMapper = await ToneMapper.linear(app);
     final colorGradingBuilder = FFIColorGradingBuilder(
-      await withPointerCallback<TColorGradingBuilder>((cb) => ColorGradingBuilder_createJobThread(cb)),
+      await withPointerCallback<TColorGradingBuilder>(
+        (cb) => ColorGradingBuilder_createJobThread(app.jobThreadHandle, cb),
+      ),
       app,
     );
     colorGradingBuilder.toneMapper(linearToneMapper);

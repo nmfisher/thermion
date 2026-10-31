@@ -68,11 +68,13 @@ class SilhouetteView extends FFIView {
 
   /// Creates and initializes a new [SilhouetteView].
   static Future<SilhouetteView> create(FFIFilamentApp app, {required int width, required int height}) async {
-    final viewPtr = await withPointerCallback<TView>((cb) => Engine_createViewJobThread(app.engine, cb));
+    final viewPtr = await withPointerCallback<TView>(
+      (cb) => Engine_createViewJobThread(app.jobThreadHandle, app.engine, cb),
+    );
 
     // Create silhouette material
     final materialPtr = await withPointerCallback<TMaterial>(
-      (cb) => Material_createSilhouetteMaterialJobThread(app.engine, cb),
+      (cb) => Material_createSilhouetteMaterialJobThread(app.jobThreadHandle, app.engine, cb),
     );
     final silhouetteMaterial = FFIMaterial(materialPtr, app);
 

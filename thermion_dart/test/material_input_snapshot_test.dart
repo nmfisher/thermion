@@ -33,7 +33,7 @@ void main() {
     test('material package survives source overwrite while the worker is blocked', () async {
       final bytes = await File('../examples/assets/solidcolor.filamat').readAsBytes();
       reset();
-      ffi.JobThread_addTask(wait);
+      ffi.JobThread_addTask(app.jobThreadHandle, wait);
       late Future<Material> pending;
       try {
         pending = app.createMaterial(bytes);

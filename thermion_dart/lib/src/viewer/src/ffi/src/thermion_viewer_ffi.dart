@@ -112,13 +112,22 @@ class ThermionViewerFFI extends ThermionViewer {
     }
     for (final swapChain in swapChains) {
       await withBoolCallback(
-        (cb) => Renderer_beginFrameJobThread(_app.renderer, swapChain.getNativeHandle(), 0.toBigInt, cb),
+        (cb) => Renderer_beginFrameJobThread(
+          _app.jobThreadHandle,
+          _app.renderer,
+          swapChain.getNativeHandle(),
+          0.toBigInt,
+          cb,
+        ),
       );
 
       await withVoidCallback(
-        (requestId, cb) => Renderer_renderJobThread(_app.renderer, view.getNativeHandle(), requestId, cb),
+        (requestId, cb) =>
+            Renderer_renderJobThread(_app.jobThreadHandle, _app.renderer, view.getNativeHandle(), requestId, cb),
       );
-      await withVoidCallback((requestId, cb) => Renderer_endFrameJobThread(_app.renderer, requestId, cb));
+      await withVoidCallback(
+        (requestId, cb) => Renderer_endFrameJobThread(_app.jobThreadHandle, _app.renderer, requestId, cb),
+      );
       await _app.flush();
     }
   }

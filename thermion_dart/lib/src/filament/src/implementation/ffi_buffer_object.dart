@@ -4,8 +4,9 @@ import 'package:thermion_dart/thermion_dart.dart';
 class FFIBufferObject extends BufferObject {
   final bindings.Pointer<bindings.TBufferObject> _ptr;
   final bindings.Pointer<bindings.TEngine> _engine;
+  final bindings.Pointer<bindings.TJobThread> _jobThreadHandle;
 
-  FFIBufferObject(this._ptr, this._engine);
+  FFIBufferObject(this._ptr, this._engine, this._jobThreadHandle);
 
   bindings.Pointer<bindings.TBufferObject> getNativeHandle() => _ptr;
 
@@ -16,6 +17,7 @@ class FFIBufferObject extends BufferObject {
     final bytes = data.asUint8List();
     await withVoidCallback((requestId, cb) {
       bindings.BufferObject_setBufferJobThread(
+        _jobThreadHandle,
         _engine,
         _ptr,
         bytes.address.cast(),
@@ -30,7 +32,7 @@ class FFIBufferObject extends BufferObject {
   @override
   Future<void> destroy() async {
     await withVoidCallback((requestId, cb) {
-      bindings.BufferObject_destroyJobThread(_engine, _ptr, requestId, cb);
+      bindings.BufferObject_destroyJobThread(_jobThreadHandle, _engine, _ptr, requestId, cb);
     });
   }
 }
@@ -38,9 +40,10 @@ class FFIBufferObject extends BufferObject {
 class FFIBufferObjectBuilder implements BufferObjectBuilder {
   bindings.Pointer<bindings.TBufferObjectBuilder>? _builder;
   final bindings.Pointer<bindings.TEngine> _engine;
+  final bindings.Pointer<bindings.TJobThread> _jobThreadHandle;
   bool _built = false;
 
-  FFIBufferObjectBuilder(this._engine) {
+  FFIBufferObjectBuilder(this._engine, this._jobThreadHandle) {
     _builder = bindings.BufferObjectBuilder_create();
   }
 
@@ -63,7 +66,7 @@ class FFIBufferObjectBuilder implements BufferObjectBuilder {
   Future<BufferObject> build() async {
     _checkNotBuilt();
     final pointer = await withPointerCallback<bindings.TBufferObject>(
-      (cb) => bindings.BufferObjectBuilder_buildJobThread(_builder!, _engine, cb),
+      (cb) => bindings.BufferObjectBuilder_buildJobThread(_jobThreadHandle, _builder!, _engine, cb),
     );
     bindings.BufferObjectBuilder_destroy(_builder!);
     _builder = null;
@@ -71,6 +74,6 @@ class FFIBufferObjectBuilder implements BufferObjectBuilder {
     if (pointer == bindings.nullptr) {
       throw StateError('Failed to build BufferObject');
     }
-    return FFIBufferObject(pointer, _engine);
+    return FFIBufferObject(pointer, _engine, _jobThreadHandle);
   }
 }

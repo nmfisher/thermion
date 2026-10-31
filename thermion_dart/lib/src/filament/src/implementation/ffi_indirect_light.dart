@@ -21,6 +21,7 @@ class FFIIndirectLight extends IndirectLight {
     final engine = app.engine;
     var indirectLight = await withPointerCallback<TIndirectLight>((cb) {
       Engine_buildIndirectLightFromIrradianceTextureJobThread(
+        app.jobThreadHandle,
         engine,
         reflectionsTexture?.getNativeHandle() ?? nullptr,
         irradianceTexture.getNativeHandle(),
@@ -44,6 +45,7 @@ class FFIIndirectLight extends IndirectLight {
 
     var indirectLight = await withPointerCallback<TIndirectLight>((cb) {
       Engine_buildIndirectLightFromIrradianceHarmonicsJobThread(
+        app.jobThreadHandle,
         engine,
         (reflectionsTexture as FFITexture?)?.pointer ?? nullptr,
         irradianceHarmonics.address,
@@ -67,7 +69,9 @@ class FFIIndirectLight extends IndirectLight {
   }
 
   Future destroy() async {
-    await withVoidCallback((requestId, cb) => Engine_destroyIndirectLightJobThread(engine, pointer, requestId, cb));
+    await withVoidCallback(
+      (requestId, cb) => Engine_destroyIndirectLightJobThread(_app.jobThreadHandle, engine, pointer, requestId, cb),
+    );
 
     if (_irradianceTexture != null || _reflectionsTexture != null) {
       // The indirect light references these textures. Engine destruction is
@@ -77,13 +81,25 @@ class FFIIndirectLight extends IndirectLight {
 
     if (_irradianceTexture != null) {
       await withVoidCallback(
-        (requestId, cb) => Engine_destroyTextureJobThread(engine, _irradianceTexture.getNativeHandle(), requestId, cb),
+        (requestId, cb) => Engine_destroyTextureJobThread(
+          _app.jobThreadHandle,
+          engine,
+          _irradianceTexture.getNativeHandle(),
+          requestId,
+          cb,
+        ),
       );
     }
 
     if (_reflectionsTexture != null && _reflectionsTexture != _irradianceTexture) {
       await withVoidCallback(
-        (requestId, cb) => Engine_destroyTextureJobThread(engine, _reflectionsTexture.getNativeHandle(), requestId, cb),
+        (requestId, cb) => Engine_destroyTextureJobThread(
+          _app.jobThreadHandle,
+          engine,
+          _reflectionsTexture.getNativeHandle(),
+          requestId,
+          cb,
+        ),
       );
     }
   }

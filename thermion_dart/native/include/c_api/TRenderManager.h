@@ -19,8 +19,8 @@ extern "C"
 
 	// Web worker attachment and pause controls. Dart calls these only on web;
 	// drawing is driven by the worker's animation frames, without frame requests.
-	EMSCRIPTEN_KEEPALIVE void RenderManager_attachToJobThread(TRenderManager *tRenderer);
-	EMSCRIPTEN_KEEPALIVE void RenderManager_detachFromJobThread(TRenderManager *tRenderManager);
+	EMSCRIPTEN_KEEPALIVE void RenderManager_attachToJobThread(TJobThread *jobThread, TRenderManager *tRenderer);
+	EMSCRIPTEN_KEEPALIVE void RenderManager_detachFromJobThread(TJobThread *jobThread, TRenderManager *tRenderManager);
 	EMSCRIPTEN_KEEPALIVE void RenderManager_setPaused(TRenderManager *tRenderer, bool paused);
 
 #ifdef __cplusplus

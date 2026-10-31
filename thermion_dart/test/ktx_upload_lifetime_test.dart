@@ -62,7 +62,7 @@ void main() {
       final blocked = fixture.lookup<ffi.NativeFunction<ffi.Void Function()>>('waitForTaskRelease');
       final bundle = await FFIKtx1Bundle.create(app, bytes);
       reset();
-      ffi.JobThread_addTask(blocked);
+      ffi.JobThread_addTask(app.jobThreadHandle, blocked);
       late Future<Texture> textureCreated;
       var released = false;
       final uploadReleased =
