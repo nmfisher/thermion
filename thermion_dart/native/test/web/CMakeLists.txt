@@ -7,7 +7,8 @@ endif()
 
 add_executable(web_upload_drain_test
   web_upload_drain_test.cpp
-  ../../src/rendering/RenderManager.cpp)
+  ../../src/rendering/RenderManager.cpp
+  ../../web/src/cpp/RenderManagerWeb.cpp)
 target_compile_features(web_upload_drain_test PRIVATE cxx_std_17)
 target_include_directories(web_upload_drain_test PRIVATE
   ../../include "${FILAMENT_TEST_LIB_DIR}/include")
@@ -26,7 +27,8 @@ target_link_options(web_upload_drain_test PRIVATE
 add_executable(web_canvas_thread_test
   web_canvas_thread_test.cpp
   ../../web/src/cpp/WebJobThread.cpp
-  ../../src/rendering/RenderManager.cpp)
+  ../../src/rendering/RenderManager.cpp
+  ../../web/src/cpp/RenderManagerWeb.cpp)
 target_compile_features(web_canvas_thread_test PRIVATE cxx_std_17)
 target_compile_definitions(web_canvas_thread_test PRIVATE THERMION_WEB_MAIN_THREAD=1)
 target_include_directories(web_canvas_thread_test PRIVATE

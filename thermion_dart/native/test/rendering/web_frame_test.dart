@@ -152,6 +152,19 @@ Future<void> main() async {
     final resumed = await sample(first, second);
     check(resumed[0] >= 5, 'Paused engine failed to resume: $resumed');
 
+    // Detaching stops this manager's browser callbacks. Commands and the other
+    // manager must keep running. Reattaching starts exactly one drawing loop.
+    for (var cycle = 0; cycle < 3; cycle++) {
+      RenderManager_detachFromJobThread(first.worker, first.manager);
+      await first.frameId(); // Wait for the queued detach.
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      final detached = await sample(first, second);
+      check(detached[0] == 0 && detached[1] >= 5, 'Detach affected the wrong engine: $detached');
+      RenderManager_attachToJobThread(first.worker, first.manager);
+      final reattached = await sample(first, second);
+      check(reattached[0] >= 5 && reattached[1] >= 5, 'Reattach failed: $reattached');
+    }
+
     await first.destroy();
     final before = await second.frameId();
     await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -162,7 +175,7 @@ Future<void> main() async {
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
     check(_liveWorkers() == 0, 'Workers remained alive after teardown');
-    globalContext['testResult'] = 'PASS: two engines drawing, pause/resume, independent teardown and worker exit'.toJS;
+    globalContext['testResult'] = 'PASS: independent drawing, pause/resume, detach/reattach and worker exit'.toJS;
   } catch (error, stack) {
     globalContext['testResult'] = 'FAIL: $error\n$stack'.toJS;
   }

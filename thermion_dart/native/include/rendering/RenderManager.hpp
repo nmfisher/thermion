@@ -64,7 +64,14 @@ namespace thermion
         /// without drawing an intermediate frame.
         void flushCommands();
 
-        /// Web path: called once per rAF from JobThread::iter().
+#ifdef __EMSCRIPTEN__
+        // Called on the engine's thread when the manager is attached/detached.
+        // Main-thread web mode renders explicitly and does not start a loop.
+        void startFrameLoop();
+        void stopFrameLoop();
+#endif
+
+        /// Web worker mode: called by this manager's browser animation callback.
         /// Renders all attached swapchains synchronously (in practice there
         /// is only one on web — see ARCHITECTURE.md), then calls
         /// mEngine->execute() to drain the Filament WebGL backend command
@@ -92,6 +99,16 @@ namespace thermion
         void removeAnimationManager(AnimationManager *animationManager);
 
     private:
+#if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_MAIN_THREAD)
+        static bool onAnimationFrame(double timestamp, void* manager);
+        static void onFrameTimeout(void* manager);
+        void requestNextFrame();
+        // Accessed only on the engine's thread. Destruction cancels this request.
+        int mAnimationFrameRequest = -1;
+        bool mFrameLoopRunning = false;
+        bool mFrameLoopUsesTimeout = false;
+        double mNextFrameTimeMs = 0;
+#endif
         struct ViewAttachment
         {
             SwapChain *swapChain = nullptr;
@@ -113,8 +130,8 @@ namespace thermion
         // Web: when true, tick() short-circuits animations + swapchain render.
         // mEngine->execute() still runs so the backend command buffer keeps
         // draining (matches native "scheduler keeps ticking" pause semantics).
-        // Note: this gates *rendering only* — task queue drain in
-        // JobThread::iter() is outside this flag, so FFI state changes
+        // This gates rendering only. The command queue keeps draining, so
+        // FFI state changes
         // (setTransform, addEntity, etc.) continue to apply while paused.
         // Main-thread controls must not take mMutex: tick() can hold it while
         // a Filament upload callback waits for that same main thread.

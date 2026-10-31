@@ -29,7 +29,7 @@ have no engine pointer. There is no resource-to-thread registry or active-thread
 fallback. An app destroys its resources and awaits their jobs before destroying
 its job thread. Creating another thread leaves existing threads alive.
 
-Tasks run FIFO. Native workers wait on a condition variable and drain accepted work before joining. Web workers still poll up to eight commands per browser animation frame, then draw. Their existing shutdown behavior is unchanged by this split: the caller drains remaining commands and the worker exits asynchronously. Fixing that lifetime is a separate change. `THERMION_WEB_MAIN_THREAD` runs commands inline without a worker.
+Tasks run FIFO. Native workers wait on a condition variable and drain accepted work before joining. Web workers still poll up to eight commands per browser animation frame, and drawing is scheduled separately by each render manager. Their existing shutdown behavior is unchanged by this split: the caller drains remaining commands and the worker exits asynchronously. Fixing that lifetime is a separate change. `THERMION_WEB_MAIN_THREAD` runs commands inline without a worker.
 
 The deque is lock-protected (`_taskMutex`). The worker releases the lock while running each task, so Dart can enqueue work while another task runs.
 
@@ -257,7 +257,7 @@ Web is fundamentally single-swapchain. `emscripten_pthread_attr_settransferredca
 Two threads matter:
 
 - **Main browser thread**: where Dart executes (Flutter's engine runs on the main thread on web). All `FilamentApp` method calls originate here.
-- **Render worker**: a pthread spun up at startup by `WebJobThread::WebJobThread()` via `pthread_create` with `emscripten_pthread_attr_settransferredcanvases(&attr, "#thermion_canvas")`. This transfers ownership of the OffscreenCanvas to the worker, which then owns the WebGL context for the lifetime of the app. The worker's entry point installs `emscripten_set_main_loop_arg(&mainLoop, ...)` so that `WebJobThread::iter()` is called on the worker's own `requestAnimationFrame` cadence.
+- **Render worker**: a pthread spun up at startup by `WebJobThread::WebJobThread()` via `pthread_create` with `emscripten_pthread_attr_settransferredcanvases(&attr, "#thermion_canvas")`. This transfers ownership of the OffscreenCanvas to the worker, which then owns the WebGL context for the lifetime of the app. The worker's entry point installs `emscripten_set_main_loop_arg(&mainLoop, ...)` to poll queued commands on browser animation frames. The attached render manager owns a separate browser `requestAnimationFrame` request for drawing.
 
 Dart and the worker communicate via emscripten's proxying queue + a lock-protected task deque (`JobThread::_tasks`). Dart never calls Filament directly from the main thread — every call crosses the thread boundary as a packaged task.
 
@@ -282,7 +282,9 @@ Unlike the native path, Dart on web does **not** await individual renders. `FFIF
 - **Native** queues a `RenderManager_renderJobThread` task and awaits its completion. `RenderManager::render()` runs the whole pipeline (animations + plugins + all swapchains' beginFrame/render/endFrame + `mEngine->execute()`) as one synchronous task.
 - **Web** returns immediately. Drawing runs independently on the worker, so there is no native frame-request call. Completing this Future does not mean a frame has been drawn.
 
-Rendering is driven entirely from the worker's mainLoop. Each worker rAF, `WebJobThread::iter()` drains the task queue and calls `RenderManager::tick(now)`. `tick()`:
+`RenderManager::startFrameLoop()` schedules browser `requestAnimationFrame` callbacks on the engine's worker. Each callback calls `tick()` and schedules the next request. Detaching or destroying the manager cancels its pending request on that same worker. Workers without `requestAnimationFrame` support use the previous timer fallback. `JobThread` does not reference `RenderManager`; the C API installs a generic after-batch callback to flush backend commands in main-thread mode. Worker commands still use the existing animation-frame polling until the separate wakeup/shutdown fix.
+
+`tick()`:
 
 1. Runs `updateAnimationsAndPlugins(now)`.
 2. For each attached swapchain: `renderSwapChainAt(i)` (beginFrame → render each view → endFrame).
@@ -314,6 +316,7 @@ See [Pause/resume](#pauseresume) in the native lifecycle section — the invaria
 - `thermion_dart/native/src/rendering/NativeJobThread.cpp` — native FIFO worker and drain/join.
 - `thermion_dart/native/web/src/cpp/WebJobThread.cpp` — browser pthread, animation-frame polling and web queue.
 - `thermion_dart/native/src/rendering/RenderManager.cpp` — `render()` (native), `tick()` (web).
+- `thermion_dart/native/web/src/cpp/RenderManagerWeb.cpp` — manager-owned browser drawing requests and cancellation.
 - `thermion_dart/native/src/c_api/ThermionDartJobThreadApi.cpp` — `*_JobThread` C shims + proxy-back callbacks.
 - `thermion_dart/lib/src/filament/src/implementation/ffi_filament_app.dart` — `FFIFilamentApp.render()` branches on `FILAMENT_SINGLE_THREADED`.
 - `thermion_dart/hook/build.dart` — web artifact download + `THERMION_WEB_LOCAL` override.

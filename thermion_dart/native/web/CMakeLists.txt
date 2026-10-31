@@ -130,6 +130,7 @@ file(GLOB SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/resources/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/ThermionWebApi.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/WebJobThread.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/RenderManagerWeb.cpp"
    # "${CMAKE_CURRENT_SOURCE_DIR}/../src/rendering/EmscriptenTest.cpp"
   )
 

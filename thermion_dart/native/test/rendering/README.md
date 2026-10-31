@@ -228,6 +228,19 @@ With `THERMION_TEST_LIBRARY` and `FILAMENT_TEST_INCLUDE_DIR` configured as above
 `job_thread_handle_test` creates two threads, holds A's queue while B completes
 work, and checks that A remains usable after B is destroyed.
 
+### Web frame-loop ownership
+
+Attaching a render manager starts its browser `requestAnimationFrame` loop on
+its engine's worker. Detaching or destroying it cancels that request on the
+same worker. The job thread executes commands and has no render-manager pointer.
+The drawing fixture also repeats detach/reattach while a second engine draws.
+Main-thread web mode keeps explicit rendering and starts no browser loop.
+Workers without browser animation-frame support retain the previous
+Emscripten timer fallback. Detachment cancels whichever request was scheduled.
+
+Command polling and worker shutdown still use their existing behavior in this
+refactor. The independent command-wakeup and shutdown fix follows separately.
+
 ### Web canvas selection
 
 `WebJobThread` binds its canvas selector while it executes a batch, an inline

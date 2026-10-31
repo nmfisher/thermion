@@ -1,5 +1,4 @@
 #include "rendering/WebJobThread.hpp"
-#include "rendering/RenderManager.hpp"
 #include "Log.hpp"
 #include <chrono>
 #include <cstdlib>
@@ -191,7 +190,7 @@ void WebJobThread::enqueue(std::function<void()> task) {
 #ifdef THERMION_WEB_MAIN_THREAD
     CurrentThreadScope current(*this);
     task();
-    flushCommands();
+    runAfterBatchCallback();
 #else
     std::lock_guard<std::mutex> lock(_taskMutex);
     _tasks.push_back(std::move(task));
@@ -214,24 +213,14 @@ void WebJobThread::pumpTasks() {
     taskLock.unlock();
 }
 
-void WebJobThread::flushCommands() {
-    if (_renderManager) _renderManager->flushCommands();
+void WebJobThread::runAfterBatchCallback() {
+    // A callback may clear the installed hook through a nested command.
+    auto callback = _afterBatch;
+    if (callback) callback();
 }
 
 void WebJobThread::iter() {
-    // FPS measurement
-    auto now = std::chrono::high_resolution_clock::now();
-
     pumpTasks();
-
-    // Render at most one swapchain per rAF so Filament's WebGL backend can
-    // commit the frame between iterations. When no render has been requested,
-    // tick() is a cheap flag-check and returns immediately.
-    if (_renderManager) {
-        auto frameTimeInNanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                    now.time_since_epoch()).count();
-        _renderManager->tick(frameTimeInNanos);
-    }
 }
 
 } // namespace thermion
