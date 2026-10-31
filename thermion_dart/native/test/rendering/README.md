@@ -198,3 +198,12 @@ Run the same fixture with `-DTHERMION_WEB_MAIN_THREAD=ON` in a separate build
 folder to check synchronous callback delivery. Worker command processing still
 uses animation frames in this patch; independent wakeups and worker shutdown
 remain in #347.
+
+### Platform implementations
+
+`JobThread.hpp` selects `NativeJobThread` on native platforms and
+`WebJobThread` on web. The native queue test builds `NativeJobThread.cpp`.
+Web builds use `native/web/src/cpp/WebJobThread.cpp`; the main-thread web test
+selects the same implementation with `THERMION_WEB_MAIN_THREAD`.
+Both implementations expose `create()` and `destroy()` for ownership. This
+split preserves the existing command scheduling and shutdown behavior.

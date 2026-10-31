@@ -182,7 +182,11 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE const char *JobThread_getActiveCanvasSelector()
   {
     JobThread *rt = g_activeThread != nullptr ? g_activeThread : _jobThread.get();
+#ifdef __EMSCRIPTEN__
     return rt != nullptr ? rt->canvasSelector() : "#thermion_canvas";
+#else
+    return "#thermion_canvas";
+#endif
   }
 
   EMSCRIPTEN_KEEPALIVE void* JobThread_create()
@@ -193,14 +197,15 @@ extern "C"
     {
       Log("WARNING - you are attempting to create a JobThread when the previous one has not been disposed.");
     }
-    auto thread = std::make_unique<JobThread>();
-    if (thread->creationFailed())
+    auto thread = JobThread::create();
+    if (!thread)
     {
       // pthread_create failed on web (e.g. worker pool exhausted); a null
       // handle lets Dart fail loudly instead of hanging on never-run tasks.
       Log("JobThread worker failed to start; returning null handle");
       return nullptr;
     }
+    if (_jobThread) JobThread::destroy(std::move(_jobThread));
     _jobThread = std::move(thread);
     // The move-assignment above destroyed the previous JobThread (and joined
     // its worker). Sweep stale owner registrations AFTER the join — the dying
@@ -218,8 +223,8 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE void* JobThread_createForCanvas(const char *canvasSelector)
   {
     TRACE("JobThread_createForCanvas %s", canvasSelector);
-    auto thread = std::make_unique<JobThread>(canvasSelector);
-    if (thread->creationFailed())
+    auto thread = JobThread::create(canvasSelector);
+    if (!thread)
     {
       Log("JobThread worker failed to start for canvas %s; returning null handle", canvasSelector);
       return nullptr;
@@ -240,13 +245,14 @@ extern "C"
     }
     if (jobThread == _jobThread.get())
     {
-      _jobThread = nullptr;
+      JobThread::destroy(std::move(_jobThread));
     }
     else
     {
       auto it = _jobThreads.find(jobThread);
       if (it != _jobThreads.end())
       {
+        JobThread::destroy(std::move(it->second));
         _jobThreads.erase(it);
       }
     }

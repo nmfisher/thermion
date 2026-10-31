@@ -129,8 +129,13 @@ file(GLOB SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/transform_pipeline/*.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/resources/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/ThermionWebApi.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/WebJobThread.cpp"
    # "${CMAKE_CURRENT_SOURCE_DIR}/../src/rendering/EmscriptenTest.cpp"
   )
+
+# The Dart native build hook compiles NativeJobThread from native/src.
+# Web supplies its own implementation, outside that source tree.
+list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../src/rendering/NativeJobThread.cpp")
 
 if(DEFINED EXTERNAL_PROJECTS)
 

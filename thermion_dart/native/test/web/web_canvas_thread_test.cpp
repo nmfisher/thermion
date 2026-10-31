@@ -4,6 +4,7 @@
 #include <filament/Texture.h>
 #include <cstdio>
 #include <cstdlib>
+#include <thread>
 
 namespace thermion {
 void AnimationManager::update(uint64_t) {}
@@ -34,8 +35,9 @@ int main() {
     {
         // There is no DOM/canvas in Node. This also proves that construction
         // neither transfers a canvas nor starts Thermion's render pthread.
-        thermion::JobThread thread("#canvas-that-does-not-exist");
-        check(!thread.creationFailed(), "main-thread construction succeeds without a DOM");
+        auto owner = thermion::JobThread::create("#canvas-that-does-not-exist");
+        check(owner != nullptr, "main-thread construction succeeds without a DOM");
+        auto& thread = *owner;
         check(thermion::JobThread::mLiveWorkerCount.load() == 0, "no render worker starts");
         thread.setRenderManager(&manager);
         const auto caller = std::this_thread::get_id();
@@ -62,6 +64,8 @@ int main() {
             texture->setImage(*engine, 0, std::move(descriptor));
         });
         check(released == 1, "dispatch drains the real upload without drawing or a later rAF");
+        thermion::JobThread::destroy(std::move(owner));
+        check(!owner, "destruction consumes ownership");
     }
     check(thermion::JobThread::mLiveWorkerCount.load() == 0, "teardown has no render pthread to join");
     engine->destroy(texture);
