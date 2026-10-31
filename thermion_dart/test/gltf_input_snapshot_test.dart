@@ -39,11 +39,19 @@ void main() {
         ),
       );
       reset();
-      ffi.JobThread_addTask(wait);
+      ffi.JobThread_addTask(app.jobThreadHandle, wait);
       late Future<Pointer<TFilamentAsset>> pending;
       try {
         pending = withPointerCallback<TFilamentAsset>((cb) {
-          GltfAssetLoader_loadJobThread(app.engine, app.gltfAssetLoader, bytes.address, bytes.length, 1, cb);
+          GltfAssetLoader_loadJobThread(
+            app.jobThreadHandle,
+            app.engine,
+            app.gltfAssetLoader,
+            bytes.address,
+            bytes.length,
+            1,
+            cb,
+          );
         });
         bytes.fillRange(0, bytes.length, 0xa5);
       } finally {
@@ -54,16 +62,21 @@ void main() {
       expect(FilamentAsset_getEntityCount(asset), 1);
       // Resource loading initializes Filament's animator before SceneAsset wraps it.
       final resourceLoader = await withPointerCallback<TGltfResourceLoader>(
-        (cb) => GltfResourceLoader_createJobThread(app.engine, cb),
+        (cb) => GltfResourceLoader_createJobThread(app.jobThreadHandle, app.engine, cb),
       );
       expect(
-        await withBoolCallback((cb) => GltfResourceLoader_loadResourcesJobThread(resourceLoader, asset, cb)),
+        await withBoolCallback(
+          (cb) => GltfResourceLoader_loadResourcesJobThread(app.jobThreadHandle, resourceLoader, asset, cb),
+        ),
         isTrue,
       );
-      await withVoidCallback((id, cb) => GltfResourceLoader_destroyJobThread(app.engine, resourceLoader, id, cb));
+      await withVoidCallback(
+        (id, cb) => GltfResourceLoader_destroyJobThread(app.jobThreadHandle, app.engine, resourceLoader, id, cb),
+      );
       // A SceneAsset owns and destroys the underlying Filament asset.
       final sceneAsset = await withPointerCallback<TSceneAsset>((cb) {
         SceneAsset_createFromFilamentAssetJobThread(
+          app.jobThreadHandle,
           app.engine,
           app.gltfAssetLoader,
           app.nameComponentManager,
@@ -73,7 +86,7 @@ void main() {
         );
       });
       await withVoidCallback(
-        (id, cb) => SceneAsset_destroyJobThread(sceneAsset, id, cb),
+        (id, cb) => SceneAsset_destroyJobThread(app.jobThreadHandle, sceneAsset, id, cb),
       ).timeout(const Duration(seconds: 5));
     });
   }, skip: fixturePath == null ? 'Set THERMION_UPLOAD_LIFETIME_FIXTURE to the native fixture library' : false);

@@ -45,14 +45,26 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
   @override
   Future createComponent(ThermionEntity entity) async {
     await withVoidCallback(
-      (requestId, cb) => bindings.TransformManager_createComponentJobThread(transformManager, entity, requestId, cb),
+      (requestId, cb) => bindings.TransformManager_createComponentJobThread(
+        app.jobThreadHandle,
+        transformManager,
+        entity,
+        requestId,
+        cb,
+      ),
     );
   }
 
   @override
   Future removeComponent(ThermionEntity entity) async {
     await withVoidCallback(
-      (requestId, cb) => bindings.TransformManager_removeComponentJobThread(transformManager, entity, requestId, cb),
+      (requestId, cb) => bindings.TransformManager_removeComponentJobThread(
+        app.jobThreadHandle,
+        transformManager,
+        entity,
+        requestId,
+        cb,
+      ),
     );
   }
 
@@ -91,6 +103,7 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
   Future setTransformAsync(ThermionEntity entity, Matrix4 transform) async {
     await withVoidCallback((requestId, cb) {
       matrixBuffers.TransformManager_setTransformFromBufferJobThreadTypedData(
+        app.jobThreadHandle,
         transformManager,
         entity,
         transform.storage,
@@ -108,7 +121,14 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
   Future<void> setTransformNativeAsync(ThermionEntity entity, NativeMatrix4 transform) {
     return transform.withQueuedUse(
       (handle) => withVoidCallback((id, cb) {
-        bindings.TransformManager_setTransformNativeJobThread(transformManager, entity, handle, id, cb);
+        bindings.TransformManager_setTransformNativeJobThread(
+          app.jobThreadHandle,
+          transformManager,
+          entity,
+          handle,
+          id,
+          cb,
+        );
       }),
     );
   }
@@ -141,6 +161,7 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
     final parentId = parent ?? 0; // 0 = null parent in Filament
     await withVoidCallback(
       (requestId, cb) => bindings.TransformManager_setParentJobThread(
+        app.jobThreadHandle,
         transformManager,
         child,
         parentId,

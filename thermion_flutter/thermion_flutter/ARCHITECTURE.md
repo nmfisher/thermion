@@ -20,6 +20,13 @@ On Android, we create multiple `SurfaceTexture` (each having their own ANativeWi
 
 Filament requires certain tasks to be performed on the same thread that created an `Engine`. Since Dart/Flutter applications cannot (currently) pin isolates to threads, we need to create our own thread and task queue (see `JobThread.hpp`). On the Dart side, we never call Filament methods directly, we always call the binding method to enqueue the task on the render thread (see `ThermionDartJobThreadApi.cpp`).
 
+`FFIFilamentApp` stores its job-thread handle. Every queued C API takes that
+handle as its first argument and submits directly to it. FFI wrappers retain
+the app or its handle, including resources such as images and samplers that
+have no engine pointer. There is no resource-to-thread registry or active-thread
+fallback. An app destroys its resources and awaits their jobs before destroying
+its job thread. Creating another thread leaves existing threads alive.
+
 Tasks drain FIFO, one per `iter()`, so there is no preemption: a slow FFI call queued just before a render will delay that render until it finishes.
 The deque is lock-protected (`_taskMutex`); `iter()` holds the lock only long enough to pop, releases it to run the task, then re-acquires. This means Dart can enqueue new work while a render is in flight — it just won't run until the current task yields.
 

@@ -18,6 +18,9 @@ import 'package:thermion_dart/src/filament/src/interface/surface_orientation.dar
 
 class _App implements FFIFilamentApp {
   @override
+  Pointer<TJobThread> get jobThreadHandle => Pointer<TJobThread>.fromAddress(3);
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
@@ -100,13 +103,26 @@ void main() {
 
     export(
       '_VertexBuffer_setBufferAtJobThread',
-      ((int engine, int buffer, int index, int address, int size, int offset, int request, int callback) {
-        upload(address, size, offset, request, callback);
-      }).toJS,
+      ((
+            int jobThread,
+            int engine,
+            int buffer,
+            int index,
+            int address,
+            int size,
+            int offset,
+            int request,
+            int callback,
+          ) {
+            expect(jobThread, 3);
+            upload(address, size, offset, request, callback);
+          })
+          .toJS,
     );
     export(
       '_IndexBuffer_setBufferJobThread',
-      ((int engine, int buffer, int address, int size, int offset, int request, int callback) {
+      ((int jobThread, int engine, int buffer, int address, int size, int offset, int request, int callback) {
+        expect(jobThread, 3);
         upload(address, size, offset, request, callback);
       }).toJS,
     );
@@ -161,7 +177,8 @@ void main() {
     export('_SceneAsset_getEntity', ((int asset) => 1).toJS);
     export(
       '_SceneAsset_createInstanceJobThread',
-      ((int asset, int materials, int count, int callback) {
+      ((int jobThread, int asset, int materials, int count, int callback) {
+        expect(jobThread, 3);
         expect(heap.buffer.asInt32List(materials, count), [12, 34]);
         callbacks[callback]!.callAsFunction(null, 99.toJS);
       }).toJS,
@@ -201,11 +218,13 @@ void main() {
           ? FFIVertexBuffer.callerOwned(
               Pointer<TVertexBuffer>.fromAddress(1),
               Pointer<TEngine>.fromAddress(2),
+              Pointer<TJobThread>.fromAddress(3),
               storageMode: VertexBufferStorageMode.direct,
             ).setBufferAt(0, data, byteOffset: 8)
           : FFIIndexBuffer(
               Pointer<TIndexBuffer>.fromAddress(1),
               Pointer<TEngine>.fromAddress(2),
+              Pointer<TJobThread>.fromAddress(3),
             ).setBuffer(data, byteOffset: 8);
       expect(uploadLength, data.lengthInBytes);
       expect(uploadOffset, 8);
@@ -224,7 +243,11 @@ void main() {
   test('failed upload dispatch releases its scoped allocation', () async {
     failDispatch = true;
     await expectLater(
-      FFIIndexBuffer(Pointer<TIndexBuffer>.fromAddress(1), Pointer<TEngine>.fromAddress(2)).setBuffer(Uint16List(3)),
+      FFIIndexBuffer(
+        Pointer<TIndexBuffer>.fromAddress(1),
+        Pointer<TEngine>.fromAddress(2),
+        Pointer<TJobThread>.fromAddress(3),
+      ).setBuffer(Uint16List(3)),
       throwsStateError,
     );
   });

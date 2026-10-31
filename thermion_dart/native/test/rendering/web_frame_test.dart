@@ -3,13 +3,17 @@ import 'dart:async';
 import 'package:thermion_dart/src/bindings/src/js_interop.dart';
 
 @JS('thermion_dart._WebTest_attachScene')
-external void _attachScene(int engine, int manager, int slot, int id, int callback);
+external void _attachScene(int worker, int engine, int manager, int slot, int id, int callback);
 @JS('thermion_dart._WebTest_frameId')
-external void _frameId(int engine, int renderer, int callback);
+external void _frameId(int worker, int engine, int renderer, int callback);
 @JS('thermion_dart._WebTest_destroyScene')
-external void _destroyScene(int engine, int slot, int id, int callback);
+external void _destroyScene(int worker, int engine, int slot, int id, int callback);
 @JS('thermion_dart._WebTest_liveWorkers')
 external int _liveWorkers();
+@JS('thermion_dart._WebTest_holdCurrentWorker')
+external void _holdCurrentWorker(int worker);
+@JS('thermion_dart._WebTest_releaseHeldWorker')
+external void _releaseHeldWorker();
 
 void check(bool condition, String message) {
   if (!condition) throw StateError(message);
@@ -18,7 +22,7 @@ void check(bool condition, String message) {
 class _Engine {
   _Engine(this.slot, this.worker, this.engine, this.renderer, this.manager);
   final int slot;
-  final Pointer<Void> worker;
+  final Pointer<TJobThread> worker;
   final Pointer<TEngine> engine;
   final Pointer<TRenderer> renderer;
   final Pointer<TRenderManager> manager;
@@ -29,26 +33,28 @@ class _Engine {
     free(selector);
     check(worker != nullptr, 'Worker creation failed');
     final engine = await withPointerCallback<TEngine>(
-      (cb) => Engine_createJobThread(1, nullptr, nullptr, 1, false, cb),
+      (cb) => Engine_createJobThread(worker, 1, nullptr, nullptr, 1, false, cb),
     );
-    final renderer = await withPointerCallback<TRenderer>((cb) => Engine_createRendererJobThread(engine, cb));
+    final renderer = await withPointerCallback<TRenderer>((cb) => Engine_createRendererJobThread(worker, engine, cb));
     final manager = RenderManager_create(engine, renderer);
-    RenderManager_attachToJobThread(manager);
-    await withVoidCallback((id, cb) => _attachScene(engine.address, manager.address, slot, id, cb.address));
+    RenderManager_attachToJobThread(worker, manager);
+    await withVoidCallback(
+      (id, cb) => _attachScene(worker.address, engine.address, manager.address, slot, id, cb.address),
+    );
     return _Engine(slot, worker, engine, renderer, manager);
   }
 
-  Future<int> frameId() => withUInt32Callback((cb) => _frameId(engine.address, renderer.address, cb.address));
+  Future<int> frameId() =>
+      withUInt32Callback((cb) => _frameId(worker.address, engine.address, renderer.address, cb.address));
 
   Future<void> destroy() async {
     // Intentionally destroy while rAF is active: queued detachment must finish
     // before freeing the view/swapchain/renderer that tick() used to access.
-    // The separate detach call must retain ownership for queued destruction.
-    RenderManager_detachFromJobThread(manager);
-    await withVoidCallback((id, cb) => RenderManager_destroyJobThread(manager, id, cb));
-    await withVoidCallback((id, cb) => _destroyScene(engine.address, slot, id, cb.address));
-    await withVoidCallback((id, cb) => Engine_destroyRendererJobThread(engine, renderer, id, cb));
-    await withVoidCallback((id, cb) => Engine_destroyJobThread(engine, id, cb));
+    RenderManager_detachFromJobThread(worker, manager);
+    await withVoidCallback((id, cb) => RenderManager_destroyJobThread(worker, manager, id, cb));
+    await withVoidCallback((id, cb) => _destroyScene(worker.address, engine.address, slot, id, cb.address));
+    await withVoidCallback((id, cb) => Engine_destroyRendererJobThread(worker, engine, renderer, id, cb));
+    await withVoidCallback((id, cb) => Engine_destroyJobThread(worker, engine, id, cb));
     JobThread_destroy(worker);
   }
 }
@@ -60,12 +66,36 @@ Future<List<int>> sample(_Engine first, _Engine second) async {
   return [after[0] - before[0], after[1] - before[1]];
 }
 
+Future<void> verifyThreadRouting(_Engine first, _Engine second) async {
+  // Images have no engine handle. They must also use the supplied thread.
+  _holdCurrentWorker(first.worker.address);
+  var firstFinished = false;
+  final firstImage = withPointerCallback<TLinearImage>((cb) => Image_createEmptyJobThread(first.worker, 1, 1, 3, cb))
+      .then((image) {
+        firstFinished = true;
+        return image;
+      });
+  late final Pointer<TLinearImage> secondImage;
+  try {
+    secondImage = await withPointerCallback<TLinearImage>(
+      (cb) => Image_createEmptyJobThread(second.worker, 1, 1, 3, cb),
+    );
+    check(!firstFinished, 'An image job ran on B instead of waiting on A');
+  } finally {
+    _releaseHeldWorker();
+  }
+  final imageOnFirst = await firstImage;
+  await withVoidCallback((id, cb) => Image_destroyJobThread(first.worker, imageOnFirst, id, cb));
+  await withVoidCallback((id, cb) => Image_destroyJobThread(second.worker, secondImage, id, cb));
+}
+
 Future<void> main() async {
   try {
     await (globalContext['__thermionReady'] as JSPromise).toDart;
     NativeLibrary.initBindings('thermion_dart');
     final first = await _Engine.create(0);
     final second = await _Engine.create(1);
+    await verifyThreadRouting(first, second);
     await Future<void>.delayed(const Duration(milliseconds: 300));
     final initial = await sample(first, second);
     check(initial[0] > 0 && initial[1] > 0, 'Both engines must draw: $initial');

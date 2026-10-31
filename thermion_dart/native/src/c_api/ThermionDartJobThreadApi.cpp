@@ -5,7 +5,8 @@
 #include <math/mat4.h>
 #include <functional>
 #include <mutex>
-#include <shared_mutex>
+#include <memory>
+#include <unordered_map>
 #include <thread>
 #include <stdlib.h>
 #include <vector>
@@ -62,207 +63,60 @@ using namespace std::chrono_literals;
 extern "C"
 {
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Owner-keyed thread registry.
-  //
-  // Multi-engine web (one engine per viewer) runs each engine on its own
-  // JobThread / pthread / canvas. Every `*JobThread` function below
-  // dispatches to the thread that owns the object it operates on, resolved
-  // from g_threadByOwner. Entries are recorded at object-creation tasks
-  // (creation runs on the owning thread) and at the direct-API getters via
-  // JobThread_registerOwnerFromOwner.
-  //
-  // Single-engine apps — and every native build — fall through to
-  // `_jobThread` (or the most recently created thread), preserving the
-  // historical singleton behavior exactly.
-  // ─────────────────────────────────────────────────────────────────────────
-  std::unique_ptr<JobThread> _jobThread;
-  std::unordered_map<void *, JobThread *> g_threadByOwner;
-  std::unordered_map<void *, std::unique_ptr<JobThread>> _jobThreads;
-  JobThread *g_activeThread = nullptr;
+  // The app keeps this handle alive until its resources and queued jobs finish.
+  // This map owns the threads. Resource handles are never used to choose a thread.
+  std::unordered_map<TJobThread*, std::unique_ptr<JobThread>> _jobThreads;
 
-  // g_threadByOwner is written from JobThread worker tasks (object
-  // creation registers the new handle on the thread that produced it — see
-  // the ~60 `setOwner(...)` sites below) and read from the Dart thread on
-  // every dispatch via RT(). std::unordered_map is not concurrency-safe: an
-  // unsynchronized find() racing an insert that triggers a rehash on the
-  // worker returns garbage, which surfaced as intermittent SEGVs inside
-  // addTask() (the dispatch dereferenced a wild pointer). Every access goes
-  // through g_ownerMutex.
-  std::shared_mutex g_ownerMutex;
+  // Canvas selection still uses the most recently created thread.
+  // Queued commands use their explicit handle.
+  JobThread* g_canvasThread = nullptr;
 
-  // Resolve the thread for a dispatch. `owner` is the engine/manager/view/
-  // ... handle the operation targets; nullptr means "creation-time task" —
-  // the most recently created thread, which is the one the Dart side just
-  // built for this engine (Dart serialises engine creation).
-  JobThread *RT(void *owner)
+  EMSCRIPTEN_KEEPALIVE const char* JobThread_getActiveCanvasSelector()
   {
-    if (owner != nullptr)
-    {
-      std::shared_lock<std::shared_mutex> lock(g_ownerMutex);
-      auto it = g_threadByOwner.find(owner);
-      if (it != g_threadByOwner.end())
-      {
-        return it->second;
-      }
-    }
-    if (g_activeThread != nullptr)
-    {
-      return g_activeThread;
-    }
-    return _jobThread.get();
+    return g_canvasThread ? g_canvasThread->canvasSelector() : "#thermion_canvas";
   }
 
-  // Record that `owner` belongs to `rt`. Called from worker-thread creation
-  // tasks and from the Dart thread; always under the exclusive lock.
-  static void setOwner(void *owner, JobThread *rt)
-  {
-    if (owner == nullptr || rt == nullptr)
-    {
-      return;
-    }
-    std::lock_guard<std::shared_mutex> lock(g_ownerMutex);
-    g_threadByOwner[owner] = rt;
-  }
 
-  // Remove every owner registration that maps to `rt`. Call AFTER the thread's
-  // worker has been joined (otherwise an in-flight creation task on that worker
-  // could re-add an entry pointing at the about-to-be-freed JobThread, and a
-  // recycled handle address would later resolve to freed memory via RT()).
-  static void unregisterOwnersOf(void *rt)
+  EMSCRIPTEN_KEEPALIVE TJobThread* JobThread_create()
   {
-    if (rt == nullptr)
-    {
-      return;
-    }
-    std::lock_guard<std::shared_mutex> lock(g_ownerMutex);
-    for (auto it = g_threadByOwner.begin(); it != g_threadByOwner.end();)
-    {
-      if (it->second == rt)
-      {
-        it = g_threadByOwner.erase(it);
-      }
-      else
-      {
-        ++it;
-      }
-    }
-  }
-
-  // Record that `owner` (created on the main thread via a direct-API getter,
-  // e.g. Engine_getTransformManager) belongs to the thread of `knownOwner`
-  // (an engine-scoped handle already in the registry).
-  EMSCRIPTEN_KEEPALIVE void JobThread_registerOwnerFromOwner(void *owner, void *knownOwner)
-  {
-    if (owner == nullptr || knownOwner == nullptr)
-    {
-      return;
-    }
-    JobThread *rt;
-    {
-      std::shared_lock<std::shared_mutex> lock(g_ownerMutex);
-      auto it = g_threadByOwner.find(knownOwner);
-      rt = (it != g_threadByOwner.end()) ? it->second : nullptr;
-    }
-    // Preserve RT()'s fallback semantics for an unregistered knownOwner.
-    if (rt == nullptr)
-    {
-      rt = g_activeThread != nullptr ? g_activeThread : _jobThread.get();
-    }
-    if (rt == nullptr)
-    {
-      return;
-    }
-    setOwner(owner, rt);
-  }
-
-  // Web-only: the CSS selector of the canvas owned by the most recently
-  // created JobThread, used by Engine_create to create the WebGL context
-  // on the right canvas.
-  EMSCRIPTEN_KEEPALIVE const char *JobThread_getActiveCanvasSelector()
-  {
-    JobThread *rt = g_activeThread != nullptr ? g_activeThread : _jobThread.get();
-    return rt != nullptr ? rt->canvasSelector() : "#thermion_canvas";
-  }
-
-  EMSCRIPTEN_KEEPALIVE void* JobThread_create()
-  {
-    TRACE("JobThread_create");
-    JobThread *stale = _jobThread ? _jobThread.get() : nullptr;
-    if (stale != nullptr)
-    {
-      Log("WARNING - you are attempting to create a JobThread when the previous one has not been disposed.");
-    }
     auto thread = std::make_unique<JobThread>();
-    if (thread->creationFailed())
-    {
-      // pthread_create failed on web (e.g. worker pool exhausted); a null
-      // handle lets Dart fail loudly instead of hanging on never-run tasks.
+    if (thread->creationFailed()) {
       Log("JobThread worker failed to start; returning null handle");
       return nullptr;
     }
-    _jobThread = std::move(thread);
-    // The move-assignment above destroyed the previous JobThread (and joined
-    // its worker). Sweep stale owner registrations AFTER the join — the dying
-    // worker's last creation task can't then re-add an entry pointing at freed
-    // memory, and a recycled handle address can't resolve to it via RT().
-    if (stale != nullptr)
-    {
-      unregisterOwnersOf(stale);
-    }
-    g_activeThread = _jobThread.get();
-    TRACE("JobThread created");
-    return _jobThread.get();
+    auto* handle = reinterpret_cast<TJobThread*>(thread.get());
+    _jobThreads[handle] = std::move(thread);
+    g_canvasThread = reinterpret_cast<JobThread*>(handle);
+    return handle;
   }
 
-  EMSCRIPTEN_KEEPALIVE void* JobThread_createForCanvas(const char *canvasSelector)
+  EMSCRIPTEN_KEEPALIVE TJobThread* JobThread_createForCanvas(const char *canvasSelector)
   {
-    TRACE("JobThread_createForCanvas %s", canvasSelector);
     auto thread = std::make_unique<JobThread>(canvasSelector);
-    if (thread->creationFailed())
-    {
+    if (thread->creationFailed()) {
       Log("JobThread worker failed to start for canvas %s; returning null handle", canvasSelector);
       return nullptr;
     }
-    auto *raw = thread.get();
-    g_activeThread = raw;
-    _jobThreads[raw] = std::move(thread);
-    TRACE("JobThread created for canvas %s", canvasSelector);
-    return raw;
+    auto* handle = reinterpret_cast<TJobThread*>(thread.get());
+    _jobThreads[handle] = std::move(thread);
+    g_canvasThread = reinterpret_cast<JobThread*>(handle);
+    return handle;
   }
 
-  EMSCRIPTEN_KEEPALIVE void JobThread_destroy(void *jobThread)
+  EMSCRIPTEN_KEEPALIVE void JobThread_destroy(TJobThread *jobThread)
   {
-    TRACE("JobThread_destroy");
-    if (jobThread == nullptr)
-    {
-      return;
+    auto it = _jobThreads.find(jobThread);
+    if (it != _jobThreads.end()) {
+      auto thread = std::move(it->second);
+      _jobThreads.erase(it);
+      thread.reset();
+      if (g_canvasThread == reinterpret_cast<JobThread*>(jobThread)) g_canvasThread = nullptr;
     }
-    if (jobThread == _jobThread.get())
-    {
-      _jobThread = nullptr;
-    }
-    else
-    {
-      auto it = _jobThreads.find(jobThread);
-      if (it != _jobThreads.end())
-      {
-        _jobThreads.erase(it);
-      }
-    }
-    if (g_activeThread == jobThread)
-    {
-      g_activeThread = nullptr;
-    }
-    // _jobThread = nullptr / _jobThreads.erase above already destroyed
-    // the JobThread (and joined its worker), so it's safe to drop any owner
-    // registrations that still point at it.
-    unregisterOwnersOf(jobThread);
   }
 
-  EMSCRIPTEN_KEEPALIVE void JobThread_addTask(void (*task)())
+  EMSCRIPTEN_KEEPALIVE void JobThread_addTask(TJobThread *jobThread, void (*task)())
   {
-    auto *rt = RT(nullptr);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -271,21 +125,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderManager_attachToJobThread(TRenderManager *tRenderManager)
+  EMSCRIPTEN_KEEPALIVE void RenderManager_attachToJobThread(TJobThread *jobThread, TRenderManager *tRenderManager)
   {
-#ifdef __EMSCRIPTEN__
-    bool ownersEmpty;
-    {
-      std::shared_lock<std::shared_mutex> lock(g_ownerMutex);
-      ownersEmpty = g_threadByOwner.empty();
-    }
-    if (!_jobThread && ownersEmpty) {
-      Log("WARNING - RenderManager_attachToJobThread called with no JobThread active.");
-      return;
-    }
-#endif
-    auto *rt = RT(tRenderManager);
-    setOwner(tRenderManager, rt);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
 #ifdef __EMSCRIPTEN__
     auto *rm = reinterpret_cast<RenderManager *>(tRenderManager);
     rt->addDetachedTask([rt, rm] { rt->setRenderManager(rm); });
@@ -294,44 +136,39 @@ extern "C"
 
   // Queue detachment without deleting the manager. Await queued destruction
   // before freeing engine resources used by the manager.
-  EMSCRIPTEN_KEEPALIVE void RenderManager_detachFromJobThread(TRenderManager *tRenderManager)
+  EMSCRIPTEN_KEEPALIVE void RenderManager_detachFromJobThread(TJobThread *jobThread, TRenderManager *tRenderManager)
   {
 #ifdef __EMSCRIPTEN__
-    auto *rt = RT(tRenderManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     if (rt) {
       rt->addDetachedTask([rt] { rt->setRenderManager(nullptr); });
     }
-    // Keep the owner mapping until deletion. Queued destruction must still
-    // reach this manager's worker when another engine is active.
 #else
+    (void)jobThread;
     (void)tRenderManager; // no-op on native
 #endif
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderManager_destroyJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderManager_destroyJobThread(TJobThread *jobThread,
       TRenderManager* manager, uint32_t requestId, VoidCallback onComplete)
   {
-    auto* rt = RT(manager);
+    auto* rt = reinterpret_cast<JobThread*>(jobThread);
     rt->addDetachedTask([=] {
 #ifdef __EMSCRIPTEN__
       rt->setRenderManager(nullptr);
 #endif
       RenderManager_destroy(manager);
-      {
-        std::lock_guard<std::shared_mutex> lock(g_ownerMutex);
-        g_threadByOwner.erase(manager);
-      }
       PROXY(onComplete(requestId));
     });
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderableJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderableJobThread(TJobThread *jobThread,
     TRenderManager *tRenderer,
     TSwapChain *tSwapChain,
     TView **tViews,
     uint8_t numViews,
     uint32_t requestId, VoidCallback onComplete) {
-    auto *rt = RT(tRenderer);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
 
       std::packaged_task<void()> lambda(
         [=]() mutable
@@ -343,7 +180,7 @@ extern "C"
 
     }
 
-  EMSCRIPTEN_KEEPALIVE void RenderManager_renderJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderManager_renderJobThread(TJobThread *jobThread,
     TRenderManager *tRenderManager,
     uint64_t frameTimeInNanos,
     uint32_t requestId,
@@ -354,7 +191,7 @@ extern "C"
     // no-op without putting another frame or callback on its task queue.
     onComplete(requestId);
 #else
-    auto *rt = RT(tRenderManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     auto queuedAt = std::chrono::steady_clock::now();
     rt->addDetachedTask([=]() mutable {
       auto startedAt = std::chrono::steady_clock::now();
@@ -377,13 +214,13 @@ extern "C"
 #endif
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderManager_addAnimationManagerJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderManager_addAnimationManagerJobThread(TJobThread *jobThread,
     TRenderManager *tRenderManager,
     TAnimationManager *tAnimationManager,
     uint32_t requestId,
     VoidCallback onComplete)
   {
-    auto *rt = RT(tRenderManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -393,13 +230,13 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderManager_removeAnimationManagerJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderManager_removeAnimationManagerJobThread(TJobThread *jobThread,
     TRenderManager *tRenderManager,
     TAnimationManager *tAnimationManager,
     uint32_t requestId,
     VoidCallback onComplete)
   {
-    auto *rt = RT(tRenderManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -409,13 +246,13 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderManager_removeSwapChainJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderManager_removeSwapChainJobThread(TJobThread *jobThread,
     TRenderManager *tRenderManager,
     TSwapChain *tSwapChain,
     uint32_t requestId,
     VoidCallback onComplete)
   {
-    auto *rt = RT(tRenderManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -425,7 +262,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createJobThread(
+  EMSCRIPTEN_KEEPALIVE void Engine_createJobThread(TJobThread *jobThread,
       TBackend backend,
       void *platform,
       void *sharedContext,
@@ -433,35 +270,35 @@ extern "C"
       bool disableHandleUseAfterFreeCheck,
       void (*onComplete)(TEngine *))
   {
-    auto *rt = RT(nullptr);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
 
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *engine = Engine_create(backend, platform, sharedContext, stereoscopicEyeCount, disableHandleUseAfterFreeCheck);
 
-          setOwner(engine, rt);          PROXY(onComplete(engine));
+          PROXY(onComplete(engine));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createRendererJobThread(TEngine *tEngine, void (*onComplete)(TRenderer *))
+  EMSCRIPTEN_KEEPALIVE void Engine_createRendererJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TRenderer *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
 
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *renderer = Engine_createRenderer(tEngine);
 
-          setOwner(renderer, rt);          PROXY(onComplete(renderer));
+          PROXY(onComplete(renderer));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createSwapChainJobThread(TEngine *tEngine, void *window, uint64_t flags, void (*onComplete)(TSwapChain *))
+  EMSCRIPTEN_KEEPALIVE void Engine_createSwapChainJobThread(TJobThread *jobThread, TEngine *tEngine, void *window, uint64_t flags, void (*onComplete)(TSwapChain *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -471,9 +308,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createHeadlessSwapChainJobThread(TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags, void (*onComplete)(TSwapChain *))
+  EMSCRIPTEN_KEEPALIVE void Engine_createHeadlessSwapChainJobThread(TJobThread *jobThread, TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags, void (*onComplete)(TSwapChain *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -483,9 +320,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroySwapChainJobThread(TEngine *tEngine, TSwapChain *tSwapChain, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroySwapChainJobThread(TJobThread *jobThread, TEngine *tEngine, TSwapChain *tSwapChain, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -495,9 +332,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyRendererJobThread(TEngine *tEngine, TRenderer *tRenderer, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyRendererJobThread(TJobThread *jobThread, TEngine *tEngine, TRenderer *tRenderer, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -507,9 +344,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyViewJobThread(TEngine *tEngine, TView *tView, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyViewJobThread(TJobThread *jobThread, TEngine *tEngine, TView *tView, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -519,9 +356,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroySceneJobThread(TEngine *tEngine, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroySceneJobThread(TJobThread *jobThread, TEngine *tEngine, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -531,22 +368,22 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createCameraJobThread(TEngine *tEngine, EntityId entityId, void (*onComplete)(TCamera *))
+  EMSCRIPTEN_KEEPALIVE void Engine_createCameraJobThread(TJobThread *jobThread, TEngine *tEngine, EntityId entityId, void (*onComplete)(TCamera *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto camera = Engine_createCamera(tEngine, entityId);
 
-          setOwner(camera, rt);          PROXY(onComplete(camera));
+          PROXY(onComplete(camera));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyCameraJobThread(TEngine *tEngine, TCamera *tCamera, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyCameraJobThread(TJobThread *jobThread, TEngine *tEngine, TCamera *tCamera, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -556,22 +393,22 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createViewJobThread(TEngine *tEngine, void (*onComplete)(TView *))
+  EMSCRIPTEN_KEEPALIVE void Engine_createViewJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TView *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *view = Engine_createView(tEngine);
 
-          setOwner(view, rt);          PROXY(onComplete(view));
+          PROXY(onComplete(view));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyJobThread(TEngine *tEngine, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyJobThread(TJobThread *jobThread, TEngine *tEngine, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -581,9 +418,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureJobThread(TEngine *engine, TTexture *tTexture, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureJobThread(TJobThread *jobThread, TEngine *engine, TTexture *tTexture, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(engine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -593,9 +430,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroySkyboxJobThread(TEngine *tEngine, TSkybox *tSkybox, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroySkyboxJobThread(TJobThread *jobThread, TEngine *tEngine, TSkybox *tSkybox, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -605,9 +442,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyIndirectLightJobThread(TEngine *tEngine, TIndirectLight *tIndirectLight, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyIndirectLightJobThread(TJobThread *jobThread, TEngine *tEngine, TIndirectLight *tIndirectLight, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -617,9 +454,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialJobThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     // Snapshot borrowed FFI storage before returning to Dart. The task owns it.
     std::vector<uint8_t> owned;
     if (length != 0) owned.assign(materialData, materialData + length);
@@ -629,16 +466,15 @@ extern "C"
           auto material = Engine_buildMaterial(tEngine, owned.data(), length);
 
           if (material) {
-            setOwner(material, rt);
           }
           PROXY(onComplete(material));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialJobThread(TEngine *tEngine, TMaterial *tMaterial, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, TMaterial *tMaterial, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -648,9 +484,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstanceJobThread(TEngine *tEngine, TMaterialInstance *tMaterialInstance, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstanceJobThread(TJobThread *jobThread, TEngine *tEngine, TMaterialInstance *tMaterialInstance, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -660,22 +496,22 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createFenceJobThread(TEngine *tEngine, void (*onComplete)(TFence *))
+  EMSCRIPTEN_KEEPALIVE void Engine_createFenceJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TFence *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *fence = Engine_createFence(tEngine);
 
-          setOwner(fence, rt);          PROXY(onComplete(fence));
+          PROXY(onComplete(fence));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Fence_waitAndDestroyJobThread(TFence *tFence, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Fence_waitAndDestroyJobThread(TJobThread *jobThread, TFence *tFence, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tFence);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -686,9 +522,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyFenceJobThread(TEngine *tEngine, TFence *tFence, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyFenceJobThread(TJobThread *jobThread, TEngine *tEngine, TFence *tFence, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -698,9 +534,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_flushAndWaitJobThread(TEngine *tEngine, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_flushAndWaitJobThread(TJobThread *jobThread, TEngine *tEngine, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -710,9 +546,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_executeJobThread(TEngine *tEngine, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_executeJobThread(TJobThread *jobThread, TEngine *tEngine, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -734,9 +570,9 @@ extern "C"
 #endif
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildSkyboxJobThread(TEngine *tEngine, TTexture *tTexture, bool showSun, float intensity, uint8_t priority, void (*onComplete)(TSkybox *))
+  EMSCRIPTEN_KEEPALIVE void Engine_buildSkyboxJobThread(TJobThread *jobThread, TEngine *tEngine, TTexture *tTexture, bool showSun, float intensity, uint8_t priority, void (*onComplete)(TSkybox *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -746,9 +582,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildColoredSkyboxJobThread(TEngine *tEngine, float r, float g, float b, float a, bool showSun, float intensity, uint8_t priority, void (*onComplete)(TSkybox *))
+  EMSCRIPTEN_KEEPALIVE void Engine_buildColoredSkyboxJobThread(TJobThread *jobThread, TEngine *tEngine, float r, float g, float b, float a, bool showSun, float intensity, uint8_t priority, void (*onComplete)(TSkybox *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -758,13 +594,13 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightFromIrradianceTextureJobThread(
+  EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightFromIrradianceTextureJobThread(TJobThread *jobThread,
     TEngine *tEngine,
     TTexture *tReflectionsTexture,
     TTexture* tIrradianceTexture,
     float intensity,
     void (*onComplete)(TIndirectLight *)) {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
       std::packaged_task<void()> lambda(
           [=]() mutable
           {
@@ -774,13 +610,13 @@ extern "C"
       auto fut = rt->addTask(lambda);
   }
   
-  EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightFromIrradianceHarmonicsJobThread(
+  EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightFromIrradianceHarmonicsJobThread(TJobThread *jobThread,
     TEngine *tEngine,
     TTexture *tReflectionsTexture,
     float *harmonics,
     float intensity,
     void (*onComplete)(TIndirectLight *)) {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
       // Nine RGB coefficients fit in the task itself; no heap buffer is needed.
       std::array<float, 27> owned{};
       const bool hasHarmonics = harmonics != nullptr;
@@ -795,9 +631,9 @@ extern "C"
   }
 
 
-  EMSCRIPTEN_KEEPALIVE void Renderer_beginFrameJobThread(TRenderer *tRenderer, TSwapChain *tSwapChain, uint64_t frameTimeInNanos, void (*onComplete)(bool))
+  EMSCRIPTEN_KEEPALIVE void Renderer_beginFrameJobThread(TJobThread *jobThread, TRenderer *tRenderer, TSwapChain *tSwapChain, uint64_t frameTimeInNanos, void (*onComplete)(bool))
   {
-    auto *rt = RT(tRenderer);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -806,9 +642,9 @@ extern "C"
         });
     auto fut = rt->addTask(lambda);
   }
-  EMSCRIPTEN_KEEPALIVE void Renderer_endFrameJobThread(TRenderer *tRenderer, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Renderer_endFrameJobThread(TJobThread *jobThread, TRenderer *tRenderer, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tRenderer);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -818,9 +654,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Renderer_renderJobThread(TRenderer *tRenderer, TView *tView, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Renderer_renderJobThread(TJobThread *jobThread, TRenderer *tRenderer, TView *tView, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tRenderer);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -830,9 +666,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneViewJobThread(TRenderer *tRenderer, TView *tView, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneViewJobThread(TJobThread *jobThread, TRenderer *tRenderer, TView *tView, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tRenderer);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -842,7 +678,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Renderer_setClearOptionsJobThread(
+  EMSCRIPTEN_KEEPALIVE void Renderer_setClearOptionsJobThread(TJobThread *jobThread,
       TRenderer *tRenderer,
       double clearR,
       double clearG,
@@ -852,7 +688,7 @@ extern "C"
       bool clear,
       bool discard, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tRenderer);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -862,7 +698,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Renderer_readPixelsJobThread(
+  EMSCRIPTEN_KEEPALIVE void Renderer_readPixelsJobThread(TJobThread *jobThread,
       TRenderer *tRenderer,
       uint32_t width, uint32_t height, uint32_t xOffset, uint32_t yOffset,
       TRenderTarget *tRenderTarget,
@@ -872,7 +708,7 @@ extern "C"
       size_t outLength,
       uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tRenderer);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -882,111 +718,111 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialJobThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *instance = Material_createImageMaterial(tEngine);
 
-          setOwner(instance, rt);          PROXY(onComplete(instance));
+          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createGizmoMaterialJobThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createGizmoMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *instance = Material_createGizmoMaterial(tEngine);
 
-          setOwner(instance, rt);          PROXY(onComplete(instance));
+          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createSilhouetteMaterialJobThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createSilhouetteMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *instance = Material_createSilhouetteMaterial(tEngine);
 
-          setOwner(instance, rt);          PROXY(onComplete(instance));
+          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createEdgeOutlineMaterialJobThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createEdgeOutlineMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *instance = Material_createEdgeOutlineMaterial(tEngine);
 
-          setOwner(instance, rt);          PROXY(onComplete(instance));
+          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createWireframeMaterialJobThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createWireframeMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *instance = Material_createWireframeMaterial(tEngine);
 
-          setOwner(instance, rt);          PROXY(onComplete(instance));
+          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createTranslationAxisMaterialJobThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createTranslationAxisMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *instance = Material_createTranslationAxisMaterial(tEngine);
 
-          setOwner(instance, rt);          PROXY(onComplete(instance));
+          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createBoneOverlayMaterialJobThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createBoneOverlayMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *instance = Material_createBoneOverlayMaterial(tEngine);
 
-          setOwner(instance, rt);          PROXY(onComplete(instance));
+          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createInstanceJobThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *))
+  EMSCRIPTEN_KEEPALIVE void Material_createInstanceJobThread(TJobThread *jobThread, TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *))
   {
-    auto *rt = RT(tMaterial);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *instance = Material_createInstance(tMaterial);
 
-          setOwner(instance, rt);          PROXY(onComplete(instance));
+          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterTextureJobThread(
+  EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterTextureJobThread(TJobThread *jobThread,
       TMaterialInstance *tMaterialInstance,
       const char *propertyName,
       TTexture* tTexture,
@@ -994,7 +830,7 @@ extern "C"
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tMaterialInstance);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1004,9 +840,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_destroyJobThread(TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_destroyJobThread(TJobThread *jobThread, TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tSceneAsset);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1017,7 +853,7 @@ extern "C"
   }
 
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetJobThread(
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetJobThread(TJobThread *jobThread,
       TEngine *tEngine,
       TGltfAssetLoader *tAssetLoader,
       TNameComponentManager *tNameComponentManager,
@@ -1025,7 +861,7 @@ extern "C"
       uint32_t requiredGeometryCapabilities,
       void (*onComplete)(TSceneAsset *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1033,12 +869,12 @@ extern "C"
               tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset,
               requiredGeometryCapabilities);
 
-          setOwner(sceneAsset, rt);          PROXY(onComplete(sceneAsset));
+          PROXY(onComplete(sceneAsset));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromBuffersJobThread(
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromBuffersJobThread(TJobThread *jobThread,
       TEngine *tEngine,
       TVertexBuffer *tVertexBuffer,
       TIndexBuffer *tIndexBuffer,
@@ -1049,7 +885,7 @@ extern "C"
       Aabb3 boundingBox,
       void (*callback)(TSceneAsset *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     // Copy the handle array; the native objects retain their existing lifetimes.
     std::vector<TMaterialInstance*> owned;
     if (materialInstanceCount > 0) owned.assign(materialInstances, materialInstances + materialInstanceCount);
@@ -1066,17 +902,17 @@ extern "C"
               vertexBufferStorageMode,
               boundingBox);
 
-          setOwner(sceneAsset, rt);          PROXY(callback(sceneAsset));
+          PROXY(callback(sceneAsset));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceJobThread(
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceJobThread(TJobThread *jobThread,
       TSceneAsset *asset, TMaterialInstance **tMaterialInstances,
       int materialInstanceCount,
       void (*callback)(TSceneAsset *))
   {
-    auto *rt = RT(asset);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     // Copy the handle array; the native objects retain their existing lifetimes.
     std::vector<TMaterialInstance*> owned;
     if (materialInstanceCount > 0) owned.assign(tMaterialInstances, tMaterialInstances + materialInstanceCount);
@@ -1085,15 +921,15 @@ extern "C"
         {
           auto instanceAsset = SceneAsset_createInstance(asset, owned.data(), materialInstanceCount);
 
-          setOwner(instanceAsset, rt);          PROXY(callback(instanceAsset));
+          PROXY(callback(instanceAsset));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceDataJobThread(
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceDataJobThread(TJobThread *jobThread,
       TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tSceneAsset);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1103,10 +939,10 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_setFlatShadingJobThread(
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_setFlatShadingJobThread(TJobThread *jobThread,
       TSceneAsset *tSceneAsset, bool flatShading, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tSceneAsset);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1116,7 +952,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void MaterialProvider_createMaterialInstanceJobThread(
+  EMSCRIPTEN_KEEPALIVE void MaterialProvider_createMaterialInstanceJobThread(TJobThread *jobThread,
       TMaterialProvider *tMaterialProvider,
       bool doubleSided,
       bool unlit,
@@ -1158,7 +994,7 @@ extern "C"
       bool hasVolume,
       void (*callback)(TMaterialInstance *))
   {
-    auto *rt = RT(tMaterialProvider);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1207,22 +1043,22 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_createJobThread(void (*onComplete)(TColorGradingBuilder *))
+  EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_createJobThread(TJobThread *jobThread, void (*onComplete)(TColorGradingBuilder *))
   {
-    auto *rt = RT(nullptr);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *builder = ColorGradingBuilder_create();
 
-          setOwner(builder, rt);          PROXY(onComplete(builder));
+          PROXY(onComplete(builder));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_buildJobThread(TColorGradingBuilder *tBuilder, TEngine *tEngine, void (*onComplete)(TColorGrading *))
+  EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_buildJobThread(TJobThread *jobThread, TColorGradingBuilder *tBuilder, TEngine *tEngine, void (*onComplete)(TColorGrading *))
   {
-    auto *rt = RT(tBuilder);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1232,9 +1068,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_destroyJobThread(TColorGradingBuilder *tBuilder, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_destroyJobThread(TJobThread *jobThread, TColorGradingBuilder *tBuilder, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tBuilder);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1244,126 +1080,126 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createLinearJobThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createLinearJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TToneMapper *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *toneMapper = ToneMapper_createLinear(tEngine);
 
-          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
+          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createACESJobThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createACESJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TToneMapper *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *toneMapper = ToneMapper_createACES(tEngine);
 
-          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
+          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createACESLegacyJobThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createACESLegacyJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TToneMapper *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *toneMapper = ToneMapper_createACESLegacy(tEngine);
 
-          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
+          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createFilmicJobThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createFilmicJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TToneMapper *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *toneMapper = ToneMapper_createFilmic(tEngine);
 
-          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
+          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createPBRNeutralJobThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createPBRNeutralJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TToneMapper *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *toneMapper = ToneMapper_createPBRNeutral(tEngine);
 
-          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
+          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createAGXJobThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createAGXJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TToneMapper *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *toneMapper = ToneMapper_createAGX(tEngine);
 
-          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
+          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createAGXWithLookJobThread(TEngine *tEngine, int look, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createAGXWithLookJobThread(TJobThread *jobThread, TEngine *tEngine, int look, void (*onComplete)(TToneMapper *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *toneMapper = ToneMapper_createAGXWithLook(tEngine, look);
 
-          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
+          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createGenericJobThread(TEngine *tEngine, float contrast, float midGrayIn, float midGrayOut, float hdrMax, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createGenericJobThread(TJobThread *jobThread, TEngine *tEngine, float contrast, float midGrayIn, float midGrayOut, float hdrMax, void (*onComplete)(TToneMapper *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *toneMapper = ToneMapper_createGeneric(tEngine, contrast, midGrayIn, midGrayOut, hdrMax);
 
-          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
+          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_createDisplayRangeJobThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createDisplayRangeJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TToneMapper *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *toneMapper = ToneMapper_createDisplayRange(tEngine);
 
-          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
+          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ToneMapper_destroyJobThread(TToneMapper *tToneMapper, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_destroyJobThread(TJobThread *jobThread, TToneMapper *tToneMapper, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tToneMapper);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1373,9 +1209,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyColorGradingJobThread(TEngine *tEngine, TColorGrading *tColorGrading, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyColorGradingJobThread(TJobThread *jobThread, TEngine *tEngine, TColorGrading *tColorGrading, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1385,17 +1221,17 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_pickJobThread(TView *tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback)
+  EMSCRIPTEN_KEEPALIVE void View_pickJobThread(TJobThread *jobThread, TView *tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     auto *view = reinterpret_cast<View *>(tView);
     view->pick(x, y, [=](filament::View::PickingQueryResult const &result)
                { PROXY(callback(requestId, utils::Entity::smuggle(result.renderable), result.depth, result.fragCoords.x, result.fragCoords.y, result.fragCoords.z)); });
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setColorGradingJobThread(TView *tView, TColorGrading *tColorGrading, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setColorGradingJobThread(TJobThread *jobThread, TView *tView, TColorGrading *tColorGrading, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1405,9 +1241,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setBloomJobThread(TView *tView, bool enabled, double strength, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setBloomJobThread(TJobThread *jobThread, TView *tView, bool enabled, double strength, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1417,9 +1253,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setCameraJobThread(TView *tView, TCamera *tCamera, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setCameraJobThread(TJobThread *jobThread, TView *tView, TCamera *tCamera, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1429,9 +1265,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_getNameJobThread(TView *tView, char *buffer, size_t capacity, void (*onComplete)(size_t))
+  EMSCRIPTEN_KEEPALIVE void View_getNameJobThread(TJobThread *jobThread, TView *tView, char *buffer, size_t capacity, void (*onComplete)(size_t))
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1448,9 +1284,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setNameJobThread(TView *tView, const char *name, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setNameJobThread(TJobThread *jobThread, TView *tView, const char *name, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1460,9 +1296,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setViewportJobThread(TView *tView, uint32_t width, uint32_t height, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setViewportJobThread(TJobThread *jobThread, TView *tView, uint32_t width, uint32_t height, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1472,9 +1308,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setRenderTargetJobThread(TView *tView, TRenderTarget *tRenderTarget, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setRenderTargetJobThread(TJobThread *jobThread, TView *tView, TRenderTarget *tRenderTarget, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1484,9 +1320,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setAntiAliasingJobThread(TView *tView, bool msaa, bool fxaa, bool taa, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setAntiAliasingJobThread(TJobThread *jobThread, TView *tView, bool msaa, bool fxaa, bool taa, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1496,9 +1332,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setPostProcessingJobThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setPostProcessingJobThread(TJobThread *jobThread, TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1508,9 +1344,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabledJobThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabledJobThread(TJobThread *jobThread, TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1520,9 +1356,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setStencilBufferEnabledJobThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setStencilBufferEnabledJobThread(TJobThread *jobThread, TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1532,9 +1368,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setDitheringEnabledJobThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setDitheringEnabledJobThread(TJobThread *jobThread, TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1544,9 +1380,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setRenderQualityJobThread(TView *tView, int qualityLevel, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setRenderQualityJobThread(TJobThread *jobThread, TView *tView, int qualityLevel, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1556,9 +1392,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setSceneJobThread(TView *tView, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setSceneJobThread(TJobThread *jobThread, TView *tView, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1568,9 +1404,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setLayerEnabledJobThread(TView *tView, int layer, bool visible, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setLayerEnabledJobThread(TJobThread *jobThread, TView *tView, int layer, bool visible, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1580,9 +1416,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setBlendModeJobThread(TView *tView, int blendMode, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setBlendModeJobThread(TJobThread *jobThread, TView *tView, int blendMode, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1592,9 +1428,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setFogOptionsJobThread(TView *tView, TFogOptions tFogOptions, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setFogOptionsJobThread(TJobThread *jobThread, TView *tView, TFogOptions tFogOptions, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1604,9 +1440,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setAmbientOcclusionOptionsJobThread(TView *tView, TAmbientOcclusionOptions options, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setAmbientOcclusionOptionsJobThread(TJobThread *jobThread, TView *tView, TAmbientOcclusionOptions options, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1616,9 +1452,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setFrontFaceWindingInvertedJobThread(TView *tView, bool inverted, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setFrontFaceWindingInvertedJobThread(TJobThread *jobThread, TView *tView, bool inverted, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1628,9 +1464,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setShadowsEnabledJobThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setShadowsEnabledJobThread(TJobThread *jobThread, TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1640,9 +1476,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setShadowTypeJobThread(TView *tView, int shadowType, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setShadowTypeJobThread(TJobThread *jobThread, TView *tView, int shadowType, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1652,9 +1488,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setSoftShadowOptionsJobThread(TView *tView, TSoftShadowOptions options, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setSoftShadowOptionsJobThread(TJobThread *jobThread, TView *tView, TSoftShadowOptions options, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1664,9 +1500,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setVsmShadowOptionsJobThread(TView *tView, TVsmShadowOptions options, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setVsmShadowOptionsJobThread(TJobThread *jobThread, TView *tView, TVsmShadowOptions options, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1676,9 +1512,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setTransparentPickingEnabledJobThread(TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void View_setTransparentPickingEnabledJobThread(TJobThread *jobThread, TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tView);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -1688,8 +1524,8 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPoseJobThread(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete) {
-    auto *rt = RT(tAnimationManager);
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPoseJobThread(TJobThread *jobThread, TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete) {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1699,22 +1535,22 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void AnimationManager_createJobThread(TEngine *tEngine, void (*onComplete)(TAnimationManager *))
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_createJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TAnimationManager *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *animationManager = AnimationManager_create(tEngine);
 
-          setOwner(animationManager, rt);          PROXY(onComplete(animationManager));
+          PROXY(onComplete(animationManager));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void AnimationManager_destroyJobThread(TAnimationManager *tAnimationManager, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_destroyJobThread(TJobThread *jobThread, TAnimationManager *tAnimationManager, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tAnimationManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1724,8 +1560,8 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void AnimationManager_updateJobThread(TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete) {
-    auto *rt = RT(tAnimationManager);
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_updateJobThread(TJobThread *jobThread, TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete) {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1740,14 +1576,14 @@ extern "C"
   // sibling animation mutator, the plain AnimationManager_setGltfAnimationTime
   // dispatched synchronously on the caller's thread and panicked for morph
   // animations — this wrapper runs it on the render thread like the others.
-  EMSCRIPTEN_KEEPALIVE void AnimationManager_setGltfAnimationTimeJobThread(
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_setGltfAnimationTimeJobThread(TJobThread *jobThread,
       TAnimationManager *tAnimationManager,
       TSceneAsset *tSceneAsset,
       int animationIndex,
       float timeInSeconds,
       uint32_t requestId,
       VoidCallback onComplete) {
-    auto *rt = RT(tAnimationManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1757,12 +1593,12 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesJobThread(
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesJobThread(TJobThread *jobThread,
       TAnimationManager *tAnimationManager,
       TSceneAsset *sceneAsset,
       void (*callback)(bool))
   {
-    auto *rt = RT(tAnimationManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1772,14 +1608,14 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void AnimationManager_setMorphTargetWeightsJobThread(
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_setMorphTargetWeightsJobThread(TJobThread *jobThread,
       TAnimationManager *tAnimationManager,
       EntityId entityId,
       const float *const morphData,
       int numWeights,
       void (*callback)(bool))
   {
-    auto *rt = RT(tAnimationManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     const bool valid = numWeights >= 0 && (numWeights == 0 || morphData != nullptr);
     std::vector<float> weights;
     if (valid && numWeights > 0) {
@@ -1796,35 +1632,35 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_createEmptyJobThread(uint32_t width, uint32_t height, uint32_t channel, void (*onComplete)(TLinearImage *))
+  EMSCRIPTEN_KEEPALIVE void Image_createEmptyJobThread(TJobThread *jobThread, uint32_t width, uint32_t height, uint32_t channel, void (*onComplete)(TLinearImage *))
   {
-    auto *rt = RT(nullptr);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto image = Image_createEmpty(width, height, channel);
 
-          setOwner(image, rt);          PROXY(onComplete(image));
+          PROXY(onComplete(image));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_decodeJobThread(uint8_t *data, size_t length, const char *name, bool alpha, void (*onComplete)(TLinearImage *))
+  EMSCRIPTEN_KEEPALIVE void Image_decodeJobThread(TJobThread *jobThread, uint8_t *data, size_t length, const char *name, bool alpha, void (*onComplete)(TLinearImage *))
   {
-    auto *rt = RT(data);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto image = Image_decode(data, length, name, alpha);
 
-          setOwner(image, rt);          PROXY(onComplete(image));
+          PROXY(onComplete(image));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_getBytesJobThread(TLinearImage *tLinearImage, void (*onComplete)(float *))
+  EMSCRIPTEN_KEEPALIVE void Image_getBytesJobThread(TJobThread *jobThread, TLinearImage *tLinearImage, void (*onComplete)(float *))
   {
-    auto *rt = RT(tLinearImage);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1834,9 +1670,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_destroyJobThread(TLinearImage *tLinearImage, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Image_destroyJobThread(TJobThread *jobThread, TLinearImage *tLinearImage, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tLinearImage);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1846,9 +1682,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_getWidthJobThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
+  EMSCRIPTEN_KEEPALIVE void Image_getWidthJobThread(TJobThread *jobThread, TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
   {
-    auto *rt = RT(tLinearImage);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1858,9 +1694,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_getHeightJobThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
+  EMSCRIPTEN_KEEPALIVE void Image_getHeightJobThread(TJobThread *jobThread, TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
   {
-    auto *rt = RT(tLinearImage);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1870,9 +1706,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_getChannelsJobThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
+  EMSCRIPTEN_KEEPALIVE void Image_getChannelsJobThread(TJobThread *jobThread, TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
   {
-    auto *rt = RT(tLinearImage);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1882,7 +1718,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Texture_buildJobThread(
+  EMSCRIPTEN_KEEPALIVE void Texture_buildJobThread(TJobThread *jobThread,
       TEngine *tEngine,
       uint32_t width,
       uint32_t height,
@@ -1893,19 +1729,19 @@ extern "C"
       TTextureSamplerType sampler,
       TTextureFormat format, void (*onComplete)(TTexture *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *texture = Texture_build(tEngine, width, height, depth, levels, tUsage, import, sampler, format);
 
-          setOwner(texture, rt);          PROXY(onComplete(texture));
+          PROXY(onComplete(texture));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Texture_setExternalImageJobThread(TEngine *tEngine, TTexture *tTexture, void *externalImage, uint32_t requestId, VoidCallback onComplete) {
-    auto *rt = RT(tEngine);
+  EMSCRIPTEN_KEEPALIVE void Texture_setExternalImageJobThread(TJobThread *jobThread, TEngine *tEngine, TTexture *tTexture, void *externalImage, uint32_t requestId, VoidCallback onComplete) {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1915,8 +1751,8 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Texture_generateMipMapsJobThread(TTexture *tTexture, TEngine *tEngine, uint32_t requestId, VoidCallback onComplete) {
-    auto *rt = RT(tTexture);
+  EMSCRIPTEN_KEEPALIVE void Texture_generateMipMapsJobThread(TJobThread *jobThread, TTexture *tTexture, TEngine *tEngine, uint32_t requestId, VoidCallback onComplete) {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -1949,23 +1785,22 @@ extern "C"
   // render thread. We also copy the input bytes synchronously here so the
   // lambda doesn't dangle when data was stack-allocated by the caller (the
   // ffigen_js Uint8List.address path uses stackAlloc for buffers < 32KB).
-  EMSCRIPTEN_KEEPALIVE void Ktx2Reader_createTextureJobThread(
+  EMSCRIPTEN_KEEPALIVE void Ktx2Reader_createTextureJobThread(TJobThread *jobThread,
     TEngine *tEngine, uint8_t* data, size_t size, void (*onComplete)(TTexture *)) {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::vector<uint8_t> bytes(data, data + size);
     std::packaged_task<void()> lambda(
         [tEngine, bytes = std::move(bytes), onComplete, rt]() mutable
         {
           auto *texture = Ktx2Reader_createTexture(tEngine, bytes.data(), bytes.size());
-          setOwner(texture, rt);
           PROXY(onComplete(texture));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Ktx1Reader_createTextureJobThread(
+  EMSCRIPTEN_KEEPALIVE void Ktx1Reader_createTextureJobThread(TJobThread *jobThread,
     TEngine *tEngine, TKtx1Bundle *tBundle, uint32_t requestId, VoidCallback onTextureUploadComplete, void (*onComplete)(TTexture *)) {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
 
       #ifdef EMSCRIPTEN
         if(onTextureUploadComplete) {
@@ -1982,19 +1817,18 @@ extern "C"
           #else
             auto *texture = Ktx1Reader_createTexture(tEngine, tBundle, requestId, onTextureUploadComplete);
           #endif
-          setOwner(texture, rt);
           PROXY(onComplete(texture));
         });
     auto fut = rt->addTask(lambda);
   }
 
 
-  EMSCRIPTEN_KEEPALIVE void Texture_loadImageJobThread(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage,
+  EMSCRIPTEN_KEEPALIVE void Texture_loadImageJobThread(TJobThread *jobThread, TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage,
                                                           TPixelDataFormat bufferFormat, TPixelDataType pixelDataType,
                                                           int level,
                                                           void (*onComplete)(bool))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2004,7 +1838,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Texture_setImageJobThread(
+  EMSCRIPTEN_KEEPALIVE void Texture_setImageJobThread(TJobThread *jobThread,
       TEngine *tEngine,
       TTexture *tTexture,
       uint32_t level,
@@ -2020,7 +1854,7 @@ extern "C"
       uint32_t pixelDataType,
       void (*onComplete)(bool))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     // Copy borrowed Dart pixels once, before returning from this FFI call.
     auto *buffer = new uint8_t[size];
     if (size != 0) std::copy_n(data, size, buffer);
@@ -2049,9 +1883,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderTarget_getColorTextureJobThread(TRenderTarget *tRenderTarget, void (*onComplete)(TTexture *))
+  EMSCRIPTEN_KEEPALIVE void RenderTarget_getColorTextureJobThread(TJobThread *jobThread, TRenderTarget *tRenderTarget, void (*onComplete)(TTexture *))
   {
-    auto *rt = RT(tRenderTarget);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2061,13 +1895,13 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderTarget_createJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderTarget_createJobThread(TJobThread *jobThread,
       TEngine *tEngine,
       TTexture *tColor,
       TTexture *tDepth,
       void (*onComplete)(TRenderTarget *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     auto color = reinterpret_cast<filament::Texture *>(tColor);
     auto depth = reinterpret_cast<filament::Texture *>(tDepth);
 
@@ -2076,17 +1910,17 @@ extern "C"
         {
           auto texture = RenderTarget_create(tEngine, tColor, tDepth);
 
-          setOwner(texture, rt);          PROXY(onComplete(texture));
+          PROXY(onComplete(texture));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderTarget_destroyJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderTarget_destroyJobThread(TJobThread *jobThread,
       TEngine *tEngine,
       TRenderTarget *tRenderTarget,
       uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2096,20 +1930,20 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_createJobThread(void (*onComplete)(TTextureSampler *))
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_createJobThread(TJobThread *jobThread, void (*onComplete)(TTextureSampler *))
   {
-    auto *rt = RT(nullptr);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto sampler = TextureSampler_create();
 
-          setOwner(sampler, rt);          PROXY(onComplete(sampler));
+          PROXY(onComplete(sampler));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithFilteringJobThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithFilteringJobThread(TJobThread *jobThread,
       TSamplerMinFilter minFilter,
       TSamplerMagFilter magFilter,
       TSamplerWrapMode wrapS,
@@ -2117,39 +1951,39 @@ extern "C"
       TSamplerWrapMode wrapR,
       void (*onComplete)(TTextureSampler *))
   {
-    auto *rt = RT(nullptr);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto sampler = TextureSampler_createWithFiltering(minFilter, magFilter, wrapS, wrapT, wrapR);
 
-          setOwner(sampler, rt);          PROXY(onComplete(sampler));
+          PROXY(onComplete(sampler));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithComparisonJobThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithComparisonJobThread(TJobThread *jobThread,
       TSamplerCompareMode compareMode,
       TSamplerCompareFunc compareFunc,
       void (*onComplete)(TTextureSampler *))
   {
-    auto *rt = RT(nullptr);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto sampler = TextureSampler_createWithComparison(compareMode, compareFunc);
 
-          setOwner(sampler, rt);          PROXY(onComplete(sampler));
+          PROXY(onComplete(sampler));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_setMinFilterJobThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setMinFilterJobThread(TJobThread *jobThread,
       TTextureSampler *sampler,
       TSamplerMinFilter filter,
       uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(sampler);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2159,12 +1993,12 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_setMagFilterJobThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setMagFilterJobThread(TJobThread *jobThread,
       TTextureSampler *sampler,
       TSamplerMagFilter filter,
       uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(sampler);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2174,12 +2008,12 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeSJobThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeSJobThread(TJobThread *jobThread,
       TTextureSampler *sampler,
       TSamplerWrapMode mode,
       uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(sampler);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2189,12 +2023,12 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeTJobThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeTJobThread(TJobThread *jobThread,
       TTextureSampler *sampler,
       TSamplerWrapMode mode,
       uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(sampler);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2204,12 +2038,12 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeRJobThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeRJobThread(TJobThread *jobThread,
       TTextureSampler *sampler,
       TSamplerWrapMode mode,
       uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(sampler);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2219,12 +2053,12 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_setAnisotropyJobThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setAnisotropyJobThread(TJobThread *jobThread,
       TTextureSampler *sampler,
       double anisotropy,
       uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(sampler);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2234,13 +2068,13 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_setCompareModeJobThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setCompareModeJobThread(TJobThread *jobThread,
       TTextureSampler *sampler,
       TSamplerCompareMode mode,
       TTextureSamplerCompareFunc func,
       uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(sampler);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2250,11 +2084,11 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TextureSampler_destroyJobThread(
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_destroyJobThread(TJobThread *jobThread,
       TTextureSampler *sampler,
       uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(sampler);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2264,29 +2098,29 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_createJobThread(
+  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_createJobThread(TJobThread *jobThread,
     TEngine *tEngine,
     TMaterialProvider *tMaterialProvider,
     TNameComponentManager *tNameComponentManager,
     void (*callback)(TGltfAssetLoader *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
         auto loader = GltfAssetLoader_create(tEngine, tMaterialProvider, tNameComponentManager);
 
-          setOwner(loader, rt);        PROXY(callback(loader));
+          PROXY(callback(loader));
       });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_destroyJobThread(
+  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_destroyJobThread(TJobThread *jobThread,
     TGltfAssetLoader *tAssetLoader,
     uint32_t requestId,
     VoidCallback onComplete)
   {
-    auto *rt = RT(tAssetLoader);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -2296,22 +2130,22 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
   
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createJobThread(TEngine *tEngine, void (*callback)(TGltfResourceLoader *)) {
-    auto *rt = RT(tEngine);
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createJobThread(TJobThread *jobThread, TEngine *tEngine, void (*callback)(TGltfResourceLoader *)) {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
         auto loader = GltfResourceLoader_create(tEngine);
 
-          setOwner(loader, rt);        PROXY(callback(loader));
+          PROXY(callback(loader));
       });
     auto fut = rt->addTask(lambda);
   }
 
 
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroyJobThread(TEngine *tEngine, TGltfResourceLoader *tResourceLoader, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroyJobThread(TJobThread *jobThread, TEngine *tEngine, TGltfResourceLoader *tResourceLoader, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2321,9 +2155,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_loadResourcesJobThread(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool))
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_loadResourcesJobThread(TJobThread *jobThread, TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool))
   {
-    auto *rt = RT(tGltfResourceLoader);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2333,14 +2167,14 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceDataJobThread(
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceDataJobThread(TJobThread *jobThread,
       TGltfResourceLoader *tGltfResourceLoader,
       const char *uri,
       uint8_t *data,
       size_t length,
       uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tGltfResourceLoader);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     // Copy borrowed Dart bytes before returning from this FFI call.
     std::vector<uint8_t> owned(data, data + length);
     std::string ownedUri(uri);
@@ -2360,12 +2194,12 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncBeginLoadJobThread(
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncBeginLoadJobThread(TJobThread *jobThread,
       TGltfResourceLoader *tGltfResourceLoader,
       TFilamentAsset *tFilamentAsset,
       void (*callback)(bool))
   {
-    auto *rt = RT(tGltfResourceLoader);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2375,10 +2209,10 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncUpdateLoadJobThread(
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncUpdateLoadJobThread(TJobThread *jobThread,
       TGltfResourceLoader *tGltfResourceLoader)
   {
-    auto *rt = RT(tGltfResourceLoader);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2387,11 +2221,11 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncGetLoadProgressJobThread(
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncGetLoadProgressJobThread(TJobThread *jobThread,
       TGltfResourceLoader *tGltfResourceLoader,
       void (*callback)(float))
   {
-    auto *rt = RT(tGltfResourceLoader);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2401,7 +2235,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_loadJobThread(
+  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_loadJobThread(TJobThread *jobThread,
       TEngine *tEngine,
       TGltfAssetLoader *tAssetLoader,
       uint8_t *data,
@@ -2409,7 +2243,7 @@ extern "C"
       uint32_t numInstances,
       void (*callback)(TFilamentAsset *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     // Snapshot borrowed FFI storage before returning to Dart. The task owns it.
     std::vector<uint8_t> owned;
     if (length != 0) owned.assign(data, data + length);
@@ -2418,14 +2252,14 @@ extern "C"
         {
           auto loader = GltfAssetLoader_load(tEngine, tAssetLoader, owned.data(), length, numInstances);
 
-          setOwner(loader, rt);          PROXY(callback(loader));
+          PROXY(callback(loader));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetJobThread(TScene *tScene, TFilamentAsset *tAsset, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetJobThread(TJobThread *jobThread, TScene *tScene, TFilamentAsset *tAsset, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tScene);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2435,9 +2269,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void FilamentAsset_getWireframeJobThread(TFilamentAsset *tFilamentAsset, void (*onComplete)(EntityId))
+  EMSCRIPTEN_KEEPALIVE void FilamentAsset_getWireframeJobThread(TJobThread *jobThread, TFilamentAsset *tFilamentAsset, void (*onComplete)(EntityId))
   {
-    auto *rt = RT(tFilamentAsset);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2447,9 +2281,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Scene_addEntityJobThread(TScene *tScene, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Scene_addEntityJobThread(TJobThread *jobThread, TScene *tScene, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tScene);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2459,9 +2293,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Scene_removeEntityJobThread(TScene *tScene, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Scene_removeEntityJobThread(TJobThread *jobThread, TScene *tScene, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tScene);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2471,9 +2305,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_addToSceneJobThread(TSceneAsset *tSceneAsset, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_addToSceneJobThread(TJobThread *jobThread, TSceneAsset *tSceneAsset, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tSceneAsset);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2483,9 +2317,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_removeFromSceneJobThread(TSceneAsset *tSceneAsset, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_removeFromSceneJobThread(TJobThread *jobThread, TSceneAsset *tSceneAsset, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tSceneAsset);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2495,9 +2329,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Scene_setSkyboxJobThread(TScene *tScene, TSkybox *tSkybox, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Scene_setSkyboxJobThread(TJobThread *jobThread, TScene *tScene, TSkybox *tSkybox, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tScene);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2507,9 +2341,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Scene_setIndirectLightJobThread(TScene *tScene, TIndirectLight *tIndirectLight, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void Scene_setIndirectLightJobThread(TJobThread *jobThread, TScene *tScene, TIndirectLight *tIndirectLight, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tScene);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2519,7 +2353,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Gizmo_createJobThread(
+  EMSCRIPTEN_KEEPALIVE void Gizmo_createJobThread(TJobThread *jobThread,
       TEngine *tEngine,
       TGltfAssetLoader *tAssetLoader,
       TGltfResourceLoader *tGltfResourceLoader,
@@ -2529,40 +2363,40 @@ extern "C"
       TGizmoType tGizmoType,
       void (*callback)(TGizmo *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *gizmo = Gizmo_create(tEngine, tAssetLoader, tGltfResourceLoader, tNameComponentManager, tView, tMaterial, tGizmoType);
 
-          setOwner(gizmo, rt);          PROXY(callback(gizmo));
+          PROXY(callback(gizmo));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_buildJobThread(
+  EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_buildJobThread(TJobThread *jobThread,
       TVertexBufferBuilder *tBuilder,
       TEngine *tEngine,
       void (*onComplete)(TVertexBuffer *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *vertexBuffer = VertexBufferBuilder_build(tBuilder, tEngine);
 
-          setOwner(vertexBuffer, rt);          PROXY(onComplete(vertexBuffer));
+          PROXY(onComplete(vertexBuffer));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void VertexBuffer_destroyJobThread(
+  EMSCRIPTEN_KEEPALIVE void VertexBuffer_destroyJobThread(TJobThread *jobThread,
       TEngine *tEngine,
       TVertexBuffer *tBuffer,
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2572,7 +2406,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferAtJobThread(
+  EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferAtJobThread(TJobThread *jobThread,
       TEngine* tEngine,
       TVertexBuffer* tBuffer,
       uint8_t bufferIndex,
@@ -2582,7 +2416,7 @@ extern "C"
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     // Copy data using std::vector to ensure it remains valid after the function returns
     auto *buffer = new std::vector<uint8_t>(sizeInBytes);
     std::copy(static_cast<uint8_t*>(data), static_cast<uint8_t*>(data) + sizeInBytes, buffer->begin());
@@ -2610,7 +2444,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferObjectAtJobThread(
+  EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferObjectAtJobThread(TJobThread *jobThread,
       TEngine* tEngine,
       TVertexBuffer* tBuffer,
       uint8_t bufferIndex,
@@ -2618,7 +2452,7 @@ extern "C"
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto* rt = RT(tEngine);
+    auto* rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda([=]() mutable {
       VertexBuffer_setBufferObjectAt(tEngine, tBuffer, bufferIndex, tBufferObject);
       PROXY(onComplete(requestId));
@@ -2626,21 +2460,20 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void BufferObjectBuilder_buildJobThread(
+  EMSCRIPTEN_KEEPALIVE void BufferObjectBuilder_buildJobThread(TJobThread *jobThread,
       TBufferObjectBuilder* tBuilder,
       TEngine* tEngine,
       void (*onComplete)(TBufferObject*))
   {
-    auto* rt = RT(tEngine);
+    auto* rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda([=]() mutable {
       auto* buffer = BufferObjectBuilder_build(tBuilder, tEngine);
-      setOwner(buffer, rt);
       PROXY(onComplete(buffer));
     });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void BufferObject_setBufferJobThread(
+  EMSCRIPTEN_KEEPALIVE void BufferObject_setBufferJobThread(TJobThread *jobThread,
       TEngine* tEngine,
       TBufferObject* tBuffer,
       void* data,
@@ -2649,7 +2482,7 @@ extern "C"
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto* rt = RT(tEngine);
+    auto* rt = reinterpret_cast<JobThread*>(jobThread);
     auto* copy = new std::vector<uint8_t>(sizeInBytes);
     std::copy(static_cast<uint8_t*>(data), static_cast<uint8_t*>(data) + sizeInBytes, copy->begin());
     std::packaged_task<void()> lambda([=]() mutable {
@@ -2670,13 +2503,13 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void BufferObject_destroyJobThread(
+  EMSCRIPTEN_KEEPALIVE void BufferObject_destroyJobThread(TJobThread *jobThread,
       TEngine* tEngine,
       TBufferObject* tBuffer,
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto* rt = RT(tEngine);
+    auto* rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda([=]() mutable {
       BufferObject_destroy(tEngine, tBuffer);
       PROXY(onComplete(requestId));
@@ -2684,29 +2517,29 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void IndexBufferBuilder_buildJobThread(
+  EMSCRIPTEN_KEEPALIVE void IndexBufferBuilder_buildJobThread(TJobThread *jobThread,
       TIndexBufferBuilder *tBuilder,
       TEngine *tEngine,
       void (*onComplete)(TIndexBuffer *))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *indexBuffer = IndexBufferBuilder_build(tBuilder, tEngine);
 
-          setOwner(indexBuffer, rt);          PROXY(onComplete(indexBuffer));
+          PROXY(onComplete(indexBuffer));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void IndexBuffer_destroyJobThread(
+  EMSCRIPTEN_KEEPALIVE void IndexBuffer_destroyJobThread(TJobThread *jobThread,
       TEngine *tEngine,
       TIndexBuffer *tBuffer,
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2716,7 +2549,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void IndexBuffer_setBufferJobThread(
+  EMSCRIPTEN_KEEPALIVE void IndexBuffer_setBufferJobThread(TJobThread *jobThread,
       TEngine* tEngine,
       TIndexBuffer* tBuffer,
       void* data,
@@ -2725,7 +2558,7 @@ extern "C"
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     // Copy data using std::vector to ensure it remains valid after the function returns
     auto *buffer = new std::vector<uint8_t>(sizeInBytes);
     std::copy(static_cast<uint8_t*>(data), static_cast<uint8_t*>(data) + sizeInBytes, buffer->begin());
@@ -2753,13 +2586,13 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderableBuilder_buildJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableBuilder_buildJobThread(TJobThread *jobThread,
       TRenderableBuilder *tBuilder,
       TEngine *tEngine,
       EntityId entityId,
       void (*onComplete)(int))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2773,7 +2606,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderableBuilder_buildWithSkinningJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableBuilder_buildWithSkinningJobThread(TJobThread *jobThread,
       TRenderableBuilder *tBuilder,
       TEngine *tEngine,
       EntityId entityId,
@@ -2782,7 +2615,7 @@ extern "C"
       bool boneData,
       void (*onComplete)(int))
   {
-    auto *rt = RT(tEngine);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     // Use typed storage for Filament's alignment requirements. Only the selected
     // representation allocates; Dart's borrowed pointer is consumed here.
     std::vector<filament::math::mat4f> matrices(boneData ? 0 : boneCount);
@@ -2805,9 +2638,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void EntityManager_createEntityJobThread(TEntityManager *tEntityManager, void (*onComplete)(EntityId))
+  EMSCRIPTEN_KEEPALIVE void EntityManager_createEntityJobThread(TJobThread *jobThread, TEntityManager *tEntityManager, void (*onComplete)(EntityId))
   {
-    auto *rt = RT(tEntityManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2817,9 +2650,9 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void EntityManager_destroyEntityJobThread(TEntityManager *tEntityManager, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
+  EMSCRIPTEN_KEEPALIVE void EntityManager_destroyEntityJobThread(TJobThread *jobThread, TEntityManager *tEntityManager, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(tEntityManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2829,14 +2662,14 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformJobThread(
+  EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformJobThread(TJobThread *jobThread,
       TTransformManager *tTransformManager,
       EntityId entityId,
       double4x4 transform,
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tTransformManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2846,11 +2679,11 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformNativeJobThread(
+  EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformNativeJobThread(TJobThread *jobThread,
       TTransformManager *manager, EntityId entity, TMat4 *matrix,
       uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(manager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     // The caller owns this matrix until the completion callback runs.
     const auto *transform = reinterpret_cast<const filament::math::mat4 *>(matrix);
     rt->addDetachedTask([=] {
@@ -2861,11 +2694,11 @@ extern "C"
     });
   }
 
-  EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformFromBufferJobThread(
+  EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformFromBufferJobThread(TJobThread *jobThread,
       TTransformManager *manager, EntityId entity, const double *matrix16,
       uint32_t requestId, VoidCallback onComplete)
   {
-    auto *rt = RT(manager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     // Snapshot before returning to Dart; the queued task owns a real mat4 and
     // can pass it directly to Filament without reconstructing it on execution.
     const auto snapshot = load_mat4(matrix16);
@@ -2877,7 +2710,7 @@ extern "C"
     });
   }
 
-  EMSCRIPTEN_KEEPALIVE void TransformManager_setParentJobThread(
+  EMSCRIPTEN_KEEPALIVE void TransformManager_setParentJobThread(TJobThread *jobThread,
       TTransformManager *tTransformManager,
       EntityId child,
       EntityId parent,
@@ -2885,7 +2718,7 @@ extern "C"
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tTransformManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2895,13 +2728,13 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TransformManager_createComponentJobThread(
+  EMSCRIPTEN_KEEPALIVE void TransformManager_createComponentJobThread(TJobThread *jobThread,
       TTransformManager *tTransformManager,
       EntityId entityId,
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tTransformManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2911,13 +2744,13 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void TransformManager_removeComponentJobThread(
+  EMSCRIPTEN_KEEPALIVE void TransformManager_removeComponentJobThread(TJobThread *jobThread,
       TTransformManager *tTransformManager,
       EntityId entityId,
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tTransformManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2927,13 +2760,13 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderableManager_destroyEntityJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_destroyEntityJobThread(TJobThread *jobThread,
       TRenderableManager *tRenderableManager,
       EntityId entityId,
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tRenderableManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -2946,7 +2779,7 @@ extern "C"
   // Copy the caller-owned payload before returning across the FFI boundary.
   // Native Dart typed data is pinned only for the duration of the leaf call,
   // and ffigen_js uses Emscripten stack storage for makeFloat32List().
-  EMSCRIPTEN_KEEPALIVE void RenderableManager_setMorphWeightsJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setMorphWeightsJobThread(TJobThread *jobThread,
       TRenderableManager *tRenderableManager,
       EntityId entityId,
       const float *weights,
@@ -2955,7 +2788,7 @@ extern "C"
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tRenderableManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::vector<float> ownedWeights;
     if (count > 0) {
       ownedWeights.assign(weights, weights + count);
@@ -2972,7 +2805,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromMat4JobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromMat4JobThread(TJobThread *jobThread,
       TRenderableManager *tRenderableManager,
       EntityId entityId,
       const float *transforms,
@@ -2981,7 +2814,7 @@ extern "C"
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tRenderableManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     // Snapshot borrowed FFI storage before returning to Dart. The task owns it.
     std::vector<float> owned;
     if (boneCount != 0) owned.assign(transforms, transforms + boneCount * 16);
@@ -2994,7 +2827,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromBoneJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromBoneJobThread(TJobThread *jobThread,
       TRenderableManager *tRenderableManager,
       EntityId entityId,
       const float *bones,
@@ -3003,7 +2836,7 @@ extern "C"
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tRenderableManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     // Snapshot borrowed FFI storage before returning to Dart. The task owns it.
     std::vector<float> owned;
     if (boneCount != 0) owned.assign(bones, bones + boneCount * 8);
@@ -3020,7 +2853,7 @@ extern "C"
   // so no heap payload is needed: the VertexBuffer handle stays valid because
   // Dart only destroys it through VertexBuffer_destroyJobThread, which is
   // queued behind this task on the same render thread.
-  EMSCRIPTEN_KEEPALIVE void RenderableManager_setGeometryAtNonIndexedJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setGeometryAtNonIndexedJobThread(TJobThread *jobThread,
       TRenderableManager *tRenderableManager,
       EntityId entityId,
       int primitiveIndex,
@@ -3030,7 +2863,7 @@ extern "C"
       size_t count,
       void (*callback)(bool))
   {
-    auto *rt = RT(tRenderableManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -3045,14 +2878,14 @@ extern "C"
   // RenderableManager/LightManager are not concurrency-safe, so the
   // non-render-thread setters race the renderer and the flags don't take
   // (realtime shadows never appear).
-  EMSCRIPTEN_KEEPALIVE void RenderableManager_setCastShadowsJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setCastShadowsJobThread(TJobThread *jobThread,
       TRenderableManager *tRenderableManager,
       EntityId entityId,
       bool enabled,
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tRenderableManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -3062,14 +2895,14 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderableManager_setReceiveShadowsJobThread(
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setReceiveShadowsJobThread(TJobThread *jobThread,
       TRenderableManager *tRenderableManager,
       EntityId entityId,
       bool enabled,
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tRenderableManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -3079,14 +2912,14 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void LightManager_setShadowCasterJobThread(
+  EMSCRIPTEN_KEEPALIVE void LightManager_setShadowCasterJobThread(TJobThread *jobThread,
       TLightManager *tLightManager,
       EntityId entityId,
       bool enabled,
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tLightManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -3096,14 +2929,14 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void LightManager_setShadowOptionsJobThread(
+  EMSCRIPTEN_KEEPALIVE void LightManager_setShadowOptionsJobThread(TJobThread *jobThread,
       TLightManager *tLightManager,
       EntityId entityId,
       TShadowOptions options,
       uint32_t requestId,
       VoidCallback onComplete)
   {
-    auto *rt = RT(tLightManager);
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {

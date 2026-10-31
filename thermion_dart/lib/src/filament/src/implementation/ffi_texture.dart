@@ -5,7 +5,9 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
   final Pointer<TEngine> _engine;
   final Pointer<TTexture> pointer;
 
-  FFITexture(this._engine, this.pointer, FFIFilamentApp _);
+  final Pointer<TJobThread> _jobThreadHandle;
+
+  FFITexture(this._engine, this.pointer, FFIFilamentApp app) : _jobThreadHandle = app.jobThreadHandle;
 
   Future<void> setLinearImage(
     covariant FFILinearImage image,
@@ -16,7 +18,16 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
     final tPixelDataFormat = format.value;
     final tPixelDataType = type.value;
     final result = await withBoolCallback((cb) {
-      Texture_loadImageJobThread(_engine, pointer, image.pointer, tPixelDataFormat, tPixelDataType, level, cb);
+      Texture_loadImageJobThread(
+        _jobThreadHandle,
+        _engine,
+        pointer,
+        image.pointer,
+        tPixelDataFormat,
+        tPixelDataType,
+        level,
+        cb,
+      );
     });
 
     if (!result) {
@@ -27,7 +38,7 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
   @override
   Future<void> destroy() async {
     await withVoidCallback((requestId, cb) {
-      Engine_destroyTextureJobThread(_engine, pointer, requestId, cb);
+      Engine_destroyTextureJobThread(_jobThreadHandle, _engine, pointer, requestId, cb);
     });
   }
 
@@ -38,7 +49,9 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
 
   @override
   Future<void> generateMipmaps() async {
-    await withVoidCallback((requestId, cb) => Texture_generateMipMapsJobThread(pointer, _engine, requestId, cb));
+    await withVoidCallback(
+      (requestId, cb) => Texture_generateMipMapsJobThread(_jobThreadHandle, pointer, _engine, requestId, cb),
+    );
   }
 
   @override
@@ -93,6 +106,7 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
   }) async {
     final success = await withBoolCallback((cb) {
       Texture_setImageJobThread(
+        _jobThreadHandle,
         _engine,
         pointer,
         level,
@@ -139,14 +153,16 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
 class FFILinearImage extends LinearImage {
   final Pointer<TLinearImage> pointer;
 
-  FFILinearImage(this.pointer);
+  final Pointer<TJobThread> _jobThreadHandle;
 
-  static Future<FFILinearImage> createEmpty(int width, int height, int channels) async {
+  FFILinearImage(this.pointer, this._jobThreadHandle);
+
+  static Future<FFILinearImage> createEmpty(FFIFilamentApp app, int width, int height, int channels) async {
     final imagePtr = await withPointerCallback<TLinearImage>((cb) {
-      Image_createEmptyJobThread(width, height, channels, cb);
+      Image_createEmptyJobThread(app.jobThreadHandle, width, height, channels, cb);
     });
 
-    return FFILinearImage(imagePtr);
+    return FFILinearImage(imagePtr, app.jobThreadHandle);
   }
 
   static Future<FFILinearImage> decode(
@@ -161,28 +177,28 @@ class FFILinearImage extends LinearImage {
 
   Future<void> destroy() async {
     await withVoidCallback((requestId, cb) {
-      Image_destroyJobThread(this.pointer, requestId, cb);
+      Image_destroyJobThread(_jobThreadHandle, this.pointer, requestId, cb);
     });
   }
 
   @override
   Future<int> getChannels() async {
     return await withUInt32Callback((cb) {
-      Image_getChannelsJobThread(pointer, cb);
+      Image_getChannelsJobThread(_jobThreadHandle, pointer, cb);
     });
   }
 
   @override
   Future<int> getHeight() async {
     return await withUInt32Callback((cb) {
-      Image_getHeightJobThread(pointer, cb);
+      Image_getHeightJobThread(_jobThreadHandle, pointer, cb);
     });
   }
 
   @override
   Future<int> getWidth() async {
     return await withUInt32Callback((cb) {
-      Image_getWidthJobThread(pointer, cb);
+      Image_getWidthJobThread(_jobThreadHandle, pointer, cb);
     });
   }
 
@@ -193,7 +209,7 @@ class FFILinearImage extends LinearImage {
     final channels = await getChannels();
 
     final ptr = await withPointerCallback<Float>((cb) {
-      Image_getBytesJobThread(pointer, cb);
+      Image_getBytesJobThread(_jobThreadHandle, pointer, cb);
     });
 
     return ptr.asTypedList(height * width * channels);
@@ -203,14 +219,16 @@ class FFILinearImage extends LinearImage {
 class FFITextureSampler extends TextureSampler {
   final Pointer<TTextureSampler> pointer;
 
-  FFITextureSampler(this.pointer);
+  final Pointer<TJobThread> _jobThreadHandle;
 
-  static Future<FFITextureSampler> create() async {
+  FFITextureSampler(this.pointer, this._jobThreadHandle);
+
+  static Future<FFITextureSampler> create(FFIFilamentApp app) async {
     final samplerPtr = await withPointerCallback<TTextureSampler>((cb) {
-      TextureSampler_createJobThread(cb);
+      TextureSampler_createJobThread(app.jobThreadHandle, cb);
     });
 
-    return FFITextureSampler(samplerPtr);
+    return FFITextureSampler(samplerPtr, app.jobThreadHandle);
   }
 
   // static Future<FFITextureSampler> createWithFiltering(
@@ -220,7 +238,7 @@ class FFITextureSampler extends TextureSampler {
   //     SamplerWrapMode wrapT,
   //     SamplerWrapMode wrapR) async {
   //   final samplerPtr = await withPointerCallback<TTextureSampler>((cb) {
-  //     TextureSampler_createWithFilteringJobThread(
+  //     TextureSampler_createWithFilteringJobThread(_jobThreadHandle,
   //       TSamplerMinFilter.values[minFilter.index],
   //       TSamplerMagFilter.values[magFilter.index],
   //       TSamplerWrapMode.values[wrapS.index],
@@ -229,25 +247,25 @@ class FFITextureSampler extends TextureSampler {
   //       cb);
   //   });
 
-  //   return FFITextureSampler(samplerPtr);
+  //   return FFITextureSampler(samplerPtr, app.jobThreadHandle);
   // }
 
   // static Future<FFITextureSampler> createWithComparison(
   //     SamplerCompareMode compareMode,
   //     SamplerCompareFunc compareFunc) async {
   //   final samplerPtr = await withPointerCallback<TTextureSampler>((cb) {
-  //     TextureSampler_createWithComparisonJobThread(
+  //     TextureSampler_createWithComparisonJobThread(_jobThreadHandle,
   //       TSamplerCompareMode.values[compareMode.index],
   //       TTextureSamplerCompareFunc.values[compareFunc.index],
   //       cb);
   //   });
 
-  //   return FFITextureSampler(samplerPtr);
+  //   return FFITextureSampler(samplerPtr, app.jobThreadHandle);
   // }
 
   // Future<void> setMinFilter(SamplerMinFilter filter) async {
   //   await withVoidCallback((cb) {
-  //     TextureSampler_setMinFilterJobThread(
+  //     TextureSampler_setMinFilterJobThread(_jobThreadHandle,
   //       pointer,
   //       TSamplerMinFilter.values[filter.index],
   //       cb);
@@ -256,7 +274,7 @@ class FFITextureSampler extends TextureSampler {
 
   // Future<void> setMagFilter(SamplerMagFilter filter) async {
   //   await withVoidCallback((cb) {
-  //     TextureSampler_setMagFilterJobThread(
+  //     TextureSampler_setMagFilterJobThread(_jobThreadHandle,
   //       pointer,
   //       TSamplerMagFilter.values[filter.index],
   //       cb);
@@ -265,7 +283,7 @@ class FFITextureSampler extends TextureSampler {
 
   // Future<void> setWrapModeS(SamplerWrapMode mode) async {
   //   await withVoidCallback((cb) {
-  //     TextureSampler_setWrapModeSJobThread(
+  //     TextureSampler_setWrapModeSJobThread(_jobThreadHandle,
   //       pointer,
   //       TSamplerWrapMode.values[mode.index],
   //       cb);
@@ -274,7 +292,7 @@ class FFITextureSampler extends TextureSampler {
 
   // Future<void> setWrapModeT(SamplerWrapMode mode) async {
   //   await withVoidCallback((cb) {
-  //     TextureSampler_setWrapModeTJobThread(
+  //     TextureSampler_setWrapModeTJobThread(_jobThreadHandle,
   //       pointer,
   //       TSamplerWrapMode.values[mode.index],
   //       cb);
@@ -283,7 +301,7 @@ class FFITextureSampler extends TextureSampler {
 
   // Future<void> setWrapModeR(SamplerWrapMode mode) async {
   //   await withVoidCallback((cb) {
-  //     TextureSampler_setWrapModeRJobThread(
+  //     TextureSampler_setWrapModeRJobThread(_jobThreadHandle,
   //       pointer,
   //       TSamplerWrapMode.values[mode.index],
   //       cb);
@@ -292,14 +310,14 @@ class FFITextureSampler extends TextureSampler {
 
   Future<void> setAnisotropy(double anisotropy) async {
     await withVoidCallback((requestId, cb) {
-      TextureSampler_setAnisotropyJobThread(pointer, anisotropy, requestId, cb);
+      TextureSampler_setAnisotropyJobThread(_jobThreadHandle, pointer, anisotropy, requestId, cb);
     });
   }
 
   // Future<void> setCompareMode(
   //     SamplerCompareMode mode, SamplerCompareFunc func) async {
   //   await withVoidCallback((cb) {
-  //     TextureSampler_setCompareModeJobThread(
+  //     TextureSampler_setCompareModeJobThread(_jobThreadHandle,
   //       pointer,
   //       TSamplerCompareMode.values[mode.index],
   //       TTextureSamplerCompareFunc.values[func.index],
@@ -310,7 +328,7 @@ class FFITextureSampler extends TextureSampler {
   @override
   Future dispose() async {
     await withVoidCallback((requestId, cb) {
-      TextureSampler_destroyJobThread(pointer, requestId, cb);
+      TextureSampler_destroyJobThread(_jobThreadHandle, pointer, requestId, cb);
     });
   }
 }

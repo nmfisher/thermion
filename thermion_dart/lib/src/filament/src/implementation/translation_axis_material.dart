@@ -1,3 +1,4 @@
+import 'ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
@@ -27,7 +28,11 @@ class FFITranslationAxisMaterial {
     // Create translation axis material
     final material = FFIMaterial(
       await withPointerCallback<TMaterial>(
-        (callback) => Material_createTranslationAxisMaterialJobThread(app.engine, callback),
+        (callback) => Material_createTranslationAxisMaterialJobThread(
+          (app as FFIFilamentApp).jobThreadHandle,
+          app.engine,
+          callback,
+        ),
       ),
       app,
     );

@@ -1,6 +1,7 @@
 // Browser integration helpers for the real RenderManager / Filament pipeline.
 // Compiled only when web_frame_fixture.cmake is explicitly supplied to CMake.
 #include "rendering/JobThread.hpp"
+#include "c_api/APIBoundaryTypes.h"
 #include "rendering/RenderManager.hpp"
 #include <filament/Engine.h>
 #include <filament/Renderer.h>
@@ -8,11 +9,13 @@
 #include <filament/View.h>
 #include <utils/EntityManager.h>
 #include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cstdlib>
+#include <thread>
 #include <emscripten.h>
 
 using namespace thermion;
-// The production dispatcher resolves each engine to its owning worker.
-extern "C" JobThread* RT(void* owner);
 
 struct TestScene {
     filament::SwapChain* swapChain = nullptr;
@@ -22,11 +25,27 @@ struct TestScene {
 };
 // Each slot is accessed only on its owning worker.
 static TestScene scenes[2];
+static std::atomic<bool> resumeCreation{false};
 
 extern "C" {
-EMSCRIPTEN_KEEPALIVE void WebTest_attachScene(filament::Engine* engine,
+EMSCRIPTEN_KEEPALIVE void WebTest_holdCurrentWorker(TJobThread *jobThread) {
+    resumeCreation.store(false, std::memory_order_relaxed);
+    reinterpret_cast<JobThread*>(jobThread)->addDetachedTask([] {
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+        while (!resumeCreation.load(std::memory_order_acquire)) {
+            if (std::chrono::steady_clock::now() >= deadline) std::abort();
+            std::this_thread::yield();
+        }
+    });
+}
+
+EMSCRIPTEN_KEEPALIVE void WebTest_releaseHeldWorker() {
+    resumeCreation.store(true, std::memory_order_release);
+}
+
+EMSCRIPTEN_KEEPALIVE void WebTest_attachScene(TJobThread *jobThread, filament::Engine* engine,
         RenderManager* manager, int slot, uint32_t id, void (*done)(uint32_t)) {
-    auto* rt = RT(engine);
+    auto* rt = reinterpret_cast<JobThread*>(jobThread);
     rt->addDetachedTask([=] {
         auto& s = scenes[slot];
         s.swapChain = engine->createSwapChain(nullptr);
@@ -42,9 +61,9 @@ EMSCRIPTEN_KEEPALIVE void WebTest_attachScene(filament::Engine* engine,
     });
 }
 
-EMSCRIPTEN_KEEPALIVE void WebTest_frameId(filament::Engine* engine,
+EMSCRIPTEN_KEEPALIVE void WebTest_frameId(TJobThread *jobThread, filament::Engine* engine,
         filament::Renderer* renderer, void (*done)(uint32_t)) {
-    auto* rt = RT(engine);
+    auto* rt = reinterpret_cast<JobThread*>(jobThread);
     rt->addDetachedTask([=] {
         uint32_t latest = 0;
         for (const auto& frame : renderer->getFrameInfoHistory()) {
@@ -55,9 +74,9 @@ EMSCRIPTEN_KEEPALIVE void WebTest_frameId(filament::Engine* engine,
 }
 
 // Called only after the public RenderManager_destroyJobThread completes.
-EMSCRIPTEN_KEEPALIVE void WebTest_destroyScene(filament::Engine* engine,
+EMSCRIPTEN_KEEPALIVE void WebTest_destroyScene(TJobThread *jobThread, filament::Engine* engine,
         int slot, uint32_t id, void (*done)(uint32_t)) {
-    auto* rt = RT(engine);
+    auto* rt = reinterpret_cast<JobThread*>(jobThread);
     rt->addDetachedTask([=] {
         auto& s = scenes[slot];
         engine->destroy(s.view);

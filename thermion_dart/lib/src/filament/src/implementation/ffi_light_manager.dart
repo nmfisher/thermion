@@ -70,7 +70,8 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
   @override
   Future<void> setShadowCaster(ThermionEntity light, bool enabled) async {
     await withVoidCallback(
-      (requestId, cb) => LightManager_setShadowCasterJobThread(lightManager, light, enabled, requestId, cb),
+      (requestId, cb) =>
+          LightManager_setShadowCasterJobThread(app.jobThreadHandle, lightManager, light, enabled, requestId, cb),
     );
   }
 
@@ -227,7 +228,14 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
     tShadowOptions.transformZ = options.transform.z;
 
     await withVoidCallback(
-      (requestId, cb) => LightManager_setShadowOptionsJobThread(lightManager, light, tShadowOptions, requestId, cb),
+      (requestId, cb) => LightManager_setShadowOptionsJobThread(
+        app.jobThreadHandle,
+        lightManager,
+        light,
+        tShadowOptions,
+        requestId,
+        cb,
+      ),
     );
   }
 

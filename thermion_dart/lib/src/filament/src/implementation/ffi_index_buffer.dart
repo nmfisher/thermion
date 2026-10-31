@@ -6,8 +6,9 @@ import 'package:thermion_dart/thermion_dart.dart';
 class FFIIndexBuffer extends IndexBuffer {
   final bindings.Pointer<bindings.TIndexBuffer> _ptr;
   final bindings.Pointer<bindings.TEngine> _engine;
+  final bindings.Pointer<bindings.TJobThread> _jobThreadHandle;
 
-  FFIIndexBuffer(this._ptr, this._engine);
+  FFIIndexBuffer(this._ptr, this._engine, this._jobThreadHandle);
 
   /// Returns the native handle for FFI calls.
   bindings.Pointer<bindings.TIndexBuffer> getNativeHandle() => _ptr;
@@ -22,6 +23,7 @@ class FFIIndexBuffer extends IndexBuffer {
     await data.pass<void>((byteData) {
       return withVoidCallback((requestId, cb) {
         bindings.IndexBuffer_setBufferJobThread(
+          _jobThreadHandle,
           _engine,
           _ptr,
           byteData.address.cast(),
@@ -37,7 +39,7 @@ class FFIIndexBuffer extends IndexBuffer {
   @override
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
-      bindings.IndexBuffer_destroyJobThread(_engine, _ptr, requestId, cb);
+      bindings.IndexBuffer_destroyJobThread(_jobThreadHandle, _engine, _ptr, requestId, cb);
     });
   }
 }
@@ -46,9 +48,10 @@ class FFIIndexBuffer extends IndexBuffer {
 class FFIIndexBufferBuilder implements IndexBufferBuilder {
   bindings.Pointer<bindings.TIndexBufferBuilder>? _builderPtr;
   final bindings.Pointer<bindings.TEngine> _engine;
+  final bindings.Pointer<bindings.TJobThread> _jobThreadHandle;
   bool _isBuilt = false;
 
-  FFIIndexBufferBuilder(this._engine) {
+  FFIIndexBufferBuilder(this._engine, this._jobThreadHandle) {
     _builderPtr = bindings.IndexBufferBuilder_create();
   }
 
@@ -81,7 +84,7 @@ class FFIIndexBufferBuilder implements IndexBufferBuilder {
     _checkNotBuilt();
 
     final indexBufferPtr = await withPointerCallback<bindings.TIndexBuffer>(
-      (cb) => bindings.IndexBufferBuilder_buildJobThread(_builderPtr!, _engine, cb),
+      (cb) => bindings.IndexBufferBuilder_buildJobThread(_jobThreadHandle, _builderPtr!, _engine, cb),
     );
 
     bindings.IndexBufferBuilder_destroy(_builderPtr!);
@@ -92,6 +95,6 @@ class FFIIndexBufferBuilder implements IndexBufferBuilder {
       throw Exception('Failed to build IndexBuffer');
     }
 
-    return FFIIndexBuffer(indexBufferPtr, _engine);
+    return FFIIndexBuffer(indexBufferPtr, _engine, _jobThreadHandle);
   }
 }
