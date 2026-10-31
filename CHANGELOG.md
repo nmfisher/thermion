@@ -4,6 +4,8 @@
 
 ### Changes
 
+- Apply the web target frame rate to actual drawing, independently for each engine.
+
 - Rename `RenderThread` to `JobThread` throughout the C++ implementation,
   C API entry points and Dart bindings/callers. For example,
   `RenderThread_create` becomes `JobThread_create`, and

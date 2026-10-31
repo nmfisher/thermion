@@ -239,9 +239,15 @@ namespace thermion
 
   void RenderManager::setPaused(bool paused)
   {
-    // This flag publishes no other state. A frame already in progress may
-    // finish; subsequent ticks observe the requested pause state.
-    mRenderPaused.store(paused, std::memory_order_relaxed);
+    // tick() resets the FPS gate. Pausing must not wait for mMutex.
+    if (mRenderPaused.exchange(paused, std::memory_order_relaxed) != paused) {
+      mResetFrameRateGate.store(true, std::memory_order_release);
+    }
+  }
+
+  void RenderManager::setTargetFps(int fps)
+  {
+    mTargetFps.store(fps > 0 ? fps : 0, std::memory_order_relaxed);
   }
 
   void RenderManager::flushCommands()
@@ -268,8 +274,12 @@ namespace thermion
     // commands in an internal buffer that needs to be drained every rAF,
     // independent of whether a visible frame was produced. Skipping
     // execute() stalls the backend and causes a burst on resume.
+    if (mResetFrameRateGate.exchange(false, std::memory_order_acquire)) {
+      mFrameRateGate.reset();
+    }
     bool anyRendered = false;
-    if (!mRenderPaused.load(std::memory_order_relaxed)) {
+    if (!mRenderPaused.load(std::memory_order_relaxed) &&
+        mFrameRateGate.admit(frameTimeInNanos, mTargetFps.load(std::memory_order_relaxed))) {
       updateAnimationsAndPlugins(frameTimeInNanos);
 
       for (size_t i = 0; i < mViewAttachments.size(); i++)

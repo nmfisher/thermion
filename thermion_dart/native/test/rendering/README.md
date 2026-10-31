@@ -113,7 +113,10 @@ The callback-delivery and worker-shutdown changes are separate dependent patches
 The drawing-enabled fixture creates two real engines and 32×32 views. It checks
 that both draw, one can pause/resume independently, and destroying one leaves the
 other drawing. It waits for both workers to exit. Frame histories establish
-progress, not physical presentation intervals or a particular FPS limit.
+progress. It also checks independent 30/10 FPS limits, swaps those limits, and
+allows timing variation while checking that worker drawing respects each cap.
+The browser must sustain more than 15 FPS for these checks. This does not measure
+physical presentation intervals.
 Its native helpers are opt-in test sources, excluded from normal builds.
 Run from the repository root, using a separate build directory:
 
