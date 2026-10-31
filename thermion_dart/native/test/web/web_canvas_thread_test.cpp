@@ -49,7 +49,8 @@ int main() {
         thermion::JobThreadBase& queue = thread;
         check(!queue.isStopping(), "base dispatch reads the platform stop state");
         check(thermion::JobThread::mLiveWorkerCount.load() == 0, "no render worker starts");
-        thread.setRenderManager(&manager);
+        thread.setAfterBatchCallback([&manager] { manager.flushCommands(); });
+        manager.startFrameLoop(); // No browser frame loop in main-thread mode.
         const auto caller = std::this_thread::get_id();
         std::packaged_task<int()> task([&] {
             check(std::this_thread::get_id() == caller, "task executes on the calling thread");

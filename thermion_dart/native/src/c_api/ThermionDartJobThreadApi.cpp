@@ -117,7 +117,10 @@ extern "C"
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
 #ifdef __EMSCRIPTEN__
     auto *rm = reinterpret_cast<RenderManager *>(tRenderManager);
-    rt->addDetachedTask([rt, rm] { rt->setRenderManager(rm); });
+    rt->addDetachedTask([rt, rm] {
+      rt->setAfterBatchCallback([rm] { rm->flushCommands(); });
+      rm->startFrameLoop();
+    });
 #endif
   }
 
@@ -128,7 +131,11 @@ extern "C"
 #ifdef __EMSCRIPTEN__
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
     if (rt) {
-      rt->addDetachedTask([rt] { rt->setRenderManager(nullptr); });
+      auto* rm = reinterpret_cast<RenderManager*>(tRenderManager);
+      rt->addDetachedTask([rt, rm] {
+        rm->stopFrameLoop();
+        rt->setAfterBatchCallback({});
+      });
     }
 #else
     (void)jobThread;
@@ -142,7 +149,7 @@ extern "C"
     auto* rt = reinterpret_cast<JobThread*>(jobThread);
     rt->addDetachedTask([=] {
 #ifdef __EMSCRIPTEN__
-      rt->setRenderManager(nullptr);
+      rt->setAfterBatchCallback({});
 #endif
       RenderManager_destroy(manager);
       PROXY(onComplete(requestId));

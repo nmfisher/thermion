@@ -313,6 +313,10 @@ namespace thermion
     }
   }
 
-  RenderManager::~RenderManager() {}
+  RenderManager::~RenderManager() {
+#ifdef __EMSCRIPTEN__
+    stopFrameLoop();
+#endif
+  }
 
 } // namespace thermion
