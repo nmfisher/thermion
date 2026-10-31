@@ -1,4 +1,6 @@
 #include "ThermionWebApi.h"
+#include "WebGLContext.hpp"
+#include "rendering/WebJobThread.hpp"
 
 #include <thread>
 #include <mutex>
@@ -20,6 +22,19 @@
 #include <emscripten/bind.h>
 
 using emscripten::val;
+
+namespace thermion {
+
+EMSCRIPTEN_WEBGL_CONTEXT_HANDLE createWebGLContextForCurrentJob() {
+  const char* selector = WebJobThread::currentCanvasSelector();
+  if (!selector) {
+    std::cerr << "Web engine creation requires a WebJobThread job" << std::endl;
+    return 0;
+  }
+  return Thermion_createGLContext(selector);
+}
+
+} // namespace thermion
 
 extern "C"
 {

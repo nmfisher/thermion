@@ -1,6 +1,6 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten/html5.h>
-#include "ThermionWebApi.h"
+#include "WebGLContext.hpp"
 #include <backend/platforms/PlatformWebGL.h>
 #endif
 
@@ -44,8 +44,6 @@ namespace thermion
     {
         using namespace filament;
 
-        // The existing web canvas lookup. Queued commands use explicit handles.
-        const char *JobThread_getActiveCanvasSelector();
 #endif
 
         EMSCRIPTEN_KEEPALIVE uint64_t TSWAP_CHAIN_CONFIG_TRANSPARENT = filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT;
@@ -61,8 +59,8 @@ namespace thermion
             bool disableHandleUseAfterFreeCheck)
         {
             #ifdef __EMSCRIPTEN__
-            // Canvas selection still uses the most recently created thread.
-            auto handle = Thermion_createGLContext(JobThread_getActiveCanvasSelector());
+            auto handle = createWebGLContextForCurrentJob();
+            if (!handle) return nullptr;
             tSharedContext = (void*)handle;
             tPlatform = (backend::Platform *)new filament::backend::PlatformWebGL();
             #endif

@@ -67,39 +67,27 @@ extern "C"
   // This map owns the threads. Resource handles are never used to choose a thread.
   std::unordered_map<TJobThread*, std::unique_ptr<JobThread>> _jobThreads;
 
-  // Canvas selection still uses the most recently created thread.
-  // Queued commands use their explicit handle.
-  JobThread* g_canvasThread = nullptr;
-
-  EMSCRIPTEN_KEEPALIVE const char* JobThread_getActiveCanvasSelector()
-  {
-    return g_canvasThread ? g_canvasThread->canvasSelector() : "#thermion_canvas";
-  }
-
-
   EMSCRIPTEN_KEEPALIVE TJobThread* JobThread_create()
   {
-    auto thread = std::make_unique<JobThread>();
-    if (thread->creationFailed()) {
+    auto thread = JobThread::create();
+    if (!thread) {
       Log("JobThread worker failed to start; returning null handle");
       return nullptr;
     }
     auto* handle = reinterpret_cast<TJobThread*>(thread.get());
     _jobThreads[handle] = std::move(thread);
-    g_canvasThread = reinterpret_cast<JobThread*>(handle);
     return handle;
   }
 
   EMSCRIPTEN_KEEPALIVE TJobThread* JobThread_createForCanvas(const char *canvasSelector)
   {
-    auto thread = std::make_unique<JobThread>(canvasSelector);
-    if (thread->creationFailed()) {
+    auto thread = JobThread::create(canvasSelector);
+    if (!thread) {
       Log("JobThread worker failed to start for canvas %s; returning null handle", canvasSelector);
       return nullptr;
     }
     auto* handle = reinterpret_cast<TJobThread*>(thread.get());
     _jobThreads[handle] = std::move(thread);
-    g_canvasThread = reinterpret_cast<JobThread*>(handle);
     return handle;
   }
 
@@ -109,8 +97,7 @@ extern "C"
     if (it != _jobThreads.end()) {
       auto thread = std::move(it->second);
       _jobThreads.erase(it);
-      thread.reset();
-      if (g_canvasThread == reinterpret_cast<JobThread*>(jobThread)) g_canvasThread = nullptr;
+      JobThread::destroy(std::move(thread));
     }
   }
 

@@ -20,6 +20,9 @@ Future<void> main() async {
     progress('module initialization');
     await (globalContext['__thermionReady'] as JSPromise).toDart;
     NativeLibrary.initBindings('thermion_dart');
+    if (Engine_create(1, nullptr, nullptr, 1, false) != nullptr) {
+      throw StateError('Web engine creation outside a job must fail');
+    }
     for (var round = 0; round < 3; round++) {
       progress('engine $round creation');
       final selector = '#test_canvas_$round'.toNativeUtf8().cast<Char>();
