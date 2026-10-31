@@ -29,6 +29,10 @@ namespace thermion
         // Creates a JobThread that transfers the given canvas element
         // (CSS selector) to its worker — one thread per viewer on web.
         EMSCRIPTEN_KEEPALIVE TJobThread* JobThread_createForCanvas(const char *canvasSelector);
+        // Stop accepting external work and drain accepted commands. Native
+        // destruction joins; web worker builds return before the worker exits.
+        // Main-thread web mode has no worker to stop.
+        // Destroy engine resources first and do not use the handle afterward.
         EMSCRIPTEN_KEEPALIVE void JobThread_destroy(TJobThread *jobThread);
 
         EMSCRIPTEN_KEEPALIVE void JobThread_addTask(TJobThread *jobThread, void (*task)());

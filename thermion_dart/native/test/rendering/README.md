@@ -241,6 +241,38 @@ Emscripten timer fallback. Detachment cancels whichever request was scheduled.
 Command polling and worker shutdown still use their existing behavior in this
 refactor. The independent command-wakeup and shutdown fix follows separately.
 
+### Worker command wakeups and shutdown
+
+Web commands wake their owning worker without waiting for browser
+`requestAnimationFrame` callbacks. The worker runs up to eight commands, calls
+its installed after-batch callback, then yields to browser events. This lets
+Filament uploads complete while drawing is paused or browser frames stop.
+
+`JobThread::destroy()` consumes ownership and requests shutdown. The worker
+rejects new external work, drains accepted work and its nested completion jobs,
+then deletes itself and exits. The browser thread does not join or execute
+those commands. Posted Dart completions remain deliverable after worker exit.
+Destroy attached render managers before their engine and job thread;
+`FilamentApp.destroy()` already follows that order.
+
+Build the standalone regression with Emscripten. It needs no Filament headers:
+
+```sh
+em++ -std=c++17 -O2 -fno-exceptions -pthread \
+  -Ithermion_dart/native/include \
+  thermion_dart/native/web/src/cpp/WebJobThread.cpp \
+  thermion_dart/native/test/rendering/web_dispatch_test.cpp \
+  --pre-js thermion_dart/native/test/rendering/disable_worker_frames.js \
+  -sPTHREAD_POOL_SIZE=2 -sMALLOC=mimalloc -sEXIT_RUNTIME=0 -sASSERTIONS=2 \
+  -sINITIAL_MEMORY=134217728 -sSTACK_SIZE=65536 \
+  -sALLOW_BLOCKING_ON_MAIN_THREAD=1 -o /tmp/thermion-worker-test/test.js
+```
+
+Create the output directory first. Run the included browser runner against it.
+The fixture runs 25 shutdown cycles with browser animation frames disabled.
+It checks FIFO order, worker affinity, yielding, nested completion work and
+callback delivery after worker exit. It needs no render-manager stubs.
+
 ### Web canvas selection
 
 `WebJobThread` binds its canvas selector while it executes a batch, an inline
