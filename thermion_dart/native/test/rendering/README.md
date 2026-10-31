@@ -198,6 +198,19 @@ folder to check synchronous callback delivery. Worker command processing still
 uses animation frames in this patch; independent wakeups and worker shutdown
 remain in #347.
 
+### Platform implementations
+
+`JobThread.hpp` selects `NativeJobThread` on native platforms and
+`WebJobThread` on web. The native queue test builds `NativeJobThread.cpp`.
+Web builds use `native/web/src/cpp/WebJobThread.cpp`; the main-thread web test
+selects the same implementation with `THERMION_WEB_MAIN_THREAD`.
+Both implementations inherit submission and queue storage from `JobThreadBase`.
+Their `enqueue()` and `isStopping()` overrides retain platform scheduling and
+stop-state lifetimes. The tests submit work through base references. Ownership
+stays with the concrete type: its `create()` and `destroy()` methods handle the
+platform lifecycle, and the base destructor is protected. This split preserves
+the existing command scheduling and shutdown behavior.
+
 ### Explicit job-thread handles
 
 Every queued C API receives `TJobThread* jobThread` as its first argument. Dart stores
@@ -215,6 +228,20 @@ With `THERMION_TEST_LIBRARY` and `FILAMENT_TEST_INCLUDE_DIR` configured as above
 `job_thread_handle_test` creates two threads, holds A's queue while B completes
 work, and checks that A remains usable after B is destroyed.
 
-Web canvas selection keeps its existing creation-order behavior here. The
-platform split in #392 replaces that lookup with scoped web canvas selection.
-The browser regression holds A's queue while an image job completes on B.
+### Web canvas selection
+
+`WebJobThread` binds its canvas selector while it executes a batch, an inline
+job or the existing shutdown drain. Nested inline jobs restore the previous
+binding. Construction copies the selector and configures canvas transfer;
+it does not create a WebGL context or bind the caller's thread.
+
+Web engine creation uses the internal `createWebGLContextForCurrentJob()`
+helper. The exported active-canvas getter is removed. Creating a web engine
+outside a job returns null instead of choosing a globally active canvas.
+The explicit `Thermion_createGLContext(selector)` API is unchanged.
+
+The drawing fixture creates worker B before submitting engine A's creation
+through A's handle. It checks that the WebGL contexts use their respective
+canvas sizes. It also holds A's queue while image creation completes on B.
+Images have no engine pointer, so this checks routing for standalone resources. The main-thread test checks nested selector restoration and
+upload callbacks, and the API fixture checks the missing-job failure path.

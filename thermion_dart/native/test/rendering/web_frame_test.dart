@@ -14,6 +14,8 @@ external int _liveWorkers();
 external void _holdCurrentWorker(int worker);
 @JS('thermion_dart._WebTest_releaseHeldWorker')
 external void _releaseHeldWorker();
+@JS('thermion_dart._WebTest_contextWidth')
+external void _contextWidth(int worker, int engine, int callback);
 
 void check(bool condition, String message) {
   if (!condition) throw StateError(message);
@@ -66,36 +68,78 @@ Future<List<int>> sample(_Engine first, _Engine second) async {
   return [after[0] - before[0], after[1] - before[1]];
 }
 
-Future<void> verifyThreadRouting(_Engine first, _Engine second) async {
+Future<void> verifyCanvasRouting() async {
+  final firstSelector = '#creation_canvas_a'.toNativeUtf8().cast<Char>();
+  final firstWorker = JobThread_createForCanvas(firstSelector);
+  free(firstSelector);
+  check(firstWorker != nullptr, 'First routing worker failed to start');
+  _holdCurrentWorker(firstWorker.address);
+  late final Future<Pointer<TEngine>> firstPending;
+  late final Pointer<TJobThread> secondWorker;
+  try {
+    final secondSelector = '#creation_canvas_b'.toNativeUtf8().cast<Char>();
+    secondWorker = JobThread_createForCanvas(secondSelector);
+    free(secondSelector);
+    check(secondWorker != nullptr, 'Second routing worker failed to start');
+    // Submit after creating B. The explicit handle must still select A.
+    firstPending = withPointerCallback<TEngine>(
+      (cb) => Engine_createJobThread(firstWorker, 1, nullptr, nullptr, 1, false, cb),
+    );
+  } finally {
+    _releaseHeldWorker();
+  }
+  // Worker B now exists. Engine A must still create its context on worker A.
+  final first = await firstPending;
+  check(first != nullptr, 'Delayed engine used the wrong canvas');
+  final second = await withPointerCallback<TEngine>(
+    (cb) => Engine_createJobThread(secondWorker, 1, nullptr, nullptr, 1, false, cb),
+  );
+  check(second != nullptr, 'Second routing engine failed to start');
+  final widths = await Future.wait([
+    withUInt32Callback((cb) => _contextWidth(firstWorker.address, first.address, cb.address)),
+    withUInt32Callback((cb) => _contextWidth(secondWorker.address, second.address, cb.address)),
+  ]);
+  check(widths[0] == 16 && widths[1] == 32, 'Contexts used the wrong canvases: $widths');
+
   // Images have no engine handle. They must also use the supplied thread.
-  _holdCurrentWorker(first.worker.address);
+  _holdCurrentWorker(firstWorker.address);
   var firstFinished = false;
-  final firstImage = withPointerCallback<TLinearImage>((cb) => Image_createEmptyJobThread(first.worker, 1, 1, 3, cb))
-      .then((image) {
-        firstFinished = true;
-        return image;
-      });
+  final firstImage = withPointerCallback<TLinearImage>(
+    (cb) => Image_createEmptyJobThread(firstWorker, 1, 1, 3, cb),
+  ).then((image) {
+    firstFinished = true;
+    return image;
+  });
   late final Pointer<TLinearImage> secondImage;
   try {
     secondImage = await withPointerCallback<TLinearImage>(
-      (cb) => Image_createEmptyJobThread(second.worker, 1, 1, 3, cb),
+      (cb) => Image_createEmptyJobThread(secondWorker, 1, 1, 3, cb),
     );
     check(!firstFinished, 'An image job ran on B instead of waiting on A');
   } finally {
     _releaseHeldWorker();
   }
   final imageOnFirst = await firstImage;
-  await withVoidCallback((id, cb) => Image_destroyJobThread(first.worker, imageOnFirst, id, cb));
-  await withVoidCallback((id, cb) => Image_destroyJobThread(second.worker, secondImage, id, cb));
+  await withVoidCallback((id, cb) => Image_destroyJobThread(firstWorker, imageOnFirst, id, cb));
+  await withVoidCallback((id, cb) => Image_destroyJobThread(secondWorker, secondImage, id, cb));
+  await withVoidCallback((id, cb) => Engine_destroyJobThread(firstWorker, first, id, cb));
+  await withVoidCallback((id, cb) => Engine_destroyJobThread(secondWorker, second, id, cb));
+  JobThread_destroy(firstWorker);
+  JobThread_destroy(secondWorker);
+  final deadline = DateTime.now().add(const Duration(seconds: 5));
+  while (_liveWorkers() != 0 && DateTime.now().isBefore(deadline)) {
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+  }
+  check(_liveWorkers() == 0, 'Routing workers remained alive');
 }
 
 Future<void> main() async {
   try {
     await (globalContext['__thermionReady'] as JSPromise).toDart;
     NativeLibrary.initBindings('thermion_dart');
+    await verifyCanvasRouting();
     final first = await _Engine.create(0);
     final second = await _Engine.create(1);
-    await verifyThreadRouting(first, second);
     await Future<void>.delayed(const Duration(milliseconds: 300));
     final initial = await sample(first, second);
     check(initial[0] > 0 && initial[1] > 0, 'Both engines must draw: $initial');

@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <thread>
 #include <emscripten.h>
+#include <emscripten/html5.h>
 
 using namespace thermion;
 
@@ -41,6 +42,17 @@ EMSCRIPTEN_KEEPALIVE void WebTest_holdCurrentWorker(TJobThread *jobThread) {
 
 EMSCRIPTEN_KEEPALIVE void WebTest_releaseHeldWorker() {
     resumeCreation.store(true, std::memory_order_release);
+}
+
+EMSCRIPTEN_KEEPALIVE void WebTest_contextWidth(TJobThread *jobThread, filament::Engine* engine, void (*done)(uint32_t)) {
+    auto* rt = reinterpret_cast<JobThread*>(jobThread);
+    rt->addDetachedTask([=] {
+        int width = 0, height = 0;
+        auto context = emscripten_webgl_get_current_context();
+        auto result = emscripten_webgl_get_drawing_buffer_size(context, &width, &height);
+        const uint32_t value = result == EMSCRIPTEN_RESULT_SUCCESS ? width : 0;
+        rt->dispatchCallback([=] { done(value); });
+    });
 }
 
 EMSCRIPTEN_KEEPALIVE void WebTest_attachScene(TJobThread *jobThread, filament::Engine* engine,
