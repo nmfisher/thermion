@@ -12767,6 +12767,9 @@ extension StructAllocator on Struct {
       case TIndirectLight:
         final ptr = TIndirectLight.stackAlloc();
         return ptr.toDart() as T;
+      case TJobThread:
+        final ptr = TJobThread.stackAlloc();
+        return ptr.toDart() as T;
       case TKtx1Bundle:
         final ptr = TKtx1Bundle.stackAlloc();
         return ptr.toDart() as T;
