@@ -101,9 +101,8 @@ Thermion and obtains Filament.
 
 Render-manager attachment, detachment and deletion run on its owning worker.
 Await `RenderManager.destroy()` before destroying its animation managers,
-renderer or engine. `FilamentApp.destroy()` handles this ordering. The manager
-remains registered to its worker until deletion, including after a separate
-`RenderManager_detachFromJobThread()` call.
+renderer or engine. `FilamentApp.destroy()` handles this ordering. Attachment,
+detachment and deletion all receive the app's job-thread handle.
 
 This patch uses the existing animation-frame command loop and callback delivery.
 Main-thread web builds run the same operations directly on the calling thread.
@@ -198,3 +197,24 @@ Run the same fixture with `-DTHERMION_WEB_MAIN_THREAD=ON` in a separate build
 folder to check synchronous callback delivery. Worker command processing still
 uses animation frames in this patch; independent wakeups and worker shutdown
 remain in #347.
+
+### Explicit job-thread handles
+
+Every queued C API receives `TJobThread* jobThread` as its first argument. Dart stores
+this handle as `Pointer<TJobThread>` in `FFIFilamentApp` and passes it through
+its FFI wrappers. The C API
+submits directly to that thread. There is no resource-to-thread map or active
+thread fallback. Creating another thread does not replace an existing thread.
+
+Pass resource handles from the same app. Destroy the resources and await their
+queued jobs before calling `JobThread_destroy()`. Do not submit through the
+handle after that call. The native and Wasm libraries and generated Dart
+bindings must be rebuilt together because these C signatures have changed.
+
+With `THERMION_TEST_LIBRARY` and `FILAMENT_TEST_INCLUDE_DIR` configured as above,
+`job_thread_handle_test` creates two threads, holds A's queue while B completes
+work, and checks that A remains usable after B is destroyed.
+
+Web canvas selection keeps its existing creation-order behavior here. The
+platform split in #392 replaces that lookup with scoped web canvas selection.
+The browser regression holds A's queue while an image job completes on B.

@@ -76,6 +76,7 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
     // *JobThread variant and read the result from the callback.
     return withBoolCallback(
       (cb) => RenderableManager_setGeometryAtNonIndexedJobThread(
+        app.jobThreadHandle,
         renderableManager,
         entity,
         primitiveIndex,
@@ -222,7 +223,14 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
   @override
   Future setCastShadows(ThermionEntity entity, bool enabled) async {
     await withVoidCallback(
-      (requestId, cb) => RenderableManager_setCastShadowsJobThread(renderableManager, entity, enabled, requestId, cb),
+      (requestId, cb) => RenderableManager_setCastShadowsJobThread(
+        app.jobThreadHandle,
+        renderableManager,
+        entity,
+        enabled,
+        requestId,
+        cb,
+      ),
     );
   }
 
@@ -234,8 +242,14 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
   @override
   Future setReceiveShadows(ThermionEntity entity, bool enabled) async {
     await withVoidCallback(
-      (requestId, cb) =>
-          RenderableManager_setReceiveShadowsJobThread(renderableManager, entity, enabled, requestId, cb),
+      (requestId, cb) => RenderableManager_setReceiveShadowsJobThread(
+        app.jobThreadHandle,
+        renderableManager,
+        entity,
+        enabled,
+        requestId,
+        cb,
+      ),
     );
   }
 
@@ -306,6 +320,7 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
     try {
       await withVoidCallback(
         (requestId, cb) => RenderableManager_setMorphWeightsJobThread(
+          app.jobThreadHandle,
           renderableManager,
           entity,
           weightsPtr.address,
@@ -357,6 +372,7 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
 
     await withVoidCallback(
       (requestId, cb) => RenderableManager_setBonesFromMat4JobThread(
+        app.jobThreadHandle,
         renderableManager,
         entity,
         transformsPtr.address,
@@ -386,6 +402,7 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
 
     await withVoidCallback(
       (requestId, cb) => RenderableManager_setBonesFromBoneJobThread(
+        app.jobThreadHandle,
         renderableManager,
         entity,
         bonesPtr.address,
@@ -412,17 +429,17 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
 
   @override
   VertexBufferBuilder createVertexBufferBuilder() {
-    return FFIVertexBufferBuilder(app.engine);
+    return FFIVertexBufferBuilder(app.engine, app.jobThreadHandle);
   }
 
   @override
   BufferObjectBuilder createBufferObjectBuilder() {
-    return FFIBufferObjectBuilder(app.engine);
+    return FFIBufferObjectBuilder(app.engine, app.jobThreadHandle);
   }
 
   @override
   IndexBufferBuilder createIndexBufferBuilder() {
-    return FFIIndexBufferBuilder(app.engine);
+    return FFIIndexBufferBuilder(app.engine, app.jobThreadHandle);
   }
 }
 
@@ -646,7 +663,13 @@ class FFIRenderableBuilder implements RenderableBuilder {
     final int result;
     if (skinningData == null) {
       result = await withInt32Callback(
-        (cb) => bindings.RenderableBuilder_buildJobThread(_builderPtr!, _app.engine, entity, cb.cast()),
+        (cb) => bindings.RenderableBuilder_buildJobThread(
+          _app.jobThreadHandle,
+          _builderPtr!,
+          _app.engine,
+          entity,
+          cb.cast(),
+        ),
       );
     } else {
       result = await withInt32Callback((cb) {
@@ -654,6 +677,7 @@ class FFIRenderableBuilder implements RenderableBuilder {
         final stack = FILAMENT_WASM ? stackSave() : nullptr;
         final input = FILAMENT_WASM ? (makeFloat32List(skinningData.length)..setAll(0, skinningData)) : skinningData;
         bindings.RenderableBuilder_buildWithSkinningJobThread(
+          _app.jobThreadHandle,
           _builderPtr!,
           _app.engine,
           entity,

@@ -185,6 +185,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
 
       await withVoidCallback(
         (requestId, cb) => RenderManager_setRenderableJobThread(
+          app.jobThreadHandle,
           pointer,
           swapChainHandle,
           pointers.cast(),
@@ -202,7 +203,13 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   Future detachAll(SwapChain swapChain) {
     return _serialize(() async {
       await withVoidCallback(
-        (requestId, cb) => RenderManager_removeSwapChainJobThread(pointer, swapChain.getNativeHandle(), requestId, cb),
+        (requestId, cb) => RenderManager_removeSwapChainJobThread(
+          app.jobThreadHandle,
+          pointer,
+          swapChain.getNativeHandle(),
+          requestId,
+          cb,
+        ),
       );
       _attachmentState.detachAll(swapChain.getNativeHandle());
     });
@@ -210,7 +217,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
 
   Future<void> destroy() => _serialize(() async {
     await withVoidCallback((requestId, callback) {
-      RenderManager_destroyJobThread(pointer, requestId, callback);
+      RenderManager_destroyJobThread(app.jobThreadHandle, pointer, requestId, callback);
     });
     _attachmentState.clear();
   });
@@ -222,7 +229,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
     // drives a frame on the calling thread. Worker mode completes without queuing work).
     final timestamp = frameTimeInNanos ?? FrameScheduler_steadyClockUs().toInt() * 1000;
     await withVoidCallback((requestId, cb) {
-      RenderManager_renderJobThread(pointer, timestamp.toBigInt, requestId, cb);
+      RenderManager_renderJobThread(app.jobThreadHandle, pointer, timestamp.toBigInt, requestId, cb);
     });
   }
 

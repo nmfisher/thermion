@@ -83,7 +83,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   final Pointer<TGltfAssetLoader> gltfAssetLoader;
   Pointer<TRenderer> renderer;
 
-  final Pointer<Void> jobThreadHandle;
+  final Pointer<TJobThread> jobThreadHandle;
 
   final Pointer<TMaterialProvider> ubershaderMaterialProvider;
 
@@ -159,8 +159,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // transfers its own canvas element to the worker. The selector is the
     // CSS id of that viewer's canvas; native passes null and gets the
     // default thread.
-    JobThread_destroy(nullptr);
-    late final Pointer<Void> jobThreadHandle;
+    late final Pointer<TJobThread> jobThreadHandle;
     if (canvasSelector != null) {
       final selectorPtr = canvasSelector.toNativeUtf8().cast<Char>();
       jobThreadHandle = JobThread_createForCanvas(selectorPtr);
@@ -175,6 +174,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final engine = await withPointerCallback<TEngine>(
       (cb) => Engine_createJobThread(
+        jobThreadHandle,
         config!.backend.value,
         config.platform ?? nullptr,
         config.sharedContext ?? nullptr,
@@ -196,10 +196,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final nameComponentManager = NameComponentManager_create();
 
     final gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
-      (cb) => GltfAssetLoader_createJobThread(engine, nullptr, nameComponentManager, cb),
+      (cb) => GltfAssetLoader_createJobThread(jobThreadHandle, engine, nullptr, nameComponentManager, cb),
     );
 
-    final renderer = await withPointerCallback<TRenderer>((cb) => Engine_createRendererJobThread(engine, cb));
+    final renderer = await withPointerCallback<TRenderer>(
+      (cb) => Engine_createRendererJobThread(jobThreadHandle, engine, cb),
+    );
     final ubershaderMaterialProvider = GltfAssetLoader_getMaterialProvider(gltfAssetLoader);
 
     final transformManager = Engine_getTransformManager(engine);
@@ -210,14 +212,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     // On web, rendering is driven by the JobThread's rAF mainLoop via
     // RenderManager::tick(). Wire the two together; no-op on native.
-    RenderManager_attachToJobThread(renderManager);
+    RenderManager_attachToJobThread(jobThreadHandle, renderManager);
 
     final animationManager = await withPointerCallback<TAnimationManager>(
-      (cb) => AnimationManager_createJobThread(engine, cb),
+      (cb) => AnimationManager_createJobThread(jobThreadHandle, engine, cb),
     );
 
     await withVoidCallback(
-      (requestId, cb) => RenderManager_addAnimationManagerJobThread(renderManager, animationManager, requestId, cb),
+      (requestId, cb) =>
+          RenderManager_addAnimationManagerJobThread(jobThreadHandle, renderManager, animationManager, requestId, cb),
     );
 
     FilamentApp.instance = FFIFilamentApp(
@@ -256,7 +259,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
 
     final swapChain = await withPointerCallback<TSwapChain>(
-      (cb) => Engine_createHeadlessSwapChainJobThread(this.engine, width, height, flags, cb),
+      (cb) => Engine_createHeadlessSwapChainJobThread(jobThreadHandle, this.engine, width, height, flags, cb),
     );
     final sc = FFISwapChain(swapChain, this);
     _swapChains.add(sc);
@@ -271,7 +274,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       flags |= TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
     }
     final swapChain = await withPointerCallback<TSwapChain>(
-      (cb) => Engine_createSwapChainJobThread(this.engine, window.cast<Void>(), flags, cb),
+      (cb) => Engine_createSwapChainJobThread(jobThreadHandle, this.engine, window.cast<Void>(), flags, cb),
     );
     _logger.info("Created swapchain from window");
     final sc = FFISwapChain(swapChain, this);
@@ -308,7 +311,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future<Camera> createCamera({ThermionEntity? targetEntity}) async {
     targetEntity ??= await createEntity(createTransformComponent: false);
     return FFICamera(
-      await withPointerCallback<TCamera>((cb) => Engine_createCameraJobThread(engine, targetEntity!, cb)),
+      await withPointerCallback<TCamera>(
+        (cb) => Engine_createCameraJobThread(jobThreadHandle, engine, targetEntity!, cb),
+      ),
       this,
     );
   }
@@ -363,7 +368,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await flush();
 
       await withVoidCallback((requestId, callback) {
-        Engine_destroySwapChainJobThread(engine, swapChain.getNativeHandle(), requestId, callback);
+        Engine_destroySwapChainJobThread(jobThreadHandle, engine, swapChain.getNativeHandle(), requestId, callback);
       });
 
       _swapChains.remove(swapChain);
@@ -379,15 +384,21 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future destroyEntity(ThermionEntity entity) async {
     if (renderableManager.hasComponent(entity)) {
       await withVoidCallback(
-        (requestId, cb) =>
-            RenderableManager_destroyEntityJobThread(renderableManager.getNativeHandle(), entity, requestId, cb),
+        (requestId, cb) => RenderableManager_destroyEntityJobThread(
+          jobThreadHandle,
+          renderableManager.getNativeHandle(),
+          entity,
+          requestId,
+          cb,
+        ),
       );
     }
     if (transformManager.hasComponent(entity)) {
       await transformManager.removeComponent(entity);
     }
     await withVoidCallback(
-      (requestId, cb) => EntityManager_destroyEntityJobThread(Engine_getEntityManager(engine), entity, requestId, cb),
+      (requestId, cb) =>
+          EntityManager_destroyEntityJobThread(jobThreadHandle, Engine_getEntityManager(engine), entity, requestId, cb),
     );
   }
 
@@ -416,14 +427,19 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // ubershader MaterialProvider), the AnimationManager wraps gltfio
     // animators bound to the Engine, and NameComponentManager is standalone.
     await withVoidCallback(
-      (requestId, cb) => AnimationManager_destroyJobThread((animationManager).animationManager, requestId, cb),
+      (requestId, cb) =>
+          AnimationManager_destroyJobThread(jobThreadHandle, (animationManager).animationManager, requestId, cb),
     );
-    await withVoidCallback((requestId, cb) => GltfAssetLoader_destroyJobThread(gltfAssetLoader, requestId, cb));
+    await withVoidCallback(
+      (requestId, cb) => GltfAssetLoader_destroyJobThread(jobThreadHandle, gltfAssetLoader, requestId, cb),
+    );
     NameComponentManager_destroy(nameComponentManager);
 
-    await withVoidCallback((requestId, cb) => Engine_destroyRendererJobThread(engine, renderer, requestId, cb));
+    await withVoidCallback(
+      (requestId, cb) => Engine_destroyRendererJobThread(jobThreadHandle, engine, renderer, requestId, cb),
+    );
     await withVoidCallback((requestId, cb) async {
-      Engine_destroyJobThread(engine, requestId, cb);
+      Engine_destroyJobThread(jobThreadHandle, engine, requestId, cb);
     });
 
     JobThread_destroy(jobThreadHandle);
@@ -478,7 +494,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       _logger.finest("Created ${width}x${height} depth texture (TextureFormat.DEPTH32F)");
     }
     final renderTarget = await withPointerCallback<TRenderTarget>((cb) {
-      RenderTarget_createJobThread(engine, color!.getNativeHandle(), depth!.getNativeHandle(), cb);
+      RenderTarget_createJobThread(jobThreadHandle, engine, color!.getNativeHandle(), depth!.getNativeHandle(), cb);
     });
     if (renderTarget == nullptr) {
       throw Exception("Failed to create RenderTarget");
@@ -502,6 +518,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final texturePtr = await withPointerCallback<TTexture>((cb) {
       Texture_buildJobThread(
+        jobThreadHandle,
         engine,
         width,
         height,
@@ -524,6 +541,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final ffiTexture = texture as FFITexture;
     await withVoidCallback((requestId, cb) {
       Texture_setExternalImageJobThread(
+        jobThreadHandle,
         engine,
         ffiTexture.pointer,
         Pointer<Void>.fromAddress(externalImagePtr),
@@ -556,7 +574,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     TextureSampler_setCompareMode(samplerPtr, compareMode.index, compareFunc.index);
 
-    return FFITextureSampler(samplerPtr);
+    return FFITextureSampler(samplerPtr, jobThreadHandle);
   }
 
   // Decodes the image data into a native LinearImage (floating point).
@@ -580,7 +598,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (ptr == nullptr) {
       throw Exception("Failed to decode image");
     }
-    return FFILinearImage(ptr);
+    return FFILinearImage(ptr, jobThreadHandle);
   }
 
   //
@@ -588,14 +606,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   //
   Future<LinearImage> createImage(int width, int height, int channels) async {
     final ptr = Image_createEmpty(width, height, channels);
-    return FFILinearImage(ptr);
+    return FFILinearImage(ptr, jobThreadHandle);
   }
 
   @override
   Future<Material> createGizmoMaterial() async {
     _gizmoMaterial ??= FFIMaterial(
       await withPointerCallback<TMaterial>((cb) {
-        Material_createGizmoMaterialJobThread(engine, cb);
+        Material_createGizmoMaterialJobThread(jobThreadHandle, engine, cb);
       }),
       this,
     );
@@ -610,7 +628,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future<Material> createBoneOverlayMaterial() async {
     _boneOverlayMaterial ??= FFIMaterial(
       await withPointerCallback<TMaterial>((cb) {
-        Material_createBoneOverlayMaterialJobThread(engine, cb);
+        Material_createBoneOverlayMaterialJobThread(jobThreadHandle, engine, cb);
       }),
       this,
     );
@@ -641,7 +659,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         );
       }
       final ptr = await withPointerCallback<TMaterial>((cb) {
-        Engine_buildMaterialJobThread(engine, data.address, data.length, cb);
+        Engine_buildMaterialJobThread(jobThreadHandle, engine, data.address, data.length, cb);
       });
       if (ptr == nullptr) {
         throw StateError('Filament could not create the material.');
@@ -695,6 +713,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }) async {
     final materialInstance = await withPointerCallback<TMaterialInstance>((cb) {
       MaterialProvider_createMaterialInstanceJobThread(
+        jobThreadHandle,
         ubershaderMaterialProvider,
         doubleSided,
         unlit,
@@ -758,7 +777,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future<WireframeMaterialInstance> createWireframeMaterialInstance() async {
     final material = FFIMaterial(
       await withPointerCallback<TMaterial>((cb) {
-        Material_createWireframeMaterialJobThread(engine, cb);
+        Material_createWireframeMaterialJobThread(jobThreadHandle, engine, cb);
       }),
       this,
     );
@@ -952,7 +971,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     for (int i = 0; i < MAX_BEGIN_FRAME_RETRIES; i++) {
       beginFrame = await withBoolCallback((cb) {
-        Renderer_beginFrameJobThread(renderer, swapChain!.getNativeHandle(), 0.toBigInt, cb);
+        Renderer_beginFrameJobThread(jobThreadHandle, renderer, swapChain!.getNativeHandle(), 0.toBigInt, cb);
       });
       if (beginFrame) {
         break;
@@ -1053,7 +1072,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       if (render) {
         await withVoidCallback((requestId, cb) {
-          Renderer_renderJobThread(renderer, view.getNativeHandle(), requestId, cb);
+          Renderer_renderJobThread(jobThreadHandle, renderer, view.getNativeHandle(), requestId, cb);
         });
       }
 
@@ -1066,6 +1085,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       await withVoidCallback((requestId, cb) {
         Renderer_readPixelsJobThread(
+          jobThreadHandle,
           renderer,
           viewport.width,
           viewport.height,
@@ -1084,7 +1104,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
 
     await withVoidCallback((requestId, cb) {
-      Renderer_endFrameJobThread(renderer, requestId, cb);
+      Renderer_endFrameJobThread(jobThreadHandle, renderer, requestId, cb);
     });
 
     await flush();
@@ -1098,15 +1118,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // available.
     if (FILAMENT_SINGLE_THREADED) {
       await withBoolCallback(
-        (cb) => Renderer_beginFrameJobThread(renderer, swapChain!.getNativeHandle(), 0.toBigInt, cb),
+        (cb) => Renderer_beginFrameJobThread(jobThreadHandle, renderer, swapChain!.getNativeHandle(), 0.toBigInt, cb),
       );
       for (final view in views) {
         await withVoidCallback((requestId, cb) {
-          Renderer_renderJobThread(renderer, view.getNativeHandle(), requestId, cb);
+          Renderer_renderJobThread(jobThreadHandle, renderer, view.getNativeHandle(), requestId, cb);
         });
       }
       await withVoidCallback((requestId, cb) {
-        Renderer_endFrameJobThread(renderer, requestId, cb);
+        Renderer_endFrameJobThread(jobThreadHandle, renderer, requestId, cb);
       });
       await flush();
 
@@ -1190,11 +1210,19 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
 
       var gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
-        (cb) => GltfResourceLoader_createJobThread(engine, cb),
+        (cb) => GltfResourceLoader_createJobThread(jobThreadHandle, engine, cb),
       );
 
       var filamentAsset = await withPointerCallback<TFilamentAsset>(
-        (cb) => GltfAssetLoader_loadJobThread(engine, gltfAssetLoader, data.address, data.length, initialInstances, cb),
+        (cb) => GltfAssetLoader_loadJobThread(
+          jobThreadHandle,
+          engine,
+          gltfAssetLoader,
+          data.address,
+          data.length,
+          initialInstances,
+          cb,
+        ),
       );
 
       if (filamentAsset == nullptr) {
@@ -1223,6 +1251,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
         await withVoidCallback(
           (requestId, cb) => GltfResourceLoader_addResourceDataJobThread(
+            jobThreadHandle,
             gltfResourceLoader,
             resourceUris[i],
             resourceData.address,
@@ -1235,16 +1264,16 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       if (loadResourcesAsync) {
         final result = await withBoolCallback(
-          (cb) => GltfResourceLoader_asyncBeginLoadJobThread(gltfResourceLoader, filamentAsset, cb),
+          (cb) => GltfResourceLoader_asyncBeginLoadJobThread(jobThreadHandle, gltfResourceLoader, filamentAsset, cb),
         );
         if (!result) {
           throw Exception("Failed to begin async loading");
         }
 
-        GltfResourceLoader_asyncUpdateLoadJobThread(gltfResourceLoader);
+        GltfResourceLoader_asyncUpdateLoadJobThread(jobThreadHandle, gltfResourceLoader);
 
         var progress = await withFloatCallback(
-          (cb) => GltfResourceLoader_asyncGetLoadProgressJobThread(gltfResourceLoader, cb),
+          (cb) => GltfResourceLoader_asyncGetLoadProgressJobThread(jobThreadHandle, gltfResourceLoader, cb),
         );
         while (progress < 1.0) {
           // Callbacks in main-thread mode can complete synchronously. Yield
@@ -1252,15 +1281,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           if (FILAMENT_WASM) {
             await Future<void>.delayed(Duration.zero);
           }
-          GltfResourceLoader_asyncUpdateLoadJobThread(gltfResourceLoader);
+          GltfResourceLoader_asyncUpdateLoadJobThread(jobThreadHandle, gltfResourceLoader);
           progress = await withFloatCallback(
-            (cb) => GltfResourceLoader_asyncGetLoadProgressJobThread(gltfResourceLoader, cb),
+            (cb) => GltfResourceLoader_asyncGetLoadProgressJobThread(jobThreadHandle, gltfResourceLoader, cb),
           );
         }
       } else {
         _logger.info("Loading glTF resources synchronously");
         final result = await withBoolCallback(
-          (cb) => GltfResourceLoader_loadResourcesJobThread(gltfResourceLoader, filamentAsset, cb),
+          (cb) => GltfResourceLoader_loadResourcesJobThread(jobThreadHandle, gltfResourceLoader, filamentAsset, cb),
         );
 
         if (!result) {
@@ -1272,6 +1301,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       final asset = await withPointerCallback<TSceneAsset>(
         (cb) => SceneAsset_createFromFilamentAssetJobThread(
+          jobThreadHandle,
           engine,
           gltfAssetLoader,
           nameComponentManager,
@@ -1282,7 +1312,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       );
 
       await withVoidCallback(
-        (requestId, cb) => GltfResourceLoader_destroyJobThread(engine, gltfResourceLoader, requestId, cb),
+        (requestId, cb) =>
+            GltfResourceLoader_destroyJobThread(jobThreadHandle, engine, gltfResourceLoader, requestId, cb),
       );
 
       if (asset == nullptr) {
@@ -1294,7 +1325,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       final ffiAsset = FFIAsset(asset, app: this);
       if (!ffiAsset.geometryCapabilities.containsAll(geometryRequirements)) {
-        await withVoidCallback((requestId, cb) => SceneAsset_destroyJobThread(asset, requestId, cb));
+        await withVoidCallback((requestId, cb) => SceneAsset_destroyJobThread(jobThreadHandle, asset, requestId, cb));
         throw StateError(
           'The loaded asset does not provide all required geometry '
           'capabilities. Required: $geometryRequirements; provided: '
@@ -1322,7 +1353,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   Future destroyScene(covariant FFIScene scene) async {
-    await withVoidCallback((requestId, cb) => Engine_destroySceneJobThread(engine, scene.scene, requestId, cb));
+    await withVoidCallback(
+      (requestId, cb) => Engine_destroySceneJobThread(jobThreadHandle, engine, scene.scene, requestId, cb),
+    );
   }
 
   //
@@ -1338,7 +1371,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     bool addToScene = true,
   }) async {
     // Build vertex buffer
-    final vertexBufferBuilder = FFIVertexBufferBuilder(engine);
+    final vertexBufferBuilder = FFIVertexBufferBuilder(engine, jobThreadHandle);
     vertexBufferBuilder.vertexCount(geometry.vertices.length ~/ 3);
 
     // Calculate buffer count - always include UV0 and COLOR like the native C++
@@ -1454,7 +1487,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
 
     // Build index buffer
-    final indexBufferBuilder = FFIIndexBufferBuilder(engine);
+    final indexBufferBuilder = FFIIndexBufferBuilder(engine, jobThreadHandle);
     indexBufferBuilder.indexCount(geometry.indices.length);
 
     indexBufferBuilder.bufferType(geometry.indexType);
@@ -1513,6 +1546,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // Create the scene asset from buffers
     var assetPtr = await withPointerCallback<TSceneAsset>((callback) {
       var ptr = SceneAsset_createFromBuffersJobThread(
+        jobThreadHandle,
         engine,
         vertexBuffer.getNativeHandle(),
         indexBuffer.getNativeHandle(),
@@ -1569,9 +1603,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   //
   Future flush() async {
     if (FILAMENT_SINGLE_THREADED) {
-      await withVoidCallback((requestId, cb) => Engine_executeJobThread(engine, requestId, cb));
+      await withVoidCallback((requestId, cb) => Engine_executeJobThread(jobThreadHandle, engine, requestId, cb));
     } else {
-      await withVoidCallback((requestId, cb) => Engine_flushAndWaitJobThread(engine, requestId, cb));
+      await withVoidCallback((requestId, cb) => Engine_flushAndWaitJobThread(jobThreadHandle, engine, requestId, cb));
     }
   }
 
@@ -1593,7 +1627,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   //
   Future<ThermionEntity> createEntity({bool createTransformComponent = true}) async {
     final entity = await withInt32Callback(
-      (cb) => EntityManager_createEntityJobThread(Engine_getEntityManager(engine), cb),
+      (cb) => EntityManager_createEntityJobThread(jobThreadHandle, Engine_getEntityManager(engine), cb),
     );
     if (createTransformComponent) {
       await transformManager.createComponent(entity);
@@ -1643,6 +1677,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }) async {
     final ptr = await withPointerCallback<TSkybox>((cb) {
       Engine_buildSkyboxJobThread(
+        jobThreadHandle,
         engine,
         (texture as FFITexture?)?.pointer ?? nullptr,
         showSun,
@@ -1669,7 +1704,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     int priority = 7,
   }) async {
     final ptr = await withPointerCallback<TSkybox>((cb) {
-      Engine_buildColoredSkyboxJobThread(engine, r, g, b, a, showSun, intensity ?? -1.0, priority, cb);
+      Engine_buildColoredSkyboxJobThread(jobThreadHandle, engine, r, g, b, a, showSun, intensity ?? -1.0, priority, cb);
     });
     return FFISkybox(ptr, this);
   }
@@ -1686,7 +1721,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // happen on the engine's render thread; routing through the *JobThread
     // variant avoids the abort.
     final texturePtr = await withPointerCallback<TTexture>(
-      (cb) => Ktx2Reader_createTextureJobThread(engine, data.address, data.length, cb),
+      (cb) => Ktx2Reader_createTextureJobThread(jobThreadHandle, engine, data.address, data.length, cb),
     );
     if (texturePtr == nullptr) {
       throw Exception("Failed to load KTX2 texture");
@@ -1697,7 +1732,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   @override
   Future<TexturedQuad> createTexturedQuad() async {
     if (_imageMaterial == null) {
-      var ptr = await withPointerCallback<TMaterial>((cb) => Material_createImageMaterialJobThread(engine, cb));
+      var ptr = await withPointerCallback<TMaterial>(
+        (cb) => Material_createImageMaterialJobThread(jobThreadHandle, engine, cb),
+      );
       _imageMaterial = FFIMaterial(ptr, this);
     }
     var mi = await _imageMaterial!.createInstance() as FFIMaterialInstance;

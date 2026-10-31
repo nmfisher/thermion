@@ -47,11 +47,13 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external int _AnimationManager_clearMorphAnimation(Pointer<TAnimationManager> tAnimationManager, EntityId entityId);
   external Pointer<TAnimationManager> _AnimationManager_create(Pointer<TEngine> tEngine);
   external void _AnimationManager_createJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TAnimationManager>)>> onComplete,
   );
   external void _AnimationManager_destroy(Pointer<TAnimationManager> tAnimationManager);
   external void _AnimationManager_destroyJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TAnimationManager> tAnimationManager,
     int requestId,
     VoidCallback onComplete,
@@ -125,6 +127,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TSceneAsset> sceneAsset,
   );
   external void _AnimationManager_resetToRestPoseJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
     int requestId,
@@ -137,6 +140,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     double timeInSeconds,
   );
   external void _AnimationManager_setGltfAnimationTimeJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
     int animationIndex,
@@ -160,6 +164,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int numWeights,
   );
   external void _AnimationManager_setMorphTargetWeightsJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TAnimationManager> tAnimationManager,
     EntityId entityId,
     Pointer<Float32> morphData,
@@ -177,11 +182,13 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TSceneAsset> sceneAsset,
   );
   external void _AnimationManager_updateBoneMatricesJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
     Pointer<NativeFunction<void Function(bool)>> callback,
   );
   external void _AnimationManager_updateJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TAnimationManager> tAnimationManager,
     JSBigInt frameTimeInNanos,
     int requestId,
@@ -192,6 +199,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TEngine> engine,
   );
   external void _BufferObjectBuilder_buildJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TBufferObjectBuilder> tBuilder,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TBufferObject>)>> onComplete,
@@ -201,6 +209,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _BufferObjectBuilder_size(Pointer<TBufferObjectBuilder> builder, int sizeInBytes);
   external void _BufferObject_destroy(Pointer<TEngine> engine, Pointer<TBufferObject> buffer);
   external void _BufferObject_destroyJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TBufferObject> tBuffer,
     int requestId,
@@ -214,6 +223,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int byteOffset,
   );
   external void _BufferObject_setBufferJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TBufferObject> tBuffer,
     Pointer<Void> data,
@@ -300,6 +310,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TEngine> engine,
   );
   external void _ColorGradingBuilder_buildJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TColorGradingBuilder> tBuilder,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TColorGrading>)>> onComplete,
@@ -319,6 +330,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _ColorGradingBuilder_contrast(Pointer<TColorGradingBuilder> builder, double contrast);
   external Pointer<TColorGradingBuilder> _ColorGradingBuilder_create();
   external void _ColorGradingBuilder_createJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<NativeFunction<void Function(PointerClass<TColorGradingBuilder>)>> onComplete,
   );
   external void _ColorGradingBuilder_curves(
@@ -335,6 +347,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _ColorGradingBuilder_destroy(Pointer<TColorGradingBuilder> builder);
   external void _ColorGradingBuilder_destroyJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TColorGradingBuilder> tBuilder,
     int requestId,
     VoidCallback onComplete,
@@ -420,6 +433,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int priority,
   );
   external void _Engine_buildColoredSkyboxJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     double r,
     double g,
@@ -437,6 +451,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     double intensity,
   );
   external void _Engine_buildIndirectLightFromIrradianceHarmonicsJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tReflectionsTexture,
     Pointer<Float32> harmonics,
@@ -450,6 +465,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     double intensity,
   );
   external void _Engine_buildIndirectLightFromIrradianceTextureJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tReflectionsTexture,
     Pointer<TTexture> tIrradianceTexture,
@@ -465,6 +481,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     size_t length,
   );
   external void _Engine_buildMaterialJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<Uint8> materialData,
     size_t length,
@@ -478,6 +495,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int priority,
   );
   external void _Engine_buildSkyboxJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
     bool showSun,
@@ -494,12 +512,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external Pointer<TCamera> _Engine_createCamera(Pointer<TEngine> tEngine, EntityId entityId);
   external void _Engine_createCameraJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     EntityId entityId,
     Pointer<NativeFunction<void Function(PointerClass<TCamera>)>> onComplete,
   );
   external Pointer<TFence> _Engine_createFence(Pointer<TEngine> tEngine);
   external void _Engine_createFenceJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TFence>)>> onComplete,
   );
@@ -510,6 +530,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     JSBigInt flags,
   );
   external void _Engine_createHeadlessSwapChainJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     int width,
     int height,
@@ -517,6 +538,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<NativeFunction<void Function(PointerClass<TSwapChain>)>> onComplete,
   );
   external void _Engine_createJobThread(
+    Pointer<TJobThread> jobThread,
     int backend,
     Pointer<Void> platform,
     Pointer<Void> sharedContext,
@@ -526,12 +548,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external Pointer<TRenderer> _Engine_createRenderer(Pointer<TEngine> tEngine);
   external void _Engine_createRendererJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TRenderer>)>> onComplete,
   );
   external Pointer<TScene> _Engine_createScene(Pointer<TEngine> tEngine);
   external Pointer<TSwapChain> _Engine_createSwapChain(Pointer<TEngine> tEngine, Pointer<Void> window, JSBigInt flags);
   external void _Engine_createSwapChainJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<Void> window,
     JSBigInt flags,
@@ -539,12 +563,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external Pointer<TView> _Engine_createView(Pointer<TEngine> tEngine);
   external void _Engine_createViewJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TView>)>> onComplete,
   );
   external void _Engine_destroy(Pointer<TEngine> tEngine);
   external void _Engine_destroyCamera(Pointer<TEngine> tEngine, Pointer<TCamera> tCamera);
   external void _Engine_destroyCameraJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TCamera> tCamera,
     int requestId,
@@ -552,6 +578,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Engine_destroyColorGrading(Pointer<TEngine> tEngine, Pointer<TColorGrading> tColorGrading);
   external void _Engine_destroyColorGradingJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TColorGrading> tColorGrading,
     int requestId,
@@ -559,6 +586,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Engine_destroyFence(Pointer<TEngine> tEngine, Pointer<TFence> tFence);
   external void _Engine_destroyFenceJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TFence> tFence,
     int requestId,
@@ -566,21 +594,29 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Engine_destroyIndirectLight(Pointer<TEngine> tEngine, Pointer<TIndirectLight> tIndirectLight);
   external void _Engine_destroyIndirectLightJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TIndirectLight> tIndirectLight,
     int requestId,
     VoidCallback onComplete,
   );
-  external void _Engine_destroyJobThread(Pointer<TEngine> tEngine, int requestId, VoidCallback onComplete);
+  external void _Engine_destroyJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TEngine> tEngine,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _Engine_destroyMaterial(Pointer<TEngine> tEngine, Pointer<TMaterial> tMaterial);
   external void _Engine_destroyMaterialInstance(Pointer<TEngine> tEngine, Pointer<TMaterialInstance> tMaterialInstance);
   external void _Engine_destroyMaterialInstanceJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TMaterialInstance> tMaterialInstance,
     int requestId,
     VoidCallback onComplete,
   );
   external void _Engine_destroyMaterialJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TMaterial> tMaterial,
     int requestId,
@@ -588,6 +624,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Engine_destroyRenderer(Pointer<TEngine> tEngine, Pointer<TRenderer> tRenderer);
   external void _Engine_destroyRendererJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TRenderer> tRenderer,
     int requestId,
@@ -595,6 +632,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Engine_destroyScene(Pointer<TEngine> tEngine, Pointer<TScene> tScene);
   external void _Engine_destroySceneJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TScene> tScene,
     int requestId,
@@ -602,6 +640,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Engine_destroySkybox(Pointer<TEngine> tEngine, Pointer<TSkybox> tSkybox);
   external void _Engine_destroySkyboxJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TSkybox> tSkybox,
     int requestId,
@@ -609,6 +648,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Engine_destroySwapChain(Pointer<TEngine> tEngine, Pointer<TSwapChain> tSwapChain);
   external void _Engine_destroySwapChainJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TSwapChain> tSwapChain,
     int requestId,
@@ -616,6 +656,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Engine_destroyTexture(Pointer<TEngine> tEngine, Pointer<TTexture> tTexture);
   external void _Engine_destroyTextureJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> engine,
     Pointer<TTexture> tTexture,
     int requestId,
@@ -623,15 +664,26 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Engine_destroyView(Pointer<TEngine> tEngine, Pointer<TView> tView);
   external void _Engine_destroyViewJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TView> tView,
     int requestId,
     VoidCallback onComplete,
   );
   external void _Engine_execute(Pointer<TEngine> tEngine);
-  external void _Engine_executeJobThread(Pointer<TEngine> tEngine, int requestId, VoidCallback onComplete);
+  external void _Engine_executeJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TEngine> tEngine,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _Engine_flushAndWait(Pointer<TEngine> tEngine);
-  external void _Engine_flushAndWaitJobThread(Pointer<TEngine> tEngine, int requestId, VoidCallback onComplete);
+  external void _Engine_flushAndWaitJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TEngine> tEngine,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external Pointer<TCamera> _Engine_getCameraComponent(Pointer<TEngine> tEngine, EntityId entityId);
   external Pointer<TDebugRegistry> _Engine_getDebugRegistry(Pointer<TEngine> tEngine);
   external Pointer<TEntityManager> _Engine_getEntityManager(Pointer<TEngine> engine);
@@ -643,18 +695,25 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _Engine_setAutomaticInstancingEnabled(Pointer<TEngine> tEngine, bool enabled);
   external EntityId _EntityManager_createEntity(Pointer<TEntityManager> tEntityManager);
   external void _EntityManager_createEntityJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEntityManager> tEntityManager,
     Pointer<NativeFunction<void Function(EntityId)>> onComplete,
   );
   external void _EntityManager_destroyEntity(Pointer<TEntityManager> tEntityManager, EntityId entityId);
   external void _EntityManager_destroyEntityJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEntityManager> tEntityManager,
     EntityId entityId,
     int requestId,
     VoidCallback onComplete,
   );
   external void _Fence_waitAndDestroy(Pointer<TFence> tFence);
-  external void _Fence_waitAndDestroyJobThread(Pointer<TFence> tFence, int requestId, VoidCallback onComplete);
+  external void _Fence_waitAndDestroyJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TFence> tFence,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _FilamentAsset_getEntities(Pointer<TFilamentAsset> filamentAsset, Pointer<Int32> out);
   external int _FilamentAsset_getEntityCount(Pointer<TFilamentAsset> filamentAsset);
   external int _FilamentAsset_getResourceUriCount(Pointer<TFilamentAsset> tFilamentAsset);
@@ -662,6 +721,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<Void> _FilamentAsset_getSourceAsset(Pointer<TFilamentAsset> filamentAsset);
   external EntityId _FilamentAsset_getWireframe(Pointer<TFilamentAsset> filamentAsset);
   external void _FilamentAsset_getWireframeJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TFilamentAsset> tFilamentAsset,
     Pointer<NativeFunction<void Function(EntityId)>> onComplete,
   );
@@ -681,6 +741,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int tGizmoType,
   );
   external void _Gizmo_createJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TGltfAssetLoader> tAssetLoader,
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
@@ -700,6 +761,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TNameComponentManager> tNameComponentManager,
   );
   external void _GltfAssetLoader_createJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TMaterialProvider> tMaterialProvider,
     Pointer<TNameComponentManager> tNameComponentManager,
@@ -707,6 +769,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _GltfAssetLoader_destroy(Pointer<TGltfAssetLoader> tAssetLoader);
   external void _GltfAssetLoader_destroyJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TGltfAssetLoader> tAssetLoader,
     int requestId,
     VoidCallback onComplete,
@@ -724,6 +787,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int numInstances,
   );
   external void _GltfAssetLoader_loadJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TGltfAssetLoader> tAssetLoader,
     Pointer<Uint8> data,
@@ -747,6 +811,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Void> userData,
   );
   external void _GltfResourceLoader_addResourceDataJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
     Pointer<Char> uri,
     Pointer<Uint8> data,
@@ -759,24 +824,31 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TFilamentAsset> tFilamentAsset,
   );
   external void _GltfResourceLoader_asyncBeginLoadJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
     Pointer<TFilamentAsset> tFilamentAsset,
     Pointer<NativeFunction<void Function(bool)>> callback,
   );
   external double _GltfResourceLoader_asyncGetLoadProgress(Pointer<TGltfResourceLoader> tGltfResourceLoader);
   external void _GltfResourceLoader_asyncGetLoadProgressJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
     Pointer<NativeFunction<void Function(double)>> callback,
   );
   external void _GltfResourceLoader_asyncUpdateLoad(Pointer<TGltfResourceLoader> tGltfResourceLoader);
-  external void _GltfResourceLoader_asyncUpdateLoadJobThread(Pointer<TGltfResourceLoader> tGltfResourceLoader);
+  external void _GltfResourceLoader_asyncUpdateLoadJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  );
   external Pointer<TGltfResourceLoader> _GltfResourceLoader_create(Pointer<TEngine> tEngine);
   external void _GltfResourceLoader_createJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TGltfResourceLoader>)>> callback,
   );
   external void _GltfResourceLoader_destroy(Pointer<TEngine> tEngine, Pointer<TGltfResourceLoader> tGltfResourceLoader);
   external void _GltfResourceLoader_destroyJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TGltfResourceLoader> tResourceLoader,
     int requestId,
@@ -787,12 +859,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TFilamentAsset> tFilamentAsset,
   );
   external void _GltfResourceLoader_loadResourcesJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
     Pointer<TFilamentAsset> tFilamentAsset,
     Pointer<NativeFunction<void Function(bool)>> callback,
   );
   external Pointer<TLinearImage> _Image_createEmpty(int width, int height, int channel);
   external void _Image_createEmptyJobThread(
+    Pointer<TJobThread> jobThread,
     int width,
     int height,
     int channel,
@@ -800,6 +874,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external Pointer<TLinearImage> _Image_decode(Pointer<Uint8> data, size_t length, Pointer<Char> name, bool alpha);
   external void _Image_decodeJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<Uint8> data,
     size_t length,
     Pointer<Char> name,
@@ -807,24 +882,33 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<NativeFunction<void Function(PointerClass<TLinearImage>)>> onComplete,
   );
   external void _Image_destroy(Pointer<TLinearImage> tLinearImage);
-  external void _Image_destroyJobThread(Pointer<TLinearImage> tLinearImage, int requestId, VoidCallback onComplete);
+  external void _Image_destroyJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TLinearImage> tLinearImage,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external Pointer<Float32> _Image_getBytes(Pointer<TLinearImage> tLinearImage);
   external void _Image_getBytesJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TLinearImage> tLinearImage,
     Pointer<NativeFunction<void Function(PointerClass<Float32>)>> onComplete,
   );
   external int _Image_getChannels(Pointer<TLinearImage> tLinearImage);
   external void _Image_getChannelsJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TLinearImage> tLinearImage,
     Pointer<NativeFunction<void Function(int)>> onComplete,
   );
   external int _Image_getHeight(Pointer<TLinearImage> tLinearImage);
   external void _Image_getHeightJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TLinearImage> tLinearImage,
     Pointer<NativeFunction<void Function(int)>> onComplete,
   );
   external int _Image_getWidth(Pointer<TLinearImage> tLinearImage);
   external void _Image_getWidthJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TLinearImage> tLinearImage,
     Pointer<NativeFunction<void Function(int)>> onComplete,
   );
@@ -834,6 +918,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TEngine> engine,
   );
   external void _IndexBufferBuilder_buildJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TIndexBufferBuilder> tBuilder,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TIndexBuffer>)>> onComplete,
@@ -843,6 +928,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _IndexBufferBuilder_indexCount(Pointer<TIndexBufferBuilder> builder, int count);
   external void _IndexBuffer_destroy(Pointer<TEngine> engine, Pointer<TIndexBuffer> buffer);
   external void _IndexBuffer_destroyJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TIndexBuffer> tBuffer,
     int requestId,
@@ -857,6 +943,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int byteOffset,
   );
   external void _IndexBuffer_setBufferJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TIndexBuffer> tBuffer,
     Pointer<Void> data,
@@ -866,10 +953,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     VoidCallback onComplete,
   );
   external void _IndirectLight_setRotation(Pointer<TIndirectLight> tIndirectLight, Pointer<Float64> rotation);
-  external void _JobThread_addTask(Pointer<NativeFunction<void Function()>> task);
-  external Pointer<Void> _JobThread_create();
-  external Pointer<Void> _JobThread_createForCanvas(Pointer<Char> canvasSelector);
-  external void _JobThread_destroy(Pointer<Void> jobThread);
+  external void _JobThread_addTask(Pointer<TJobThread> jobThread, Pointer<NativeFunction<void Function()>> task);
+  external Pointer<TJobThread> _JobThread_create();
+  external Pointer<TJobThread> _JobThread_createForCanvas(Pointer<Char> canvasSelector);
+  external void _JobThread_destroy(Pointer<TJobThread> jobThread);
   external Pointer<TKtx1Bundle> _Ktx1Bundle_create(Pointer<Uint8> ktxData, size_t length);
   external void _Ktx1Bundle_destroy(Pointer<TKtx1Bundle> tBundle);
   external void _Ktx1Bundle_getSphericalHarmonics(Pointer<TKtx1Bundle> tBundle, Pointer<Float32> harmonics);
@@ -881,6 +968,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     VoidCallback onTextureUploadComplete,
   );
   external void _Ktx1Reader_createTextureJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TKtx1Bundle> tBundle,
     int requestId,
@@ -889,6 +977,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external Pointer<TTexture> _Ktx2Reader_createTexture(Pointer<TEngine> tEngine, Pointer<Uint8> data, size_t size);
   external void _Ktx2Reader_createTextureJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<Uint8> data,
     size_t size,
@@ -991,6 +1080,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _LightManager_setShadowCaster(Pointer<TLightManager> tLightManager, EntityId entity, bool enabled);
   external void _LightManager_setShadowCasterJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TLightManager> tLightManager,
     EntityId entityId,
     bool enabled,
@@ -1003,6 +1093,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TShadowOptions> optionsPtr,
   );
   external void _LightManager_setShadowOptionsJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TLightManager> tLightManager,
     EntityId entityId,
     Pointer<TShadowOptions> optionsPtr,
@@ -1095,6 +1186,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TTextureSampler> sampler,
   );
   external void _MaterialInstance_setParameterTextureJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TMaterialInstance> tMaterialInstance,
     Pointer<Char> propertyName,
     Pointer<TTexture> tTexture,
@@ -1172,6 +1264,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     bool hasVolume,
   );
   external void _MaterialProvider_createMaterialInstanceJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TMaterialProvider> tMaterialProvider,
     bool doubleSided,
     bool unlit,
@@ -1215,42 +1308,50 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external Pointer<TMaterial> _Material_createBoneOverlayMaterial(Pointer<TEngine> tEngine);
   external void _Material_createBoneOverlayMaterialJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
   );
   external Pointer<TMaterial> _Material_createEdgeOutlineMaterial(Pointer<TEngine> tEngine);
   external void _Material_createEdgeOutlineMaterialJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
   );
   external Pointer<TMaterial> _Material_createGizmoMaterial(Pointer<TEngine> tEngine);
   external void _Material_createGizmoMaterialJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
   );
   external Pointer<TMaterial> _Material_createGridMaterial(Pointer<TEngine> tEngine);
   external Pointer<TMaterial> _Material_createImageMaterial(Pointer<TEngine> tEngine);
   external void _Material_createImageMaterialJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
   );
   external Pointer<TMaterialInstance> _Material_createInstance(Pointer<TMaterial> tMaterial);
   external void _Material_createInstanceJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TMaterial> tMaterial,
     Pointer<NativeFunction<void Function(PointerClass<TMaterialInstance>)>> onComplete,
   );
   external Pointer<TMaterial> _Material_createSilhouetteMaterial(Pointer<TEngine> tEngine);
   external void _Material_createSilhouetteMaterialJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
   );
   external Pointer<TMaterial> _Material_createTranslationAxisMaterial(Pointer<TEngine> tEngine);
   external void _Material_createTranslationAxisMaterialJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
   );
   external Pointer<TMaterial> _Material_createWireframeMaterial(Pointer<TEngine> tEngine);
   external void _Material_createWireframeMaterialJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
   );
@@ -1287,25 +1388,31 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TAnimationManager> tAnimationManager,
   );
   external void _RenderManager_addAnimationManagerJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderManager> tRenderManager,
     Pointer<TAnimationManager> tAnimationManager,
     int requestId,
     VoidCallback onComplete,
   );
-  external void _RenderManager_attachToJobThread(Pointer<TRenderManager> tRenderer);
+  external void _RenderManager_attachToJobThread(Pointer<TJobThread> jobThread, Pointer<TRenderManager> tRenderer);
   external Pointer<TRenderManager> _RenderManager_create(Pointer<TEngine> tEngine, Pointer<TRenderer> tRenderer);
   external void _RenderManager_destroy(Pointer<TRenderManager> tRenderer);
   external void _RenderManager_destroyJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderManager> manager,
     int requestId,
     VoidCallback onComplete,
   );
-  external void _RenderManager_detachFromJobThread(Pointer<TRenderManager> tRenderManager);
+  external void _RenderManager_detachFromJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TRenderManager> tRenderManager,
+  );
   external void _RenderManager_removeAnimationManager(
     Pointer<TRenderManager> tRenderer,
     Pointer<TAnimationManager> tAnimationManager,
   );
   external void _RenderManager_removeAnimationManagerJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderManager> tRenderManager,
     Pointer<TAnimationManager> tAnimationManager,
     int requestId,
@@ -1313,6 +1420,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _RenderManager_removeSwapChain(Pointer<TRenderManager> tRenderer, Pointer<TSwapChain> swapChain);
   external void _RenderManager_removeSwapChainJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderManager> tRenderManager,
     Pointer<TSwapChain> tSwapChain,
     int requestId,
@@ -1320,6 +1428,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _RenderManager_render(Pointer<TRenderManager> tRenderer, JSBigInt frameTimeInNanos);
   external void _RenderManager_renderJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderManager> tRenderManager,
     JSBigInt frameTimeInNanos,
     int requestId,
@@ -1333,6 +1442,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int numViews,
   );
   external void _RenderManager_setRenderableJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderManager> tRenderer,
     Pointer<TSwapChain> tSwapChain,
     Pointer<PointerClass<TView>> tViews,
@@ -1346,6 +1456,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TTexture> depth,
   );
   external void _RenderTarget_createJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TTexture> color,
     Pointer<TTexture> depth,
@@ -1353,6 +1464,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _RenderTarget_destroy(Pointer<TEngine> tEngine, Pointer<TRenderTarget> tRenderTarget);
   external void _RenderTarget_destroyJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TRenderTarget> tRenderTarget,
     int requestId,
@@ -1360,6 +1472,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external Pointer<TTexture> _RenderTarget_getColorTexture(Pointer<TRenderTarget> tRenderTarget);
   external void _RenderTarget_getColorTextureJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderTarget> tRenderTarget,
     Pointer<NativeFunction<void Function(PointerClass<TTexture>)>> onComplete,
   );
@@ -1375,12 +1488,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _RenderableBuilder_boundingBox(Pointer<TRenderableBuilder> builder, Pointer<Aabb3> aabbPtr);
   external int _RenderableBuilder_build(Pointer<TRenderableBuilder> builder, Pointer<TEngine> engine, EntityId entity);
   external void _RenderableBuilder_buildJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderableBuilder> tBuilder,
     Pointer<TEngine> tEngine,
     EntityId entityId,
     Pointer<NativeFunction<void Function(int)>> onComplete,
   );
   external void _RenderableBuilder_buildWithSkinningJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderableBuilder> tBuilder,
     Pointer<TEngine> tEngine,
     EntityId entityId,
@@ -1446,6 +1561,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _RenderableManager_destroyEntity(Pointer<TRenderableManager> tRenderableManager, EntityId entityId);
   external void _RenderableManager_destroyEntityJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     int requestId,
@@ -1513,6 +1629,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     size_t offset,
   );
   external void _RenderableManager_setBonesFromBoneJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     Pointer<Float32> bones,
@@ -1529,6 +1646,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     size_t offset,
   );
   external void _RenderableManager_setBonesFromMat4JobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     Pointer<Float32> transforms,
@@ -1543,6 +1661,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     bool castShadows,
   );
   external void _RenderableManager_setCastShadowsJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     bool enabled,
@@ -1574,6 +1693,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     size_t count,
   );
   external void _RenderableManager_setGeometryAtNonIndexedJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     int primitiveIndex,
@@ -1615,6 +1735,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     size_t offset,
   );
   external void _RenderableManager_setMorphWeightsJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     Pointer<Float32> weights,
@@ -1634,6 +1755,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     bool receiveShadows,
   );
   external void _RenderableManager_setReceiveShadowsJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     bool enabled,
@@ -1656,13 +1778,19 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     JSBigInt frameTimeInNanos,
   );
   external void _Renderer_beginFrameJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderer> tRenderer,
     Pointer<TSwapChain> tSwapChain,
     JSBigInt frameTimeInNanos,
     Pointer<NativeFunction<void Function(bool)>> onComplete,
   );
   external void _Renderer_endFrame(Pointer<TRenderer> tRenderer);
-  external void _Renderer_endFrameJobThread(Pointer<TRenderer> tRenderer, int requestId, VoidCallback onComplete);
+  external void _Renderer_endFrameJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TRenderer> tRenderer,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _Renderer_readPixels(
     Pointer<TRenderer> tRenderer,
     int width,
@@ -1676,6 +1804,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     size_t outLength,
   );
   external void _Renderer_readPixelsJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderer> tRenderer,
     int width,
     int height,
@@ -1691,6 +1820,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Renderer_render(Pointer<TRenderer> tRenderer, Pointer<TView> tView);
   external void _Renderer_renderJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderer> tRenderer,
     Pointer<TView> tView,
     int requestId,
@@ -1698,6 +1828,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Renderer_renderStandaloneView(Pointer<TRenderer> tRenderer, Pointer<TView> tView);
   external void _Renderer_renderStandaloneViewJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderer> tRenderer,
     Pointer<TView> tView,
     int requestId,
@@ -1714,6 +1845,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     bool discard,
   );
   external void _Renderer_setClearOptionsJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TRenderer> tRenderer,
     double clearR,
     double clearG,
@@ -1734,6 +1866,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _SceneAsset_addToScene(Pointer<TSceneAsset> tSceneAsset, Pointer<TScene> tScene);
   external void _SceneAsset_addToSceneJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TSceneAsset> tSceneAsset,
     Pointer<TScene> tScene,
     int requestId,
@@ -1750,6 +1883,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Aabb3> boundingBoxPtr,
   );
   external void _SceneAsset_createFromBuffersJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TVertexBuffer> tVertexBuffer,
     Pointer<TIndexBuffer> tIndexBuffer,
@@ -1768,6 +1902,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requiredGeometryCapabilities,
   );
   external void _SceneAsset_createFromFilamentAssetJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TGltfAssetLoader> tAssetLoader,
     Pointer<TNameComponentManager> tNameComponentManager,
@@ -1781,13 +1916,19 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int materialInstanceCount,
   );
   external void _SceneAsset_createInstanceJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TSceneAsset> asset,
     Pointer<PointerClass<TMaterialInstance>> tMaterialInstances,
     int materialInstanceCount,
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>> callback,
   );
   external void _SceneAsset_destroy(Pointer<TSceneAsset> tSceneAsset);
-  external void _SceneAsset_destroyJobThread(Pointer<TSceneAsset> tSceneAsset, int requestId, VoidCallback onComplete);
+  external void _SceneAsset_destroyJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TSceneAsset> tSceneAsset,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external size_t _SceneAsset_getBoneCount(Pointer<TSceneAsset> tSceneAsset, size_t skinIndex);
   external Pointer<Char> _SceneAsset_getBoneName(Pointer<TSceneAsset> tSceneAsset, size_t skinIndex, size_t boneIndex);
   external void _SceneAsset_getBones(Pointer<TSceneAsset> tSceneAsset, size_t skinIndex, Pointer<Int32> out);
@@ -1810,12 +1951,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external int _SceneAsset_getVertexBufferStorageMode(Pointer<TSceneAsset> tSceneAsset, int primitiveIndex);
   external void _SceneAsset_releaseSourceData(Pointer<TSceneAsset> tSceneAsset);
   external void _SceneAsset_releaseSourceDataJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TSceneAsset> tSceneAsset,
     int requestId,
     VoidCallback onComplete,
   );
   external void _SceneAsset_removeFromScene(Pointer<TSceneAsset> tSceneAsset, Pointer<TScene> tScene);
   external void _SceneAsset_removeFromSceneJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TSceneAsset> tSceneAsset,
     Pointer<TScene> tScene,
     int requestId,
@@ -1823,6 +1966,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _SceneAsset_setFlatShading(Pointer<TSceneAsset> tSceneAsset, bool flatShading);
   external void _SceneAsset_setFlatShadingJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TSceneAsset> tSceneAsset,
     bool flatShading,
     int requestId,
@@ -1831,6 +1975,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external int _SceneAsset_supportsFlatShading(Pointer<TSceneAsset> asset);
   external void _Scene_addEntity(Pointer<TScene> tScene, EntityId entityId);
   external void _Scene_addEntityJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TScene> tScene,
     EntityId entityId,
     int requestId,
@@ -1838,6 +1983,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Scene_addFilamentAsset(Pointer<TScene> tScene, Pointer<TFilamentAsset> asset);
   external void _Scene_addFilamentAssetJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TScene> tScene,
     Pointer<TFilamentAsset> tAsset,
     int requestId,
@@ -1846,6 +1992,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<TSkybox> _Scene_getSkybox(Pointer<TScene> tScene);
   external void _Scene_removeEntity(Pointer<TScene> tScene, EntityId entityId);
   external void _Scene_removeEntityJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TScene> tScene,
     EntityId entityId,
     int requestId,
@@ -1853,6 +2000,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Scene_setIndirectLight(Pointer<TScene> tScene, Pointer<TIndirectLight> tIndirectLight);
   external void _Scene_setIndirectLightJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TScene> tScene,
     Pointer<TIndirectLight> tIndirectLight,
     int requestId,
@@ -1860,6 +2008,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Scene_setSkybox(Pointer<TScene> tScene, Pointer<TSkybox> skybox);
   external void _Scene_setSkyboxJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TScene> tScene,
     Pointer<TSkybox> tSkybox,
     int requestId,
@@ -1957,10 +2106,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_TRANSPARENT;
   external Pointer<TTextureSampler> _TextureSampler_create();
   external void _TextureSampler_createJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<NativeFunction<void Function(PointerClass<TTextureSampler>)>> onComplete,
   );
   external Pointer<TTextureSampler> _TextureSampler_createWithComparison(int compareMode, int compareFunc);
   external void _TextureSampler_createWithComparisonJobThread(
+    Pointer<TJobThread> jobThread,
     int compareMode,
     int compareFunc,
     Pointer<NativeFunction<void Function(PointerClass<TTextureSampler>)>> onComplete,
@@ -1973,6 +2124,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int wrapR,
   );
   external void _TextureSampler_createWithFilteringJobThread(
+    Pointer<TJobThread> jobThread,
     int minFilter,
     int magFilter,
     int wrapS,
@@ -1982,12 +2134,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _TextureSampler_destroy(Pointer<TTextureSampler> sampler);
   external void _TextureSampler_destroyJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TTextureSampler> sampler,
     int requestId,
     VoidCallback onComplete,
   );
   external void _TextureSampler_setAnisotropy(Pointer<TTextureSampler> sampler, double anisotropy);
   external void _TextureSampler_setAnisotropyJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TTextureSampler> sampler,
     double anisotropy,
     int requestId,
@@ -1995,6 +2149,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _TextureSampler_setCompareMode(Pointer<TTextureSampler> sampler, int mode, int func);
   external void _TextureSampler_setCompareModeJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TTextureSampler> sampler,
     int mode,
     int func,
@@ -2003,6 +2158,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _TextureSampler_setMagFilter(Pointer<TTextureSampler> sampler, int filter);
   external void _TextureSampler_setMagFilterJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TTextureSampler> sampler,
     int filter,
     int requestId,
@@ -2010,6 +2166,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _TextureSampler_setMinFilter(Pointer<TTextureSampler> sampler, int filter);
   external void _TextureSampler_setMinFilterJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TTextureSampler> sampler,
     int filter,
     int requestId,
@@ -2017,6 +2174,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _TextureSampler_setWrapModeR(Pointer<TTextureSampler> sampler, int mode);
   external void _TextureSampler_setWrapModeRJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TTextureSampler> sampler,
     int mode,
     int requestId,
@@ -2024,6 +2182,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _TextureSampler_setWrapModeS(Pointer<TTextureSampler> sampler, int mode);
   external void _TextureSampler_setWrapModeSJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TTextureSampler> sampler,
     int mode,
     int requestId,
@@ -2031,6 +2190,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _TextureSampler_setWrapModeT(Pointer<TTextureSampler> sampler, int mode);
   external void _TextureSampler_setWrapModeTJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TTextureSampler> sampler,
     int mode,
     int requestId,
@@ -2048,6 +2208,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int format,
   );
   external void _Texture_buildJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> engine,
     int width,
     int height,
@@ -2061,6 +2222,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Texture_generateMipMaps(Pointer<TTexture> tTexture, Pointer<TEngine> tEngine);
   external void _Texture_generateMipMapsJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TTexture> tTexture,
     Pointer<TEngine> tEngine,
     int requestId,
@@ -2081,6 +2243,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int level,
   );
   external void _Texture_loadImageJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
     Pointer<TLinearImage> tImage,
@@ -2095,6 +2258,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Void> externalImage,
   );
   external void _Texture_setExternalImageJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
     Pointer<Void> externalImage,
@@ -2120,6 +2284,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Void> userData,
   );
   external void _Texture_setImageJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
     int level,
@@ -2141,32 +2306,38 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _Thermion_setCanvasElementSize(Pointer<Char> name, int width, int height);
   external Pointer<TToneMapper> _ToneMapper_createACES(Pointer<TEngine> tEngine);
   external void _ToneMapper_createACESJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>> onComplete,
   );
   external Pointer<TToneMapper> _ToneMapper_createACESLegacy(Pointer<TEngine> tEngine);
   external void _ToneMapper_createACESLegacyJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>> onComplete,
   );
   external Pointer<TToneMapper> _ToneMapper_createAGX(Pointer<TEngine> tEngine);
   external void _ToneMapper_createAGXJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>> onComplete,
   );
   external Pointer<TToneMapper> _ToneMapper_createAGXWithLook(Pointer<TEngine> tEngine, int look);
   external void _ToneMapper_createAGXWithLookJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     int look,
     Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>> onComplete,
   );
   external Pointer<TToneMapper> _ToneMapper_createDisplayRange(Pointer<TEngine> tEngine);
   external void _ToneMapper_createDisplayRangeJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>> onComplete,
   );
   external Pointer<TToneMapper> _ToneMapper_createFilmic(Pointer<TEngine> tEngine);
   external void _ToneMapper_createFilmicJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>> onComplete,
   );
@@ -2178,6 +2349,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     double hdrMax,
   );
   external void _ToneMapper_createGenericJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     double contrast,
     double midGrayIn,
@@ -2187,19 +2359,27 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external Pointer<TToneMapper> _ToneMapper_createLinear(Pointer<TEngine> tEngine);
   external void _ToneMapper_createLinearJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>> onComplete,
   );
   external Pointer<TToneMapper> _ToneMapper_createPBRNeutral(Pointer<TEngine> tEngine);
   external void _ToneMapper_createPBRNeutralJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>> onComplete,
   );
   external void _ToneMapper_destroy(Pointer<TToneMapper> toneMapper);
-  external void _ToneMapper_destroyJobThread(Pointer<TToneMapper> tToneMapper, int requestId, VoidCallback onComplete);
+  external void _ToneMapper_destroyJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TToneMapper> tToneMapper,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _TransformManager_commitLocalTransformTransaction(Pointer<TTransformManager> tTransformManager);
   external void _TransformManager_createComponent(Pointer<TTransformManager> tTransformManager, EntityId entity);
   external void _TransformManager_createComponentJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TTransformManager> tTransformManager,
     EntityId entityId,
     int requestId,
@@ -2240,6 +2420,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _TransformManager_openLocalTransformTransaction(Pointer<TTransformManager> tTransformManager);
   external void _TransformManager_removeComponent(Pointer<TTransformManager> tTransformManager, EntityId entity);
   external void _TransformManager_removeComponentJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TTransformManager> tTransformManager,
     EntityId entityId,
     int requestId,
@@ -2252,6 +2433,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     bool preserveScaling,
   );
   external void _TransformManager_setParentJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TTransformManager> tTransformManager,
     EntityId child,
     EntityId parent,
@@ -2270,6 +2452,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Float64> matrix16,
   );
   external void _TransformManager_setTransformFromBufferJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TTransformManager> manager,
     EntityId entity,
     Pointer<Float64> matrix16,
@@ -2277,6 +2460,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     VoidCallback onComplete,
   );
   external void _TransformManager_setTransformJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TTransformManager> tTransformManager,
     EntityId entityId,
     Pointer<double4x4> transformPtr,
@@ -2289,6 +2473,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TMat4> matrix,
   );
   external void _TransformManager_setTransformNativeJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TTransformManager> manager,
     EntityId entity,
     Pointer<TMat4> matrix,
@@ -2337,6 +2522,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TEngine> engine,
   );
   external void _VertexBufferBuilder_buildJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TVertexBufferBuilder> tBuilder,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TVertexBuffer>)>> onComplete,
@@ -2349,6 +2535,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _VertexBufferBuilder_vertexCount(Pointer<TVertexBufferBuilder> builder, int count);
   external void _VertexBuffer_destroy(Pointer<TEngine> engine, Pointer<TVertexBuffer> buffer);
   external void _VertexBuffer_destroyJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TVertexBuffer> tBuffer,
     int requestId,
@@ -2364,6 +2551,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int byteOffset,
   );
   external void _VertexBuffer_setBufferAtJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TVertexBuffer> tBuffer,
     int bufferIndex,
@@ -2380,6 +2568,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TBufferObject> bufferObject,
   );
   external void _VertexBuffer_setBufferObjectAtJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<TVertexBuffer> tBuffer,
     int bufferIndex,
@@ -2396,6 +2585,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _View_getFogOptions(Pointer<TFogOptions> TFogOptions_out, Pointer<TView> tView);
   external Pointer<Char> _View_getName(Pointer<TView> tView);
   external void _View_getNameJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     Pointer<Char> buffer,
     size_t capacity,
@@ -2412,9 +2602,17 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external int _View_isStencilBufferEnabled(Pointer<TView> tView);
   external int _View_isTransparentPickingEnabled(Pointer<TView> tView);
   external void _View_pick(Pointer<TView> tView, int requestId, int x, int y, PickCallback callback);
-  external void _View_pickJobThread(Pointer<TView> tView, int requestId, int x, int y, PickCallback callback);
+  external void _View_pickJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TView> tView,
+    int requestId,
+    int x,
+    int y,
+    PickCallback callback,
+  );
   external void _View_setAmbientOcclusionOptions(Pointer<TView> tView, Pointer<TAmbientOcclusionOptions> optionsPtr);
   external void _View_setAmbientOcclusionOptionsJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     Pointer<TAmbientOcclusionOptions> optionsPtr,
     int requestId,
@@ -2422,6 +2620,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setAntiAliasing(Pointer<TView> tView, bool msaa, bool fxaa, bool taa);
   external void _View_setAntiAliasingJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     bool msaa,
     bool fxaa,
@@ -2431,6 +2630,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setBlendMode(Pointer<TView> view, int blendMode);
   external void _View_setBlendModeJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     int blendMode,
     int requestId,
@@ -2438,6 +2638,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setBloom(Pointer<TView> tView, bool enabled, double strength);
   external void _View_setBloomJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     bool enabled,
     double strength,
@@ -2446,6 +2647,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setCamera(Pointer<TView> tView, Pointer<TCamera> tCamera);
   external void _View_setCameraJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     Pointer<TCamera> tCamera,
     int requestId,
@@ -2453,6 +2655,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setColorGrading(Pointer<TView> tView, Pointer<TColorGrading> tColorGrading);
   external void _View_setColorGradingJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     Pointer<TColorGrading> tColorGrading,
     int requestId,
@@ -2460,6 +2663,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setDitheringEnabled(Pointer<TView> tView, bool enabled);
   external void _View_setDitheringEnabledJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     bool enabled,
     int requestId,
@@ -2467,6 +2671,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setFogOptions(Pointer<TView> tView, Pointer<TFogOptions> tFogOptionsPtr);
   external void _View_setFogOptionsJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     Pointer<TFogOptions> tFogOptionsPtr,
     int requestId,
@@ -2474,6 +2679,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setFrontFaceWindingInverted(Pointer<TView> tView, bool inverted);
   external void _View_setFrontFaceWindingInvertedJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     bool inverted,
     int requestId,
@@ -2481,6 +2687,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setFrustumCullingEnabled(Pointer<TView> view, bool enabled);
   external void _View_setFrustumCullingEnabledJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     bool enabled,
     int requestId,
@@ -2488,6 +2695,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setLayerEnabled(Pointer<TView> tView, int layer, bool visible);
   external void _View_setLayerEnabledJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     int layer,
     bool visible,
@@ -2496,6 +2704,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setName(Pointer<TView> tView, Pointer<Char> name);
   external void _View_setNameJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     Pointer<Char> name,
     int requestId,
@@ -2503,6 +2712,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setPostProcessing(Pointer<TView> tView, bool enabled);
   external void _View_setPostProcessingJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     bool enabled,
     int requestId,
@@ -2510,6 +2720,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setRenderQuality(Pointer<TView> tView, int qualityLevel);
   external void _View_setRenderQualityJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     int qualityLevel,
     int requestId,
@@ -2517,6 +2728,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setRenderTarget(Pointer<TView> view, Pointer<TRenderTarget> renderTarget);
   external void _View_setRenderTargetJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     Pointer<TRenderTarget> tRenderTarget,
     int requestId,
@@ -2524,6 +2736,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setScene(Pointer<TView> tView, Pointer<TScene> tScene);
   external void _View_setSceneJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     Pointer<TScene> tScene,
     int requestId,
@@ -2531,6 +2744,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setShadowType(Pointer<TView> tView, int shadowType);
   external void _View_setShadowTypeJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     int shadowType,
     int requestId,
@@ -2538,6 +2752,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setShadowsEnabled(Pointer<TView> tView, bool enabled);
   external void _View_setShadowsEnabledJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     bool enabled,
     int requestId,
@@ -2545,6 +2760,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setSoftShadowOptions(Pointer<TView> tView, Pointer<TSoftShadowOptions> optionsPtr);
   external void _View_setSoftShadowOptionsJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     Pointer<TSoftShadowOptions> optionsPtr,
     int requestId,
@@ -2552,6 +2768,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setStencilBufferEnabled(Pointer<TView> tView, bool enabled);
   external void _View_setStencilBufferEnabledJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     bool enabled,
     int requestId,
@@ -2559,6 +2776,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setTransparentPickingEnabled(Pointer<TView> tView, bool enabled);
   external void _View_setTransparentPickingEnabledJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     bool enabled,
     int requestId,
@@ -2566,6 +2784,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setViewport(Pointer<TView> view, int width, int height);
   external void _View_setViewportJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     int width,
     int height,
@@ -2574,6 +2793,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _View_setVsmShadowOptions(Pointer<TView> tView, Pointer<TVsmShadowOptions> optionsPtr);
   external void _View_setVsmShadowOptionsJobThread(
+    Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     Pointer<TVsmShadowOptions> optionsPtr,
     int requestId,
@@ -2651,10 +2871,15 @@ Pointer<TAnimationManager> AnimationManager_create(Pointer<TEngine> tEngine) {
 }
 
 void AnimationManager_createJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TAnimationManager>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._AnimationManager_createJobThread(tEngine.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._AnimationManager_createJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -2664,11 +2889,13 @@ void AnimationManager_destroy(Pointer<TAnimationManager> tAnimationManager) {
 }
 
 void AnimationManager_destroyJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TAnimationManager> tAnimationManager,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_destroyJobThread(
+    jobThread.cast(),
     tAnimationManager.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
@@ -2846,12 +3073,14 @@ void AnimationManager_resetToRestPose(Pointer<TAnimationManager> tAnimationManag
 }
 
 void AnimationManager_resetToRestPoseJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TAnimationManager> tAnimationManager,
   Pointer<TSceneAsset> tSceneAsset,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_resetToRestPoseJobThread(
+    jobThread.cast(),
     tAnimationManager.cast(),
     tSceneAsset.cast(),
     requestId,
@@ -2876,6 +3105,7 @@ bool AnimationManager_setGltfAnimationTime(
 }
 
 void AnimationManager_setGltfAnimationTimeJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TAnimationManager> tAnimationManager,
   Pointer<TSceneAsset> tSceneAsset,
   int animationIndex,
@@ -2884,6 +3114,7 @@ void AnimationManager_setGltfAnimationTimeJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_setGltfAnimationTimeJobThread(
+    jobThread.cast(),
     tAnimationManager.cast(),
     tSceneAsset.cast(),
     animationIndex,
@@ -2931,6 +3162,7 @@ bool AnimationManager_setMorphTargetWeights(
 }
 
 void AnimationManager_setMorphTargetWeightsJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TAnimationManager> tAnimationManager,
   DartEntityId entityId,
   Pointer<Float32> morphData,
@@ -2938,6 +3170,7 @@ void AnimationManager_setMorphTargetWeightsJobThread(
   Pointer<NativeFunction<void Function(bool)>> callback,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_setMorphTargetWeightsJobThread(
+    jobThread.cast(),
     tAnimationManager.cast(),
     entityId,
     morphData,
@@ -2980,11 +3213,13 @@ bool AnimationManager_updateBoneMatrices(
 }
 
 void AnimationManager_updateBoneMatricesJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TAnimationManager> tAnimationManager,
   Pointer<TSceneAsset> sceneAsset,
   Pointer<NativeFunction<void Function(bool)>> callback,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_updateBoneMatricesJobThread(
+    jobThread.cast(),
     tAnimationManager.cast(),
     sceneAsset.cast(),
     callback.cast(),
@@ -2993,12 +3228,14 @@ void AnimationManager_updateBoneMatricesJobThread(
 }
 
 void AnimationManager_updateJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TAnimationManager> tAnimationManager,
   BigInt frameTimeInNanos,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_updateJobThread(
+    jobThread.cast(),
     tAnimationManager.cast(),
     frameTimeInNanos.toJSBigInt,
     requestId,
@@ -3013,11 +3250,13 @@ Pointer<TBufferObject> BufferObjectBuilder_build(Pointer<TBufferObjectBuilder> b
 }
 
 void BufferObjectBuilder_buildJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TBufferObjectBuilder> tBuilder,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TBufferObject>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._BufferObjectBuilder_buildJobThread(
+    jobThread.cast(),
     tBuilder.cast(),
     tEngine.cast(),
     onComplete.cast(),
@@ -3046,12 +3285,14 @@ void BufferObject_destroy(Pointer<TEngine> engine, Pointer<TBufferObject> buffer
 }
 
 void BufferObject_destroyJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TBufferObject> tBuffer,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._BufferObject_destroyJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tBuffer.cast(),
     requestId,
@@ -3078,6 +3319,7 @@ void BufferObject_setBuffer(
 }
 
 void BufferObject_setBufferJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TBufferObject> tBuffer,
   Pointer<Void> data,
@@ -3087,6 +3329,7 @@ void BufferObject_setBufferJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._BufferObject_setBufferJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tBuffer.cast(),
     data,
@@ -3329,11 +3572,13 @@ Pointer<TColorGrading> ColorGradingBuilder_build(Pointer<TColorGradingBuilder> b
 }
 
 void ColorGradingBuilder_buildJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TColorGradingBuilder> tBuilder,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TColorGrading>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._ColorGradingBuilder_buildJobThread(
+    jobThread.cast(),
     tBuilder.cast(),
     tEngine.cast(),
     onComplete.cast(),
@@ -3379,9 +3624,10 @@ Pointer<TColorGradingBuilder> ColorGradingBuilder_create() {
 }
 
 void ColorGradingBuilder_createJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<NativeFunction<void Function(Pointer<TColorGradingBuilder>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._ColorGradingBuilder_createJobThread(onComplete.cast());
+  final result = GeneratedBindings.instance._ColorGradingBuilder_createJobThread(jobThread.cast(), onComplete.cast());
   return result;
 }
 
@@ -3418,11 +3664,13 @@ void ColorGradingBuilder_destroy(Pointer<TColorGradingBuilder> builder) {
 }
 
 void ColorGradingBuilder_destroyJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TColorGradingBuilder> tBuilder,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._ColorGradingBuilder_destroyJobThread(
+    jobThread.cast(),
     tBuilder.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
@@ -3629,6 +3877,7 @@ Pointer<TSkybox> Engine_buildColoredSkybox(
 }
 
 void Engine_buildColoredSkyboxJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   double r,
   double g,
@@ -3640,6 +3889,7 @@ void Engine_buildColoredSkyboxJobThread(
   Pointer<NativeFunction<void Function(Pointer<TSkybox>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_buildColoredSkyboxJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     r,
     g,
@@ -3669,6 +3919,7 @@ Pointer<TIndirectLight> Engine_buildIndirectLightFromIrradianceHarmonics(
 }
 
 void Engine_buildIndirectLightFromIrradianceHarmonicsJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TTexture> tReflectionsTexture,
   Pointer<Float32> harmonics,
@@ -3676,6 +3927,7 @@ void Engine_buildIndirectLightFromIrradianceHarmonicsJobThread(
   Pointer<NativeFunction<void Function(Pointer<TIndirectLight>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_buildIndirectLightFromIrradianceHarmonicsJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tReflectionsTexture.cast(),
     harmonics,
@@ -3701,6 +3953,7 @@ Pointer<TIndirectLight> Engine_buildIndirectLightFromIrradianceTexture(
 }
 
 void Engine_buildIndirectLightFromIrradianceTextureJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TTexture> tReflectionsTexture,
   Pointer<TTexture> tIrradianceTexture,
@@ -3708,6 +3961,7 @@ void Engine_buildIndirectLightFromIrradianceTextureJobThread(
   Pointer<NativeFunction<void Function(Pointer<TIndirectLight>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_buildIndirectLightFromIrradianceTextureJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tReflectionsTexture.cast(),
     tIrradianceTexture.cast(),
@@ -3725,12 +3979,14 @@ Pointer<TMaterial> Engine_buildMaterial(Pointer<TEngine> tEngine, Pointer<Uint8>
 }
 
 void Engine_buildMaterialJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<Uint8> materialData,
   Dartsize_t length,
   Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_buildMaterialJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     materialData,
     length,
@@ -3757,6 +4013,7 @@ Pointer<TSkybox> Engine_buildSkybox(
 }
 
 void Engine_buildSkyboxJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TTexture> tTexture,
   bool showSun,
@@ -3765,6 +4022,7 @@ void Engine_buildSkyboxJobThread(
   Pointer<NativeFunction<void Function(Pointer<TSkybox>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_buildSkyboxJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tTexture.cast(),
     showSun,
@@ -3798,11 +4056,17 @@ Pointer<TCamera> Engine_createCamera(Pointer<TEngine> tEngine, DartEntityId enti
 }
 
 void Engine_createCameraJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   DartEntityId entityId,
   Pointer<NativeFunction<void Function(Pointer<TCamera>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._Engine_createCameraJobThread(tEngine.cast(), entityId, onComplete.cast());
+  final result = GeneratedBindings.instance._Engine_createCameraJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    entityId,
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -3812,10 +4076,15 @@ Pointer<TFence> Engine_createFence(Pointer<TEngine> tEngine) {
 }
 
 void Engine_createFenceJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TFence>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._Engine_createFenceJobThread(tEngine.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._Engine_createFenceJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -3830,6 +4099,7 @@ Pointer<TSwapChain> Engine_createHeadlessSwapChain(Pointer<TEngine> tEngine, int
 }
 
 void Engine_createHeadlessSwapChainJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   int width,
   int height,
@@ -3837,6 +4107,7 @@ void Engine_createHeadlessSwapChainJobThread(
   Pointer<NativeFunction<void Function(Pointer<TSwapChain>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_createHeadlessSwapChainJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     width,
     height,
@@ -3847,6 +4118,7 @@ void Engine_createHeadlessSwapChainJobThread(
 }
 
 void Engine_createJobThread(
+  Pointer<TJobThread> jobThread,
   int backend,
   Pointer<Void> platform,
   Pointer<Void> sharedContext,
@@ -3855,6 +4127,7 @@ void Engine_createJobThread(
   Pointer<NativeFunction<void Function(Pointer<TEngine>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_createJobThread(
+    jobThread.cast(),
     backend,
     platform,
     sharedContext,
@@ -3871,10 +4144,15 @@ Pointer<TRenderer> Engine_createRenderer(Pointer<TEngine> tEngine) {
 }
 
 void Engine_createRendererJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TRenderer>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._Engine_createRendererJobThread(tEngine.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._Engine_createRendererJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -3889,12 +4167,14 @@ Pointer<TSwapChain> Engine_createSwapChain(Pointer<TEngine> tEngine, Pointer<Voi
 }
 
 void Engine_createSwapChainJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<Void> window,
   BigInt flags,
   Pointer<NativeFunction<void Function(Pointer<TSwapChain>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_createSwapChainJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     window,
     flags.toJSBigInt,
@@ -3909,10 +4189,15 @@ Pointer<TView> Engine_createView(Pointer<TEngine> tEngine) {
 }
 
 void Engine_createViewJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TView>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._Engine_createViewJobThread(tEngine.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._Engine_createViewJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -3927,12 +4212,14 @@ void Engine_destroyCamera(Pointer<TEngine> tEngine, Pointer<TCamera> tCamera) {
 }
 
 void Engine_destroyCameraJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TCamera> tCamera,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_destroyCameraJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tCamera.cast(),
     requestId,
@@ -3947,12 +4234,14 @@ void Engine_destroyColorGrading(Pointer<TEngine> tEngine, Pointer<TColorGrading>
 }
 
 void Engine_destroyColorGradingJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TColorGrading> tColorGrading,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_destroyColorGradingJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tColorGrading.cast(),
     requestId,
@@ -3967,12 +4256,14 @@ void Engine_destroyFence(Pointer<TEngine> tEngine, Pointer<TFence> tFence) {
 }
 
 void Engine_destroyFenceJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TFence> tFence,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_destroyFenceJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tFence.cast(),
     requestId,
@@ -3987,12 +4278,14 @@ void Engine_destroyIndirectLight(Pointer<TEngine> tEngine, Pointer<TIndirectLigh
 }
 
 void Engine_destroyIndirectLightJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TIndirectLight> tIndirectLight,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_destroyIndirectLightJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tIndirectLight.cast(),
     requestId,
@@ -4001,8 +4294,14 @@ void Engine_destroyIndirectLightJobThread(
   return result;
 }
 
-void Engine_destroyJobThread(Pointer<TEngine> tEngine, int requestId, DartVoidCallback onComplete) {
+void Engine_destroyJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> tEngine,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._Engine_destroyJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
@@ -4021,12 +4320,14 @@ void Engine_destroyMaterialInstance(Pointer<TEngine> tEngine, Pointer<TMaterialI
 }
 
 void Engine_destroyMaterialInstanceJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TMaterialInstance> tMaterialInstance,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_destroyMaterialInstanceJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tMaterialInstance.cast(),
     requestId,
@@ -4036,12 +4337,14 @@ void Engine_destroyMaterialInstanceJobThread(
 }
 
 void Engine_destroyMaterialJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TMaterial> tMaterial,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_destroyMaterialJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tMaterial.cast(),
     requestId,
@@ -4056,12 +4359,14 @@ void Engine_destroyRenderer(Pointer<TEngine> tEngine, Pointer<TRenderer> tRender
 }
 
 void Engine_destroyRendererJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TRenderer> tRenderer,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_destroyRendererJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tRenderer.cast(),
     requestId,
@@ -4076,12 +4381,14 @@ void Engine_destroyScene(Pointer<TEngine> tEngine, Pointer<TScene> tScene) {
 }
 
 void Engine_destroySceneJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TScene> tScene,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_destroySceneJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tScene.cast(),
     requestId,
@@ -4096,12 +4403,14 @@ void Engine_destroySkybox(Pointer<TEngine> tEngine, Pointer<TSkybox> tSkybox) {
 }
 
 void Engine_destroySkyboxJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TSkybox> tSkybox,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_destroySkyboxJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tSkybox.cast(),
     requestId,
@@ -4116,12 +4425,14 @@ void Engine_destroySwapChain(Pointer<TEngine> tEngine, Pointer<TSwapChain> tSwap
 }
 
 void Engine_destroySwapChainJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TSwapChain> tSwapChain,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_destroySwapChainJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tSwapChain.cast(),
     requestId,
@@ -4136,12 +4447,14 @@ void Engine_destroyTexture(Pointer<TEngine> tEngine, Pointer<TTexture> tTexture)
 }
 
 void Engine_destroyTextureJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> engine,
   Pointer<TTexture> tTexture,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_destroyTextureJobThread(
+    jobThread.cast(),
     engine.cast(),
     tTexture.cast(),
     requestId,
@@ -4156,12 +4469,14 @@ void Engine_destroyView(Pointer<TEngine> tEngine, Pointer<TView> tView) {
 }
 
 void Engine_destroyViewJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TView> tView,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_destroyViewJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tView.cast(),
     requestId,
@@ -4175,8 +4490,14 @@ void Engine_execute(Pointer<TEngine> tEngine) {
   return result;
 }
 
-void Engine_executeJobThread(Pointer<TEngine> tEngine, int requestId, DartVoidCallback onComplete) {
+void Engine_executeJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> tEngine,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._Engine_executeJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
@@ -4189,8 +4510,14 @@ void Engine_flushAndWait(Pointer<TEngine> tEngine) {
   return result;
 }
 
-void Engine_flushAndWaitJobThread(Pointer<TEngine> tEngine, int requestId, DartVoidCallback onComplete) {
+void Engine_flushAndWaitJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> tEngine,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._Engine_flushAndWaitJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
@@ -4249,10 +4576,12 @@ DartEntityId EntityManager_createEntity(Pointer<TEntityManager> tEntityManager) 
 }
 
 void EntityManager_createEntityJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEntityManager> tEntityManager,
   Pointer<NativeFunction<void Function(EntityId)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._EntityManager_createEntityJobThread(
+    jobThread.cast(),
     tEntityManager.cast(),
     onComplete.cast(),
   );
@@ -4265,12 +4594,14 @@ void EntityManager_destroyEntity(Pointer<TEntityManager> tEntityManager, DartEnt
 }
 
 void EntityManager_destroyEntityJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEntityManager> tEntityManager,
   DartEntityId entityId,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._EntityManager_destroyEntityJobThread(
+    jobThread.cast(),
     tEntityManager.cast(),
     entityId,
     requestId,
@@ -4284,8 +4615,14 @@ void Fence_waitAndDestroy(Pointer<TFence> tFence) {
   return result;
 }
 
-void Fence_waitAndDestroyJobThread(Pointer<TFence> tFence, int requestId, DartVoidCallback onComplete) {
+void Fence_waitAndDestroyJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TFence> tFence,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._Fence_waitAndDestroyJobThread(
+    jobThread.cast(),
     tFence.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
@@ -4324,10 +4661,12 @@ DartEntityId FilamentAsset_getWireframe(Pointer<TFilamentAsset> filamentAsset) {
 }
 
 void FilamentAsset_getWireframeJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TFilamentAsset> tFilamentAsset,
   Pointer<NativeFunction<void Function(EntityId)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._FilamentAsset_getWireframeJobThread(
+    jobThread.cast(),
     tFilamentAsset.cast(),
     onComplete.cast(),
   );
@@ -4389,6 +4728,7 @@ Pointer<TGizmo> Gizmo_create(
 }
 
 void Gizmo_createJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TGltfAssetLoader> tAssetLoader,
   Pointer<TGltfResourceLoader> tGltfResourceLoader,
@@ -4399,6 +4739,7 @@ void Gizmo_createJobThread(
   Pointer<NativeFunction<void Function(Pointer<TGizmo>)>> callback,
 ) {
   final result = GeneratedBindings.instance._Gizmo_createJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tAssetLoader.cast(),
     tGltfResourceLoader.cast(),
@@ -4450,12 +4791,14 @@ Pointer<TGltfAssetLoader> GltfAssetLoader_create(
 }
 
 void GltfAssetLoader_createJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TMaterialProvider> tMaterialProvider,
   Pointer<TNameComponentManager> tNameComponentManager,
   Pointer<NativeFunction<void Function(Pointer<TGltfAssetLoader>)>> callback,
 ) {
   final result = GeneratedBindings.instance._GltfAssetLoader_createJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tMaterialProvider.cast(),
     tNameComponentManager.cast(),
@@ -4470,11 +4813,13 @@ void GltfAssetLoader_destroy(Pointer<TGltfAssetLoader> tAssetLoader) {
 }
 
 void GltfAssetLoader_destroyJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TGltfAssetLoader> tAssetLoader,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._GltfAssetLoader_destroyJobThread(
+    jobThread.cast(),
     tAssetLoader.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
@@ -4516,6 +4861,7 @@ Pointer<TFilamentAsset> GltfAssetLoader_load(
 }
 
 void GltfAssetLoader_loadJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TGltfAssetLoader> tAssetLoader,
   Pointer<Uint8> data,
@@ -4524,6 +4870,7 @@ void GltfAssetLoader_loadJobThread(
   Pointer<NativeFunction<void Function(Pointer<TFilamentAsset>)>> callback,
 ) {
   final result = GeneratedBindings.instance._GltfAssetLoader_loadJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tAssetLoader.cast(),
     data,
@@ -4564,6 +4911,7 @@ void GltfResourceLoader_addResourceData(
 }
 
 void GltfResourceLoader_addResourceDataJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TGltfResourceLoader> tGltfResourceLoader,
   Pointer<Char> uri,
   Pointer<Uint8> data,
@@ -4572,6 +4920,7 @@ void GltfResourceLoader_addResourceDataJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._GltfResourceLoader_addResourceDataJobThread(
+    jobThread.cast(),
     tGltfResourceLoader.cast(),
     uri,
     data,
@@ -4594,11 +4943,13 @@ bool GltfResourceLoader_asyncBeginLoad(
 }
 
 void GltfResourceLoader_asyncBeginLoadJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TGltfResourceLoader> tGltfResourceLoader,
   Pointer<TFilamentAsset> tFilamentAsset,
   Pointer<NativeFunction<void Function(bool)>> callback,
 ) {
   final result = GeneratedBindings.instance._GltfResourceLoader_asyncBeginLoadJobThread(
+    jobThread.cast(),
     tGltfResourceLoader.cast(),
     tFilamentAsset.cast(),
     callback.cast(),
@@ -4612,10 +4963,12 @@ double GltfResourceLoader_asyncGetLoadProgress(Pointer<TGltfResourceLoader> tGlt
 }
 
 void GltfResourceLoader_asyncGetLoadProgressJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TGltfResourceLoader> tGltfResourceLoader,
   Pointer<NativeFunction<void Function(double)>> callback,
 ) {
   final result = GeneratedBindings.instance._GltfResourceLoader_asyncGetLoadProgressJobThread(
+    jobThread.cast(),
     tGltfResourceLoader.cast(),
     callback.cast(),
   );
@@ -4627,8 +4980,14 @@ void GltfResourceLoader_asyncUpdateLoad(Pointer<TGltfResourceLoader> tGltfResour
   return result;
 }
 
-void GltfResourceLoader_asyncUpdateLoadJobThread(Pointer<TGltfResourceLoader> tGltfResourceLoader) {
-  final result = GeneratedBindings.instance._GltfResourceLoader_asyncUpdateLoadJobThread(tGltfResourceLoader.cast());
+void GltfResourceLoader_asyncUpdateLoadJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TGltfResourceLoader> tGltfResourceLoader,
+) {
+  final result = GeneratedBindings.instance._GltfResourceLoader_asyncUpdateLoadJobThread(
+    jobThread.cast(),
+    tGltfResourceLoader.cast(),
+  );
   return result;
 }
 
@@ -4638,10 +4997,15 @@ Pointer<TGltfResourceLoader> GltfResourceLoader_create(Pointer<TEngine> tEngine)
 }
 
 void GltfResourceLoader_createJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TGltfResourceLoader>)>> callback,
 ) {
-  final result = GeneratedBindings.instance._GltfResourceLoader_createJobThread(tEngine.cast(), callback.cast());
+  final result = GeneratedBindings.instance._GltfResourceLoader_createJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    callback.cast(),
+  );
   return result;
 }
 
@@ -4651,12 +5015,14 @@ void GltfResourceLoader_destroy(Pointer<TEngine> tEngine, Pointer<TGltfResourceL
 }
 
 void GltfResourceLoader_destroyJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TGltfResourceLoader> tResourceLoader,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._GltfResourceLoader_destroyJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tResourceLoader.cast(),
     requestId,
@@ -4677,11 +5043,13 @@ bool GltfResourceLoader_loadResources(
 }
 
 void GltfResourceLoader_loadResourcesJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TGltfResourceLoader> tGltfResourceLoader,
   Pointer<TFilamentAsset> tFilamentAsset,
   Pointer<NativeFunction<void Function(bool)>> callback,
 ) {
   final result = GeneratedBindings.instance._GltfResourceLoader_loadResourcesJobThread(
+    jobThread.cast(),
     tGltfResourceLoader.cast(),
     tFilamentAsset.cast(),
     callback.cast(),
@@ -4695,12 +5063,19 @@ Pointer<TLinearImage> Image_createEmpty(int width, int height, int channel) {
 }
 
 void Image_createEmptyJobThread(
+  Pointer<TJobThread> jobThread,
   int width,
   int height,
   int channel,
   Pointer<NativeFunction<void Function(Pointer<TLinearImage>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._Image_createEmptyJobThread(width, height, channel, onComplete.cast());
+  final result = GeneratedBindings.instance._Image_createEmptyJobThread(
+    jobThread.cast(),
+    width,
+    height,
+    channel,
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -4710,13 +5085,21 @@ Pointer<TLinearImage> Image_decode(Pointer<Uint8> data, Dartsize_t length, Point
 }
 
 void Image_decodeJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<Uint8> data,
   Dartsize_t length,
   Pointer<Char> name,
   bool alpha,
   Pointer<NativeFunction<void Function(Pointer<TLinearImage>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._Image_decodeJobThread(data, length, name, alpha, onComplete.cast());
+  final result = GeneratedBindings.instance._Image_decodeJobThread(
+    jobThread.cast(),
+    data,
+    length,
+    name,
+    alpha,
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -4725,8 +5108,14 @@ void Image_destroy(Pointer<TLinearImage> tLinearImage) {
   return result;
 }
 
-void Image_destroyJobThread(Pointer<TLinearImage> tLinearImage, int requestId, DartVoidCallback onComplete) {
+void Image_destroyJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TLinearImage> tLinearImage,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._Image_destroyJobThread(
+    jobThread.cast(),
     tLinearImage.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
@@ -4740,10 +5129,15 @@ Pointer<Float32> Image_getBytes(Pointer<TLinearImage> tLinearImage) {
 }
 
 void Image_getBytesJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TLinearImage> tLinearImage,
   Pointer<NativeFunction<void Function(Pointer<Float32>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._Image_getBytesJobThread(tLinearImage.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._Image_getBytesJobThread(
+    jobThread.cast(),
+    tLinearImage.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -4753,10 +5147,15 @@ int Image_getChannels(Pointer<TLinearImage> tLinearImage) {
 }
 
 void Image_getChannelsJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TLinearImage> tLinearImage,
   Pointer<NativeFunction<void Function(int)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._Image_getChannelsJobThread(tLinearImage.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._Image_getChannelsJobThread(
+    jobThread.cast(),
+    tLinearImage.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -4766,10 +5165,15 @@ int Image_getHeight(Pointer<TLinearImage> tLinearImage) {
 }
 
 void Image_getHeightJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TLinearImage> tLinearImage,
   Pointer<NativeFunction<void Function(int)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._Image_getHeightJobThread(tLinearImage.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._Image_getHeightJobThread(
+    jobThread.cast(),
+    tLinearImage.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -4779,10 +5183,15 @@ int Image_getWidth(Pointer<TLinearImage> tLinearImage) {
 }
 
 void Image_getWidthJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TLinearImage> tLinearImage,
   Pointer<NativeFunction<void Function(int)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._Image_getWidthJobThread(tLinearImage.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._Image_getWidthJobThread(
+    jobThread.cast(),
+    tLinearImage.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -4797,11 +5206,13 @@ Pointer<TIndexBuffer> IndexBufferBuilder_build(Pointer<TIndexBufferBuilder> buil
 }
 
 void IndexBufferBuilder_buildJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TIndexBufferBuilder> tBuilder,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TIndexBuffer>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._IndexBufferBuilder_buildJobThread(
+    jobThread.cast(),
     tBuilder.cast(),
     tEngine.cast(),
     onComplete.cast(),
@@ -4830,12 +5241,14 @@ void IndexBuffer_destroy(Pointer<TEngine> engine, Pointer<TIndexBuffer> buffer) 
 }
 
 void IndexBuffer_destroyJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TIndexBuffer> tBuffer,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._IndexBuffer_destroyJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tBuffer.cast(),
     requestId,
@@ -4867,6 +5280,7 @@ void IndexBuffer_setBuffer(
 }
 
 void IndexBuffer_setBufferJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TIndexBuffer> tBuffer,
   Pointer<Void> data,
@@ -4876,6 +5290,7 @@ void IndexBuffer_setBufferJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._IndexBuffer_setBufferJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tBuffer.cast(),
     data,
@@ -4892,23 +5307,23 @@ void IndirectLight_setRotation(Pointer<TIndirectLight> tIndirectLight, Pointer<F
   return result;
 }
 
-void JobThread_addTask(Pointer<NativeFunction<void Function()>> task) {
-  final result = GeneratedBindings.instance._JobThread_addTask(task.cast());
+void JobThread_addTask(Pointer<TJobThread> jobThread, Pointer<NativeFunction<void Function()>> task) {
+  final result = GeneratedBindings.instance._JobThread_addTask(jobThread.cast(), task.cast());
   return result;
 }
 
-Pointer<Void> JobThread_create() {
+Pointer<TJobThread> JobThread_create() {
   final result = GeneratedBindings.instance._JobThread_create();
-  return Pointer<Void>(result);
+  return Pointer<TJobThread>(result);
 }
 
-Pointer<Void> JobThread_createForCanvas(Pointer<Char> canvasSelector) {
+Pointer<TJobThread> JobThread_createForCanvas(Pointer<Char> canvasSelector) {
   final result = GeneratedBindings.instance._JobThread_createForCanvas(canvasSelector);
-  return Pointer<Void>(result);
+  return Pointer<TJobThread>(result);
 }
 
-void JobThread_destroy(Pointer<Void> jobThread) {
-  final result = GeneratedBindings.instance._JobThread_destroy(jobThread);
+void JobThread_destroy(Pointer<TJobThread> jobThread) {
+  final result = GeneratedBindings.instance._JobThread_destroy(jobThread.cast());
   return result;
 }
 
@@ -4948,6 +5363,7 @@ Pointer<TTexture> Ktx1Reader_createTexture(
 }
 
 void Ktx1Reader_createTextureJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TKtx1Bundle> tBundle,
   int requestId,
@@ -4955,6 +5371,7 @@ void Ktx1Reader_createTextureJobThread(
   Pointer<NativeFunction<void Function(Pointer<TTexture>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Ktx1Reader_createTextureJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tBundle.cast(),
     requestId,
@@ -4970,12 +5387,14 @@ Pointer<TTexture> Ktx2Reader_createTexture(Pointer<TEngine> tEngine, Pointer<Uin
 }
 
 void Ktx2Reader_createTextureJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<Uint8> data,
   Dartsize_t size,
   Pointer<NativeFunction<void Function(Pointer<TTexture>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Ktx2Reader_createTextureJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     data,
     size,
@@ -5202,6 +5621,7 @@ void LightManager_setShadowCaster(Pointer<TLightManager> tLightManager, DartEnti
 }
 
 void LightManager_setShadowCasterJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TLightManager> tLightManager,
   DartEntityId entityId,
   bool enabled,
@@ -5209,6 +5629,7 @@ void LightManager_setShadowCasterJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._LightManager_setShadowCasterJobThread(
+    jobThread.cast(),
     tLightManager.cast(),
     entityId,
     enabled,
@@ -5229,6 +5650,7 @@ void LightManager_setShadowOptions(Pointer<TLightManager> tLightManager, DartEnt
 }
 
 void LightManager_setShadowOptionsJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TLightManager> tLightManager,
   DartEntityId entityId,
   TShadowOptions options,
@@ -5237,6 +5659,7 @@ void LightManager_setShadowOptionsJobThread(
 ) {
   final optionsPtr = options.address;
   final result = GeneratedBindings.instance._LightManager_setShadowOptionsJobThread(
+    jobThread.cast(),
     tLightManager.cast(),
     entityId,
     optionsPtr.cast(),
@@ -5472,6 +5895,7 @@ void MaterialInstance_setParameterTexture(
 }
 
 void MaterialInstance_setParameterTextureJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TMaterialInstance> tMaterialInstance,
   Pointer<Char> propertyName,
   Pointer<TTexture> tTexture,
@@ -5480,6 +5904,7 @@ void MaterialInstance_setParameterTextureJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._MaterialInstance_setParameterTextureJobThread(
+    jobThread.cast(),
     tMaterialInstance.cast(),
     propertyName,
     tTexture.cast(),
@@ -5640,6 +6065,7 @@ Pointer<TMaterialInstance> MaterialProvider_createMaterialInstance(
 }
 
 void MaterialProvider_createMaterialInstanceJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TMaterialProvider> tMaterialProvider,
   bool doubleSided,
   bool unlit,
@@ -5682,6 +6108,7 @@ void MaterialProvider_createMaterialInstanceJobThread(
   Pointer<NativeFunction<void Function(Pointer<TMaterialInstance>)>> callback,
 ) {
   final result = GeneratedBindings.instance._MaterialProvider_createMaterialInstanceJobThread(
+    jobThread.cast(),
     tMaterialProvider.cast(),
     doubleSided,
     unlit,
@@ -5732,10 +6159,12 @@ Pointer<TMaterial> Material_createBoneOverlayMaterial(Pointer<TEngine> tEngine) 
 }
 
 void Material_createBoneOverlayMaterialJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Material_createBoneOverlayMaterialJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     onComplete.cast(),
   );
@@ -5748,10 +6177,12 @@ Pointer<TMaterial> Material_createEdgeOutlineMaterial(Pointer<TEngine> tEngine) 
 }
 
 void Material_createEdgeOutlineMaterialJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Material_createEdgeOutlineMaterialJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     onComplete.cast(),
   );
@@ -5764,10 +6195,15 @@ Pointer<TMaterial> Material_createGizmoMaterial(Pointer<TEngine> tEngine) {
 }
 
 void Material_createGizmoMaterialJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._Material_createGizmoMaterialJobThread(tEngine.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._Material_createGizmoMaterialJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -5782,10 +6218,15 @@ Pointer<TMaterial> Material_createImageMaterial(Pointer<TEngine> tEngine) {
 }
 
 void Material_createImageMaterialJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._Material_createImageMaterialJobThread(tEngine.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._Material_createImageMaterialJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -5795,10 +6236,15 @@ Pointer<TMaterialInstance> Material_createInstance(Pointer<TMaterial> tMaterial)
 }
 
 void Material_createInstanceJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TMaterial> tMaterial,
   Pointer<NativeFunction<void Function(Pointer<TMaterialInstance>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._Material_createInstanceJobThread(tMaterial.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._Material_createInstanceJobThread(
+    jobThread.cast(),
+    tMaterial.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -5808,10 +6254,12 @@ Pointer<TMaterial> Material_createSilhouetteMaterial(Pointer<TEngine> tEngine) {
 }
 
 void Material_createSilhouetteMaterialJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Material_createSilhouetteMaterialJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     onComplete.cast(),
   );
@@ -5824,10 +6272,12 @@ Pointer<TMaterial> Material_createTranslationAxisMaterial(Pointer<TEngine> tEngi
 }
 
 void Material_createTranslationAxisMaterialJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Material_createTranslationAxisMaterialJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     onComplete.cast(),
   );
@@ -5840,10 +6290,12 @@ Pointer<TMaterial> Material_createWireframeMaterial(Pointer<TEngine> tEngine) {
 }
 
 void Material_createWireframeMaterialJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Material_createWireframeMaterialJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     onComplete.cast(),
   );
@@ -5937,12 +6389,14 @@ void RenderManager_addAnimationManager(
 }
 
 void RenderManager_addAnimationManagerJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderManager> tRenderManager,
   Pointer<TAnimationManager> tAnimationManager,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderManager_addAnimationManagerJobThread(
+    jobThread.cast(),
     tRenderManager.cast(),
     tAnimationManager.cast(),
     requestId,
@@ -5951,8 +6405,8 @@ void RenderManager_addAnimationManagerJobThread(
   return result;
 }
 
-void RenderManager_attachToJobThread(Pointer<TRenderManager> tRenderer) {
-  final result = GeneratedBindings.instance._RenderManager_attachToJobThread(tRenderer.cast());
+void RenderManager_attachToJobThread(Pointer<TJobThread> jobThread, Pointer<TRenderManager> tRenderer) {
+  final result = GeneratedBindings.instance._RenderManager_attachToJobThread(jobThread.cast(), tRenderer.cast());
   return result;
 }
 
@@ -5966,8 +6420,14 @@ void RenderManager_destroy(Pointer<TRenderManager> tRenderer) {
   return result;
 }
 
-void RenderManager_destroyJobThread(Pointer<TRenderManager> manager, int requestId, DartVoidCallback onComplete) {
+void RenderManager_destroyJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TRenderManager> manager,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._RenderManager_destroyJobThread(
+    jobThread.cast(),
     manager.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
@@ -5975,8 +6435,8 @@ void RenderManager_destroyJobThread(Pointer<TRenderManager> manager, int request
   return result;
 }
 
-void RenderManager_detachFromJobThread(Pointer<TRenderManager> tRenderManager) {
-  final result = GeneratedBindings.instance._RenderManager_detachFromJobThread(tRenderManager.cast());
+void RenderManager_detachFromJobThread(Pointer<TJobThread> jobThread, Pointer<TRenderManager> tRenderManager) {
+  final result = GeneratedBindings.instance._RenderManager_detachFromJobThread(jobThread.cast(), tRenderManager.cast());
   return result;
 }
 
@@ -5992,12 +6452,14 @@ void RenderManager_removeAnimationManager(
 }
 
 void RenderManager_removeAnimationManagerJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderManager> tRenderManager,
   Pointer<TAnimationManager> tAnimationManager,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderManager_removeAnimationManagerJobThread(
+    jobThread.cast(),
     tRenderManager.cast(),
     tAnimationManager.cast(),
     requestId,
@@ -6012,12 +6474,14 @@ void RenderManager_removeSwapChain(Pointer<TRenderManager> tRenderer, Pointer<TS
 }
 
 void RenderManager_removeSwapChainJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderManager> tRenderManager,
   Pointer<TSwapChain> tSwapChain,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderManager_removeSwapChainJobThread(
+    jobThread.cast(),
     tRenderManager.cast(),
     tSwapChain.cast(),
     requestId,
@@ -6032,12 +6496,14 @@ void RenderManager_render(Pointer<TRenderManager> tRenderer, BigInt frameTimeInN
 }
 
 void RenderManager_renderJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderManager> tRenderManager,
   BigInt frameTimeInNanos,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderManager_renderJobThread(
+    jobThread.cast(),
     tRenderManager.cast(),
     frameTimeInNanos.toJSBigInt,
     requestId,
@@ -6067,6 +6533,7 @@ void RenderManager_setRenderable(
 }
 
 void RenderManager_setRenderableJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderManager> tRenderer,
   Pointer<TSwapChain> tSwapChain,
   Pointer<PointerClass<TView>> tViews,
@@ -6075,6 +6542,7 @@ void RenderManager_setRenderableJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderManager_setRenderableJobThread(
+    jobThread.cast(),
     tRenderer.cast(),
     tSwapChain.cast(),
     tViews.cast(),
@@ -6091,12 +6559,14 @@ Pointer<TRenderTarget> RenderTarget_create(Pointer<TEngine> tEngine, Pointer<TTe
 }
 
 void RenderTarget_createJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TTexture> color,
   Pointer<TTexture> depth,
   Pointer<NativeFunction<void Function(Pointer<TRenderTarget>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderTarget_createJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     color.cast(),
     depth.cast(),
@@ -6111,12 +6581,14 @@ void RenderTarget_destroy(Pointer<TEngine> tEngine, Pointer<TRenderTarget> tRend
 }
 
 void RenderTarget_destroyJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TRenderTarget> tRenderTarget,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderTarget_destroyJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tRenderTarget.cast(),
     requestId,
@@ -6131,10 +6603,12 @@ Pointer<TTexture> RenderTarget_getColorTexture(Pointer<TRenderTarget> tRenderTar
 }
 
 void RenderTarget_getColorTextureJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderTarget> tRenderTarget,
   Pointer<NativeFunction<void Function(Pointer<TTexture>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderTarget_getColorTextureJobThread(
+    jobThread.cast(),
     tRenderTarget.cast(),
     onComplete.cast(),
   );
@@ -6180,12 +6654,14 @@ int RenderableBuilder_build(Pointer<TRenderableBuilder> builder, Pointer<TEngine
 }
 
 void RenderableBuilder_buildJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderableBuilder> tBuilder,
   Pointer<TEngine> tEngine,
   DartEntityId entityId,
   Pointer<NativeFunction<void Function(int)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderableBuilder_buildJobThread(
+    jobThread.cast(),
     tBuilder.cast(),
     tEngine.cast(),
     entityId,
@@ -6195,6 +6671,7 @@ void RenderableBuilder_buildJobThread(
 }
 
 void RenderableBuilder_buildWithSkinningJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderableBuilder> tBuilder,
   Pointer<TEngine> tEngine,
   DartEntityId entityId,
@@ -6204,6 +6681,7 @@ void RenderableBuilder_buildWithSkinningJobThread(
   Pointer<NativeFunction<void Function(int)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderableBuilder_buildWithSkinningJobThread(
+    jobThread.cast(),
     tBuilder.cast(),
     tEngine.cast(),
     entityId,
@@ -6383,12 +6861,14 @@ void RenderableManager_destroyEntity(Pointer<TRenderableManager> tRenderableMana
 }
 
 void RenderableManager_destroyEntityJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderableManager_destroyEntityJobThread(
+    jobThread.cast(),
     tRenderableManager.cast(),
     entityId,
     requestId,
@@ -6566,6 +7046,7 @@ void RenderableManager_setBonesFromBone(
 }
 
 void RenderableManager_setBonesFromBoneJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
   Pointer<Float32> bones,
@@ -6575,6 +7056,7 @@ void RenderableManager_setBonesFromBoneJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderableManager_setBonesFromBoneJobThread(
+    jobThread.cast(),
     tRenderableManager.cast(),
     entityId,
     bones,
@@ -6604,6 +7086,7 @@ void RenderableManager_setBonesFromMat4(
 }
 
 void RenderableManager_setBonesFromMat4JobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
   Pointer<Float32> transforms,
@@ -6613,6 +7096,7 @@ void RenderableManager_setBonesFromMat4JobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderableManager_setBonesFromMat4JobThread(
+    jobThread.cast(),
     tRenderableManager.cast(),
     entityId,
     transforms,
@@ -6638,6 +7122,7 @@ void RenderableManager_setCastShadows(
 }
 
 void RenderableManager_setCastShadowsJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
   bool enabled,
@@ -6645,6 +7130,7 @@ void RenderableManager_setCastShadowsJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderableManager_setCastShadowsJobThread(
+    jobThread.cast(),
     tRenderableManager.cast(),
     entityId,
     enabled,
@@ -6699,6 +7185,7 @@ bool RenderableManager_setGeometryAtNonIndexed(
 }
 
 void RenderableManager_setGeometryAtNonIndexedJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
   int primitiveIndex,
@@ -6709,6 +7196,7 @@ void RenderableManager_setGeometryAtNonIndexedJobThread(
   Pointer<NativeFunction<void Function(bool)>> callback,
 ) {
   final result = GeneratedBindings.instance._RenderableManager_setGeometryAtNonIndexedJobThread(
+    jobThread.cast(),
     tRenderableManager.cast(),
     entityId,
     primitiveIndex,
@@ -6799,6 +7287,7 @@ void RenderableManager_setMorphWeights(
 }
 
 void RenderableManager_setMorphWeightsJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
   Pointer<Float32> weights,
@@ -6808,6 +7297,7 @@ void RenderableManager_setMorphWeightsJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderableManager_setMorphWeightsJobThread(
+    jobThread.cast(),
     tRenderableManager.cast(),
     entityId,
     weights,
@@ -6846,6 +7336,7 @@ void RenderableManager_setReceiveShadows(
 }
 
 void RenderableManager_setReceiveShadowsJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
   bool enabled,
@@ -6853,6 +7344,7 @@ void RenderableManager_setReceiveShadowsJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderableManager_setReceiveShadowsJobThread(
+    jobThread.cast(),
     tRenderableManager.cast(),
     entityId,
     enabled,
@@ -6898,12 +7390,14 @@ bool Renderer_beginFrame(Pointer<TRenderer> tRenderer, Pointer<TSwapChain> tSwap
 }
 
 void Renderer_beginFrameJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderer> tRenderer,
   Pointer<TSwapChain> tSwapChain,
   BigInt frameTimeInNanos,
   Pointer<NativeFunction<void Function(bool)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Renderer_beginFrameJobThread(
+    jobThread.cast(),
     tRenderer.cast(),
     tSwapChain.cast(),
     frameTimeInNanos.toJSBigInt,
@@ -6917,8 +7411,14 @@ void Renderer_endFrame(Pointer<TRenderer> tRenderer) {
   return result;
 }
 
-void Renderer_endFrameJobThread(Pointer<TRenderer> tRenderer, int requestId, DartVoidCallback onComplete) {
+void Renderer_endFrameJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TRenderer> tRenderer,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._Renderer_endFrameJobThread(
+    jobThread.cast(),
     tRenderer.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
@@ -6954,6 +7454,7 @@ void Renderer_readPixels(
 }
 
 void Renderer_readPixelsJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderer> tRenderer,
   int width,
   int height,
@@ -6968,6 +7469,7 @@ void Renderer_readPixelsJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Renderer_readPixelsJobThread(
+    jobThread.cast(),
     tRenderer.cast(),
     width,
     height,
@@ -6990,12 +7492,14 @@ void Renderer_render(Pointer<TRenderer> tRenderer, Pointer<TView> tView) {
 }
 
 void Renderer_renderJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderer> tRenderer,
   Pointer<TView> tView,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Renderer_renderJobThread(
+    jobThread.cast(),
     tRenderer.cast(),
     tView.cast(),
     requestId,
@@ -7010,12 +7514,14 @@ void Renderer_renderStandaloneView(Pointer<TRenderer> tRenderer, Pointer<TView> 
 }
 
 void Renderer_renderStandaloneViewJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderer> tRenderer,
   Pointer<TView> tView,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Renderer_renderStandaloneViewJobThread(
+    jobThread.cast(),
     tRenderer.cast(),
     tView.cast(),
     requestId,
@@ -7048,6 +7554,7 @@ void Renderer_setClearOptions(
 }
 
 void Renderer_setClearOptionsJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TRenderer> tRenderer,
   double clearR,
   double clearG,
@@ -7060,6 +7567,7 @@ void Renderer_setClearOptionsJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Renderer_setClearOptionsJobThread(
+    jobThread.cast(),
     tRenderer.cast(),
     clearR,
     clearG,
@@ -7097,12 +7605,14 @@ void SceneAsset_addToScene(Pointer<TSceneAsset> tSceneAsset, Pointer<TScene> tSc
 }
 
 void SceneAsset_addToSceneJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TSceneAsset> tSceneAsset,
   Pointer<TScene> tScene,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_addToSceneJobThread(
+    jobThread.cast(),
     tSceneAsset.cast(),
     tScene.cast(),
     requestId,
@@ -7136,6 +7646,7 @@ Pointer<TSceneAsset> SceneAsset_createFromBuffers(
 }
 
 void SceneAsset_createFromBuffersJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TVertexBuffer> tVertexBuffer,
   Pointer<TIndexBuffer> tIndexBuffer,
@@ -7148,6 +7659,7 @@ void SceneAsset_createFromBuffersJobThread(
 ) {
   final boundingBoxPtr = boundingBox.address;
   final result = GeneratedBindings.instance._SceneAsset_createFromBuffersJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tVertexBuffer.cast(),
     tIndexBuffer.cast(),
@@ -7179,6 +7691,7 @@ Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
 }
 
 void SceneAsset_createFromFilamentAssetJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TGltfAssetLoader> tAssetLoader,
   Pointer<TNameComponentManager> tNameComponentManager,
@@ -7187,6 +7700,7 @@ void SceneAsset_createFromFilamentAssetJobThread(
   Pointer<NativeFunction<void Function(Pointer<TSceneAsset>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_createFromFilamentAssetJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tAssetLoader.cast(),
     tNameComponentManager.cast(),
@@ -7211,12 +7725,14 @@ Pointer<TSceneAsset> SceneAsset_createInstance(
 }
 
 void SceneAsset_createInstanceJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TSceneAsset> asset,
   Pointer<PointerClass<TMaterialInstance>> tMaterialInstances,
   int materialInstanceCount,
   Pointer<NativeFunction<void Function(Pointer<TSceneAsset>)>> callback,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_createInstanceJobThread(
+    jobThread.cast(),
     asset.cast(),
     tMaterialInstances.cast(),
     materialInstanceCount,
@@ -7230,8 +7746,14 @@ void SceneAsset_destroy(Pointer<TSceneAsset> tSceneAsset) {
   return result;
 }
 
-void SceneAsset_destroyJobThread(Pointer<TSceneAsset> tSceneAsset, int requestId, DartVoidCallback onComplete) {
+void SceneAsset_destroyJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TSceneAsset> tSceneAsset,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._SceneAsset_destroyJobThread(
+    jobThread.cast(),
     tSceneAsset.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
@@ -7346,11 +7868,13 @@ void SceneAsset_releaseSourceData(Pointer<TSceneAsset> tSceneAsset) {
 }
 
 void SceneAsset_releaseSourceDataJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TSceneAsset> tSceneAsset,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_releaseSourceDataJobThread(
+    jobThread.cast(),
     tSceneAsset.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
@@ -7364,12 +7888,14 @@ void SceneAsset_removeFromScene(Pointer<TSceneAsset> tSceneAsset, Pointer<TScene
 }
 
 void SceneAsset_removeFromSceneJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TSceneAsset> tSceneAsset,
   Pointer<TScene> tScene,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_removeFromSceneJobThread(
+    jobThread.cast(),
     tSceneAsset.cast(),
     tScene.cast(),
     requestId,
@@ -7384,12 +7910,14 @@ void SceneAsset_setFlatShading(Pointer<TSceneAsset> tSceneAsset, bool flatShadin
 }
 
 void SceneAsset_setFlatShadingJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TSceneAsset> tSceneAsset,
   bool flatShading,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_setFlatShadingJobThread(
+    jobThread.cast(),
     tSceneAsset.cast(),
     flatShading,
     requestId,
@@ -7409,12 +7937,14 @@ void Scene_addEntity(Pointer<TScene> tScene, DartEntityId entityId) {
 }
 
 void Scene_addEntityJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TScene> tScene,
   DartEntityId entityId,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Scene_addEntityJobThread(
+    jobThread.cast(),
     tScene.cast(),
     entityId,
     requestId,
@@ -7429,12 +7959,14 @@ void Scene_addFilamentAsset(Pointer<TScene> tScene, Pointer<TFilamentAsset> asse
 }
 
 void Scene_addFilamentAssetJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TScene> tScene,
   Pointer<TFilamentAsset> tAsset,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Scene_addFilamentAssetJobThread(
+    jobThread.cast(),
     tScene.cast(),
     tAsset.cast(),
     requestId,
@@ -7454,12 +7986,14 @@ void Scene_removeEntity(Pointer<TScene> tScene, DartEntityId entityId) {
 }
 
 void Scene_removeEntityJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TScene> tScene,
   DartEntityId entityId,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Scene_removeEntityJobThread(
+    jobThread.cast(),
     tScene.cast(),
     entityId,
     requestId,
@@ -7474,12 +8008,14 @@ void Scene_setIndirectLight(Pointer<TScene> tScene, Pointer<TIndirectLight> tInd
 }
 
 void Scene_setIndirectLightJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TScene> tScene,
   Pointer<TIndirectLight> tIndirectLight,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Scene_setIndirectLightJobThread(
+    jobThread.cast(),
     tScene.cast(),
     tIndirectLight.cast(),
     requestId,
@@ -7494,12 +8030,14 @@ void Scene_setSkybox(Pointer<TScene> tScene, Pointer<TSkybox> skybox) {
 }
 
 void Scene_setSkyboxJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TScene> tScene,
   Pointer<TSkybox> tSkybox,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Scene_setSkyboxJobThread(
+    jobThread.cast(),
     tScene.cast(),
     tSkybox.cast(),
     requestId,
@@ -7743,8 +8281,11 @@ Pointer<TTextureSampler> TextureSampler_create() {
   return Pointer<TTextureSampler>(result);
 }
 
-void TextureSampler_createJobThread(Pointer<NativeFunction<void Function(Pointer<TTextureSampler>)>> onComplete) {
-  final result = GeneratedBindings.instance._TextureSampler_createJobThread(onComplete.cast());
+void TextureSampler_createJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<NativeFunction<void Function(Pointer<TTextureSampler>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._TextureSampler_createJobThread(jobThread.cast(), onComplete.cast());
   return result;
 }
 
@@ -7754,11 +8295,13 @@ Pointer<TTextureSampler> TextureSampler_createWithComparison(int compareMode, in
 }
 
 void TextureSampler_createWithComparisonJobThread(
+  Pointer<TJobThread> jobThread,
   int compareMode,
   int compareFunc,
   Pointer<NativeFunction<void Function(Pointer<TTextureSampler>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._TextureSampler_createWithComparisonJobThread(
+    jobThread.cast(),
     compareMode,
     compareFunc,
     onComplete.cast(),
@@ -7784,6 +8327,7 @@ Pointer<TTextureSampler> TextureSampler_createWithFiltering(
 }
 
 void TextureSampler_createWithFilteringJobThread(
+  Pointer<TJobThread> jobThread,
   int minFilter,
   int magFilter,
   int wrapS,
@@ -7792,6 +8336,7 @@ void TextureSampler_createWithFilteringJobThread(
   Pointer<NativeFunction<void Function(Pointer<TTextureSampler>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._TextureSampler_createWithFilteringJobThread(
+    jobThread.cast(),
     minFilter,
     magFilter,
     wrapS,
@@ -7807,8 +8352,14 @@ void TextureSampler_destroy(Pointer<TTextureSampler> sampler) {
   return result;
 }
 
-void TextureSampler_destroyJobThread(Pointer<TTextureSampler> sampler, int requestId, DartVoidCallback onComplete) {
+void TextureSampler_destroyJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TTextureSampler> sampler,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._TextureSampler_destroyJobThread(
+    jobThread.cast(),
     sampler.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
@@ -7822,12 +8373,14 @@ void TextureSampler_setAnisotropy(Pointer<TTextureSampler> sampler, double aniso
 }
 
 void TextureSampler_setAnisotropyJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TTextureSampler> sampler,
   double anisotropy,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._TextureSampler_setAnisotropyJobThread(
+    jobThread.cast(),
     sampler.cast(),
     anisotropy,
     requestId,
@@ -7842,6 +8395,7 @@ void TextureSampler_setCompareMode(Pointer<TTextureSampler> sampler, int mode, i
 }
 
 void TextureSampler_setCompareModeJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TTextureSampler> sampler,
   int mode,
   int func,
@@ -7849,6 +8403,7 @@ void TextureSampler_setCompareModeJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._TextureSampler_setCompareModeJobThread(
+    jobThread.cast(),
     sampler.cast(),
     mode,
     func,
@@ -7864,12 +8419,14 @@ void TextureSampler_setMagFilter(Pointer<TTextureSampler> sampler, int filter) {
 }
 
 void TextureSampler_setMagFilterJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TTextureSampler> sampler,
   int filter,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._TextureSampler_setMagFilterJobThread(
+    jobThread.cast(),
     sampler.cast(),
     filter,
     requestId,
@@ -7884,12 +8441,14 @@ void TextureSampler_setMinFilter(Pointer<TTextureSampler> sampler, int filter) {
 }
 
 void TextureSampler_setMinFilterJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TTextureSampler> sampler,
   int filter,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._TextureSampler_setMinFilterJobThread(
+    jobThread.cast(),
     sampler.cast(),
     filter,
     requestId,
@@ -7904,12 +8463,14 @@ void TextureSampler_setWrapModeR(Pointer<TTextureSampler> sampler, int mode) {
 }
 
 void TextureSampler_setWrapModeRJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TTextureSampler> sampler,
   int mode,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._TextureSampler_setWrapModeRJobThread(
+    jobThread.cast(),
     sampler.cast(),
     mode,
     requestId,
@@ -7924,12 +8485,14 @@ void TextureSampler_setWrapModeS(Pointer<TTextureSampler> sampler, int mode) {
 }
 
 void TextureSampler_setWrapModeSJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TTextureSampler> sampler,
   int mode,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._TextureSampler_setWrapModeSJobThread(
+    jobThread.cast(),
     sampler.cast(),
     mode,
     requestId,
@@ -7944,12 +8507,14 @@ void TextureSampler_setWrapModeT(Pointer<TTextureSampler> sampler, int mode) {
 }
 
 void TextureSampler_setWrapModeTJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TTextureSampler> sampler,
   int mode,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._TextureSampler_setWrapModeTJobThread(
+    jobThread.cast(),
     sampler.cast(),
     mode,
     requestId,
@@ -7984,6 +8549,7 @@ Pointer<TTexture> Texture_build(
 }
 
 void Texture_buildJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> engine,
   int width,
   int height,
@@ -7996,6 +8562,7 @@ void Texture_buildJobThread(
   Pointer<NativeFunction<void Function(Pointer<TTexture>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Texture_buildJobThread(
+    jobThread.cast(),
     engine.cast(),
     width,
     height,
@@ -8016,12 +8583,14 @@ void Texture_generateMipMaps(Pointer<TTexture> tTexture, Pointer<TEngine> tEngin
 }
 
 void Texture_generateMipMapsJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TTexture> tTexture,
   Pointer<TEngine> tEngine,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Texture_generateMipMapsJobThread(
+    jobThread.cast(),
     tTexture.cast(),
     tEngine.cast(),
     requestId,
@@ -8080,6 +8649,7 @@ bool Texture_loadImage(
 }
 
 void Texture_loadImageJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TTexture> tTexture,
   Pointer<TLinearImage> tImage,
@@ -8089,6 +8659,7 @@ void Texture_loadImageJobThread(
   Pointer<NativeFunction<void Function(bool)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Texture_loadImageJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tTexture.cast(),
     tImage.cast(),
@@ -8106,6 +8677,7 @@ void Texture_setExternalImage(Pointer<TEngine> tEngine, Pointer<TTexture> tTextu
 }
 
 void Texture_setExternalImageJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TTexture> tTexture,
   Pointer<Void> externalImage,
@@ -8113,6 +8685,7 @@ void Texture_setExternalImageJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._Texture_setExternalImageJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tTexture.cast(),
     externalImage,
@@ -8160,6 +8733,7 @@ bool Texture_setImage(
 }
 
 void Texture_setImageJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TTexture> tTexture,
   int level,
@@ -8176,6 +8750,7 @@ void Texture_setImageJobThread(
   Pointer<NativeFunction<void Function(bool)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Texture_setImageJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tTexture.cast(),
     level,
@@ -8220,10 +8795,15 @@ Pointer<TToneMapper> ToneMapper_createACES(Pointer<TEngine> tEngine) {
 }
 
 void ToneMapper_createACESJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._ToneMapper_createACESJobThread(tEngine.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._ToneMapper_createACESJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -8233,10 +8813,15 @@ Pointer<TToneMapper> ToneMapper_createACESLegacy(Pointer<TEngine> tEngine) {
 }
 
 void ToneMapper_createACESLegacyJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._ToneMapper_createACESLegacyJobThread(tEngine.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._ToneMapper_createACESLegacyJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -8246,10 +8831,15 @@ Pointer<TToneMapper> ToneMapper_createAGX(Pointer<TEngine> tEngine) {
 }
 
 void ToneMapper_createAGXJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._ToneMapper_createAGXJobThread(tEngine.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._ToneMapper_createAGXJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -8259,11 +8849,13 @@ Pointer<TToneMapper> ToneMapper_createAGXWithLook(Pointer<TEngine> tEngine, int 
 }
 
 void ToneMapper_createAGXWithLookJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   int look,
   Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._ToneMapper_createAGXWithLookJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     look,
     onComplete.cast(),
@@ -8277,10 +8869,15 @@ Pointer<TToneMapper> ToneMapper_createDisplayRange(Pointer<TEngine> tEngine) {
 }
 
 void ToneMapper_createDisplayRangeJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._ToneMapper_createDisplayRangeJobThread(tEngine.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._ToneMapper_createDisplayRangeJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -8290,10 +8887,15 @@ Pointer<TToneMapper> ToneMapper_createFilmic(Pointer<TEngine> tEngine) {
 }
 
 void ToneMapper_createFilmicJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._ToneMapper_createFilmicJobThread(tEngine.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._ToneMapper_createFilmicJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -8315,6 +8917,7 @@ Pointer<TToneMapper> ToneMapper_createGeneric(
 }
 
 void ToneMapper_createGenericJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   double contrast,
   double midGrayIn,
@@ -8323,6 +8926,7 @@ void ToneMapper_createGenericJobThread(
   Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._ToneMapper_createGenericJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     contrast,
     midGrayIn,
@@ -8339,10 +8943,15 @@ Pointer<TToneMapper> ToneMapper_createLinear(Pointer<TEngine> tEngine) {
 }
 
 void ToneMapper_createLinearJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._ToneMapper_createLinearJobThread(tEngine.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._ToneMapper_createLinearJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -8352,10 +8961,15 @@ Pointer<TToneMapper> ToneMapper_createPBRNeutral(Pointer<TEngine> tEngine) {
 }
 
 void ToneMapper_createPBRNeutralJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._ToneMapper_createPBRNeutralJobThread(tEngine.cast(), onComplete.cast());
+  final result = GeneratedBindings.instance._ToneMapper_createPBRNeutralJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -8364,8 +8978,14 @@ void ToneMapper_destroy(Pointer<TToneMapper> toneMapper) {
   return result;
 }
 
-void ToneMapper_destroyJobThread(Pointer<TToneMapper> tToneMapper, int requestId, DartVoidCallback onComplete) {
+void ToneMapper_destroyJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TToneMapper> tToneMapper,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._ToneMapper_destroyJobThread(
+    jobThread.cast(),
     tToneMapper.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
@@ -8384,12 +9004,14 @@ void TransformManager_createComponent(Pointer<TTransformManager> tTransformManag
 }
 
 void TransformManager_createComponentJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TTransformManager> tTransformManager,
   DartEntityId entityId,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._TransformManager_createComponentJobThread(
+    jobThread.cast(),
     tTransformManager.cast(),
     entityId,
     requestId,
@@ -8492,12 +9114,14 @@ void TransformManager_removeComponent(Pointer<TTransformManager> tTransformManag
 }
 
 void TransformManager_removeComponentJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TTransformManager> tTransformManager,
   DartEntityId entityId,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._TransformManager_removeComponentJobThread(
+    jobThread.cast(),
     tTransformManager.cast(),
     entityId,
     requestId,
@@ -8522,6 +9146,7 @@ void TransformManager_setParent(
 }
 
 void TransformManager_setParentJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TTransformManager> tTransformManager,
   DartEntityId child,
   DartEntityId parent,
@@ -8530,6 +9155,7 @@ void TransformManager_setParentJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._TransformManager_setParentJobThread(
+    jobThread.cast(),
     tTransformManager.cast(),
     child,
     parent,
@@ -8564,6 +9190,7 @@ void TransformManager_setTransformFromBuffer(
 }
 
 void TransformManager_setTransformFromBufferJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TTransformManager> manager,
   DartEntityId entity,
   Pointer<Float64> matrix16,
@@ -8571,6 +9198,7 @@ void TransformManager_setTransformFromBufferJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._TransformManager_setTransformFromBufferJobThread(
+    jobThread.cast(),
     manager.cast(),
     entity,
     matrix16,
@@ -8581,6 +9209,7 @@ void TransformManager_setTransformFromBufferJobThread(
 }
 
 void TransformManager_setTransformJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TTransformManager> tTransformManager,
   DartEntityId entityId,
   double4x4 transform,
@@ -8589,6 +9218,7 @@ void TransformManager_setTransformJobThread(
 ) {
   final transformPtr = transform.address;
   final result = GeneratedBindings.instance._TransformManager_setTransformJobThread(
+    jobThread.cast(),
     tTransformManager.cast(),
     entityId,
     transformPtr.cast(),
@@ -8608,6 +9238,7 @@ void TransformManager_setTransformNative(
 }
 
 void TransformManager_setTransformNativeJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TTransformManager> manager,
   DartEntityId entity,
   Pointer<TMat4> matrix,
@@ -8615,6 +9246,7 @@ void TransformManager_setTransformNativeJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._TransformManager_setTransformNativeJobThread(
+    jobThread.cast(),
     manager.cast(),
     entity,
     matrix.cast(),
@@ -8767,11 +9399,13 @@ Pointer<TVertexBuffer> VertexBufferBuilder_build(Pointer<TVertexBufferBuilder> b
 }
 
 void VertexBufferBuilder_buildJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TVertexBufferBuilder> tBuilder,
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TVertexBuffer>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._VertexBufferBuilder_buildJobThread(
+    jobThread.cast(),
     tBuilder.cast(),
     tEngine.cast(),
     onComplete.cast(),
@@ -8815,12 +9449,14 @@ void VertexBuffer_destroy(Pointer<TEngine> engine, Pointer<TVertexBuffer> buffer
 }
 
 void VertexBuffer_destroyJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TVertexBuffer> tBuffer,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._VertexBuffer_destroyJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tBuffer.cast(),
     requestId,
@@ -8854,6 +9490,7 @@ void VertexBuffer_setBufferAt(
 }
 
 void VertexBuffer_setBufferAtJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TVertexBuffer> tBuffer,
   int bufferIndex,
@@ -8864,6 +9501,7 @@ void VertexBuffer_setBufferAtJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._VertexBuffer_setBufferAtJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tBuffer.cast(),
     bufferIndex,
@@ -8892,6 +9530,7 @@ void VertexBuffer_setBufferObjectAt(
 }
 
 void VertexBuffer_setBufferObjectAtJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TEngine> tEngine,
   Pointer<TVertexBuffer> tBuffer,
   int bufferIndex,
@@ -8900,6 +9539,7 @@ void VertexBuffer_setBufferObjectAtJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._VertexBuffer_setBufferObjectAtJobThread(
+    jobThread.cast(),
     tEngine.cast(),
     tBuffer.cast(),
     bufferIndex,
@@ -8941,12 +9581,19 @@ Pointer<Char> View_getName(Pointer<TView> tView) {
 }
 
 void View_getNameJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   Pointer<Char> buffer,
   Dartsize_t capacity,
   Pointer<NativeFunction<void Function(size_t)>> onComplete,
 ) {
-  final result = GeneratedBindings.instance._View_getNameJobThread(tView.cast(), buffer, capacity, onComplete.cast());
+  final result = GeneratedBindings.instance._View_getNameJobThread(
+    jobThread.cast(),
+    tView.cast(),
+    buffer,
+    capacity,
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -9014,8 +9661,16 @@ void View_pick(Pointer<TView> tView, int requestId, int x, int y, DartPickCallba
   return result;
 }
 
-void View_pickJobThread(Pointer<TView> tView, int requestId, int x, int y, DartPickCallback callback) {
+void View_pickJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TView> tView,
+  int requestId,
+  int x,
+  int y,
+  DartPickCallback callback,
+) {
   final result = GeneratedBindings.instance._View_pickJobThread(
+    jobThread.cast(),
     tView.cast(),
     requestId,
     x,
@@ -9032,6 +9687,7 @@ void View_setAmbientOcclusionOptions(Pointer<TView> tView, TAmbientOcclusionOpti
 }
 
 void View_setAmbientOcclusionOptionsJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   TAmbientOcclusionOptions options,
   int requestId,
@@ -9039,6 +9695,7 @@ void View_setAmbientOcclusionOptionsJobThread(
 ) {
   final optionsPtr = options.address;
   final result = GeneratedBindings.instance._View_setAmbientOcclusionOptionsJobThread(
+    jobThread.cast(),
     tView.cast(),
     optionsPtr.cast(),
     requestId,
@@ -9053,6 +9710,7 @@ void View_setAntiAliasing(Pointer<TView> tView, bool msaa, bool fxaa, bool taa) 
 }
 
 void View_setAntiAliasingJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   bool msaa,
   bool fxaa,
@@ -9061,6 +9719,7 @@ void View_setAntiAliasingJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._View_setAntiAliasingJobThread(
+    jobThread.cast(),
     tView.cast(),
     msaa,
     fxaa,
@@ -9076,8 +9735,15 @@ void View_setBlendMode(Pointer<TView> view, int blendMode) {
   return result;
 }
 
-void View_setBlendModeJobThread(Pointer<TView> tView, int blendMode, int requestId, DartVoidCallback onComplete) {
+void View_setBlendModeJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TView> tView,
+  int blendMode,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._View_setBlendModeJobThread(
+    jobThread.cast(),
     tView.cast(),
     blendMode,
     requestId,
@@ -9092,6 +9758,7 @@ void View_setBloom(Pointer<TView> tView, bool enabled, double strength) {
 }
 
 void View_setBloomJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   bool enabled,
   double strength,
@@ -9099,6 +9766,7 @@ void View_setBloomJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._View_setBloomJobThread(
+    jobThread.cast(),
     tView.cast(),
     enabled,
     strength,
@@ -9114,12 +9782,14 @@ void View_setCamera(Pointer<TView> tView, Pointer<TCamera> tCamera) {
 }
 
 void View_setCameraJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   Pointer<TCamera> tCamera,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._View_setCameraJobThread(
+    jobThread.cast(),
     tView.cast(),
     tCamera.cast(),
     requestId,
@@ -9134,12 +9804,14 @@ void View_setColorGrading(Pointer<TView> tView, Pointer<TColorGrading> tColorGra
 }
 
 void View_setColorGradingJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   Pointer<TColorGrading> tColorGrading,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._View_setColorGradingJobThread(
+    jobThread.cast(),
     tView.cast(),
     tColorGrading.cast(),
     requestId,
@@ -9153,8 +9825,15 @@ void View_setDitheringEnabled(Pointer<TView> tView, bool enabled) {
   return result;
 }
 
-void View_setDitheringEnabledJobThread(Pointer<TView> tView, bool enabled, int requestId, DartVoidCallback onComplete) {
+void View_setDitheringEnabledJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TView> tView,
+  bool enabled,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._View_setDitheringEnabledJobThread(
+    jobThread.cast(),
     tView.cast(),
     enabled,
     requestId,
@@ -9170,6 +9849,7 @@ void View_setFogOptions(Pointer<TView> tView, TFogOptions tFogOptions) {
 }
 
 void View_setFogOptionsJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   TFogOptions tFogOptions,
   int requestId,
@@ -9177,6 +9857,7 @@ void View_setFogOptionsJobThread(
 ) {
   final tFogOptionsPtr = tFogOptions.address;
   final result = GeneratedBindings.instance._View_setFogOptionsJobThread(
+    jobThread.cast(),
     tView.cast(),
     tFogOptionsPtr.cast(),
     requestId,
@@ -9191,12 +9872,14 @@ void View_setFrontFaceWindingInverted(Pointer<TView> tView, bool inverted) {
 }
 
 void View_setFrontFaceWindingInvertedJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   bool inverted,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._View_setFrontFaceWindingInvertedJobThread(
+    jobThread.cast(),
     tView.cast(),
     inverted,
     requestId,
@@ -9211,12 +9894,14 @@ void View_setFrustumCullingEnabled(Pointer<TView> view, bool enabled) {
 }
 
 void View_setFrustumCullingEnabledJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   bool enabled,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._View_setFrustumCullingEnabledJobThread(
+    jobThread.cast(),
     tView.cast(),
     enabled,
     requestId,
@@ -9231,6 +9916,7 @@ void View_setLayerEnabled(Pointer<TView> tView, int layer, bool visible) {
 }
 
 void View_setLayerEnabledJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   int layer,
   bool visible,
@@ -9238,6 +9924,7 @@ void View_setLayerEnabledJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._View_setLayerEnabledJobThread(
+    jobThread.cast(),
     tView.cast(),
     layer,
     visible,
@@ -9252,8 +9939,15 @@ void View_setName(Pointer<TView> tView, Pointer<Char> name) {
   return result;
 }
 
-void View_setNameJobThread(Pointer<TView> tView, Pointer<Char> name, int requestId, DartVoidCallback onComplete) {
+void View_setNameJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TView> tView,
+  Pointer<Char> name,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._View_setNameJobThread(
+    jobThread.cast(),
     tView.cast(),
     name,
     requestId,
@@ -9267,8 +9961,15 @@ void View_setPostProcessing(Pointer<TView> tView, bool enabled) {
   return result;
 }
 
-void View_setPostProcessingJobThread(Pointer<TView> tView, bool enabled, int requestId, DartVoidCallback onComplete) {
+void View_setPostProcessingJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TView> tView,
+  bool enabled,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._View_setPostProcessingJobThread(
+    jobThread.cast(),
     tView.cast(),
     enabled,
     requestId,
@@ -9283,12 +9984,14 @@ void View_setRenderQuality(Pointer<TView> tView, int qualityLevel) {
 }
 
 void View_setRenderQualityJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   int qualityLevel,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._View_setRenderQualityJobThread(
+    jobThread.cast(),
     tView.cast(),
     qualityLevel,
     requestId,
@@ -9303,12 +10006,14 @@ void View_setRenderTarget(Pointer<TView> view, Pointer<TRenderTarget> renderTarg
 }
 
 void View_setRenderTargetJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   Pointer<TRenderTarget> tRenderTarget,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._View_setRenderTargetJobThread(
+    jobThread.cast(),
     tView.cast(),
     tRenderTarget.cast(),
     requestId,
@@ -9322,8 +10027,15 @@ void View_setScene(Pointer<TView> tView, Pointer<TScene> tScene) {
   return result;
 }
 
-void View_setSceneJobThread(Pointer<TView> tView, Pointer<TScene> tScene, int requestId, DartVoidCallback onComplete) {
+void View_setSceneJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TView> tView,
+  Pointer<TScene> tScene,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._View_setSceneJobThread(
+    jobThread.cast(),
     tView.cast(),
     tScene.cast(),
     requestId,
@@ -9337,8 +10049,15 @@ void View_setShadowType(Pointer<TView> tView, int shadowType) {
   return result;
 }
 
-void View_setShadowTypeJobThread(Pointer<TView> tView, int shadowType, int requestId, DartVoidCallback onComplete) {
+void View_setShadowTypeJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TView> tView,
+  int shadowType,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._View_setShadowTypeJobThread(
+    jobThread.cast(),
     tView.cast(),
     shadowType,
     requestId,
@@ -9352,8 +10071,15 @@ void View_setShadowsEnabled(Pointer<TView> tView, bool enabled) {
   return result;
 }
 
-void View_setShadowsEnabledJobThread(Pointer<TView> tView, bool enabled, int requestId, DartVoidCallback onComplete) {
+void View_setShadowsEnabledJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TView> tView,
+  bool enabled,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
   final result = GeneratedBindings.instance._View_setShadowsEnabledJobThread(
+    jobThread.cast(),
     tView.cast(),
     enabled,
     requestId,
@@ -9369,6 +10095,7 @@ void View_setSoftShadowOptions(Pointer<TView> tView, TSoftShadowOptions options)
 }
 
 void View_setSoftShadowOptionsJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   TSoftShadowOptions options,
   int requestId,
@@ -9376,6 +10103,7 @@ void View_setSoftShadowOptionsJobThread(
 ) {
   final optionsPtr = options.address;
   final result = GeneratedBindings.instance._View_setSoftShadowOptionsJobThread(
+    jobThread.cast(),
     tView.cast(),
     optionsPtr.cast(),
     requestId,
@@ -9390,12 +10118,14 @@ void View_setStencilBufferEnabled(Pointer<TView> tView, bool enabled) {
 }
 
 void View_setStencilBufferEnabledJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   bool enabled,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._View_setStencilBufferEnabledJobThread(
+    jobThread.cast(),
     tView.cast(),
     enabled,
     requestId,
@@ -9410,12 +10140,14 @@ void View_setTransparentPickingEnabled(Pointer<TView> tView, bool enabled) {
 }
 
 void View_setTransparentPickingEnabledJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   bool enabled,
   int requestId,
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._View_setTransparentPickingEnabledJobThread(
+    jobThread.cast(),
     tView.cast(),
     enabled,
     requestId,
@@ -9430,6 +10162,7 @@ void View_setViewport(Pointer<TView> view, int width, int height) {
 }
 
 void View_setViewportJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   int width,
   int height,
@@ -9437,6 +10170,7 @@ void View_setViewportJobThread(
   DartVoidCallback onComplete,
 ) {
   final result = GeneratedBindings.instance._View_setViewportJobThread(
+    jobThread.cast(),
     tView.cast(),
     width,
     height,
@@ -9453,6 +10187,7 @@ void View_setVsmShadowOptions(Pointer<TView> tView, TVsmShadowOptions options) {
 }
 
 void View_setVsmShadowOptionsJobThread(
+  Pointer<TJobThread> jobThread,
   Pointer<TView> tView,
   TVsmShadowOptions options,
   int requestId,
@@ -9460,6 +10195,7 @@ void View_setVsmShadowOptionsJobThread(
 ) {
   final optionsPtr = options.address;
   final result = GeneratedBindings.instance._View_setVsmShadowOptionsJobThread(
+    jobThread.cast(),
     tView.cast(),
     optionsPtr.cast(),
     requestId,
@@ -10356,6 +11092,21 @@ sealed class TIntentAction {
   static const INTENT_ACTION_USE_ITEM = 18;
   static const INTENT_ACTION_RELOAD = 19;
   static const INTENT_ACTION_ALT_FIRE = 20;
+}
+
+extension TJobThreadExt on Pointer<TJobThread> {
+  TJobThread toDart() {
+    return TJobThread(this);
+  }
+}
+
+final class TJobThread extends Struct {
+  Pointer<TJobThread> get address => super.address.cast();
+  TJobThread(super.address);
+
+  static Pointer<TJobThread> stackAlloc() {
+    return Pointer<TJobThread>(NativeLibrary.instance.stackAlloc<TJobThread>(0));
+  }
 }
 
 extension TKtx1BundleExt on Pointer<TKtx1Bundle> {
@@ -12015,6 +12766,9 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TIndirectLight:
         final ptr = TIndirectLight.stackAlloc();
+        return ptr.toDart() as T;
+      case TJobThread:
+        final ptr = TJobThread.stackAlloc();
         return ptr.toDart() as T;
       case TKtx1Bundle:
         final ptr = TKtx1Bundle.stackAlloc();

@@ -258,7 +258,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
       final created = await ptrList.pass((byteData) {
         return withPointerCallback<TSceneAsset>((cb) {
-          SceneAsset_createInstanceJobThread(_asset, byteData.address.cast(), ptrList.length, cb);
+          SceneAsset_createInstanceJobThread(_app.jobThreadHandle, _asset, byteData.address.cast(), ptrList.length, cb);
         });
       });
 
@@ -316,7 +316,9 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       if (_sourceDataReleased) {
         throw StateError("The asset's glTF source data has already been released");
       }
-      await withVoidCallback((requestId, cb) => SceneAsset_releaseSourceDataJobThread(_asset, requestId, cb));
+      await withVoidCallback(
+        (requestId, cb) => SceneAsset_releaseSourceDataJobThread(_app.jobThreadHandle, _asset, requestId, cb),
+      );
       _released = true;
     });
   }
@@ -377,7 +379,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       final (_, error, stackTrace) = childErrors.first;
       Error.throwWithStackTrace(error, stackTrace);
     }
-    await withVoidCallback((requestId, cb) => SceneAsset_destroyJobThread(_asset, requestId, cb));
+    await withVoidCallback((requestId, cb) => SceneAsset_destroyJobThread(_app.jobThreadHandle, _asset, requestId, cb));
     await dispose();
     // Geometry instances can share these materials. Release every dependent
     // asset and the native geometry before destroying the owned materials.
@@ -606,7 +608,9 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
         "uniqueTriangleCorners.",
       );
     }
-    await withVoidCallback((requestId, cb) => SceneAsset_setFlatShadingJobThread(asset, flatShading, requestId, cb));
+    await withVoidCallback(
+      (requestId, cb) => SceneAsset_setFlatShadingJobThread(_app.jobThreadHandle, asset, flatShading, requestId, cb),
+    );
   }
 
   //
@@ -1202,7 +1206,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     //
     // The private _getInstances() and _getChildEntities() read native data
     // directly. The native asset is still valid: _destroyNativeResources()
-    // calls SceneAsset_destroyJobThread() after this method returns.
+    // calls SceneAsset_destroyJobThread(_app.jobThreadHandle, ) after this method returns.
     final type = SceneAsset_getType(_asset);
     if (!{
       TSceneAssetType.SCENE_ASSET_TYPE_GEOMETRY,
@@ -1260,7 +1264,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       return null;
     }
     final storageMode = vertexBufferStorageModeFromNative(SceneAsset_getVertexBufferStorageMode(asset, primitiveIndex));
-    return FFIVertexBuffer.assetOwned(vbPtr, _app.engine, storageMode: storageMode);
+    return FFIVertexBuffer.assetOwned(vbPtr, _app.engine, _app.jobThreadHandle, storageMode: storageMode);
   }
 }
 

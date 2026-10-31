@@ -16,6 +16,7 @@ extern "C"
 	typedef struct TMat4 TMat4;
 	typedef struct TCamera TCamera;
 	typedef struct TEngine TEngine;
+	typedef struct TJobThread TJobThread;
 	typedef struct TEntityManager TEntityManager;
 	typedef struct TViewer TViewer;
 	typedef struct TSceneManager TSceneManager;

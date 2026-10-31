@@ -1,3 +1,4 @@
+import 'ffi_filament_app.dart';
 import 'dart:async';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -33,14 +34,14 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
   @override
   Future<MaterialInstance> createInstance() async {
     var ptr = await withPointerCallback<TMaterialInstance>((cb) {
-      Material_createInstanceJobThread(pointer, cb);
+      Material_createInstanceJobThread((_app as FFIFilamentApp).jobThreadHandle, pointer, cb);
     });
     return FFIMaterialInstance(ptr, _app);
   }
 
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
-      Engine_destroyMaterialJobThread(_app.engine, pointer, requestId, cb);
+      Engine_destroyMaterialJobThread((_app as FFIFilamentApp).jobThreadHandle, _app.engine, pointer, requestId, cb);
     });
   }
 
@@ -188,7 +189,13 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
 
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
-      Engine_destroyMaterialInstanceJobThread(_app.engine, this.pointer, requestId, cb);
+      Engine_destroyMaterialInstanceJobThread(
+        (_app as FFIFilamentApp).jobThreadHandle,
+        _app.engine,
+        this.pointer,
+        requestId,
+        cb,
+      );
     });
   }
 

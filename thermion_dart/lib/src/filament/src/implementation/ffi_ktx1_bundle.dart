@@ -57,6 +57,7 @@ class FFIKtx1Bundle extends Ktx1Bundle {
     _checkAlive();
     final texturePtr = await withPointerCallback<TTexture>((cb) {
       Ktx1Reader_createTextureJobThread(
+        _app.jobThreadHandle,
         _app.engine,
         pointer,
         textureUploadCompleteRequestId ?? 0,

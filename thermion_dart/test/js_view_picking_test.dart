@@ -6,7 +6,7 @@ import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 
 import 'package:test/test.dart';
-import 'package:thermion_dart/src/bindings/bindings.dart' show Pointer, TEngine, TView;
+import 'package:thermion_dart/src/bindings/bindings.dart' show Pointer, TJobThread, TEngine, TView;
 import 'package:thermion_dart/src/bindings/src/js_interop.dart' as js;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
@@ -15,6 +15,9 @@ import 'package:thermion_dart/thermion_dart.dart' show PickResult, Viewport;
 class _App implements FFIFilamentApp {
   @override
   final engine = Pointer<TEngine>.fromAddress(1);
+
+  @override
+  final jobThreadHandle = Pointer<TJobThread>.fromAddress(3);
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
@@ -74,14 +77,16 @@ void main() {
     module.setProperty('_View_getRenderTarget'.toJS, ((int view) => 0).toJS);
     module.setProperty(
       '_View_pickJobThread'.toJS,
-      ((int view, int request, int x, int y, int callback) {
+      ((int jobThread, int view, int request, int x, int y, int callback) {
+        expect(jobThread, 3);
         if (failSubmission) throw StateError('Pick submission failed');
         picks.add((request: request, callback: callback, x: x, y: y));
       }).toJS,
     );
     module.setProperty(
       '_Engine_destroyViewJobThread'.toJS,
-      ((int engine, int view, int request, int callback) {
+      ((int jobThread, int engine, int view, int request, int callback) {
+        expect(jobThread, 3);
         destructionCallback = callback;
         finishDestruction = () => callbacks[callback]!.callAsFunction(null, request.toJS);
         destructionSubmitted.complete();

@@ -28,17 +28,18 @@ class FFIGizmo extends GizmoAsset {
     final engine = app.engine;
     if (_gizmoMaterial == null) {
       final materialPtr = await withPointerCallback<TMaterial>((cb) {
-        Material_createGizmoMaterialJobThread(engine, cb);
+        Material_createGizmoMaterialJobThread(app.jobThreadHandle, engine, cb);
       });
       _gizmoMaterial ??= FFIMaterial(materialPtr, app);
     }
 
     var gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
-      (cb) => GltfResourceLoader_createJobThread(engine, cb),
+      (cb) => GltfResourceLoader_createJobThread(app.jobThreadHandle, engine, cb),
     );
 
     final gizmo = await withPointerCallback<TGizmo>((cb) {
       Gizmo_createJobThread(
+        app.jobThreadHandle,
         engine,
         app.gltfAssetLoader,
         gltfResourceLoader,
