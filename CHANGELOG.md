@@ -11,6 +11,10 @@
   `FFIFilamentApp.renderThreadHandle` becomes `jobThreadHandle`.
   Rebuild native/Wasm libraries together with the updated Dart bindings.
 
+- Run web worker commands and shutdown independently of animation frames.
+  Workers drain accepted commands on their owning thread before deleting
+  themselves.
+
 - Deliver web worker completions through a module-lifetime callback queue,
   without Dart polling. Read view names into caller-owned UTF-8 buffers on native
   and web, with capacity checks and ordered resize retries. Use `ffigen_js`

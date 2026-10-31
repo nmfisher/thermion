@@ -1,8 +1,8 @@
 #include "rendering/WebJobThread.hpp"
 #include "Log.hpp"
-#include <chrono>
+#include <cassert>
 #include <cstdlib>
-#include <ctime>
+#include <emscripten/emscripten.h>
 #include <emscripten/proxying.h>
 #include <emscripten/eventloop.h>
 #include <mimalloc.h>
@@ -26,76 +26,18 @@ const char* WebJobThread::currentCanvasSelector() {
     return _current ? _current->_canvasSelector.c_str() : nullptr;
 }
 
-// A callback must remain deliverable after its JobThread is destroyed.
-// Keep this queue until the Wasm module is unloaded.
+// The queues live until the WASM module is unloaded. A completion posted to the
+// browser must survive destruction of its originating JobThread. Wakeups
+// share the same lifetime so executing proxy closures never own a dying queue.
 static emscripten::ProxyingQueue& callbacks() {
     static auto* queue = new emscripten::ProxyingQueue();
     return *queue;
 }
-void WebJobThread::dispatchCallback(std::function<void()> callback) const {
-#ifdef THERMION_WEB_MAIN_THREAD
-    callback();
-#else
-    if (!callbacks().proxyAsync(outer, std::move(callback))) {
-        Log("Failed to post render completion");
-        std::abort();
-    }
-#endif
+static emscripten::ProxyingQueue& wakeups() {
+    static auto* queue = new emscripten::ProxyingQueue();
+    return *queue;
 }
 
-void WebJobThread::executeCallbacks() { callbacks().execute(); }
-
-
-#ifndef THERMION_WEB_MAIN_THREAD
-std::chrono::high_resolution_clock::time_point loopStart;
-std::chrono::high_resolution_clock::time_point loopExitTime;
-bool loopExitTimeValid = false;
-
-// Heap arg for the worker: owns a shared_ptr copy of the stop flag so the
-// flag outlives the JobThread (web detach lets the destructor return
-// before the worker's next iteration). The worker frees this struct itself
-// on exit — the destructor never touches it.
-struct WorkerArg {
-    WebJobThread *rt;
-    std::shared_ptr<WebJobThread::StopFlag> stop;
-};
-
-static void mainLoop(void* arg) {
-    // Check the stop flag BEFORE touching `rt` — the destructor may have
-    // returned (via pthread_detach) and `*this` may already be freed. The
-    // flag is heap-shared, so the read is safe; the worker never dereferences
-    // the JobThread after observing stop.
-    auto *workerArg = static_cast<WorkerArg *>(arg);
-    if (workerArg->stop->value.load()) {
-        emscripten_cancel_main_loop();
-        loopExitTime = std::chrono::high_resolution_clock::now();
-        loopExitTimeValid = true;
-        // mimalloc reserves a per-thread arena (~32 MiB initial on wasm32)
-        // that survives pthread_exit unless we explicitly release it.
-        mi_thread_done();
-        WebJobThread::mLiveWorkerCount.fetch_sub(1, std::memory_order_relaxed);
-        // emscripten_set_main_loop_arg(..., simulate_infinite_loop=true) threw
-        // to unwind startHelper, so the pthread function never returned. The
-        // JS-side worker would otherwise stay alive in the event loop after
-        // emscripten_cancel_main_loop; explicit pthread_exit terminates it.
-        delete workerArg;
-        pthread_exit(nullptr);
-    }
-
-    auto *rt = workerArg->rt;
-    rt->iter();
-    loopExitTime = std::chrono::high_resolution_clock::now();
-    loopExitTimeValid = true;
-}
-
-static void *startHelper(void * parm) {
-    loopStart = std::chrono::high_resolution_clock::now();
-    WebJobThread::mLiveWorkerCount.fetch_add(1, std::memory_order_relaxed);
-    emscripten_set_main_loop_arg(&mainLoop, parm, 0, true);
-    return nullptr;
-}
-
-#endif
 
 std::unique_ptr<WebJobThread> WebJobThread::create(const char* canvasSelector) {
     auto thread = std::make_unique<WebJobThread>(canvasSelector);
@@ -104,114 +46,144 @@ std::unique_ptr<WebJobThread> WebJobThread::create(const char* canvasSelector) {
 }
 
 void WebJobThread::destroy(std::unique_ptr<WebJobThread> thread) {
+#ifdef THERMION_WEB_MAIN_THREAD
     thread.reset();
+#else
+    // Release the caller's owner before the worker can finish and delete itself.
+    if (thread) thread.release()->requestShutdown();
+#endif
 }
 
 WebJobThread::WebJobThread(const char* canvasSelector)
     : _canvasSelector(canvasSelector ? canvasSelector : "#thermion_canvas") {
-    srand(time(nullptr));
-    Log("Starting JobThread")
-    outer = pthread_self();
-#ifndef THERMION_WEB_MAIN_THREAD
-    startWorker(canvasSelector);
+    _caller = pthread_self();
+#ifdef THERMION_WEB_MAIN_THREAD
+    _thread = _caller;
+#else
+    startWorker();
 #endif
 }
 
-#ifndef THERMION_WEB_MAIN_THREAD
-void WebJobThread::startWorker(const char* canvasSelector) {
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    emscripten_pthread_attr_settransferredcanvases(&attr, canvasSelector);
-    auto *workerArg = new WorkerArg{this, _stop};
-    int rc = pthread_create(&_thread, &attr, startHelper, workerArg);
-    if (rc != 0) {
-      Log("SEVERE - pthread_create failed with code %d; worker did not start "
-          "(canvas selector %s, pool exhausted?)",
-          rc, canvasSelector);
-      _creationFailed = true;
-      delete workerArg;
-    }
-}
+WebJobThread::~WebJobThread() {
+#ifdef THERMION_WEB_MAIN_THREAD
+    requestShutdown();
+#else
+    assert(_creationFailed || _workerFinished);
 #endif
+}
 
-WebJobThread::~WebJobThread()
-{
-    size_t pendingTaskCount;
-    {
-        std::lock_guard<std::mutex> lock(_taskMutex);
-        pendingTaskCount = _tasks.size();
-    }
-    TRACE("Destroying JobThread (%zu tasks remaining)", pendingTaskCount);
-    shutdown();
-    CurrentThreadScope current(*this);
+bool WebJobThread::isWorkerThread() const {
+    return pthread_equal(pthread_self(), _thread);
+}
 
-    // The web worker cannot be synchronously joined from the browser main
-    // thread. Preserve the existing synchronous drain behavior, but claim
-    // each task under the queue mutex so the worker and destructor cannot
-    // concurrently mutate the deque.
-    while (true) {
-        std::function<void()> task;
-        {
-            std::lock_guard<std::mutex> lock(_taskMutex);
-            if (_tasks.empty()) {
-                break;
-            }
-            task = std::move(_tasks.front());
-            _tasks.pop_front();
-        }
-        task();
-    }
-
-    // pthread_join from the browser main thread is fundamentally restricted in
-    // Emscripten: it would have to call Atomics.wait, which the Web platform
-    // disallows on the main thread (would freeze the event loop). With
-    // ALLOW_BLOCKING_ON_MAIN_THREAD=1 emscripten downgrades it to a busy-spin
-    // warning, but in practice it hangs the page indefinitely.
-    //
-    // Detach instead. The worker has been signalled via mStop; on its next
-    // iteration mainLoop will call emscripten_cancel_main_loop +
-    // mi_thread_done + pthread_exit, terminating the pthread cleanly. Detach
-    // hands the OS responsibility for reaping it so the destructor can return
-    // without blocking. Callers that need to wait for the worker to actually
-    // finish exiting (e.g. before constructing a replacement JobThread)
-    // should poll mLiveWorkerCount from Dart.
+void WebJobThread::requestShutdown() {
+    // Unlocking is the final access to this object: the worker may delete it
+    // as soon as it acquires the mutex and finishes draining.
+    std::lock_guard<std::mutex> lock(_taskMutex);
+    _stopping.store(true, std::memory_order_release);
 #ifndef THERMION_WEB_MAIN_THREAD
-    pthread_detach(_thread);
+    if (!_creationFailed) scheduleWakeLocked();
 #endif
-
-    TRACE("JobThread destructor complete");
 }
 
-void WebJobThread::shutdown() {
-    _stop->value.store(true, std::memory_order_release);
-}
-
-void WebJobThread::enqueue(std::function<void()> task) {
+void WebJobThread::enqueue(std::function<void()> work) {
 #ifdef THERMION_WEB_MAIN_THREAD
     CurrentThreadScope current(*this);
-    task();
+    work();
     runAfterBatchCallback();
 #else
-    std::lock_guard<std::mutex> lock(_taskMutex);
-    _tasks.push_back(std::move(task));
+    std::unique_lock<std::mutex> lock(_taskMutex);
+    // Accepted tasks can enqueue their own completion work while draining.
+    if (isStopping() && !isWorkerThread()) {
+        lock.unlock();
+        Log("Cannot submit work after JobThread shutdown");
+        std::abort();
+    }
+    _tasks.push_back(std::move(work));
+    scheduleWakeLocked();
 #endif
+}
+
+#if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_MAIN_THREAD)
+void WebJobThread::startWorker() {
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    emscripten_pthread_attr_settransferredcanvases(&attr, _canvasSelector.c_str());
+    // Include workers that have been requested but not entered startHelper yet.
+    mLiveWorkerCount.fetch_add(1, std::memory_order_relaxed);
+    const int result = pthread_create(&_thread, &attr, startHelper, this);
+    pthread_attr_destroy(&attr);
+    if (result != 0) {
+        _creationFailed = true;
+        mLiveWorkerCount.fetch_sub(1, std::memory_order_relaxed);
+        Log("WebJobThread pthread_create failed: %d", result);
+    }
+}
+
+void* WebJobThread::startHelper(void*) {
+    // Keep the pthread event loop alive for command wakeups. Drawing has its
+    // own browser callbacks, owned by RenderManager.
+    emscripten_exit_with_live_runtime();
+}
+
+void WebJobThread::scheduleWakeLocked() {
+    if (_wakePending) return;
+    _wakePending = true;
+    // Coalesce notifications. Shutdown deletes this object only after the
+    // pump and its continuations have finished on this worker.
+    if (!wakeups().proxyAsync(_thread, [this] { pumpTasks(); })) {
+        _wakePending = false;
+        Log("Failed to wake render worker");
+        std::abort();
+    }
+}
+
+void WebJobThread::pumpCallback(void* arg) {
+    auto* self = static_cast<WebJobThread*>(arg);
+    self->pumpTasks();
 }
 
 void WebJobThread::pumpTasks() {
     CurrentThreadScope current(*this);
-    std::unique_lock<std::mutex> taskLock(_taskMutex);
-
+    // Keep the existing batch limit. Yield to browser events between batches,
+    // and flush Filament commands even if no animation frame arrives.
+    std::unique_lock<std::mutex> lock(_taskMutex);
     unsigned taskCount = 0;
-    while (!_tasks.empty() && taskCount++ < 8)
-    {
+    while (!_tasks.empty() && taskCount++ < 8) {
         auto task = std::move(_tasks.front());
         _tasks.pop_front();
-        taskLock.unlock();
+        lock.unlock();
         task();
-        taskLock.lock();
+        task = {};
+        lock.lock();
     }
-    taskLock.unlock();
+    // Run the installed backend flush even when no drawing callback arrives.
+    lock.unlock();
+    runAfterBatchCallback();
+    lock.lock();
+    if (!_tasks.empty()) {
+        // A timer continuation yields the worker event loop; re-proxying onto
+        // the currently executing queue could otherwise drain without yielding.
+        emscripten_set_timeout(pumpCallback, 0, this);
+    } else if (isStopping()) {
+        // Exit outside the proxy callback so its closure is freed first.
+        emscripten_set_timeout(finishShutdown, 0, this);
+    } else {
+        _wakePending = false;
+    }
 }
+
+void WebJobThread::finishShutdown(void* arg) {
+    auto* self = static_cast<WebJobThread*>(arg);
+    self->_workerFinished = true;
+    delete self; // ownership transferred by destroy(), after registry release
+    mi_thread_done();
+    mLiveWorkerCount.fetch_sub(1, std::memory_order_relaxed);
+    pthread_exit(nullptr);
+}
+
+#endif
 
 void WebJobThread::runAfterBatchCallback() {
     // A callback may clear the installed hook through a nested command.
@@ -219,8 +191,18 @@ void WebJobThread::runAfterBatchCallback() {
     if (callback) callback();
 }
 
-void WebJobThread::iter() {
-    pumpTasks();
+void WebJobThread::dispatchCallback(std::function<void()> callback) const {
+#ifdef THERMION_WEB_MAIN_THREAD
+    callback();
+#else
+    if (!callbacks().proxyAsync(_caller, std::move(callback))) {
+        Log("Failed to post render completion");
+        std::abort();
+    }
+#endif
 }
+
+void WebJobThread::executeCallbacks() { callbacks().execute(); }
+
 
 } // namespace thermion
