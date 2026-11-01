@@ -291,6 +291,18 @@ jobs:
         if: steps.changes.outputs.native-changed == 'true'
         run: make wasm
 
+      # Main-thread engine (commands execute on the calling thread instead of
+      # a render worker) — same invocation web-canvas-thread.yml uses. Kept as
+      # a separate build dir so it can't clobber the default worker build
+      # above (which `make wasm` just produced in build/build).
+      - name: Compile web (main-thread)
+        if: steps.changes.outputs.native-changed == 'true'
+        run: |
+          emcmake cmake -S thermion_dart/native/web \
+            -B thermion_dart/native/web/build-main-thread \
+            -DCMAKE_BUILD_TYPE=Release -DTHERMION_WEB_MAIN_THREAD=ON
+          cmake --build thermion_dart/native/web/build-main-thread --parallel 2
+
       - name: Test web uploads without visible frames
         if: steps.changes.outputs.native-changed == 'true'
         run: |
@@ -315,6 +327,14 @@ jobs:
           zip "thermion_dart-${SHORT_SHA}-web.zip" thermion_dart.js thermion_dart.wasm
           aws s3 cp "thermion_dart-${SHORT_SHA}-web.zip" \
             "s3://thermion/thermion_dart-${SHORT_SHA}-web.zip" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --region auto
+          # Main-thread variant (web_variant: main_thread in the consuming
+          # app's pubspec.yaml fetches this). Same two files, separate build.
+          cd "$GITHUB_WORKSPACE/thermion_dart/native/web/build-main-thread/build/out"
+          zip "thermion_dart-${SHORT_SHA}-web-main-thread.zip" thermion_dart.js thermion_dart.wasm
+          aws s3 cp "thermion_dart-${SHORT_SHA}-web-main-thread.zip" \
+            "s3://thermion/thermion_dart-${SHORT_SHA}-web-main-thread.zip" \
             --endpoint-url "$R2_ENDPOINT" \
             --region auto
           # Write the SHA so the download script knows which artifact to fetch

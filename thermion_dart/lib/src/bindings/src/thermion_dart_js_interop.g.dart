@@ -2784,6 +2784,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     VoidCallback onComplete,
   );
   external void _View_setViewport(Pointer<TView> view, int width, int height);
+  external void _View_setViewportRect(Pointer<TView> view, int left, int bottom, int width, int height);
   external void _View_setViewportJobThread(
     Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
@@ -10164,6 +10165,11 @@ void View_setTransparentPickingEnabledJobThread(
 
 void View_setViewport(Pointer<TView> view, int width, int height) {
   final result = GeneratedBindings.instance._View_setViewport(view.cast(), width, height);
+  return result;
+}
+
+void View_setViewportRect(Pointer<TView> view, int left, int bottom, int width, int height) {
+  final result = GeneratedBindings.instance._View_setViewportRect(view.cast(), left, bottom, width, height);
   return result;
 }
 
