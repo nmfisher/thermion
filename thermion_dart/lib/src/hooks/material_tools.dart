@@ -170,8 +170,7 @@ List<String> resolveBackends(Object? raw) {
       if (!backends.contains(name)) backends.add(name);
     }
     if (backends.isEmpty) {
-      throw MaterialToolsError(
-          'material_compilation.backends is an empty list; there would be nothing to compile.');
+      throw MaterialToolsError('material_compilation.backends is an empty list; there would be nothing to compile.');
     }
     return backends;
   }
@@ -187,10 +186,7 @@ List<String> resolveBackends(Object? raw) {
 /// hook does nothing new). Any present-but-invalid value throws
 /// [MaterialToolsError] with an actionable message — a misconfigured opt-in
 /// feature must fail the build, not silently no-op.
-MaterialCompilationConfig? parseMaterialCompilationConfig(
-  Object? raw, {
-  void Function(String message)? onLog,
-}) {
+MaterialCompilationConfig? parseMaterialCompilationConfig(Object? raw, {void Function(String message)? onLog}) {
   if (raw == null) return null;
   final log = onLog ?? (_) {};
   if (raw is! Map) {
@@ -204,8 +200,10 @@ MaterialCompilationConfig? parseMaterialCompilationConfig(
   const knownKeys = {'inputs', 'output', 'backends', 'resgen', 'resgen_prefixes'};
   for (final key in map.keys) {
     if (!knownKeys.contains(key)) {
-      log('Unknown key "$key" in material_compilation (ignored). '
-          'Known keys: ${knownKeys.join(', ')}');
+      log(
+        'Unknown key "$key" in material_compilation (ignored). '
+        'Known keys: ${knownKeys.join(', ')}',
+      );
     }
   }
 
@@ -237,8 +235,7 @@ MaterialCompilationConfig? parseMaterialCompilationConfig(
 
   final resgenRaw = map['resgen'];
   if (resgenRaw != null && resgenRaw is! bool) {
-    throw MaterialToolsError(
-        'material_compilation.resgen must be true or false, but got ${resgenRaw.runtimeType}.');
+    throw MaterialToolsError('material_compilation.resgen must be true or false, but got ${resgenRaw.runtimeType}.');
   }
 
   final prefixesRaw = map['resgen_prefixes'];
@@ -252,8 +249,7 @@ MaterialCompilationConfig? parseMaterialCompilationConfig(
     }
     prefixesRaw.forEach((name, prefix) {
       if (prefix is! String || prefix.trim().isEmpty) {
-        throw MaterialToolsError(
-            'material_compilation.resgen_prefixes["$name"] must be a non-empty prefix string.');
+        throw MaterialToolsError('material_compilation.resgen_prefixes["$name"] must be a non-empty prefix string.');
       }
       prefixes['$name'] = prefix.trim();
     });
@@ -752,8 +748,10 @@ Future<bool> smokeTestMatc(File matc, {ToolProcess? runProcess, Directory? workD
     smokeMat.writeAsStringSync(smokeMaterialSource, flush: true);
     if (smokeOut.existsSync()) smokeOut.deleteSync();
     final result = await (runProcess ?? _defaultRunProcess)(matc.path, [
-      '-a', 'webgpu',
-      '-o', smokeOut.path,
+      '-a',
+      'webgpu',
+      '-o',
+      smokeOut.path,
       smokeMat.path,
     ]);
     return result.exitCode == 0 && smokeOut.existsSync();
@@ -931,11 +929,13 @@ MaterialCompilePlan planMaterialCompilation({
 
   String? fullReason;
   if (manifest.matcId != matcId) {
-    fullReason = 'matcId changed (${_shortId(manifest.matcId)} -> '
+    fullReason =
+        'matcId changed (${_shortId(manifest.matcId)} -> '
         '${_shortId(matcId)}) — a new Filament/thermion_dart matc '
         'requires every material to be rebuilt';
   } else if (!listEquals(manifest.backends, backends)) {
-    fullReason = 'backends changed (${manifest.backends.join(',')} -> '
+    fullReason =
+        'backends changed (${manifest.backends.join(',')} -> '
         '${backends.join(',')})';
   } else if (manifest.resgen != resgen) {
     fullReason = 'resgen changed (${manifest.resgen} -> $resgen)';
@@ -965,8 +965,11 @@ MaterialCompilePlan planMaterialCompilation({
   for (final input in inputs) {
     final recorded = manifest.inputs[_manifestKey(input, appRoot)];
     final stem = stems[input]!;
-    final outputsPresent = expectedOutputNames(stem, resgen: resgen, prefix: resgenPrefixFor?.call(input))
-        .every((name) => File(p.join(outputDir.path, name)).existsSync());
+    final outputsPresent = expectedOutputNames(
+      stem,
+      resgen: resgen,
+      prefix: resgenPrefixFor?.call(input),
+    ).every((name) => File(p.join(outputDir.path, name)).existsSync());
     if (recorded == null) {
       toCompile.add(input);
     } else if (recorded != inputHashes[input]) {
@@ -1043,9 +1046,7 @@ Future<UserMaterialsResult> compileUserMaterials({
     inputHashes[input] = sha256.convert(await input.readAsBytes()).toString();
   }
 
-  final outputDir = Directory(
-    p.isAbsolute(config.output) ? config.output : p.join(appRoot.path, config.output),
-  );
+  final outputDir = Directory(p.isAbsolute(config.output) ? config.output : p.join(appRoot.path, config.output));
   final manifestFile = File(p.join(outputDir.path, materialManifestName));
 
   // The sha256 of the cached matc binary, when the cache is warm. It is
@@ -1053,12 +1054,11 @@ Future<UserMaterialsResult> compileUserMaterials({
   // matcId): a re-uploaded artifact for the same version must rebuild
   // everything, but an empty cache must not (the version tuple in the
   // matcId already covers version changes).
-  final cacheRoot = toolsCacheRoot ??
+  final cacheRoot =
+      toolsCacheRoot ??
       defaultMaterialToolsCacheRoot() ??
       p.join(appRoot.path, '.dart_tool', 'thermion_dart', 'filament-tools');
-  final cachedMatc = File(
-    p.join(cacheRoot, spec.cacheDirName, 'bin', 'matc${spec.exeSuffix}'),
-  );
+  final cachedMatc = File(p.join(cacheRoot, spec.cacheDirName, 'bin', 'matc${spec.exeSuffix}'));
   final cachedMatcHash = cachedMatc.existsSync() ? sha256.convert(await cachedMatc.readAsBytes()).toString() : null;
 
   final matcId = computeMatcId(
@@ -1087,13 +1087,7 @@ Future<UserMaterialsResult> compileUserMaterials({
       'thermion materials: all ${inputs.length} up to date '
       '(matcId ${_shortId(matcId)}); nothing compiled into ${outputDir.path}',
     );
-    return (
-      inputs: inputs,
-      outputDir: outputDir,
-      compiled: 0,
-      skipped: inputs.length,
-      toolsDownloaded: false,
-    );
+    return (inputs: inputs, outputDir: outputDir, compiled: 0, skipped: inputs.length, toolsDownloaded: false);
   }
 
   if (plan.reason != null) {
@@ -1111,20 +1105,14 @@ Future<UserMaterialsResult> compileUserMaterials({
       matcSha256: cachedMatcHash ?? previousManifest?.matcSha256,
       backends: config.backends,
       resgen: config.resgen,
-      inputs: {
-        for (final input in inputs) _manifestKey(input, appRoot): inputHashes[input]!,
-      },
+      inputs: {for (final input in inputs) _manifestKey(input, appRoot): inputHashes[input]!},
       previousOutputs: previousManifest?.outputs ?? const {},
     );
-    log('thermion materials: 0 of ${inputs.length} needed compiling '
-        '(cleaned ${plan.staleOutputs.length} stale outputs in ${outputDir.path})');
-    return (
-      inputs: inputs,
-      outputDir: outputDir,
-      compiled: 0,
-      skipped: inputs.length,
-      toolsDownloaded: false,
+    log(
+      'thermion materials: 0 of ${inputs.length} needed compiling '
+      '(cleaned ${plan.staleOutputs.length} stale outputs in ${outputDir.path})',
     );
+    return (inputs: inputs, outputDir: outputDir, compiled: 0, skipped: inputs.length, toolsDownloaded: false);
   }
 
   final tools = await ensureMaterialTools(
@@ -1180,8 +1168,10 @@ Future<UserMaterialsResult> compileUserMaterials({
   );
 
   final summary = StringBuffer()
-    ..write('thermion materials: compiled ${plan.toCompile.length} of ${inputs.length} '
-        'into ${outputDir.path} (backends ${config.backends.join(',')}');
+    ..write(
+      'thermion materials: compiled ${plan.toCompile.length} of ${inputs.length} '
+      'into ${outputDir.path} (backends ${config.backends.join(',')}',
+    );
   if (config.resgen) summary.write(', resgen on');
   if (plan.skipped.isNotEmpty) summary.write('; ${plan.skipped.length} skipped as up to date');
   if (plan.reason != null) summary.write('; full rebuild');
@@ -1262,7 +1252,8 @@ Future<List<String>> _compileOne({
     final filamat = File(p.join(staging.path, '$stem.filamat'));
     final matcArgs = [
       for (final backend in backends) ...['-a', backend],
-      '-o', filamat.path,
+      '-o',
+      filamat.path,
       input.path,
     ];
     final matcResult = await runProcess(matc.path, matcArgs);
@@ -1276,8 +1267,10 @@ Future<List<String>> _compileOne({
     if (runResgen) {
       final resgenResult = await runProcess(resgen.path, [
         '-c',
-        '-p', prefix,
-        '-x', '${staging.path}${p.separator}',
+        '-p',
+        prefix,
+        '-x',
+        '${staging.path}${p.separator}',
         filamat.path,
       ]);
       if (resgenResult.exitCode != 0) {

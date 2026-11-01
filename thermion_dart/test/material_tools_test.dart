@@ -82,12 +82,12 @@ class FakeTools {
     }
     resgenRuns.add('$prefix ${p.basename(filamat)}');
     final upper = prefix.toUpperCase();
-    File(p.join(outDir, '$prefix.c')).writeAsStringSync(
-      '#include <stdint.h>\nconst uint8_t ${upper}_PACKAGE[] = { 0x00 };\n',
-    );
+    File(
+      p.join(outDir, '$prefix.c'),
+    ).writeAsStringSync('#include <stdint.h>\nconst uint8_t ${upper}_PACKAGE[] = { 0x00 };\n');
     File(p.join(outDir, '$prefix.h')).writeAsStringSync(
       '#ifndef ${upper}_H_\n#define ${upper}_H_\n#include <stdint.h>\n'
-          'extern const uint8_t ${upper}_PACKAGE[];\n#endif\n',
+      'extern const uint8_t ${upper}_PACKAGE[];\n#endif\n',
     );
     File(p.join(outDir, '$prefix.S')).writeAsStringSync('// $prefix\n');
     File(p.join(outDir, '$prefix.bin')).writeAsBytesSync([0x00]);
@@ -125,9 +125,7 @@ void main() {
   /// A fresh subdirectory of the shared temp dir. Creates parents, so it is
   /// safe even when an earlier test's cleanup removed the shared root.
   Directory freshDir(String label) {
-    final dir = Directory(
-      p.join(tempDir.path, '${label}_${dirCounter++}_${DateTime.now().microsecondsSinceEpoch}'),
-    );
+    final dir = Directory(p.join(tempDir.path, '${label}_${dirCounter++}_${DateTime.now().microsecondsSinceEpoch}'));
     dir.createSync(recursive: true);
     return dir;
   }
@@ -182,8 +180,14 @@ void main() {
 
   group('defaultMaterialToolsCacheRoot', () {
     test('prefers XDG_CACHE_HOME, then HOME/.cache', () {
-      expect(defaultMaterialToolsCacheRoot({'XDG_CACHE_HOME': '/xdg', 'HOME': '/home/u'}), p.join('/xdg', 'thermion', 'filament-tools'));
-      expect(defaultMaterialToolsCacheRoot({'HOME': '/home/u'}), p.join('/home/u', '.cache', 'thermion', 'filament-tools'));
+      expect(
+        defaultMaterialToolsCacheRoot({'XDG_CACHE_HOME': '/xdg', 'HOME': '/home/u'}),
+        p.join('/xdg', 'thermion', 'filament-tools'),
+      );
+      expect(
+        defaultMaterialToolsCacheRoot({'HOME': '/home/u'}),
+        p.join('/home/u', '.cache', 'thermion', 'filament-tools'),
+      );
     });
 
     test('returns null when neither is set', () {
@@ -199,13 +203,10 @@ void main() {
 
     test('defaults: all backends, resgen off', () {
       final warnings = <String>[];
-      final config = parseMaterialCompilationConfig(
-        {
-          'inputs': ['materials/skin.mat'],
-          'output': 'build/materials',
-        },
-        onLog: warnings.add,
-      )!;
+      final config = parseMaterialCompilationConfig({
+        'inputs': ['materials/skin.mat'],
+        'output': 'build/materials',
+      }, onLog: warnings.add)!;
       expect(config.inputs, ['materials/skin.mat']);
       expect(config.output, 'build/materials');
       expect(config.backends, allMaterialBackends);
@@ -216,8 +217,11 @@ void main() {
     });
 
     test('backends presets and explicit lists', () {
-      String backendsFor(Object? raw) =>
-          parseMaterialCompilationConfig({'inputs': ['a.mat'], 'output': 'o', 'backends': raw})!.backends.join(',');
+      String backendsFor(Object? raw) => parseMaterialCompilationConfig({
+        'inputs': ['a.mat'],
+        'output': 'o',
+        'backends': raw,
+      })!.backends.join(',');
 
       expect(backendsFor(null), 'metal,vulkan,opengl,webgpu');
       expect(backendsFor('all'), 'metal,vulkan,opengl,webgpu');
@@ -240,10 +244,11 @@ void main() {
 
     test('unknown keys warn, everything else fails loudly', () {
       final warnings = <String>[];
-      parseMaterialCompilationConfig(
-        {'inputs': ['a.mat'], 'output': 'o', 'typo_key': 1},
-        onLog: warnings.add,
-      );
+      parseMaterialCompilationConfig({
+        'inputs': ['a.mat'],
+        'output': 'o',
+        'typo_key': 1,
+      }, onLog: warnings.add);
       expect(warnings.single, contains('typo_key'));
 
       MaterialToolsError errorMessage(Object? raw) =>
@@ -252,12 +257,51 @@ void main() {
       expect(errorMessage('nope').message, contains('material_compilation must be a map'));
       expect(errorMessage({'output': 'o'}).message, contains('inputs must be a non-empty list'));
       expect(errorMessage({'inputs': [], 'output': 'o'}).message, contains('inputs must be a non-empty list'));
-      expect(errorMessage({'inputs': ['a.mat']}).message, contains('output must be a non-empty'));
-      expect(errorMessage({'inputs': ['a.mat'], 'output': 'o', 'resgen': 'yes'}).message, contains('resgen must be true or false'));
-      expect(errorMessage({'inputs': ['a.mat'], 'output': 'o', 'backends': 'd3d'}).message, contains("Unknown backends preset 'd3d'"));
-      expect(errorMessage({'inputs': ['a.mat'], 'output': 'o', 'backends': ['dx12']}).message, contains("Unknown backend 'dx12'"));
-      expect(errorMessage({'inputs': ['a.mat'], 'output': 'o', 'backends': []}).message, contains('empty list'));
-      expect(errorMessage({'inputs': [1], 'output': 'o'}).message, contains('non-empty strings'));
+      expect(
+        errorMessage({
+          'inputs': ['a.mat'],
+        }).message,
+        contains('output must be a non-empty'),
+      );
+      expect(
+        errorMessage({
+          'inputs': ['a.mat'],
+          'output': 'o',
+          'resgen': 'yes',
+        }).message,
+        contains('resgen must be true or false'),
+      );
+      expect(
+        errorMessage({
+          'inputs': ['a.mat'],
+          'output': 'o',
+          'backends': 'd3d',
+        }).message,
+        contains("Unknown backends preset 'd3d'"),
+      );
+      expect(
+        errorMessage({
+          'inputs': ['a.mat'],
+          'output': 'o',
+          'backends': ['dx12'],
+        }).message,
+        contains("Unknown backend 'dx12'"),
+      );
+      expect(
+        errorMessage({
+          'inputs': ['a.mat'],
+          'output': 'o',
+          'backends': [],
+        }).message,
+        contains('empty list'),
+      );
+      expect(
+        errorMessage({
+          'inputs': [1],
+          'output': 'o',
+        }).message,
+        contains('non-empty strings'),
+      );
     });
   });
 
@@ -273,9 +317,10 @@ void main() {
       File(p.join(appRoot.path, 'materials', 'skin.filamat')).writeAsBytesSync([1]);
     });
 
-    List<String> expand(List<String> inputs) => expandMaterialInputs(appRoot: appRoot, inputs: inputs)
-        .map((f) => p.relative(f.path, from: appRoot.path))
-        .toList();
+    List<String> expand(List<String> inputs) => expandMaterialInputs(
+      appRoot: appRoot,
+      inputs: inputs,
+    ).map((f) => p.relative(f.path, from: appRoot.path)).toList();
 
     test('file inputs', () {
       expect(expand(['materials/skin.mat']), ['materials/skin.mat']);
@@ -331,8 +376,12 @@ void main() {
 
   group('matcId', () {
     test('is stable and changes with every identity component', () {
-      String id({String filament = 'v1.77.2', String pkg = '0.6.0-pre.0', String host = 'linux', String arch = 'x64'}) =>
-          computeMatcId(filamentVersion: filament, packageVersion: pkg, hostPlatform: host, hostArch: arch);
+      String id({
+        String filament = 'v1.77.2',
+        String pkg = '0.6.0-pre.0',
+        String host = 'linux',
+        String arch = 'x64',
+      }) => computeMatcId(filamentVersion: filament, packageVersion: pkg, hostPlatform: host, hostArch: arch);
 
       final base = id();
       expect(id(), base);
@@ -359,7 +408,9 @@ void main() {
           backends: ['metal', 'vulkan'],
           resgen: true,
           inputs: {'a.mat': 'h1'},
-          outputs: {'a.mat': ['a.filamat', 'a.c', 'a.h']},
+          outputs: {
+            'a.mat': ['a.filamat', 'a.c', 'a.h'],
+          },
         ),
       );
       final manifest = readMaterialsManifest(file)!;
@@ -417,7 +468,12 @@ void main() {
       final matc = File(p.join(binDir.path, 'matc'))..writeAsStringSync(workingMatcContent);
       File(p.join(binDir.path, 'resgen')).writeAsStringSync('');
 
-      final result = await ensureMaterialTools(spec: spec, cacheRoot: cacheRoot, download: tools.downloader(), runProcess: tools.run);
+      final result = await ensureMaterialTools(
+        spec: spec,
+        cacheRoot: cacheRoot,
+        download: tools.downloader(),
+        runProcess: tools.run,
+      );
       expect(result.downloaded, isFalse);
       expect(result.matc.path, matc.path);
       expect(tools.downloadCount, 0);
@@ -518,9 +574,7 @@ void main() {
 
     String contentId(File file) => sha256.convert(file.readAsBytesSync()).toString();
 
-    Map<File, String> hashesFor(List<File> inputs) => {
-          for (final input in inputs) input: contentId(input),
-        };
+    Map<File, String> hashesFor(List<File> inputs) => {for (final input in inputs) input: contentId(input)};
 
     MaterialCompilePlan planFor({
       required List<File> inputs,
@@ -553,10 +607,7 @@ void main() {
           matcSha256: null,
           backends: allMaterialBackends,
           resgen: false,
-          inputs: {
-            'materials/skin.mat': contentId(skin),
-            'materials/eye/iris.mat': contentId(eye),
-          },
+          inputs: {'materials/skin.mat': contentId(skin), 'materials/eye/iris.mat': contentId(eye)},
           outputs: {
             'materials/skin.mat': ['skin.filamat'],
             'materials/eye/iris.mat': ['iris.filamat'],
@@ -608,10 +659,7 @@ void main() {
           matcSha256: null,
           backends: allMaterialBackends,
           resgen: false,
-          inputs: {
-            'materials/skin.mat': contentId(skin),
-            'materials/eye/iris.mat': contentId(eye),
-          },
+          inputs: {'materials/skin.mat': contentId(skin), 'materials/eye/iris.mat': contentId(eye)},
           outputs: const {},
         ),
       );
@@ -631,10 +679,7 @@ void main() {
           matcSha256: null,
           backends: ['opengl'],
           resgen: false,
-          inputs: {
-            'materials/skin.mat': contentId(skin),
-            'materials/eye/iris.mat': contentId(eye),
-          },
+          inputs: {'materials/skin.mat': contentId(skin), 'materials/eye/iris.mat': contentId(eye)},
           outputs: {
             'materials/skin.mat': ['skin.filamat'],
             'materials/eye/iris.mat': ['iris.filamat'],
@@ -674,10 +719,13 @@ void main() {
       String filamentVersion = 'v1.77.2',
       String packageVersion = '0.6.0-pre.0',
     }) {
-      final config = parseMaterialCompilationConfig(rawConfig ?? {
-            'inputs': ['materials'],
-            'output': 'build/materials',
-          })!;
+      final config = parseMaterialCompilationConfig(
+        rawConfig ??
+            {
+              'inputs': ['materials'],
+              'output': 'build/materials',
+            },
+      )!;
       return compileUserMaterials(
         appRoot: appRoot,
         config: config,
@@ -703,18 +751,22 @@ void main() {
       expect(tools.downloadCount, 1);
 
       // Blended: ONE matc invocation per material carrying every backend.
-      expect(tools.matcCompiles, unorderedEquals([
-        '-a metal -a vulkan -a opengl -a webgpu skin.mat',
-        '-a metal -a vulkan -a opengl -a webgpu my-eye.mat',
-      ]));
+      expect(
+        tools.matcCompiles,
+        unorderedEquals([
+          '-a metal -a vulkan -a opengl -a webgpu skin.mat',
+          '-a metal -a vulkan -a opengl -a webgpu my-eye.mat',
+        ]),
+      );
 
       // One stable .filamat per material, sanitised stem, no variants.
       expect(File(p.join(outputDir().path, 'skin.filamat')).existsSync(), isTrue);
       expect(File(p.join(outputDir().path, 'my_eye.filamat')).existsSync(), isTrue);
-      expect(
-        outputDir().listSync().whereType<File>().map((f) => p.basename(f.path)).toSet(),
-            {materialManifestName, 'skin.filamat', 'my_eye.filamat'},
-      );
+      expect(outputDir().listSync().whereType<File>().map((f) => p.basename(f.path)).toSet(), {
+        materialManifestName,
+        'skin.filamat',
+        'my_eye.filamat',
+      });
 
       // The manifest gate was written last with the recorded identity.
       final manifest = readMaterialsManifest(File(p.join(outputDir().path, materialManifestName)))!;
@@ -771,11 +823,14 @@ void main() {
       expect((await run(tools: tools)).compiled, 0);
 
       // Re-uploaded artifact for the same version: different bytes.
-      final matcFile = File(p.join(
-        toolsCache.path,
-        resolveMaterialToolsSpec(version: 'v1.77.2', hostOS: 'linux', hostArch: 'x64').cacheDirName,
-        'bin', 'matc',
-      ));
+      final matcFile = File(
+        p.join(
+          toolsCache.path,
+          resolveMaterialToolsSpec(version: 'v1.77.2', hostOS: 'linux', hostArch: 'x64').cacheDirName,
+          'bin',
+          'matc',
+        ),
+      );
       matcFile.writeAsStringSync('works-but-rebuilt');
       final result = await run(tools: tools);
       expect(result.compiled, 2);
@@ -824,29 +879,34 @@ void main() {
 
     test('an input removed from the config drops its outputs without downloading tools', () async {
       final tools = FakeTools();
-      await run(tools: tools, rawConfig: {
-        'inputs': ['materials'],
-        'output': 'build/materials',
-        'resgen': true,
-      });
+      await run(
+        tools: tools,
+        rawConfig: {
+          'inputs': ['materials'],
+          'output': 'build/materials',
+          'resgen': true,
+        },
+      );
       expect(File(p.join(outputDir().path, 'my_eye.filamat')).existsSync(), isTrue);
       final downloads = tools.downloadCount;
 
-      final result = await run(tools: tools, rawConfig: {
-        'inputs': ['materials/skin.mat'],
-        'output': 'build/materials',
-        'resgen': true,
-      });
+      final result = await run(
+        tools: tools,
+        rawConfig: {
+          'inputs': ['materials/skin.mat'],
+          'output': 'build/materials',
+          'resgen': true,
+        },
+      );
       expect(result.compiled, 0);
       expect(tools.downloadCount, downloads); // no tools needed for cleanup
       expect(File(p.join(outputDir().path, 'my_eye.filamat')).existsSync(), isFalse);
       expect(File(p.join(outputDir().path, 'my_eye.c')).existsSync(), isFalse);
       expect(File(p.join(outputDir().path, 'my_eye.h')).existsSync(), isFalse);
       // Still listed? No: the manifest only knows the remaining inputs.
-      expect(
-        readMaterialsManifest(File(p.join(outputDir().path, materialManifestName)))!.inputs.keys,
-        ['materials/skin.mat'],
-      );
+      expect(readMaterialsManifest(File(p.join(outputDir().path, materialManifestName)))!.inputs.keys, [
+        'materials/skin.mat',
+      ]);
     });
 
     test('matc failure surfaces stderr and leaves outputs and manifest untouched', () async {
@@ -870,10 +930,7 @@ void main() {
         outputDir().listSync().whereType<Directory>().where((d) => p.basename(d.path).startsWith('.staging-')).toList(),
         isEmpty,
       );
-      expect(
-        outputDir().listSync().whereType<File>().where((f) => f.path.endsWith('.tmp')).toList(),
-        isEmpty,
-      );
+      expect(outputDir().listSync().whereType<File>().where((f) => f.path.endsWith('.tmp')).toList(), isEmpty);
       // The tools were reused from cache: no extra download.
       expect(tools.downloadCount, 1);
       expect(tools.matcCompiles.length, matcRunsBefore);
@@ -917,7 +974,11 @@ void main() {
         ),
         throwsA(
           isA<MaterialToolsError>()
-              .having((e) => e.message, 'message', contains('$materialToolsR2BaseUrl/filament-v1.77.2-linux-release.zip'))
+              .having(
+                (e) => e.message,
+                'message',
+                contains('$materialToolsR2BaseUrl/filament-v1.77.2-linux-release.zip'),
+              )
               .having((e) => e.message, 'message', contains('filament-v1.77.2-linux-release.zip')),
         ),
       );
