@@ -5643,9 +5643,6 @@ external void View_setTransparentPickingEnabledJobThread(
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32)>(isLeaf: true)
 external void View_setViewport(ffi.Pointer<TView> view, int width, int height);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32, ffi.Uint32)>(isLeaf: true)
-external void View_setViewportRect(ffi.Pointer<TView> view, int left, int bottom, int width, int height);
-
 @ffi.Native<
   ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32, VoidCallback)
 >(isLeaf: true)
@@ -5657,6 +5654,9 @@ external void View_setViewportJobThread(
   int requestId,
   VoidCallback onComplete,
 );
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32, ffi.Uint32)>(isLeaf: true)
+external void View_setViewportRect(ffi.Pointer<TView> view, int left, int bottom, int width, int height);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TVsmShadowOptions)>(isLeaf: true)
 external void View_setVsmShadowOptions(ffi.Pointer<TView> tView, TVsmShadowOptions options);
