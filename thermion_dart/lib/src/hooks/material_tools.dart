@@ -1,13 +1,36 @@
-/// Host-side (re)compilation of the embedded materials via matc/resgen.
+/// Opt-in host-side compilation of USER materials via matc/resgen.
 ///
-/// Implements issue #399: the Dart build hook downloads the WebGPU-capable
-/// `matc`/`resgen` pair matching the Filament version pinned in
-/// `filament.version` from R2 (for the HOST platform, not the target), then
-/// regenerates every material variant `materials/build.sh` emits into a
-/// cache under `.dart_tool/`. A fingerprint over `filament.version` + the
-/// `.mat` sources + the variant table makes repeat builds a no-op, so a
-/// Filament version bump regenerates materials automatically and nothing
-/// recompiles when nothing changed.
+/// A downstream app points thermion at its own `.mat` files with the
+/// `material_compilation` user define:
+///
+/// ```yaml
+/// hooks:
+///   user_defines:
+///     thermion_dart:
+///       material_compilation:
+///         inputs: [materials/skin.mat, materials/eye]
+///         output: build/materials
+///         backends: all   # all (default) | native | web | explicit -a list
+///         resgen: false   # also emit .c/.h per material
+/// ```
+///
+/// The hook then expands the inputs to `.mat` files, downloads the
+/// WebGPU-capable `matc`/`resgen` pair matching the Filament version pinned
+/// in `filament.version` from R2 (for the HOST platform, not the target)
+/// into a per-user cache, and compiles each material into ONE blended
+/// `.filamat` package (every requested backend in a single blob) under the
+/// configured output directory. A `<output>/.thermion-materials.json`
+/// manifest records the `matcId` (Filament tag + thermion_dart version +
+/// host platform/arch), the sha256 of the downloaded matc binary and the
+/// hash of every input: when nothing changed, later builds skip the
+/// download and the compilation; when the `matcId` (or the matc binary's
+/// hash) changes — e.g. a Filament or thermion_dart bump ships a new matc —
+/// EVERY material is recompiled even if no `.mat` changed.
+///
+/// User materials are never compiled into a native library: the runtime
+/// loads them from bytes (`FilamentApp.createMaterial(Uint8List data)`), so
+/// the build product is a `.filamat` file on disk (plus optional `.c`/`.h`
+/// via `resgen`).
 ///
 /// Kept free of build-hook imports and structured around injectable I/O
 /// (downloader, process runner) so it can be unit tested without network
@@ -27,59 +50,26 @@ import 'package:path/path.dart' as p;
 /// webR2BaseUrl in web_artifacts.dart.
 const String materialToolsR2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
 
-/// Bumped whenever the generation pipeline itself changes shape (variant
-/// flag table, header rewriting rules, manifest schema). Part of the
-/// fingerprint so an old cache can never satisfy a new pipeline.
-const int materialPipelineVersion = 1;
+/// Bumped whenever this pipeline changes shape (backend presets, manifest
+/// schema, matcId scheme). Folded into the matcId so an old output directory
+/// can never satisfy a new pipeline.
+const int materialPipelineVersion = 2;
 
-/// Name of the gate file written next to the generated `material/` dir.
-const String materialManifestName = 'manifest.json';
+/// Name of the manifest written into the output directory (written LAST —
+/// it is the gate that makes repeat builds fast).
+const String materialManifestName = '.thermion-materials.json';
 
-/// A material variant: the suffix appended to the generated files and the
-/// matc architecture flags it is compiled with.
-typedef MaterialVariant = ({String suffix, List<String> matcFlags});
+/// matc architecture flags for `backends: all` — one blended package per
+/// material carrying every backend, so a single stable filename works on
+/// every platform and runtime loading stays trivial.
+const List<String> allMaterialBackends = ['metal', 'vulkan', 'opengl', 'webgpu'];
 
-/// Every variant each material is compiled into, in the exact order
-/// `materials/build.sh` emits them. The order is load-bearing for
-/// byte-identical output: resgen's unsuffixed `.S`/`.apple.S`/`.bin`
-/// byproducts are overwritten per variant, so they must end up coming from
-/// the same (last) variant as the committed artifacts.
-const List<MaterialVariant> materialVariants = [
-  (suffix: 'apple', matcFlags: ['-a', 'metal']),
-  (suffix: 'android', matcFlags: ['-a', 'vulkan', '-a', 'opengl']),
-  (suffix: 'desktop', matcFlags: ['-a', 'vulkan', '-a', 'opengl']),
-  (suffix: 'opengl', matcFlags: ['-a', 'opengl']),
-  (suffix: 'vulkan', matcFlags: ['-a', 'vulkan']),
-  (suffix: 'webgpu', matcFlags: ['-a', 'webgpu']),
-  (suffix: 'web_webgl', matcFlags: ['-a', 'opengl']),
-  (suffix: 'web_combined', matcFlags: ['-a', 'opengl', '-a', 'webgpu']),
-];
+/// Every `-a` value matc accepts for the platforms Thermion supports.
+const List<String> knownMaterialBackends = ['metal', 'vulkan', 'opengl', 'webgpu'];
 
-/// Embedded material sources (`materials/<name>.mat` inside the package),
-/// in `materials/build.sh` order. `gizmo` is separate: its resgen prefix
-/// stays `gizmo` (so symbols are GIZMO_*) but files are renamed
-/// `gizmo_material_*` to avoid a case-insensitive .obj collision with
-/// scene/Gizmo.cpp on Windows.
-const List<String> embeddedMaterials = [
-  'image',
-  'unlit_fixed_size',
-  'grid',
-  'linear_depth',
-  'silhouette',
-  'edge_outline',
-  'wireframe',
-  'translation_axis',
-  'bone_overlay',
-  'capture_uv',
-];
-
-const String gizmoMaterialName = 'gizmo';
-const String gizmoFileStem = 'gizmo_material';
-
-/// Thrown for unrecoverable material-tool problems: unsupported hosts, bad
-/// downloads, or a matc that cannot compile WebGPU materials. The build hook
-/// catches this and falls back to the committed artifacts (with a warning),
-/// so the message must be actionable on its own.
+/// Thrown for unrecoverable material-tool problems: bad configuration,
+/// unsupported hosts, failed downloads. Messages are actionable on their
+/// own; the build hook lets them fail the build (never a silent skip).
 class MaterialToolsError implements Exception {
   MaterialToolsError(this.message);
   final String message;
@@ -88,7 +78,7 @@ class MaterialToolsError implements Exception {
   String toString() => message;
 }
 
-/// Thrown when matc or resgen fails during generation.
+/// Thrown when matc or resgen fails during compilation.
 class MaterialGenerationError implements Exception {
   MaterialGenerationError(this.message);
   final String message;
@@ -97,8 +87,477 @@ class MaterialGenerationError implements Exception {
   String toString() => message;
 }
 
+//
+// Configuration
+//
+
+/// The resolved `material_compilation` user define.
+class MaterialCompilationConfig {
+  MaterialCompilationConfig({
+    required this.inputs,
+    required this.output,
+    required this.backends,
+    required this.resgen,
+    this.resgenPrefixes = const {},
+  });
+
+  /// Files, directories or globs, relative to the consuming app root.
+  final List<String> inputs;
+
+  /// Output directory, relative to the consuming app root (created if
+  /// missing). Absolute paths are used as-is.
+  final String output;
+
+  /// matc `-a` flags blended into every package (see [resolveBackends]).
+  final List<String> backends;
+
+  /// Also convert each `.filamat` to C (`resgen -c`).
+  final bool resgen;
+
+  /// Optional `resgen_prefixes` overrides: material name (file stem) ->
+  /// symbol prefix. Unlisted materials use their sanitised name.
+  final Map<String, String> resgenPrefixes;
+
+  /// True when [backends] is the full `all` preset.
+  bool get isAllBackends => listEquals(backends, allMaterialBackends);
+}
+
+bool listEquals(List<String> a, List<String> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+/// Normalizes the `backends` key of `material_compilation`.
+///
+///   - null            -> [allMaterialBackends] (the default)
+///   - "all"           -> [allMaterialBackends]
+///   - "native"        -> metal + vulkan + opengl (no WebGPU)
+///   - "web"           -> opengl + webgpu (what a browser can load)
+///   - a list of names -> used as-is (validated), e.g. [vulkan]
+///
+/// Unknown values throw [MaterialToolsError] naming the bad value.
+List<String> resolveBackends(Object? raw) {
+  if (raw == null) return List.of(allMaterialBackends);
+  if (raw is String) {
+    switch (raw.trim().toLowerCase()) {
+      case 'all':
+        return List.of(allMaterialBackends);
+      case 'native':
+        return ['metal', 'vulkan', 'opengl'];
+      case 'web':
+        return ['opengl', 'webgpu'];
+      default:
+        throw MaterialToolsError(
+          "Unknown backends preset '$raw' in material_compilation. "
+          'Use all (default), native, web, or an explicit list such as '
+          '[vulkan, opengl].',
+        );
+    }
+  }
+  if (raw is List) {
+    final backends = <String>[];
+    for (final value in raw) {
+      final name = (value is String ? value : value.toString()).trim().toLowerCase();
+      if (!knownMaterialBackends.contains(name)) {
+        throw MaterialToolsError(
+          "Unknown backend '$value' in material_compilation.backends. "
+          'Valid backends: ${knownMaterialBackends.join(', ')}.',
+        );
+      }
+      if (!backends.contains(name)) backends.add(name);
+    }
+    if (backends.isEmpty) {
+      throw MaterialToolsError(
+          'material_compilation.backends is an empty list; there would be nothing to compile.');
+    }
+    return backends;
+  }
+  throw MaterialToolsError(
+    'material_compilation.backends must be a string preset (all/native/web) '
+    'or a list of backend names, but got ${raw.runtimeType}.',
+  );
+}
+
+/// Parses the raw `material_compilation` user define into a config.
+///
+/// Returns null when [raw] is null (the feature is opt-in: absent means the
+/// hook does nothing new). Any present-but-invalid value throws
+/// [MaterialToolsError] with an actionable message — a misconfigured opt-in
+/// feature must fail the build, not silently no-op.
+MaterialCompilationConfig? parseMaterialCompilationConfig(
+  Object? raw, {
+  void Function(String message)? onLog,
+}) {
+  if (raw == null) return null;
+  final log = onLog ?? (_) {};
+  if (raw is! Map) {
+    throw MaterialToolsError(
+      'material_compilation must be a map (inputs, output, backends, '
+      'resgen), but got ${raw.runtimeType}. See the Thermion materials docs.',
+    );
+  }
+  final map = Map<String, dynamic>.from(raw);
+
+  const knownKeys = {'inputs', 'output', 'backends', 'resgen', 'resgen_prefixes'};
+  for (final key in map.keys) {
+    if (!knownKeys.contains(key)) {
+      log('Unknown key "$key" in material_compilation (ignored). '
+          'Known keys: ${knownKeys.join(', ')}');
+    }
+  }
+
+  final rawInputs = map['inputs'];
+  if (rawInputs is! List || rawInputs.isEmpty) {
+    throw MaterialToolsError(
+      'material_compilation.inputs must be a non-empty list of .mat files, '
+      'directories or globs relative to your app root.',
+    );
+  }
+  final inputs = <String>[];
+  for (final value in rawInputs) {
+    if (value is! String || value.trim().isEmpty) {
+      throw MaterialToolsError(
+        'material_compilation.inputs entries must be non-empty strings '
+        '(files, directories or globs), but got: $value.',
+      );
+    }
+    inputs.add(value.trim());
+  }
+
+  final output = map['output'];
+  if (output is! String || output.trim().isEmpty) {
+    throw MaterialToolsError(
+      'material_compilation.output must be a non-empty directory path '
+      'relative to your app root (created if missing).',
+    );
+  }
+
+  final resgenRaw = map['resgen'];
+  if (resgenRaw != null && resgenRaw is! bool) {
+    throw MaterialToolsError(
+        'material_compilation.resgen must be true or false, but got ${resgenRaw.runtimeType}.');
+  }
+
+  final prefixesRaw = map['resgen_prefixes'];
+  final prefixes = <String, String>{};
+  if (prefixesRaw != null) {
+    if (prefixesRaw is! Map) {
+      throw MaterialToolsError(
+        'material_compilation.resgen_prefixes must be a map of material '
+        'name to resgen prefix, but got ${prefixesRaw.runtimeType}.',
+      );
+    }
+    prefixesRaw.forEach((name, prefix) {
+      if (prefix is! String || prefix.trim().isEmpty) {
+        throw MaterialToolsError(
+            'material_compilation.resgen_prefixes["$name"] must be a non-empty prefix string.');
+      }
+      prefixes['$name'] = prefix.trim();
+    });
+  }
+
+  return MaterialCompilationConfig(
+    inputs: inputs,
+    output: output.trim(),
+    backends: resolveBackends(map['backends']),
+    resgen: resgenRaw == true,
+    resgenPrefixes: prefixes,
+  );
+}
+
+//
+// Input resolution
+//
+
+/// True when an input string is a glob rather than a literal path.
+bool _isGlob(String input) => input.contains('*') || input.contains('?') || input.contains('[');
+
+/// Expands [config.inputs] against [appRoot] into a sorted, deduplicated
+/// list of `.mat` files.
+///
+///   - an existing file   -> must have a `.mat` extension
+///   - an existing dir    -> every `.mat` under it, recursively
+///   - a glob (*/?/[)    -> matched against files under the static prefix
+///                           of the pattern, recursively; only `.mat`
+///                           matches are kept
+///
+/// Anything else throws [MaterialToolsError] naming the input — a typo must
+/// fail the build, not silently compile nothing.
+List<File> expandMaterialInputs({required Directory appRoot, required List<String> inputs}) {
+  final files = <String>{};
+  void addFile(File file) {
+    if (p.extension(file.path).toLowerCase() == '.mat') files.add(file.path);
+  }
+
+  for (final input in inputs) {
+    final normalized = input.replaceAll('/', p.separator);
+    final isGlob = _isGlob(input);
+    final absolute = p.isAbsolute(normalized) ? normalized : p.join(appRoot.path, normalized);
+
+    if (isGlob) {
+      for (final match in _globMatches(absolute)) {
+        addFile(File(match));
+      }
+      continue;
+    }
+
+    if (FileSystemEntity.isDirectorySync(absolute)) {
+      for (final entity in Directory(absolute).listSync(recursive: true, followLinks: false)) {
+        if (entity is File) addFile(entity);
+      }
+      continue;
+    }
+
+    if (FileSystemEntity.isFileSync(absolute)) {
+      if (p.extension(absolute).toLowerCase() != '.mat') {
+        throw MaterialToolsError(
+          'material_compilation input "$input" is not a .mat file '
+          '(${absolute}). matc only compiles .mat sources.',
+        );
+      }
+      addFile(File(absolute));
+      continue;
+    }
+
+    throw MaterialToolsError(
+      'material_compilation input "$input" does not exist (resolved to '
+      '$absolute under ${appRoot.path}).',
+    );
+  }
+
+  final expanded = files.toList()..sort();
+  if (expanded.isEmpty) {
+    throw MaterialToolsError(
+      'material_compilation.inputs resolved to no .mat files '
+      '(${inputs.join(', ')}).',
+    );
+  }
+  return expanded.map(File.new).toList();
+}
+
+/// Matches an absolute glob pattern ([pattern]) against every file under
+/// its deepest static directory. Supports `*` (within one segment), `**`
+/// (across segments) and `?`.
+Iterable<String> _globMatches(String pattern) {
+  final segments = p.split(pattern);
+  var staticPrefix = <String>[];
+  for (final segment in segments) {
+    if (_isGlob(segment)) break;
+    staticPrefix.add(segment);
+  }
+  final root = p.joinAll(staticPrefix);
+  if (!FileSystemEntity.isDirectorySync(root)) {
+    throw MaterialToolsError(
+      'material_compilation glob "$pattern" has no existing directory '
+      'prefix ($root).',
+    );
+  }
+  final matcher = _globRegExp(pattern, fromDir: root);
+  final matches = <String>[];
+  for (final entity in Directory(root).listSync(recursive: true, followLinks: false)) {
+    if (entity is File && matcher.hasMatch(p.relative(entity.path, from: root))) {
+      matches.add(entity.path);
+    }
+  }
+  return matches;
+}
+
+/// Builds a RegExp for the part of [pattern] below [fromDir].
+RegExp _globRegExp(String pattern, {required String fromDir}) {
+  final relative = p.relative(pattern, from: fromDir);
+  final buffer = StringBuffer('^');
+  var i = 0;
+  while (i < relative.length) {
+    final char = relative[i];
+    if (char == '*') {
+      if (i + 1 < relative.length && relative[i + 1] == '*') {
+        buffer.write('.*');
+        i += 2;
+        // Tolerate a following separator (e.g. dir/**/x).
+        if (i < relative.length && (relative[i] == '/' || relative[i] == p.separator)) i++;
+        continue;
+      }
+      buffer.write('[^${p.separator}]*');
+      i++;
+      continue;
+    }
+    if (char == '?') {
+      buffer.write('[^${p.separator}]');
+      i++;
+      continue;
+    }
+    buffer.write(RegExp.escape(char));
+    i++;
+  }
+  buffer.write(r'$');
+  return RegExp(buffer.toString());
+}
+
+/// The output stem for a `.mat` file: its basename without extension,
+/// sanitised to a C-safe identifier ([A-Za-z0-9_]). Two inputs that
+/// sanitise to the same stem would overwrite each other's outputs, so
+/// [checkOutputStems] rejects them up front.
+String materialOutputStem(File mat) {
+  final stem = p.basenameWithoutExtension(mat.path);
+  final sanitized = stem.replaceAll(RegExp('[^A-Za-z0-9_]'), '_');
+  if (sanitized.isEmpty || sanitized == '_') {
+    throw MaterialToolsError('Cannot derive an output name from ${mat.path}.');
+  }
+  return sanitized;
+}
+
+/// Every output file name a material produces with [resgen] enabled:
+/// `<stem>.filamat` plus `resgen -p <prefix>` outputs (`<prefix>.c`,
+/// `<prefix>.h`, and whatever else resgen emits beside them).
+List<String> expectedOutputNames(String stem, {required bool resgen, String? prefix}) {
+  return [
+    '$stem.filamat',
+    if (resgen) ...['${prefix ?? stem}.c', '${prefix ?? stem}.h'],
+  ];
+}
+
+/// Maps every input to its output stem, rejecting collisions.
+Map<File, String> checkOutputStems(List<File> inputs) {
+  final stems = <File, String>{};
+  final byStem = <String, File>{};
+  for (final input in inputs) {
+    final stem = materialOutputStem(input);
+    final existing = byStem[stem];
+    if (existing != null && p.absolute(existing.path) != p.absolute(input.path)) {
+      throw MaterialToolsError(
+        'material_compilation inputs ${p.basename(existing.path)} and '
+        '${p.basename(input.path)} both produce the output name "$stem". '
+        'Rename one of them — outputs would overwrite each other.',
+      );
+    }
+    byStem[stem] = input;
+    stems[input] = stem;
+  }
+  return stems;
+}
+
+//
+// matcId + manifest
+//
+
+/// Computes the `matcId`: the identity of the tool that must have produced
+/// every blob in the output directory.
+///
+/// sha256 over the pipeline version, the pinned Filament tag, the
+/// thermion_dart package version and the host platform/arch. Any change (a
+/// Filament bump, a thermion_dart bump, building on another machine) forces
+/// a full rebuild. The downloaded matc binary's own sha256 is recorded in
+/// the manifest as `matcSha256` and ALSO forces a full rebuild when it
+/// changes — it is deliberately NOT part of the matcId, because the binary
+/// is not hashable before the first download (a null->known transition
+/// would otherwise rebuild every project once for no reason).
+String computeMatcId({
+  required String filamentVersion,
+  required String packageVersion,
+  required String hostPlatform,
+  required String hostArch,
+}) {
+  final buffer = StringBuffer()
+    ..writeln('pipeline=$materialPipelineVersion')
+    ..writeln('filament=$filamentVersion')
+    ..writeln('package=$packageVersion')
+    ..writeln('host=$hostPlatform/$hostArch');
+  return sha256.convert(utf8.encode(buffer.toString())).toString();
+}
+
+/// First 12 chars of a hash-like id, tolerating short test values.
+String _shortId(String id) => id.length <= 12 ? id : id.substring(0, 12);
+
+/// The recorded state of an output directory.
+class MaterialsManifest {
+  MaterialsManifest({
+    required this.matcId,
+    required this.matcSha256,
+    required this.backends,
+    required this.resgen,
+    required this.inputs,
+  });
+
+  final String matcId;
+  final String? matcSha256;
+  final List<String> backends;
+  final bool resgen;
+
+  /// input path (relative to the app root, as passed in) -> sha256, plus
+  /// `"outputs/<input>": [file names]` entries recording what was written.
+  final Map<String, String> inputs;
+  final Map<String, List<String>> outputs = {};
+}
+
+/// Reads `<output>/.thermion-materials.json`; null when missing/corrupt
+/// (treated as a full rebuild).
+MaterialsManifest? readMaterialsManifest(File manifest) {
+  if (!manifest.existsSync()) return null;
+  Object? decoded;
+  try {
+    decoded = jsonDecode(manifest.readAsStringSync());
+  } on FormatException {
+    return null;
+  }
+  if (decoded is! Map<String, dynamic>) return null;
+  if (decoded['schema'] != materialPipelineVersion) return null;
+  final matcId = decoded['matcId'];
+  if (matcId is! String) return null;
+  final backends = decoded['backends'];
+  if (backends is! List || backends.any((b) => b is! String)) return null;
+  final inputs = decoded['inputs'];
+  if (inputs is! Map<String, dynamic>) return null;
+  final result = MaterialsManifest(
+    matcId: matcId,
+    matcSha256: decoded['matcSha256'] is String ? decoded['matcSha256'] as String : null,
+    backends: List<String>.from(backends.cast<String>()),
+    resgen: decoded['resgen'] == true,
+    inputs: inputs.map((k, v) => MapEntry(k, v is String ? v : '')),
+  );
+  final outputs = decoded['outputs'];
+  if (outputs is Map<String, dynamic>) {
+    outputs.forEach((input, names) {
+      if (names is List) result.outputs[input] = names.map((n) => '$n').toList();
+    });
+  }
+  return result;
+}
+
+/// Serializes a manifest (also embeds the input -> outputs mapping used to
+/// clean up after an input is removed from the config).
+String encodeMaterialsManifest({
+  required String matcId,
+  required String? matcSha256,
+  required List<String> backends,
+  required bool resgen,
+  required Map<String, String> inputs,
+  required Map<String, List<String>> outputs,
+}) {
+  final orderedInputs = Map.fromEntries(inputs.entries.toList()..sort((a, b) => a.key.compareTo(b.key)));
+  return const JsonEncoder.withIndent('  ').convert({
+    'schema': materialPipelineVersion,
+    'matcId': matcId,
+    if (matcSha256 != null) 'matcSha256': matcSha256,
+    'backends': backends,
+    'resgen': resgen,
+    'inputs': orderedInputs,
+    'outputs': outputs,
+    'generatedAt': DateTime.now().toUtc().toIso8601String(),
+  });
+}
+
+//
+// Host tools (download / cache / smoke test)
+//
+
 /// Which R2 artifact to fetch for the HOST machine (not the build target).
 typedef MaterialToolsSpec = ({
+  /// The pinned Filament version tag, e.g. v1.77.2.
+  String version,
+
   /// R2 platform token: linux, linux-arm64, macos or windows.
   String hostPlatform,
 
@@ -157,6 +616,7 @@ MaterialToolsSpec resolveMaterialToolsSpec({
       );
   }
   return (
+    version: version,
     hostPlatform: platform,
     zipName: 'filament-$version-$platform-release.zip',
     url: '$materialToolsR2BaseUrl/filament-$version-$platform-release.zip',
@@ -187,8 +647,7 @@ String? defaultMaterialToolsCacheRoot([Map<String, String>? environment]) {
 }
 
 /// Detects the host architecture in 'x64'/'arm64' terms. dart:io has no
-/// direct API (Platform.executableArchitecture is not available on the
-/// SDKs this package supports), so ask the OS: uname -m where it exists,
+/// direct API, so ask the OS: uname -m where it exists,
 /// PROCESSOR_ARCHITECTURE on Windows. Returns null when unknown.
 Future<String?> detectHostArchitecture() async {
   if (Platform.isWindows) {
@@ -211,89 +670,18 @@ Future<String?> detectHostArchitecture() async {
   return null;
 }
 
-/// SHA-256 over everything that can change the generated artifacts: the
-/// pipeline version, the Filament version (matc behavior), the host tool
-/// platform, the variant flag table, the material list, and the content
-/// hash of every input file under `materials/` (sorted by relative path so
-/// the result is stable across file system orderings).
-String computeMaterialsFingerprint({
-  required String version,
-  required String hostPlatform,
-  required Iterable<MapEntry<String, String>> sourceHashes,
-}) {
-  final buffer = StringBuffer();
-  buffer.writeln('pipeline=$materialPipelineVersion');
-  buffer.writeln('filament=$version');
-  buffer.writeln('tools=$hostPlatform');
-  buffer.writeln(
-    'variants=${materialVariants.map((v) => '${v.suffix}:${v.matcFlags.join(',')}').join('|')}',
-  );
-  buffer.writeln('materials=${embeddedMaterials.join(',')},$gizmoMaterialName');
-  final entries = sourceHashes.toList()..sort((a, b) => a.key.compareTo(b.key));
-  for (final entry in entries) {
-    buffer.writeln('${entry.key}=${entry.value}');
+/// Reads the `version:` field of a package's pubspec.yaml — the
+/// thermion_dart version is part of the matcId. Returns 'unversioned'
+/// when the file has no version (e.g. a path dependency under development).
+Future<String> readPubspecVersion(Directory packageRoot) async {
+  final pubspec = File(p.join(packageRoot.path, 'pubspec.yaml'));
+  if (!pubspec.existsSync()) return 'unversioned';
+  final lines = await pubspec.readAsLines();
+  for (final line in lines) {
+    final match = RegExp(r'^version:\s*(\S+)').firstMatch(line);
+    if (match != null) return match.group(1)!;
   }
-  return sha256.convert(utf8.encode(buffer.toString())).toString();
-}
-
-/// Content hashes (relative path -> sha256 hex) of every material input
-/// under [sourceDir]: `.mat` sources and the headers they `#include`
-/// (materials/shared.h). `.filamat` intermediates from a local
-/// `make materials` run are deliberately excluded — they are outputs.
-///
-/// Returns an empty map when the directory is missing; callers decide
-/// whether that is fatal.
-Map<String, String> hashMaterialSources(Directory sourceDir) {
-  if (!sourceDir.existsSync()) return const {};
-  final hashes = <String, String>{};
-  for (final entity in sourceDir.listSync(recursive: true)) {
-    if (entity is! File) continue;
-    final ext = p.extension(entity.path).toLowerCase();
-    if (ext != '.mat' && ext != '.h') continue;
-    hashes[p.relative(entity.path, from: sourceDir.path)] =
-        sha256.convert(entity.readAsBytesSync()).toString();
-  }
-  return hashes;
-}
-
-/// The generated-artifacts cache dir for a package:
-/// `<packageRoot>/.dart_tool/thermion_dart/materials/<version>` — versioned,
-/// so a Filament bump never reuses a stale set. The actual C sources live in
-/// its `material/` subdirectory, layout-identical to
-/// `native/include/material/` so it can be prepended to the include path.
-Directory generatedMaterialsRoot(Directory packageRoot, String version) => Directory(
-  p.join(packageRoot.path, '.dart_tool', 'thermion_dart', 'materials', version),
-);
-
-/// Reads the fingerprint from a manifest, or null when the manifest is
-/// missing/corrupt (treated as a cache miss).
-String? manifestFingerprint(File manifest) {
-  if (!manifest.existsSync()) return null;
-  Object? decoded;
-  try {
-    decoded = jsonDecode(manifest.readAsStringSync());
-  } on FormatException {
-    return null;
-  }
-  if (decoded is! Map<String, dynamic>) return null;
-  if (decoded['schema'] != materialPipelineVersion) return null;
-  final fingerprint = decoded['fingerprint'];
-  return fingerprint is String ? fingerprint : null;
-}
-
-/// Writes the manifest recording [fingerprint] and the sha256 of the tools
-/// that produced the artifacts (provenance for debugging cache issues).
-void writeMaterialManifest(File manifest, {required String fingerprint, required Map<String, String> toolHashes}) {
-  manifest.createSync(recursive: true);
-  manifest.writeAsStringSync(
-    jsonEncode({
-      'schema': materialPipelineVersion,
-      'fingerprint': fingerprint,
-      'tools': toolHashes,
-      'generatedAt': DateTime.now().toUtc().toIso8601String(),
-    }),
-    flush: true,
-  );
+  return 'unversioned';
 }
 
 /// Extracts only `bin/*` entries from [archive] into [destination] and
@@ -418,7 +806,20 @@ Future<MaterialTools> ensureMaterialTools({
   cacheRoot.createSync(recursive: true);
   final zipFile = File(p.join(cacheRoot.path, spec.zipName));
   try {
-    await fetch(Uri.parse(spec.url), zipFile);
+    try {
+      await fetch(Uri.parse(spec.url), zipFile);
+    } catch (e) {
+      throw MaterialToolsError(
+        'Could not download the Filament tools for material compilation.\n'
+        '  URL: ${spec.url}\n'
+        '  Filament version: ${spec.version}\n'
+        '  Artifact: ${spec.zipName}\n'
+        '  Cause: $e\n'
+        'Material compilation needs these tools and there is no cached copy '
+        'under ${toolsDir.path}. Restore network access (or pre-populate that '
+        'cache) and re-run the build.',
+      );
+    }
     final extracted = extractToolBinaries(ZipDecoder().decodeBytes(await zipFile.readAsBytes()), toolsDir);
     log('Extracted ${extracted.length} tool files into ${toolsDir.path}');
   } finally {
@@ -429,11 +830,9 @@ Future<MaterialTools> ensureMaterialTools({
   if (!matc.existsSync() || !resgen.existsSync()) {
     throw MaterialToolsError(
       'The Filament artifact ${spec.url} does not contain bin/matc and '
-      'bin/resgen for this host (${spec.hostPlatform}).\n'
-      'Material compilation needs a Build Filament workflow run for the '
-      'pinned Filament version that ships the shader tools. Until then, set '
-      'compile_materials: false under hooks.user_defines.thermion_dart in '
-      'your pubspec.yaml to use the committed material artifacts.',
+      'bin/resgen for this host (${spec.hostPlatform}). The pinned Filament '
+      'version needs a Build Filament workflow run that ships the shader '
+      'tools in its release zip.',
     );
   }
   await _makeExecutable([matc, resgen]);
@@ -442,11 +841,9 @@ Future<MaterialTools> ensureMaterialTools({
     toolsDir.deleteSync(recursive: true);
     throw MaterialToolsError(
       'matc from ${spec.url} does not support -a webgpu (smoke test failed '
-      'after a fresh download).\n'
-      'The R2 artifact was built without FILAMENT_SUPPORTS_WEBGPU; re-run '
-      'the Build Filament workflow for the pinned Filament version, or set '
-      'compile_materials: false under hooks.user_defines.thermion_dart in '
-      'your pubspec.yaml to use the committed material artifacts.',
+      'after a fresh download). The R2 artifact was built without '
+      'FILAMENT_SUPPORTS_WEBGPU; re-run the Build Filament workflow for the '
+      'pinned Filament version.',
     );
   }
   return (matc: matc, resgen: resgen, downloaded: true);
@@ -465,23 +862,170 @@ Future<void> _makeExecutable(List<File> files) async {
   }
 }
 
-/// Result of [ensureGeneratedMaterials]: the directory (layout-identical to
-/// `native/include/material/`) to compile against, and whether this call
-/// regenerated it.
-typedef GeneratedMaterials = ({Directory materialDir, bool regenerated});
+//
+// Compilation planning
+//
+
+/// Why a material needs recompiling / what this run will do.
+class MaterialCompilePlan {
+  MaterialCompilePlan({
+    required this.toCompile,
+    required this.skipped,
+    required this.reason,
+    required this.staleOutputs,
+  });
+
+  /// Inputs that must be recompiled, in input order.
+  final List<File> toCompile;
+
+  /// Inputs that are up to date and why (one line each).
+  final Map<File, String> skipped;
+
+  /// Human-readable reason for a full rebuild, or null for an incremental
+  /// run.
+  final String? reason;
+
+  /// Output files (names, relative to the output dir) whose inputs were
+  /// removed from the configuration; deleted after a successful run.
+  final List<String> staleOutputs;
+}
+
+/// Decides what (if anything) must be recompiled:
+///
+///   - no manifest            -> compile everything
+///   - matcId differs         -> recompile EVERYTHING, even with unchanged
+///                               .mat files (the core requirement: a
+///                               Filament/thermion bump ships a new matc and
+///                               every blob must be rebuilt)
+///   - backends/resgen differ -> recompile everything (config change)
+///   - cached matc hash moved -> recompile everything
+///   - input added/removed/hash changed -> recompile that input
+///   - output file missing    -> recompile that input (the manifest alone is
+///                               never trusted)
+///   - else                   -> skip, with a reason per input
+MaterialCompilePlan planMaterialCompilation({
+  required Directory appRoot,
+  required List<File> inputs,
+  required Map<File, String> inputHashes,
+  required Directory outputDir,
+  required String matcId,
+  required List<String> backends,
+  required bool resgen,
+  String? matcSha256,
+
+  /// Resolves the resgen symbol prefix of an input (null = the stem), so
+  /// presence checks match the files a custom prefix actually produces.
+  String? Function(File input)? resgenPrefixFor,
+}) {
+  final manifest = readMaterialsManifest(File(p.join(outputDir.path, materialManifestName)));
+  final stems = checkOutputStems(inputs);
+
+  if (manifest == null) {
+    return MaterialCompilePlan(
+      toCompile: List.of(inputs),
+      skipped: const {},
+      reason: 'no manifest in ${outputDir.path} — compiling everything',
+      staleOutputs: const [],
+    );
+  }
+
+  String? fullReason;
+  if (manifest.matcId != matcId) {
+    fullReason = 'matcId changed (${_shortId(manifest.matcId)} -> '
+        '${_shortId(matcId)}) — a new Filament/thermion_dart matc '
+        'requires every material to be rebuilt';
+  } else if (!listEquals(manifest.backends, backends)) {
+    fullReason = 'backends changed (${manifest.backends.join(',')} -> '
+        '${backends.join(',')})';
+  } else if (manifest.resgen != resgen) {
+    fullReason = 'resgen changed (${manifest.resgen} -> $resgen)';
+  } else if (matcSha256 != null && manifest.matcSha256 != null && manifest.matcSha256 != matcSha256) {
+    fullReason = 'the cached matc binary changed — rebuilding everything';
+  }
+
+  final currentKeys = inputs.map((input) => _manifestKey(input, appRoot)).toSet();
+  final staleOutputs = <String>[];
+  manifest.outputs.forEach((input, names) {
+    if (!currentKeys.contains(input)) {
+      staleOutputs.addAll(names);
+    }
+  });
+
+  if (fullReason != null) {
+    return MaterialCompilePlan(
+      toCompile: List.of(inputs),
+      skipped: const {},
+      reason: fullReason,
+      staleOutputs: staleOutputs,
+    );
+  }
+
+  final toCompile = <File>[];
+  final skipped = <File, String>{};
+  for (final input in inputs) {
+    final recorded = manifest.inputs[_manifestKey(input, appRoot)];
+    final stem = stems[input]!;
+    final outputsPresent = expectedOutputNames(stem, resgen: resgen, prefix: resgenPrefixFor?.call(input))
+        .every((name) => File(p.join(outputDir.path, name)).existsSync());
+    if (recorded == null) {
+      toCompile.add(input);
+    } else if (recorded != inputHashes[input]) {
+      toCompile.add(input);
+    } else if (!outputsPresent) {
+      toCompile.add(input);
+    } else {
+      skipped[input] = 'unchanged (hash ${_shortId(recorded)})';
+    }
+  }
+  return MaterialCompilePlan(toCompile: toCompile, skipped: skipped, reason: null, staleOutputs: staleOutputs);
+}
+
+/// The manifest key for an input: its path relative to the app root when it
+/// lives under it (stable, readable), else its absolute path.
+String _manifestKey(File input, Directory appRoot) {
+  return p.isWithin(appRoot.path, input.path) ? p.relative(input.path, from: appRoot.path) : input.path;
+}
+
+//
+// Compilation
+//
+
+/// Result of [compileUserMaterials].
+typedef UserMaterialsResult = ({
+  /// The expanded `.mat` inputs (the hook declares them as dependencies).
+  List<File> inputs,
+
+  /// The directory the `.filamat` (and optional `.c`/`.h`) files land in.
+  Directory outputDir,
+
+  /// How many materials this run compiled (0 = fully up to date).
+  int compiled,
+
+  /// How many materials were skipped as up to date.
+  int skipped,
+
+  /// Whether the matc/resgen pair had to be downloaded this run.
+  bool toolsDownloaded,
+});
 
 /// End-to-end entry point used by the build hook.
 ///
-/// Returns the cached generated material directory when the fingerprint of
-/// (`filament.version` + `materials/` contents + pipeline) matches the
-/// manifest — no download, no matc run. Otherwise fetches the host tools
-/// via [ensureMaterialTools] and regenerates every variant.
+/// Expands [config] against [appRoot], plans the work from the manifest in
+/// the output directory and compiles exactly what is stale — nothing at all
+/// (no tool download, no matc run) when everything is up to date.
 ///
-/// Throws [MaterialToolsError]/[MaterialGenerationError] on failure; the
-/// caller decides whether to fall back to the committed artifacts.
-Future<GeneratedMaterials> ensureGeneratedMaterials({
-  required Directory packageRoot,
-  required String version,
+/// Every output is written atomically (temp file, then rename) and the
+/// manifest is written LAST, so an interrupted or failing run never leaves
+/// a half-written output set that the manifest would vouch for.
+///
+/// Throws [MaterialToolsError] (configuration/tool/download problems) and
+/// [MaterialGenerationError] (matc/resgen failed; the tool's stderr is in
+/// the message) — the caller must let these fail the build.
+Future<UserMaterialsResult> compileUserMaterials({
+  required Directory appRoot,
+  required MaterialCompilationConfig config,
+  required String filamentVersion,
+  required String packageVersion,
   required String hostOS,
   required String hostArch,
   String? toolsCacheRoot,
@@ -490,33 +1034,99 @@ Future<GeneratedMaterials> ensureGeneratedMaterials({
   void Function(String message)? onLog,
 }) async {
   final log = onLog ?? (_) {};
-  final spec = resolveMaterialToolsSpec(version: version, hostOS: hostOS, hostArch: hostArch);
+  final spec = resolveMaterialToolsSpec(version: filamentVersion, hostOS: hostOS, hostArch: hostArch);
 
-  final sourceDir = Directory(p.join(packageRoot.path, 'materials'));
-  final sourceHashes = hashMaterialSources(sourceDir);
-  if (sourceHashes.isEmpty) {
-    throw MaterialToolsError(
-      'No .mat sources found under ${sourceDir.path}; cannot compile '
-      'materials.',
+  final inputs = expandMaterialInputs(appRoot: appRoot, inputs: config.inputs);
+  final stems = checkOutputStems(inputs);
+  final inputHashes = <File, String>{};
+  for (final input in inputs) {
+    inputHashes[input] = sha256.convert(await input.readAsBytes()).toString();
+  }
+
+  final outputDir = Directory(
+    p.isAbsolute(config.output) ? config.output : p.join(appRoot.path, config.output),
+  );
+  final manifestFile = File(p.join(outputDir.path, materialManifestName));
+
+  // The sha256 of the cached matc binary, when the cache is warm. It is
+  // compared against the manifest's matcSha256 (not folded into the
+  // matcId): a re-uploaded artifact for the same version must rebuild
+  // everything, but an empty cache must not (the version tuple in the
+  // matcId already covers version changes).
+  final cacheRoot = toolsCacheRoot ??
+      defaultMaterialToolsCacheRoot() ??
+      p.join(appRoot.path, '.dart_tool', 'thermion_dart', 'filament-tools');
+  final cachedMatc = File(
+    p.join(cacheRoot, spec.cacheDirName, 'bin', 'matc${spec.exeSuffix}'),
+  );
+  final cachedMatcHash = cachedMatc.existsSync() ? sha256.convert(await cachedMatc.readAsBytes()).toString() : null;
+
+  final matcId = computeMatcId(
+    filamentVersion: filamentVersion,
+    packageVersion: packageVersion,
+    hostPlatform: spec.hostPlatform,
+    hostArch: hostArch,
+  );
+
+  final plan = planMaterialCompilation(
+    appRoot: appRoot,
+    inputs: inputs,
+    inputHashes: inputHashes,
+    outputDir: outputDir,
+    matcId: matcId,
+    backends: config.backends,
+    resgen: config.resgen,
+    matcSha256: cachedMatcHash,
+    resgenPrefixFor: (input) =>
+        config.resgenPrefixes[stems[input]!] ?? config.resgenPrefixes[p.basenameWithoutExtension(input.path)],
+  );
+  final previousManifest = readMaterialsManifest(manifestFile);
+
+  if (plan.toCompile.isEmpty && plan.staleOutputs.isEmpty) {
+    log(
+      'thermion materials: all ${inputs.length} up to date '
+      '(matcId ${_shortId(matcId)}); nothing compiled into ${outputDir.path}',
+    );
+    return (
+      inputs: inputs,
+      outputDir: outputDir,
+      compiled: 0,
+      skipped: inputs.length,
+      toolsDownloaded: false,
     );
   }
-  final fingerprint = computeMaterialsFingerprint(
-    version: version,
-    hostPlatform: spec.hostPlatform,
-    sourceHashes: sourceHashes.entries,
-  );
 
-  final outRoot = generatedMaterialsRoot(packageRoot, version);
-  final materialDir = Directory(p.join(outRoot.path, 'material'));
-  final manifest = File(p.join(outRoot.path, materialManifestName));
-  if (generatedMaterialsComplete(materialDir) && manifestFingerprint(manifest) == fingerprint) {
-    log('Materials up to date (fingerprint ${fingerprint.substring(0, 12)}); skipping recompilation');
-    return (materialDir: materialDir, regenerated: false);
+  if (plan.reason != null) {
+    log('thermion materials: ${plan.reason}');
   }
 
-  final cacheRoot = toolsCacheRoot ?? defaultMaterialToolsCacheRoot() ?? p.join(
-    packageRoot.path, '.dart_tool', 'thermion_dart', 'filament-tools',
-  );
+  if (plan.toCompile.isEmpty) {
+    // Only stale outputs to clean up (an input was removed from the
+    // config): no tools are needed for that.
+    outputDir.createSync(recursive: true);
+    _removeStaleOutputs(plan.staleOutputs, outputDir, log);
+    _writeManifest(
+      manifestFile,
+      matcId: matcId,
+      matcSha256: cachedMatcHash ?? previousManifest?.matcSha256,
+      backends: config.backends,
+      resgen: config.resgen,
+      inputs: {
+        for (final input in inputs) _manifestKey(input, appRoot): inputHashes[input]!,
+      },
+      previousOutputs: previousManifest?.outputs ?? const {},
+    );
+    log('thermion materials: 0 of ${inputs.length} needed compiling '
+        '(cleaned ${plan.staleOutputs.length} stale outputs in ${outputDir.path})');
+    return (
+      inputs: inputs,
+      outputDir: outputDir,
+      compiled: 0,
+      skipped: inputs.length,
+      toolsDownloaded: false,
+    );
+  }
+
   final tools = await ensureMaterialTools(
     spec: spec,
     cacheRoot: Directory(cacheRoot),
@@ -524,113 +1134,173 @@ Future<GeneratedMaterials> ensureGeneratedMaterials({
     runProcess: runProcess,
     onLog: onLog,
   );
+  final usedMatcHash = sha256.convert(await tools.matc.readAsBytes()).toString();
 
-  await generateEmbeddedMaterials(
-    sourceDir: sourceDir,
-    outputRoot: outRoot,
-    matc: tools.matc,
-    resgen: tools.resgen,
-    fingerprint: fingerprint,
-    runProcess: runProcess,
-    onLog: onLog,
-  );
-  return (materialDir: materialDir, regenerated: true);
-}
-
-/// Whether [dir] holds every expected generated `.c` file (one per material
-/// per variant). The manifest alone is not trusted: a partially deleted
-/// cache must regenerate, not silently satisfy the skip.
-bool generatedMaterialsComplete(Directory dir) {
-  if (!dir.existsSync()) return false;
-  for (final name in [...embeddedMaterials, gizmoMaterialName]) {
-    final stem = name == gizmoMaterialName ? gizmoFileStem : name;
-    for (final variant in materialVariants) {
-      if (!File(p.join(dir.path, '${stem}_${variant.suffix}.c')).existsSync()) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-/// Regenerates every material variant into `<outputRoot>/material` — a
-/// faithful port of the main loop of `materials/build.sh` (see that script
-/// for the variant table rationale). All variants share one resgen symbol
-/// prefix per material, so the C symbols are identical across variants and
-/// exactly one `.c` gets compiled per target, selected by the
-/// `THERMION_MATERIAL_*` defines (resolveMaterialBackend).
-///
-/// Writes into a private staging directory first and swaps it into place
-/// only once every variant compiled and the manifest was written, so an
-/// interrupted run can never leave a half-written artifact set where the
-/// build can find it.
-Future<void> generateEmbeddedMaterials({
-  required Directory sourceDir,
-  required Directory outputRoot,
-  required File matc,
-  required File resgen,
-  required String fingerprint,
-  ToolProcess? runProcess,
-  void Function(String message)? onLog,
-}) async {
-  final log = onLog ?? (_) {};
-  final run = runProcess ?? _defaultRunProcess;
-  outputRoot.createSync(recursive: true);
-  // Stale staging dirs are leftovers of interrupted runs.
-  for (final entity in outputRoot.listSync()) {
-    if (entity is Directory && p.basename(entity.path).startsWith('material.staging-')) {
+  outputDir.createSync(recursive: true);
+  // Staging dirs from interrupted runs must not accumulate.
+  for (final entity in outputDir.listSync()) {
+    if (entity is Directory && p.basename(entity.path).startsWith('.staging-')) {
       entity.deleteSync(recursive: true);
     }
   }
-  final staging = Directory(p.join(outputRoot.path, 'material.staging-${pid}'));
-  staging.createSync(recursive: true);
-  final materialOut = Directory(p.join(staging.path, 'material'))..createSync();
-  final intermediates = Directory(p.join(staging.path, 'intermediates'))..createSync();
 
-  try {
-    for (final name in embeddedMaterials) {
-      log('Compiling material $name');
-      await _buildMaterial(
-        name: name,
-        fileStem: name,
-        sourceDir: sourceDir,
-        materialOut: materialOut,
-        intermediates: intermediates,
-        matc: matc,
-        resgen: resgen,
-        run: run,
-        log: log,
-      );
-    }
-    log('Compiling material $gizmoMaterialName (renamed to ${gizmoFileStem}_)');
-    await _buildMaterial(
-      name: gizmoMaterialName,
-      fileStem: gizmoFileStem,
-      sourceDir: sourceDir,
-      materialOut: materialOut,
-      intermediates: intermediates,
-      matc: matc,
-      resgen: resgen,
-      run: run,
+  final writtenOutputs = <String, List<String>>{};
+  for (final input in plan.toCompile) {
+    final stem = stems[input]!;
+    final prefix = config.resgenPrefixes[stem] ?? config.resgenPrefixes[p.basenameWithoutExtension(input.path)] ?? stem;
+    writtenOutputs[_manifestKey(input, appRoot)] = await _compileOne(
+      input: input,
+      stem: stem,
+      prefix: prefix,
+      backends: config.backends,
+      runResgen: config.resgen,
+      outputDir: outputDir,
+      matc: tools.matc,
+      resgen: tools.resgen,
+      runProcess: runProcess ?? _defaultRunProcess,
       log: log,
     );
+  }
 
-    final finalDir = Directory(p.join(outputRoot.path, 'material'));
-    if (finalDir.existsSync()) {
-      finalDir.deleteSync(recursive: true);
+  // Only after every compile succeeded: drop outputs of removed inputs.
+  _removeStaleOutputs(plan.staleOutputs, outputDir, log);
+
+  final inputsByManifestKey = <String, String>{
+    for (final input in inputs) _manifestKey(input, appRoot): inputHashes[input]!,
+  };
+  _writeManifest(
+    manifestFile,
+    matcId: matcId,
+    matcSha256: usedMatcHash,
+    backends: config.backends,
+    resgen: config.resgen,
+    inputs: inputsByManifestKey,
+    previousOutputs: {...?previousManifest?.outputs, ...writtenOutputs},
+    restrictTo: inputsByManifestKey.keys.toSet(),
+  );
+
+  final summary = StringBuffer()
+    ..write('thermion materials: compiled ${plan.toCompile.length} of ${inputs.length} '
+        'into ${outputDir.path} (backends ${config.backends.join(',')}');
+  if (config.resgen) summary.write(', resgen on');
+  if (plan.skipped.isNotEmpty) summary.write('; ${plan.skipped.length} skipped as up to date');
+  if (plan.reason != null) summary.write('; full rebuild');
+  summary.write(')');
+  log(summary.toString());
+
+  return (
+    inputs: inputs,
+    outputDir: outputDir,
+    compiled: plan.toCompile.length,
+    skipped: plan.skipped.length,
+    toolsDownloaded: tools.downloaded,
+  );
+}
+
+void _removeStaleOutputs(List<String> staleOutputs, Directory outputDir, void Function(String) log) {
+  for (final name in staleOutputs.toSet()) {
+    final file = File(p.join(outputDir.path, name));
+    if (file.existsSync()) {
+      file.deleteSync();
+      log('thermion materials: removed stale output $name (input removed from the config)');
     }
-    materialOut.renameSync(finalDir.path);
-    // The manifest is the gate: written last, next to the artifacts, so a
-    // crash before this point leaves an untrusted (regenerated-next-run) set.
-    writeMaterialManifest(
-      File(p.join(outputRoot.path, materialManifestName)),
-      fingerprint: fingerprint,
-      toolHashes: {
-        'matc': sha256.convert(await matc.readAsBytes()).toString(),
-        'resgen': sha256.convert(await resgen.readAsBytes()).toString(),
-      },
-    );
-    log('Wrote ${finalDir.path} (fingerprint ${fingerprint.substring(0, 12)})');
+  }
+}
+
+/// Writes the manifest (atomically) — always the LAST write, and only after
+/// every compile succeeded.
+void _writeManifest(
+  File manifestFile, {
+  required String matcId,
+  required String? matcSha256,
+  required List<String> backends,
+  required bool resgen,
+  required Map<String, String> inputs,
+  required Map<String, List<String>> previousOutputs,
+  Set<String>? restrictTo,
+}) {
+  final outputs = {...previousOutputs};
+  if (restrictTo != null) {
+    outputs.removeWhere((key, _) => !restrictTo.contains(key));
+  }
+  _writeAtomically(
+    manifestFile,
+    encodeMaterialsManifest(
+      matcId: matcId,
+      matcSha256: matcSha256,
+      backends: backends,
+      resgen: resgen,
+      inputs: inputs,
+      outputs: outputs,
+    ),
+  );
+}
+
+/// Compiles one material into [outputDir]:
+///
+///   matc -a b1 -a b2 ... -o <staging>/<stem>.filamat <input>
+///   resgen -c -p <prefix> -x <staging>/ <staging>/<stem>.filamat   (opt)
+///
+/// Everything is produced inside a staging directory inside [outputDir]
+/// (same filesystem, so renames are atomic) and renamed into place only
+/// once every tool succeeded — a failure leaves the previous outputs and
+/// the manifest untouched.
+Future<List<String>> _compileOne({
+  required File input,
+  required String stem,
+  required String prefix,
+  required List<String> backends,
+  required bool runResgen,
+  required Directory outputDir,
+  required File matc,
+  required File resgen,
+  required ToolProcess runProcess,
+  required void Function(String message) log,
+}) async {
+  final staging = Directory(p.join(outputDir.path, '.staging-$pid-${stem}'))..createSync(recursive: true);
+  try {
+    final filamat = File(p.join(staging.path, '$stem.filamat'));
+    final matcArgs = [
+      for (final backend in backends) ...['-a', backend],
+      '-o', filamat.path,
+      input.path,
+    ];
+    final matcResult = await runProcess(matc.path, matcArgs);
+    if (matcResult.exitCode != 0 || !filamat.existsSync()) {
+      throw MaterialGenerationError(
+        'matc failed for ${input.path}:\n'
+        '${matcResult.stderr.isNotEmpty ? matcResult.stderr : matcResult.stdout}',
+      );
+    }
+
+    if (runResgen) {
+      final resgenResult = await runProcess(resgen.path, [
+        '-c',
+        '-p', prefix,
+        '-x', '${staging.path}${p.separator}',
+        filamat.path,
+      ]);
+      if (resgenResult.exitCode != 0) {
+        throw MaterialGenerationError(
+          'resgen failed for ${input.path}:\n'
+          '${resgenResult.stderr.isNotEmpty ? resgenResult.stderr : resgenResult.stdout}',
+        );
+      }
+    }
+
+    // Move every produced file into place atomically.
+    final produced = staging.listSync().whereType<File>().map((f) => f.path).toList()..sort();
+    if (produced.isEmpty) {
+      throw MaterialGenerationError('matc produced no output for ${input.path}.');
+    }
+    final written = <String>[];
+    for (final producedPath in produced) {
+      final name = p.basename(producedPath);
+      File(producedPath).renameSync(p.join(outputDir.path, name));
+      written.add(name);
+    }
+    log('thermion materials: $input -> ${written.join(', ')}');
+    return written;
   } finally {
     if (staging.existsSync()) {
       staging.deleteSync(recursive: true);
@@ -638,122 +1308,10 @@ Future<void> generateEmbeddedMaterials({
   }
 }
 
-Future<void> _buildMaterial({
-  required String name,
-  required String fileStem,
-  required Directory sourceDir,
-  required Directory materialOut,
-  required Directory intermediates,
-  required File matc,
-  required File resgen,
-  required ToolProcess run,
-  required void Function(String message) log,
-}) async {
-  final matFile = File(p.join(sourceDir.path, '$name.mat'));
-  if (!matFile.existsSync()) {
-    throw MaterialGenerationError('Material source not found: ${matFile.path}');
-  }
-  for (final variant in materialVariants) {
-    log('  ${variant.suffix}: matc ${variant.matcFlags.join(' ')}');
-    await _buildVariant(
-      name: name,
-      fileStem: fileStem,
-      variant: variant,
-      matFile: matFile,
-      materialOut: materialOut,
-      intermediates: intermediates,
-      matc: matc,
-      resgen: resgen,
-      run: run,
-    );
-  }
-  File(p.join(materialOut.path, '$name.h')).writeAsStringSync(forwardingHeaderSource(name: name, fileStem: fileStem));
-}
-
-/// Compiles one material/variant pair and rewrites the resgen output the
-/// same way `materials/build.sh` does (see build_variant there): rename to
-/// the suffixed files, point the `.c` at the suffixed header, give the
-/// header a variant-specific guard plus `__cplusplus` extern guards.
-Future<void> _buildVariant({
-  required String name,
-  required String fileStem,
-  required MaterialVariant variant,
-  required File matFile,
-  required Directory materialOut,
-  required Directory intermediates,
-  required File matc,
-  required File resgen,
-  required ToolProcess run,
-}) async {
-  final filamat = File(p.join(intermediates.path, '$name.filamat'));
-  if (filamat.existsSync()) filamat.deleteSync();
-
-  final matcResult = await run(matc.path, [...variant.matcFlags, '-o', filamat.path, matFile.path]);
-  if (matcResult.exitCode != 0 || !filamat.existsSync()) {
-    throw MaterialGenerationError(
-      'matc failed for $name (${variant.suffix}):\n'
-      '${matcResult.stderr.isNotEmpty ? matcResult.stderr : matcResult.stdout}',
-    );
-  }
-
-  final resgenResult = await run(resgen.path, ['-c', '-p', name, '-x', '${materialOut.path}${Platform.pathSeparator}', filamat.path]);
-  if (resgenResult.exitCode != 0) {
-    throw MaterialGenerationError(
-      'resgen failed for $name (${variant.suffix}):\n'
-      '${resgenResult.stderr.isNotEmpty ? resgenResult.stderr : resgenResult.stdout}',
-    );
-  }
-  filamat.deleteSync();
-
-  // Rename to the suffixed files.
-  final variantC = File(p.join(materialOut.path, '${fileStem}_${variant.suffix}.c'));
-  final variantH = File(p.join(materialOut.path, '${fileStem}_${variant.suffix}.h'));
-  File(p.join(materialOut.path, '$name.c')).renameSync(variantC.path);
-  File(p.join(materialOut.path, '$name.h')).renameSync(variantH.path);
-
-  // Fix the include in the .c, then prepend it (build.sh does both; resgen
-  // currently emits no self-include, so the replacement is a no-op safety).
-  final upperStem = fileStem.toUpperCase();
-  final upperSuffix = variant.suffix.toUpperCase();
-  final cSource = variantC.readAsStringSync().replaceAll(
-    '#include "$name.h"',
-    '#include "${fileStem}_${variant.suffix}.h"',
-  );
-  variantC.writeAsStringSync('#include "${fileStem}_${variant.suffix}.h"\n$cSource');
-
-  // Variant-specific header guard + __cplusplus extern "C" guards.
-  var hSource = variantH.readAsStringSync();
-  hSource = hSource.replaceAll('${name.toUpperCase()}_H_', '${upperStem}_${upperSuffix}_H_');
-  hSource = hSource.replaceFirst('extern "C" {', '#ifdef __cplusplus\nextern "C" {\n#endif');
-  hSource = hSource.replaceAll('\n}\n', '\n#ifdef __cplusplus\n}\n#endif\n');
-  variantH.writeAsStringSync(hSource);
-}
-
-/// The forwarding header that dispatches to the right variant via the
-/// `THERMION_MATERIAL_*` defines — byte-identical to what
-/// `materials/build.sh` create_forwarding_header emits (see
-/// native/include/material/image.h). [name] is the material name (also the
-/// header guard prefix and the header file name); [fileStem] is the variant
-/// file stem, which only differs for gizmo (gizmo_material).
-String forwardingHeaderSource({required String name, required String fileStem}) {
-  final upper = name.toUpperCase();
-  final buffer = StringBuffer();
-  buffer.writeln('#ifndef ${upper}_H_');
-  buffer.writeln('#define ${upper}_H_');
-  buffer.writeln();
-  for (var i = 0; i < materialVariants.length; i++) {
-    final variant = materialVariants[i];
-    final keyword = i == 0 ? '#if' : '#elif';
-    buffer.writeln('$keyword defined(THERMION_MATERIAL_${variant.suffix.toUpperCase()})');
-    buffer.writeln('#include "${fileStem}_${variant.suffix}.h"');
-  }
-  buffer.writeln('#else');
-  buffer.writeln(
-    '#error "No material backend variant selected. Define one of: '
-    '${materialVariants.map((v) => 'THERMION_MATERIAL_${v.suffix.toUpperCase()}').join(', ')}"',
-  );
-  buffer.writeln('#endif');
-  buffer.writeln();
-  buffer.writeln('#endif');
-  return buffer.toString();
+/// Writes [content] to [file] atomically: temp file beside it, then rename.
+void _writeAtomically(File file, String content) {
+  file.parent.createSync(recursive: true);
+  final temp = File('${file.path}.tmp-${pid}');
+  temp.writeAsStringSync(content, flush: true);
+  temp.renameSync(file.path);
 }

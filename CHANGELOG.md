@@ -4,19 +4,23 @@
 
 ### New features
 
-- Recompile the bundled materials in the Dart build hook on the developer's
-  machine (issue #399). The hook downloads the version-matched, WebGPU-capable
-  `matc`/`resgen` pair for the host platform from R2 into
-  `~/.cache/thermion/filament-tools` (once per Filament version) and
-  regenerates every material variant into
-  `.dart_tool/thermion_dart/materials/<version>`, so bumping `filament.version`
-  refreshes the materials on the next build without a manual `make materials`.
-  A fingerprint over the version, the `.mat` sources and the variant table
-  makes unchanged builds a no-op. On download/tool failure the hook warns and
-  falls back to the committed artifacts; opt out entirely with
-  `compile_materials: false` under `hooks.user_defines.thermion_dart` in the
-  consuming package's pubspec.yaml. The `.mat` sources moved from
-  `materials/` to `thermion_dart/materials/` so they ship with the package.
+- Compile the *consuming app's own* `.mat` files in the Dart build hook
+  (issue #399). Add `material_compilation` (inputs / output / backends /
+  resgen) under `hooks.user_defines.thermion_dart` in your app's
+  `pubspec.yaml` and the hook compiles each input into one blended
+  `.filamat` package (every requested backend in a single blob) with the
+  version-matched, WebGPU-capable `matc` for the host platform, downloaded
+  from R2 into `~/.cache/thermion/filament-tools` (once per Filament
+  version). With `resgen: true` each package is also converted to
+  `.c`/`.h`. A `<output>/.thermion-materials.json` manifest keyed on a
+  `matcId` (Filament tag + thermion_dart version + host platform/arch,
+  plus the downloaded matc's sha256) makes unchanged builds a no-op and
+  forces a full rebuild whenever the toolchain changes, even if no `.mat`
+  changed. Outputs are written atomically and the manifest last; tool or
+  download failures fail the build with an actionable message naming the
+  URL and version. Fully opt-in: without the define, the hook does nothing
+  new, and Thermion's own materials remain the committed blobs under
+  `native/include/material/`.
 
 ### Changes
 

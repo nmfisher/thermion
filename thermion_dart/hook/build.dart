@@ -19,6 +19,56 @@ void main(List<String> args) async {
 
     final logger = createBuildLogger(pkgRootFilePath, "build.log");
 
+    // Opt-in compilation of the CONSUMING APP's own .mat files (issue #399).
+    //
+    // Set `material_compilation` under `hooks.user_defines.thermion_dart` in
+    // the app's pubspec.yaml to point thermion at user .mat sources; the
+    // hook then compiles them with the version-matched, WebGPU-capable
+    // matc/resgen pair for the HOST platform (downloaded from R2 into a
+    // per-user cache) into the configured output directory. User materials
+    // are runtime assets loaded from bytes
+    // (FilamentApp.createMaterial(Uint8List)), NOT compiled into the native
+    // library — thermion's own materials stay the committed blobs under
+    // native/include/material/.
+    //
+    // A matcId (Filament tag + thermion_dart version + host platform/arch,
+    // plus the downloaded matc binary's sha256, recorded separately) in
+    // <output>/.thermion-materials.json makes repeat builds a no-op and
+    // forces a FULL rebuild whenever the toolchain changes, even if no
+    // .mat changed. Absent define -> nothing happens. Present but broken
+    // (bad paths, no network, matc failure) -> the build fails with an
+    // actionable message; it is never silently skipped.
+    //
+    // Runs before the branches below so web builds (which return early)
+    // compile their user materials too.
+    final materialCompilationRaw = input.userDefines["material_compilation"];
+    if (materialCompilationRaw != null) {
+      final consumingPackageRoot = _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
+      if (consumingPackageRoot == null) {
+        throw Exception(
+          "material_compilation is configured but the consuming package root "
+          "could not be resolved from ${input.outputDirectory}; inputs/output "
+          "are resolved relative to it.",
+        );
+      }
+      final config = parseMaterialCompilationConfig(materialCompilationRaw, onLog: logger.warning);
+      final hostArch = await detectHostArchitecture();
+      final result = await compileUserMaterials(
+        appRoot: Directory(consumingPackageRoot),
+        config: config!,
+        filamentVersion: filamentVersion,
+        packageVersion: await readPubspecVersion(Directory(pkgRootFilePath)),
+        hostOS: Platform.operatingSystem,
+        hostArch: hostArch ?? 'x64',
+        download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
+        onLog: logger.info,
+      );
+      // Re-run the hook (and recompile) whenever a .mat input changes.
+      for (final materialInput in result.inputs) {
+        output.dependencies.add(materialInput.uri);
+      }
+    }
+
     if (!input.config.buildCodeAssets) {
       logger.info("buildCodeAssets is false, assumed to be building for web");
       await _downloadWebArtifacts(input, logger);
@@ -108,64 +158,6 @@ outputDirectory : ${outputDirectory.path}
 
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
 
-    // (Re)compile materials on the developer's machine (issue #399).
-    //
-    // Downloads the WebGPU-capable matc/resgen pair matching the pinned
-    // Filament version from R2 for the HOST platform into a per-user cache
-    // (see lib/src/hooks/material_tools.dart), then regenerates every
-    // material variant into .dart_tool/thermion_dart/materials/<version>.
-    // This is fingerprinted (filament.version + materials/*.mat + the
-    // variant table): when nothing changed, no tools are downloaded and no
-    // material is compiled, so a Filament version bump regenerates the
-    // materials automatically on the next build and repeat builds are free.
-    //
-    // On failure (e.g. no network) this logs a warning and the build falls
-    // back to the committed artifacts under native/include/material/. Set
-    // `compile_materials: false` under hooks.user_defines.thermion_dart in
-    // the consuming package's pubspec.yaml to skip this step entirely and
-    // always use the committed artifacts.
-    Directory? generatedMaterialDir;
-    final compileMaterialsRaw = input.userDefines["compile_materials"];
-    final compileMaterialsDisabled = compileMaterialsRaw == false || compileMaterialsRaw == "false";
-    if (compileMaterialsDisabled) {
-      logger.info("compile_materials userDefine is false; using committed material artifacts");
-    } else {
-      final hostArch = await detectHostArchitecture();
-      try {
-        final generated = await ensureGeneratedMaterials(
-          packageRoot: Directory(pkgRootFilePath),
-          version: filamentVersion,
-          hostOS: Platform.operatingSystem,
-          hostArch: hostArch ?? 'x64',
-          download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
-          onLog: logger.info,
-        );
-        generatedMaterialDir = generated.materialDir;
-        logger.info(
-          "Using ${generated.regenerated ? "freshly compiled" : "cached"} material artifacts from ${generated.materialDir.path}",
-        );
-      } catch (e) {
-        logger.warning(
-          "Material compilation in the build hook failed; falling back to the "
-          "committed artifacts under native/include/material (these may be out "
-          "of date relative to materials/*.mat).\n  $e\n"
-          "Set compile_materials: false under hooks.user_defines.thermion_dart "
-          "in your pubspec.yaml to silence this, or check your network access.",
-        );
-      }
-    }
-    // Material compilation depends on the .mat sources and their shared
-    // headers — declare them so the hook re-runs (and materials regenerate)
-    // when they change.
-    final materialsSourceDir = Directory(path.join(pkgRootFilePath, "materials"));
-    if (materialsSourceDir.existsSync()) {
-      for (final entity in materialsSourceDir.listSync()) {
-        if (entity is File) {
-          output.dependencies.add(entity.uri);
-        }
-      }
-    }
-
     final libResult = await getLibDir(
       packageRoot,
       targetOS,
@@ -237,36 +229,25 @@ outputDirectory : ${outputDirectory.path}
     final materialDefine = materialResolution.define;
 
     final defines = <String, String?>{};
-    // Where the material .c/.h files come from: the freshly compiled set
-    // produced above (preferred), else the committed set. Both have the same
-    // layout and the same C symbols, so everything downstream is identical.
-    final committedMaterialDir = path.join(pkgRootFilePath, 'native', 'include', 'material');
-    final materialDir = generatedMaterialDir?.path ?? committedMaterialDir;
-    final usingGeneratedMaterials = generatedMaterialDir != null;
+    final materialDir = path.join(pkgRootFilePath, 'native/include/material');
     // A selected variant whose blobs are missing is a hard error: silently
     // falling back would compile the wrong backends into the app.
     if (!File(path.join(materialDir, 'image$materialSuffix.c')).existsSync()) {
       throw Exception(
         "Material variant '$materialSuffix' (define $materialDefine) was "
         "selected but its generated files are missing from $materialDir.\n"
-        "Material compilation in the build hook either failed (see the "
-        "warnings above) or was disabled. Run scripts/regenerate-materials.sh "
-        "(or the Regenerate Materials CI workflow) to refresh the committed "
-        "blobs, or adjust the materials.backends configuration in your "
-        "pubspec.yaml.",
+        "Run scripts/regenerate-materials.sh (or the Regenerate Materials CI "
+        "workflow) to generate all variant blobs, or adjust the "
+        "materials.backends configuration in your pubspec.yaml.",
       );
     }
     defines[materialDefine] = "1";
     String materialPath(String name, String suffix) {
       final suffixed = path.join(materialDir, '${name}$suffix.c');
-      if (File(suffixed).existsSync()) {
-        return usingGeneratedMaterials ? suffixed : 'native/include/material/${name}$suffix.c';
-      }
+      if (File(suffixed).existsSync()) return 'native/include/material/${name}$suffix.c';
       // Fallback: unsuffixed .c (pre-split materials)
       final fallbackName = name == 'gizmo' ? 'gizmo_material' : name;
-      return usingGeneratedMaterials
-          ? path.join(materialDir, '$fallbackName.c')
-          : 'native/include/material/$fallbackName.c';
+      return 'native/include/material/$fallbackName.c';
     }
 
     final materialSources = <String, String>{
@@ -381,11 +362,6 @@ outputDirectory : ${outputDirectory.path}
     final flags = <String>[]; //"-fsanitize=address"];
 
     // Include directories:
-    //  - generated materials root (when the hook compiled them): shadows
-    //                           native/include/material so the
-    //                           material/<name>.h forwarding headers resolve
-    //                           to the generated variants that match the
-    //                           material .c files added to sources.
     //  - `native/include`     : Thermion's OWN headers (c_api/, components/,
     //                           ...) still committed in-tree.
     //  - `artifactIncludeRel` : the Filament C++ headers, sourced from the
@@ -397,12 +373,7 @@ outputDirectory : ${outputDirectory.path}
     //                           `<utils/...>`, `<backend/...>` and
     //                           `<gltfio/materials/uberarchive.h>` all resolve
     //                           from this flat root.
-    final includeDirs = <String>[
-      if (generatedMaterialDir != null)
-        path.relative(generatedMaterialDir.parent.path, from: pkgRootFilePath),
-      'native/include',
-      artifactIncludeRel,
-    ];
+    final includeDirs = <String>['native/include', artifactIncludeRel];
 
     // Process plugins after flags and includeDirs are declared
     if (pluginConfigs != null && consumingPackageRoot != null) {

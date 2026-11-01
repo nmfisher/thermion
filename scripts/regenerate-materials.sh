@@ -10,7 +10,7 @@
 # the _webgpu/_web_combined variants (WGSL); the matc in this artifact
 # compiles every variant materials/build.sh emits. Produces exactly what
 # `make materials` produces locally:
-#   - thermion_dart/materials/*.filamat (untracked build outputs)
+#   - materials/*.filamat (untracked build outputs)
 #   - thermion_dart/native/include/material/* (resgen .c/.h/.S/.apple.S/.bin)
 #   - examples/assets/*.filamat
 #
@@ -74,5 +74,5 @@ if ! webgpu_matc_ok; then
 fi
 
 echo "Using WebGPU-capable matc/resgen from $TOOLS"
-chmod +x thermion_dart/materials/build.sh
+chmod +x materials/build.sh
 FILAMENT_PATH="$TOOLS/bin" make materials
