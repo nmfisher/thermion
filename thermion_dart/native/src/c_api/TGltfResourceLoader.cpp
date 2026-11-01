@@ -24,7 +24,25 @@
 #include <utils/EntityManager.h>
 #include <utils/NameComponentManager.h>
 
+#include <mutex>
+#include <unordered_map>
+
 #include "Log.hpp"
+
+namespace
+{
+    // gltfio::ResourceLoader does not own its texture providers. They hold the
+    // decoder state of every texture they decoded (for KTX2, a copy of the
+    // compressed image), so they are deleted with the loader, after it: its
+    // destructor still calls cancelDecoding() on them.
+    struct TextureProviders
+    {
+        filament::gltfio::TextureProvider *stb = nullptr;
+        filament::gltfio::TextureProvider *ktx2 = nullptr;
+    };
+    std::mutex gTextureProvidersMutex;
+    std::unordered_map<filament::gltfio::ResourceLoader *, TextureProviders> gTextureProviders;
+}
 
 #ifdef __cplusplus
 namespace thermion
@@ -40,18 +58,39 @@ EMSCRIPTEN_KEEPALIVE TGltfResourceLoader *GltfResourceLoader_create(TEngine *tEn
     auto *gltfResourceLoader = new gltfio::ResourceLoader({
         .engine = engine,
     });
+    // TODO - to support slimmer builds, we shouldn't hardcode
+    // these (particularly for web, can't we use browser texture decoding?).
+    // We should consider making texture decoders a build time option,
+    // supporting PNG/JPEG via stb & KTX2 by default, but allowing user to disable/enable as needed.
+    // We can then expose GltfResourceLoader_addTextureProvider and allow callers 
+    // to register their own.
     auto stbDecoder = gltfio::createStbProvider(engine);
     auto ktxDecoder = gltfio::createKtx2Provider(engine);
     gltfResourceLoader->addTextureProvider("image/ktx2", ktxDecoder);
     gltfResourceLoader->addTextureProvider("image/png", stbDecoder);
     gltfResourceLoader->addTextureProvider("image/jpeg", stbDecoder);
-    
+    {
+        std::lock_guard<std::mutex> lock(gTextureProvidersMutex);
+        gTextureProviders[gltfResourceLoader] = {stbDecoder, ktxDecoder};
+    }
+
     return reinterpret_cast<TGltfResourceLoader *>(gltfResourceLoader);
 }
 
 EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroy(TEngine *tEngine, TGltfResourceLoader *tGltfResourceLoader) {
     auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
+    TextureProviders providers;
+    {
+        std::lock_guard<std::mutex> lock(gTextureProvidersMutex);
+        auto found = gTextureProviders.find(gltfResourceLoader);
+        if (found != gTextureProviders.end()) {
+            providers = found->second;
+            gTextureProviders.erase(found);
+        }
+    }
     delete gltfResourceLoader;
+    delete providers.stb;
+    delete providers.ktx2;
 }
 
 EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceData(
