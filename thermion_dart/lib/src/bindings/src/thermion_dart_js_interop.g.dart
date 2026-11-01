@@ -2784,6 +2784,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     VoidCallback onComplete,
   );
   external void _View_setViewport(Pointer<TView> view, int width, int height);
+  external void _View_setViewportRect(Pointer<TView> view, int left, int bottom, int width, int height);
   external void _View_setViewportJobThread(
     Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
@@ -10168,14 +10169,6 @@ void View_setViewport(Pointer<TView> view, int width, int height) {
   return result;
 }
 
-void View_setViewportJobThread(
-  Pointer<TJobThread> jobThread,
-  Pointer<TView> tView,
-  int width,
-  int height,
-  int requestId,
-  DartVoidCallback onComplete,
-) {
   final result = GeneratedBindings.instance._View_setViewportJobThread(
     jobThread.cast(),
     tView.cast(),
