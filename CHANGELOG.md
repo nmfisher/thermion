@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### New features
+
+- Compile the *consuming app's own* `.mat` files in the Dart build hook
+  (issue #399). Add `material_compilation` (inputs / output / backends /
+  resgen) under `hooks.user_defines.thermion_dart` in your app's
+  `pubspec.yaml` and the hook compiles each input into one blended
+  `.filamat` package (every requested backend in a single blob) with the
+  version-matched, WebGPU-capable `matc` for the host platform, downloaded
+  from R2 into `~/.cache/thermion/filament-tools` (once per Filament
+  version). With `resgen: true` each package is also converted to
+  `.c`/`.h`. A `<output>/.thermion-materials.json` manifest keyed on a
+  `matcId` (Filament tag + thermion_dart version + host platform/arch,
+  plus the downloaded matc's sha256) makes unchanged builds a no-op and
+  forces a full rebuild whenever the toolchain changes, even if no `.mat`
+  changed. Outputs are written atomically and the manifest last; tool or
+  download failures fail the build with an actionable message naming the
+  URL and version. Fully opt-in: without the define, the hook does nothing
+  new, and Thermion's own materials remain the committed blobs under
+  `native/include/material/`.
+
 ### Changes
 
 - Apply the web target frame rate to actual drawing, independently for each engine.

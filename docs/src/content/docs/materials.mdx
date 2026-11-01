@@ -95,18 +95,135 @@ Built-in geometries include `CubeGeometry`, `SphereGeometry`,
 
 ## Building custom materials
 
-For custom shaders, write a Filament `.mat` file and compile it with the
-Filament material compiler (`matc`/`uberz`). From the project root:
+For custom shaders, write a Filament `.mat` file. You have two ways to get
+it into a loadable `.filamat` package: let the build hook compile it
+automatically (recommended), or run `matc` yourself.
+
+### Automatic compilation in the build hook (recommended)
+
+Point Thermion at your own `.mat` sources with the `material_compilation`
+user define in **your app's** `pubspec.yaml`:
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      material_compilation:
+        inputs:                  # files, directories or globs, relative to the app root
+          - materials/skin.mat
+          - materials/eye
+        output: build/materials  # any directory, relative to the app root; created if missing
+        backends: all            # optional: all (default) | native | web | explicit matc -a list
+        resgen: false            # optional: also emit .c/.h
+```
+
+On every build the hook:
+
+1. Expands `inputs` to `.mat` files (a directory is scanned recursively, a
+   glob like `materials/**/*.mat` is matched against files; anything that
+   resolves to nothing fails the build with the input named).
+2. Reads `build/materials/.thermion-materials.json`, the manifest recording
+   what was compiled, by which toolchain, from which inputs.
+3. Compiles exactly what is stale with the version-matched `matc` — and
+   skips everything (no download, no tool run) when nothing changed.
+
+The result is one **blended** `.filamat` per material — a single package
+carrying every requested backend, with one stable filename, so loading it
+at runtime (`FilamentApp.createMaterial(Uint8List data)` after reading the
+file) works on every platform.
+
+#### The `matcId`
+
+The manifest records a `matcId`: a SHA-256 over the pipeline version, the
+Filament tag pinned in `filament.version`, the `thermion_dart` package
+version, and the host platform/arch. The sha256 of the downloaded `matc`
+binary is recorded separately as `matcSha256`. When either changes — for
+example a Filament or Thermion bump ships a new `matc` — **every material is
+recompiled, even if no `.mat` file changed.** That is the whole point: a
+blob built by an older `matc` is never silently kept. Otherwise:
+
+- an input's hash changed, was added, or its output file is missing → that
+  material recompiles;
+- an input was removed from the config → its outputs are deleted;
+- everything matches → the hook logs why it skipped and does nothing else.
+
+#### Tools and cache
+
+`matc` (and `resgen` when `resgen: true`) are downloaded from Thermion's R2
+bucket for the **host** platform (`filament-<tag>-<host>-release.zip`, only
+the `bin/` entries are extracted) into:
+
+```
+${XDG_CACHE_HOME:-$HOME/.cache}/thermion/filament-tools/filament-<tag>-webgpu-<host>/
+```
+
+The cache is shared by all projects on the machine and is trusted only
+after `matc` passes a `-a webgpu` smoke test; a failing cache is deleted
+and re-downloaded. These builds of `matc` support WebGPU (WGSL) — the
+official Filament release binaries do not.
+
+#### `backends`
+
+- `all` (default): `-a metal -a vulkan -a opengl -a webgpu` — one package
+  that works everywhere Thermion runs.
+- `native`: metal + vulkan + opengl (no WebGPU).
+- `web`: opengl + webgpu (what a browser can load).
+- an explicit list, e.g. `[vulkan]`, passed straight to `matc -a`.
+
+#### `resgen`
+
+With `resgen: true`, each `.filamat` is additionally converted to C:
+
+```
+resgen -c -p <prefix> -x <output>/ <stem>.filamat
+```
+
+producing `<prefix>.c` and `<prefix>.h` beside the `.filamat` (plus
+whatever else resgen emits). The prefix defaults to the sanitised material
+name (non `[A-Za-z0-9_]` characters become `_`, so `my-eye.mat` →
+`my_eye`); override it per material with:
+
+```yaml
+        resgen_prefixes:
+          skin: APP_SKIN
+```
+
+Because every material is one blended package, there is exactly one
+`.c`/`.h` per material and no per-variant symbol collision — no renaming or
+header patching is performed or needed.
+
+#### Failure behaviour
+
+Every output is written atomically (temp file, then rename) and the
+manifest is written last, so an interrupted or failing run never leaves a
+half-written set the manifest would vouch for. Failures are loud, never
+silent skips:
+
+- No network and no cached tools: the build fails naming the R2 URL and the
+  Filament version.
+- `matc`/`resgen` exit non-zero: the build fails with the tool's stderr.
+- Bad configuration (unknown key values, an input that resolves to
+  nothing, two inputs with the same output name): the build fails with an
+  actionable message.
+
+If `material_compilation` is absent, the hook does nothing new.
+
+### Compiling materials yourself
+
+`matc` is part of the Filament SDK; a version-matched pair for Linux,
+macOS and Windows is also what the hook downloads above. From the project
+root:
 
 ```
 make materials
 ```
 
 This requires the `FILAMENT_PATH` environment variable to point at a local
-Filament build's `out/release/bin` (see the [Filament](/filament/) page). The
-compiled `.uberz` archives are bundled into the app via the build hook.
-Existing material sources live in `materials/` (e.g. `image.mat`, `grid.mat`,
-`silhouette.mat`).
+Filament build's `out/release/bin` (see the [Filament](/filament/) page).
+That target is for Thermion's **own** bundled materials (`materials/`, e.g.
+`image.mat`, `grid.mat`, `silhouette.mat`), whose compiled C variants are
+committed under `thermion_dart/native/include/material/` — it is unrelated
+to your app's materials, which are never compiled into a native library.
 
 > A runnable example covering material swapping, parameter setting, and texture
 > binding is in `examples/flutter/materials_and_textures`.
