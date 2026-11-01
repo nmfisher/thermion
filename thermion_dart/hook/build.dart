@@ -8,6 +8,7 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import '../lib/filament_version.dart';
 import '../lib/src/hooks/material_backend_resolution.dart';
+import '../lib/src/hooks/web_artifacts.dart';
 import '../lib/src/logging/log.dart';
 
 void main(List<String> args) async {
@@ -783,10 +784,23 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
   return (libDir: libDir, includeDir: Directory(path.join(unzipDir, 'include')));
 }
 
-const _webR2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
+// R2 base URL for the web engine artifacts lives in
+// lib/src/hooks/web_artifacts.dart (webR2BaseUrl), shared with its tests.
 
 Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
   final packageRoot = input.packageRoot.toFilePath(windows: Platform.isWindows);
+
+  // The "web_variant" user define selects which prebuilt engine to fetch:
+  //   unset / "worker" / "default" — the standard engine (render commands
+  //                                dispatched to a worker thread)
+  //   "main_thread"               — the main-thread engine (commands and
+  //                                callbacks execute on the calling thread)
+  // Unknown values warn and fall back to the default. See
+  // lib/src/hooks/web_artifacts.dart (pure logic, unit-tested).
+  final variant = resolveWebVariant(input.userDefines["web_variant"]);
+  for (final warning in variant.warnings) {
+    logger.warning(warning);
+  }
 
   // Local-build override: skip the R2 download and copy from the emscripten
   // build output instead. Set `web_local: true` under
@@ -794,7 +808,9 @@ Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
   // when iterating on native C++ that needs to ship to web.
   final webLocal = input.userDefines["web_local"];
   if (webLocal == true || webLocal == "true" || webLocal == 1 || webLocal == "1") {
-    final localOut = Directory(path.join(packageRoot, 'native', 'web', 'build', 'build', 'out'));
+    final localOut = Directory(
+      path.join(packageRoot, 'native', 'web', webLocalBuildDir(variant.zipSuffix), 'build', 'out'),
+    );
     if (!localOut.existsSync()) {
       logger.warning(
         'web_local: true set but ${localOut.path} does not exist; '
@@ -842,10 +858,15 @@ Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
     return;
   }
 
-  final cacheDir = Directory(path.join(packageRoot, '.dart_tool', 'thermion_dart', 'web', version));
+  // Variant-scoped cache: the default and main-thread engines must never
+  // share a directory — the success token would otherwise mask the wrong
+  // contents when switching variants.
+  final cacheDir = Directory(
+    path.join(packageRoot, '.dart_tool', 'thermion_dart', 'web', '$version${variant.cacheSuffix}'),
+  );
 
   try {
-    await _fetchWebZip(version, cacheDir, logger);
+    await _fetchWebZip(version, variant.zipSuffix, cacheDir, logger);
   } catch (e) {
     logger.warning('Failed to download web artifacts: $e');
     return;
@@ -868,7 +889,7 @@ Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
   }
 }
 
-Future<void> _fetchWebZip(String version, Directory cacheDir, Logger logger) async {
+Future<void> _fetchWebZip(String version, String zipSuffix, Directory cacheDir, Logger logger) async {
   final successToken = File(path.join(cacheDir.path, 'success'));
   if (successToken.existsSync()) {
     logger.info('Web artifacts already cached at ${cacheDir.path}');
@@ -879,8 +900,8 @@ Future<void> _fetchWebZip(String version, Directory cacheDir, Logger logger) asy
     cacheDir.createSync(recursive: true);
   }
 
-  final zipName = 'thermion_dart-$version-web.zip';
-  final url = '$_webR2BaseUrl/$zipName';
+  final zipName = webArtifactZipName(version, zipSuffix);
+  final url = webArtifactUrl(version, zipSuffix);
   final zipFile = File(path.join(cacheDir.path, zipName));
 
   logger.info('Downloading $url');
