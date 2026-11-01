@@ -128,6 +128,7 @@ EMSCRIPTEN_KEEPALIVE void View_setColorGrading(TView *tView, TColorGrading *tCol
 EMSCRIPTEN_KEEPALIVE TColorGrading* View_getColorGrading(TView *tView);
 EMSCRIPTEN_KEEPALIVE void View_setBlendMode(TView *view, TBlendMode blendMode);
 EMSCRIPTEN_KEEPALIVE void View_setViewport(TView *view, uint32_t width, uint32_t height);
+EMSCRIPTEN_KEEPALIVE void View_setViewportRect(TView *view, uint32_t left, uint32_t bottom, uint32_t width, uint32_t height);
 EMSCRIPTEN_KEEPALIVE void View_setRenderTarget(TView *view, TRenderTarget *renderTarget);
 EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabled(TView *view, bool enabled);
 EMSCRIPTEN_KEEPALIVE int32_t View_getVisibleRenderableCount(TView *view);

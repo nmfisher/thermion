@@ -152,6 +152,26 @@ Filament's internal helpers. Enabling it requires rebuilding the Wasm engine.
 A Dart define or an existing worker bundle cannot enable it. No performance
 improvement is implied by the option.
 
+CI publishes the main-thread engine alongside the default one: the build hook
+fetches it automatically when you set `web_variant` under
+`hooks.user_defines.thermion_dart` in your app's `pubspec.yaml` — no local
+toolchain needed:
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      web_variant: main_thread
+```
+
+Unknown values log a warning and fall back to the default engine.
+`web_local: true` composes with this: it then copies from
+`native/web/build-main-thread/build/out/` (build that variant locally with
+`emcmake cmake .. -DTHERMION_WEB_MAIN_THREAD=ON` into a separate directory).
+Once this lands, a matching `thermion_dart-<sha>-web-main-thread.zip` appears
+on R2 only after the next native-changed push to `develop` bumps
+`web.version` — until then main-thread consumers must keep building locally.
+
 #### Running the test suite on web
 
 The package:test suite runs on Chrome via a wrapper. Do not invoke `dart test -p chrome` directly — the multithreaded WASM build needs `crossOriginIsolated` (a COOP/COEP proxy), and each test file needs an HTML host that loads `thermion_dart.js` and the `thermion_canvas`. The wrapper handles both:
