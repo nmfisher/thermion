@@ -44,6 +44,15 @@ namespace thermion
             TRACE("Set viewport to %dx%d", width, height);
         }
 
+        EMSCRIPTEN_KEEPALIVE void View_setViewportRect(TView *tView, uint32_t left, uint32_t bottom, uint32_t width, uint32_t height)
+        {
+            auto view = reinterpret_cast<View *>(tView);
+            // Viewport's origin fields are int32_t (its extents uint32_t); the
+            // explicit casts avoid C++11 narrowing errors in the brace-init.
+            view->setViewport({static_cast<int32_t>(left), static_cast<int32_t>(bottom), width, height});
+            TRACE("Set viewport rect to left=%u bottom=%u %ux%u", left, bottom, width, height);
+        }
+
         EMSCRIPTEN_KEEPALIVE TRenderTarget *View_getRenderTarget(TView *tView)
         {
             auto view = reinterpret_cast<View *>(tView);

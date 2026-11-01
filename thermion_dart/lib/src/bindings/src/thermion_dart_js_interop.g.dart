@@ -2792,6 +2792,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _View_setViewportRect(Pointer<TView> view, int left, int bottom, int width, int height);
   external void _View_setVsmShadowOptions(Pointer<TView> tView, Pointer<TVsmShadowOptions> optionsPtr);
   external void _View_setVsmShadowOptionsJobThread(
     Pointer<TJobThread> jobThread,
@@ -10183,6 +10184,11 @@ void View_setViewportJobThread(
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );
+  return result;
+}
+
+void View_setViewportRect(Pointer<TView> view, int left, int bottom, int width, int height) {
+  final result = GeneratedBindings.instance._View_setViewportRect(view.cast(), left, bottom, width, height);
   return result;
 }
 

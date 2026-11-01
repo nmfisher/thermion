@@ -5655,6 +5655,9 @@ external void View_setViewportJobThread(
   VoidCallback onComplete,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32, ffi.Uint32)>(isLeaf: true)
+external void View_setViewportRect(ffi.Pointer<TView> view, int left, int bottom, int width, int height);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TVsmShadowOptions)>(isLeaf: true)
 external void View_setVsmShadowOptions(ffi.Pointer<TView> tView, TVsmShadowOptions options);
 
