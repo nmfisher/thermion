@@ -58,6 +58,12 @@ EMSCRIPTEN_KEEPALIVE TGltfResourceLoader *GltfResourceLoader_create(TEngine *tEn
     auto *gltfResourceLoader = new gltfio::ResourceLoader({
         .engine = engine,
     });
+    // TODO - to support slimmer builds, we shouldn't hardcode
+    // these (particularly for web, can't we use browser texture decoding?).
+    // We should consider making texture decoders a build time option,
+    // supporting PNG/JPEG via stb & KTX2 by default, but allowing user to disable/enable as needed.
+    // We can then expose GltfResourceLoader_addTextureProvider and allow callers 
+    // to register their own.
     auto stbDecoder = gltfio::createStbProvider(engine);
     auto ktxDecoder = gltfio::createKtx2Provider(engine);
     gltfResourceLoader->addTextureProvider("image/ktx2", ktxDecoder);
