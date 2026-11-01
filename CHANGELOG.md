@@ -1,16 +1,97 @@
 > Shared changelog for `thermion_dart` and `thermion_flutter` (released in lockstep).
 
-## Unreleased
+## 0.6.0 - 2026-11-01
 
-### Changes
+Update to Filament v1.77.2! You will need to recompile your materials with `matc`.
 
 ### Breaking changes
 
-## 0.7.0 - 2026-11-01
+- Disable C++ exceptions in Filament and Thermion runtime builds, in both debug
+  and release modes. Filament panics now abort the process. Dart exceptions and
+  ordinary error results remain available; host tools retain C++ exceptions
+  (#327).
+- Linux setup now uses Clang/libc++ 18, matching the Filament archive build.
+  Ubuntu 22.04's default libc++ 14 cannot link the new archives. Deployed apps
+  also need a compatible libc++ runtime; see the [Linux setup instructions](docs/src/content/docs/linux.mdx)
+  (#327).
+- Remove `imageio` and its headers from runtime archives. Thermion does not use
+  this library; it is still built for host tools such as `cmgen` (#327).
+- Replace the `rebuildVertices` in `ThermionViewer.loadGltf`,
+  `ThermionViewer.loadGltfFromBuffer`, and `FilamentApp.loadGltfFromBuffer` with
+  `requiredGeometryCapabilities`. An empty set leaves gltfio geometry untouched;
+  requesting `barycentrics` or `uniqueTriangleCorners` creates per-triangle vertices, while
+  requesting `writableVertices`, `preservedTopology`, or `accessibleGeometryBuffers`
+  preserves source vertex order, indices, and morph-target compatibility in
+  directly writable buffers.
+  Assets report the complete capability set actually provided through
+  `ThermionAsset.geometryCapabilities`.
+- remove the unused `FilamentApp.createColorGrading` — it returned a raw
+  pointer nobody could destroy; use `View.createColorGradingBuilder().build()`
+  instead.
+- remove `View.setToneMapper` and `ThermionViewer.setToneMapper` - use
+  `view.createColorGradingBuilder().toneMapper(...).build()` followed by
+  `view.setColorGrading()` instead.
+- Replace `ThermionAsset.getMorphTargetNames` and `setMorphTargetWeights` with
+  `getMorphTargets` / `getMorphTargetSets`. `RenderableManager.setMorphWeights`
+  now infers and enforces the complete target count; use `setMorphWeightAt` for
+  a single indexed update.
 
-Update to Filament v1.77.2!
+- Rename `RenderThread` to `JobThread` throughout the C++ implementation,
+  C API entry points and Dart bindings/callers: `RenderThread_create` becomes
+  `JobThread_create`, `Engine_createRenderThread` becomes
+  `Engine_createJobThread`, and `FFIFilamentApp.renderThreadHandle` becomes
+  `jobThreadHandle`. Update renamed call sites and rebuild native/Wasm
+  libraries together with the updated Dart bindings.
 
-### Changes
+- Rename `withIntCallback` to `withInt32Callback` to make its native width
+  explicit. Update callers.
+
+- `RenderManager.destroy()` now returns `Future<void>`. Await it before
+  destroying engine resources. Manager detachment and deletion run on the
+  owning thread after earlier commands.
+
+- Add `ThermionAsset.owner` for the immediate owning asset. Deprecate
+  `instanceOwner`; use `owner`, or `isInstance ? owner : null` for the native
+  instance source. The deprecated getter retains its existing behavior.
+  Classes using `implements ThermionAsset` must add `owner`. Subclasses can
+  inherit the compatibility default.
+
+- Add `ThermionAsset.isDestroyed`, true once destruction of the asset or its
+  owner has started and the asset can no longer be used. Classes implementing
+  or extending `ThermionAsset` must add the getter.
+
+- Bounding-box geometry and its generated material are now owned by the target
+  asset and shared between viewers. Viewer show/hide calls control scene
+  attachment. The `destroy` parameter on `viewer.hideBoundingBox` is retained
+  but deprecated. When true, it destroys the shared box in every viewer.
+  Use `asset.destroyBoundingBox()` to discard the cached geometry and material.
+
+- Remove the unused native `RenderManager_requestRender` API. Rebuild
+  native/Wasm libraries; update any custom bindings that called it.
+
+- `thermion_flutter` (Android) migrates to Flutter's built-in Kotlin: the
+  plugin no longer applies the Kotlin Gradle Plugin itself, so apply it in
+  your own Gradle build if you relied on that. Minimum supported SDK is now
+  Flutter 3.44 / Dart 3.12.
+
+- `ColorGrading` follows Filament's ownership model (caller manages
+  lifecycle). A `ColorGrading` must be dissociated from every view
+  (`setColorGrading` with a replacement or null) BEFORE calling
+  `ColorGrading.dispose()`. Attaching one grading to multiple views remains
+  supported, but its lifetime is entirely yours.
+
+- `ThermionViewer.setBackgroundColor` and `ThermionViewer.loadSkybox` now
+  return the created `Skybox`, and `ThermionViewer.getSkybox` returns whatever
+  skybox is currently attached to the viewer's scene. The viewer no longer
+  caches the skybox internally: `removeSkybox` derives it from the scene,
+  detaches it, and returns it without destroying caller-owned resources, so
+  you now own the returned skybox. Native library rebuild required (C API
+  signatures for the skybox builders changed).
+
+- `LightManager.setShadowCaster`/`setShadowOptions` and
+  `RenderableManager.setCastShadows`/`setReceiveShadows` now return `Future`
+  instead of `void` (internally, these now correctly run on the
+  main Filament thread).
 
 - Apply the web target frame rate to actual drawing, independently for each engine.
 
@@ -101,96 +182,7 @@ Update to Filament v1.77.2!
   owning asset, without a global pointer registry or duplicated glTF load
   state in Dart. Asset-owned vertex buffers are explicitly borrowed.
 
-### Breaking changes
-
-- Disable C++ exceptions in Filament and Thermion runtime builds, in both debug
-  and release modes. Filament panics now abort the process. Dart exceptions and
-  ordinary error results remain available; host tools retain C++ exceptions
-  (#327).
-- Recompile custom materials with `matc` from Filament 1.77.2 to match the bundled
-  runtime (#327).
-- Linux setup now uses Clang/libc++ 18, matching the Filament archive build.
-  Ubuntu 22.04's default libc++ 14 cannot link the new archives. Deployed apps
-  also need a compatible libc++ runtime; see the [Linux setup instructions](docs/src/content/docs/linux.mdx)
-  (#327).
-- Remove `imageio` and its headers from runtime archives. Thermion does not use
-  this library; it is still built for host tools such as `cmgen` (#327).
-- Replace the `rebuildVertices` in `ThermionViewer.loadGltf`,
-  `ThermionViewer.loadGltfFromBuffer`, and `FilamentApp.loadGltfFromBuffer` with
-  `requiredGeometryCapabilities`. An empty set leaves gltfio geometry untouched;
-  requesting `barycentrics` or `uniqueTriangleCorners` creates per-triangle vertices, while
-  requesting `writableVertices`, `preservedTopology`, or `accessibleGeometryBuffers`
-  preserves source vertex order, indices, and morph-target compatibility in
-  directly writable buffers.
-  Assets report the complete capability set actually provided through
-  `ThermionAsset.geometryCapabilities`.
-- remove the unused `FilamentApp.createColorGrading` — it returned a raw
-  pointer nobody could destroy; use `View.createColorGradingBuilder().build()`
-  instead.
-- remove `View.setToneMapper` and `ThermionViewer.setToneMapper` - use
-  `view.createColorGradingBuilder().toneMapper(...).build()` followed by
-  `view.setColorGrading()` instead.
-- Replace `ThermionAsset.getMorphTargetNames` and `setMorphTargetWeights` with
-  `getMorphTargets` / `getMorphTargetSets`. `RenderableManager.setMorphWeights`
-  now infers and enforces the complete target count; use `setMorphWeightAt` for
-  a single indexed update.
-
-- Rename `RenderThread` to `JobThread` throughout the C++ implementation,
-  C API entry points and Dart bindings/callers: `RenderThread_create` becomes
-  `JobThread_create`, `Engine_createRenderThread` becomes
-  `Engine_createJobThread`, and `FFIFilamentApp.renderThreadHandle` becomes
-  `jobThreadHandle`. Update renamed call sites and rebuild native/Wasm
-  libraries together with the updated Dart bindings.
-
-- Rename `withIntCallback` to `withInt32Callback` to make its native width
-  explicit. Update callers.
-
-- `RenderManager.destroy()` now returns `Future<void>`. Await it before
-  destroying engine resources. Manager detachment and deletion run on the
-  owning thread after earlier commands.
-
-- Add `ThermionAsset.owner` for the immediate owning asset. Deprecate
-  `instanceOwner`; use `owner`, or `isInstance ? owner : null` for the native
-  instance source. The deprecated getter retains its existing behavior.
-  Classes using `implements ThermionAsset` must add `owner`. Subclasses can
-  inherit the compatibility default.
-
-- Add `ThermionAsset.isDestroyed`, true once destruction of the asset or its
-  owner has started and the asset can no longer be used. Classes implementing
-  or extending `ThermionAsset` must add the getter.
-
-- Bounding-box geometry and its generated material are now owned by the target
-  asset and shared between viewers. Viewer show/hide calls control scene
-  attachment. The `destroy` parameter on `viewer.hideBoundingBox` is retained
-  but deprecated. When true, it destroys the shared box in every viewer.
-  Use `asset.destroyBoundingBox()` to discard the cached geometry and material.
-
-- Remove the unused native `RenderManager_requestRender` API. Rebuild
-  native/Wasm libraries; update any custom bindings that called it.
-
-- `thermion_flutter` (Android) migrates to Flutter's built-in Kotlin: the
-  plugin no longer applies the Kotlin Gradle Plugin itself, so apply it in
-  your own Gradle build if you relied on that. Minimum supported SDK is now
-  Flutter 3.44 / Dart 3.12.
-
-- `ColorGrading` follows Filament's ownership model (caller manages
-  lifecycle). A `ColorGrading` must be dissociated from every view
-  (`setColorGrading` with a replacement or null) BEFORE calling
-  `ColorGrading.dispose()`. Attaching one grading to multiple views remains
-  supported, but its lifetime is entirely yours.
-
-- `ThermionViewer.setBackgroundColor` and `ThermionViewer.loadSkybox` now
-  return the created `Skybox`, and `ThermionViewer.getSkybox` returns whatever
-  skybox is currently attached to the viewer's scene. The viewer no longer
-  caches the skybox internally: `removeSkybox` derives it from the scene,
-  detaches it, and returns it without destroying caller-owned resources, so
-  you now own the returned skybox. Native library rebuild required (C API
-  signatures for the skybox builders changed).
-
-## 0.6.0
-
-Update to Filament v1.75.0!
-
+  
 ### Changes
 - `allocate` FFI shim now takes `byteCount` instead of `count`
 - Add SAO/GTAO algorithm selection and GTAO sampling, thickness, and
@@ -199,10 +191,6 @@ Update to Filament v1.75.0!
 - Expose visible-renderable diagnostics on views.
 
 ### Breaking changes
-- `LightManager.setShadowCaster`/`setShadowOptions` and
-  `RenderableManager.setCastShadows`/`setReceiveShadows` now return `Future`
-  instead of `void` (internally, these now correctly run on the
-  main Filament thread).
 
 
 ## 0.5.0-pre.5
