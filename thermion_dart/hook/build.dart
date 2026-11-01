@@ -31,6 +31,10 @@ void main(List<String> args) async {
     // library — thermion's own materials stay the committed blobs under
     // native/include/material/.
     //
+    // One exception: `link_generated: true` also compiles the emitted .c
+    // files straight into libthermion_dart below (the same mechanism as
+    // thermion's own materials), native builds only.
+    //
     // A matcId (Filament tag + thermion_dart version + host platform/arch,
     // plus the downloaded matc binary's sha256, recorded separately) in
     // <output>/.thermion-materials.json makes repeat builds a no-op and
@@ -42,6 +46,7 @@ void main(List<String> args) async {
     // Runs before the branches below so web builds (which return early)
     // compile their user materials too.
     final materialCompilationRaw = input.userDefines["material_compilation"];
+    UserMaterialsResult? userMaterials;
     if (materialCompilationRaw != null) {
       final consumingPackageRoot = _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
       if (consumingPackageRoot == null) {
@@ -52,10 +57,14 @@ void main(List<String> args) async {
         );
       }
       final config = parseMaterialCompilationConfig(materialCompilationRaw, onLog: logger.warning);
+      // Web builds have no CBuilder to link the generated .c into (their
+      // material C is compiled into the wasm engine via CMakeLists), so
+      // link_generated on a web build must fail loudly, not silently no-op.
+      checkMaterialLinkingBuildable(buildCodeAssets: input.config.buildCodeAssets, config: config!);
       final hostArch = await detectHostArchitecture();
       final result = await compileUserMaterials(
         appRoot: Directory(consumingPackageRoot),
-        config: config!,
+        config: config,
         filamentVersion: filamentVersion,
         packageVersion: await readPubspecVersion(Directory(pkgRootFilePath)),
         hostOS: Platform.operatingSystem,
@@ -63,6 +72,7 @@ void main(List<String> args) async {
         download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
         onLog: logger.info,
       );
+      userMaterials = result;
       // Re-run the hook (and recompile) whenever a .mat input changes.
       for (final materialInput in result.inputs) {
         output.dependencies.add(materialInput.uri);
@@ -401,6 +411,28 @@ outputDirectory : ${outputDirectory.path}
       materialConfigs = stripped.isEmpty ? null : stripped;
     }
     _processMaterials(materialConfigs, materialSources, sources, defines, logger, pkgRootFilePath);
+
+    // link_generated: compile the user's generated material .c files into
+    // libthermion_dart too — the exact same mechanism as thermion's own
+    // materials above (appended to `sources`), with the output directory on
+    // `includeDirs` so each .c resolves its own `#include "x.h"`. The files
+    // were emitted at the top of this hook, before any CBuilder work, and
+    // only the set the materials manifest vouches for is linked. Must run
+    // before CBuilder.library is constructed below (sources/includeDirs are
+    // read there), and after the platform source filters so a path that
+    // happens to contain e.g. "windows" is not filtered out.
+    if (userMaterials != null && userMaterials.linkedSources.isNotEmpty) {
+      final linkedCount = linkGeneratedIntoNativeBuild(
+        sources: sources,
+        includeDirs: includeDirs,
+        linkedSources: userMaterials.linkedSources,
+        outputDir: userMaterials.outputDir,
+      );
+      logger.info(
+        "link_generated: compiling $linkedCount generated material source(s) "
+        "into $packageName (${userMaterials.linkedSources.map((f) => path.basename(f.path)).join(', ')})",
+      );
+    }
 
     var frameworks = [];
 

@@ -82,12 +82,15 @@ class FakeTools {
     }
     resgenRuns.add('$prefix ${p.basename(filamat)}');
     final upper = prefix.toUpperCase();
+    // Shaped like REAL resgen output: no #include of its own header, and a
+    // raw `extern "C" {` with no __cplusplus guards (see patchResgenOutput).
     File(
       p.join(outDir, '$prefix.c'),
     ).writeAsStringSync('#include <stdint.h>\nconst uint8_t ${upper}_PACKAGE[] = { 0x00 };\n');
     File(p.join(outDir, '$prefix.h')).writeAsStringSync(
       '#ifndef ${upper}_H_\n#define ${upper}_H_\n#include <stdint.h>\n'
-      'extern const uint8_t ${upper}_PACKAGE[];\n#endif\n',
+      'extern "C" {\n    extern const uint8_t ${upper}_PACKAGE[];\n}\n'
+      '#define ${upper}_SIZE 1\n#endif\n',
     );
     File(p.join(outDir, '$prefix.S')).writeAsStringSync('// $prefix\n');
     File(p.join(outDir, '$prefix.bin')).writeAsBytesSync([0x00]);
@@ -242,6 +245,49 @@ void main() {
       expect(config.resgenPrefixes, {'skin': 'MY_SKIN'});
     });
 
+    test('link_generated defaults to false and implies resgen emission', () {
+      final config = parseMaterialCompilationConfig({
+        'inputs': ['materials/skin.mat'],
+        'output': 'build/materials',
+        'link_generated': true,
+      })!;
+      expect(config.linkGenerated, isTrue);
+      expect(config.resgen, isFalse); // the raw flag stays unset...
+      expect(config.emitsResgen, isTrue); // ...but emission is implied.
+
+      // Off by default, and resgen alone does not imply linking.
+      final plain = parseMaterialCompilationConfig({
+        'inputs': ['materials/skin.mat'],
+        'output': 'build/materials',
+      })!;
+      expect(plain.linkGenerated, isFalse);
+      expect(plain.emitsResgen, isFalse);
+      final resgenOnly = parseMaterialCompilationConfig({
+        'inputs': ['materials/skin.mat'],
+        'output': 'build/materials',
+        'resgen': true,
+      })!;
+      expect(resgenOnly.linkGenerated, isFalse);
+      expect(resgenOnly.emitsResgen, isTrue);
+    });
+
+    test('link_generated must be a bool', () {
+      expect(
+        () => parseMaterialCompilationConfig({
+          'inputs': ['a.mat'],
+          'output': 'o',
+          'link_generated': 'yes',
+        }),
+        throwsA(
+          isA<MaterialToolsError>().having(
+            (e) => e.message,
+            'message',
+            contains('link_generated must be true or false'),
+          ),
+        ),
+      );
+    });
+
     test('unknown keys warn, everything else fails loudly', () {
       final warnings = <String>[];
       parseMaterialCompilationConfig({
@@ -374,6 +420,95 @@ void main() {
     });
   });
 
+  group('checkResgenPrefixes', () {
+    test('defaults to the sanitised stem, overridable by stem or file name', () {
+      final mySkin = File('/app/my-skin.mat');
+      final other = File('/app/other.mat');
+      final prefixes = checkResgenPrefixes([mySkin, other], resgenPrefixes: {'other': 'CUSTOM'});
+      expect(prefixes[mySkin], 'my_skin');
+      expect(prefixes[other], 'CUSTOM');
+    });
+
+    test('rejects two inputs whose prefixes define the same symbol, naming both', () {
+      // Different stems, colliding explicit prefixes.
+      expect(
+        () => checkResgenPrefixes(
+          [File('/app/skin.mat'), File('/app/body.mat')],
+          resgenPrefixes: {'skin': 'APP_MAT', 'body': 'APP_MAT'},
+        ),
+        throwsA(
+          isA<MaterialToolsError>()
+              .having((e) => e.message, 'message', contains('skin.mat'))
+              .having((e) => e.message, 'message', contains('body.mat'))
+              .having((e) => e.message, 'message', contains('APP_MAT_PACKAGE')),
+        ),
+      );
+      // The same symbol via case differences only (symbols are uppercased).
+      expect(
+        () => checkResgenPrefixes(
+          [File('/app/skin.mat'), File('/app/body.mat')],
+          resgenPrefixes: {'skin': 'MAT', 'body': 'mat'},
+        ),
+        throwsA(isA<MaterialToolsError>().having((e) => e.message, 'message', contains('MAT_PACKAGE'))),
+      );
+      // An override colliding with another material's default prefix.
+      expect(
+        () => checkResgenPrefixes(
+          [File('/app/skin.mat'), File('/app/SKIN.mat')],
+          resgenPrefixes: {'skin': 'other', 'SKIN': 'OTHER'},
+        ),
+        throwsA(isA<MaterialToolsError>().having((e) => e.message, 'message', contains('OTHER_PACKAGE'))),
+      );
+    });
+
+    test('rejects prefixes colliding with Thermion built-in symbols when linking', () {
+      final reserved = reservedResgenPrefixes.toSet();
+      // grid.mat (default prefix grid) collides with Thermion's GRID_PACKAGE.
+      expect(
+        () => checkResgenPrefixes([File('/app/grid.mat')], reserved: reserved),
+        throwsA(
+          isA<MaterialToolsError>()
+              .having((e) => e.message, 'message', contains('GRID_PACKAGE'))
+              .having((e) => e.message, 'message', contains('resgen_prefixes')),
+        ),
+      );
+      // Case differences are caught too (gizmo is a built-in prefix).
+      expect(
+        () => checkResgenPrefixes([File('/app/gizmo.mat')], reserved: reserved),
+        throwsA(isA<MaterialToolsError>().having((e) => e.message, 'message', contains('GIZMO_PACKAGE'))),
+      );
+      // Without linking (runtime-loaded .c) the built-in set is not applied.
+      final grid = File('/app/grid.mat');
+      expect(checkResgenPrefixes([grid]), {grid: 'grid'});
+    });
+  });
+
+  group('checkMaterialLinkingBuildable', () {
+    final config = (bool link) => parseMaterialCompilationConfig({
+      'inputs': ['materials/skin.mat'],
+      'output': 'build/materials',
+      if (link) 'link_generated': true,
+    })!;
+
+    test('fails a web build with link_generated, with an actionable message', () {
+      expect(
+        () => checkMaterialLinkingBuildable(buildCodeAssets: false, config: config(true)),
+        throwsA(
+          isA<MaterialToolsError>()
+              .having((e) => e.message, 'message', contains('web build'))
+              .having((e) => e.message, 'message', contains('Remove link_generated'))
+              .having((e) => e.message, 'message', contains('buildCodeAssets')),
+        ),
+      );
+    });
+
+    test('passes native builds and web builds without link_generated', () {
+      checkMaterialLinkingBuildable(buildCodeAssets: true, config: config(true));
+      checkMaterialLinkingBuildable(buildCodeAssets: false, config: config(false));
+      checkMaterialLinkingBuildable(buildCodeAssets: true, config: config(false));
+    });
+  });
+
   group('matcId', () {
     test('is stable and changes with every identity component', () {
       String id({
@@ -407,6 +542,7 @@ void main() {
           matcSha256: 'def',
           backends: ['metal', 'vulkan'],
           resgen: true,
+          linkedGenerated: true,
           inputs: {'a.mat': 'h1'},
           outputs: {
             'a.mat': ['a.filamat', 'a.c', 'a.h'],
@@ -418,6 +554,7 @@ void main() {
       expect(manifest.matcSha256, 'def');
       expect(manifest.backends, ['metal', 'vulkan']);
       expect(manifest.resgen, isTrue);
+      expect(manifest.linkedGenerated, isTrue);
       expect(manifest.inputs, {'a.mat': 'h1'});
       expect(manifest.outputs['a.mat'], ['a.filamat', 'a.c', 'a.h']);
 
@@ -581,6 +718,8 @@ void main() {
       String? matcId,
       List<String> backends = allMaterialBackends,
       bool resgen = false,
+      bool linkGenerated = false,
+      Map<String, String> resgenPrefixes = const {},
     }) {
       return planMaterialCompilation(
         appRoot: appRoot,
@@ -590,6 +729,8 @@ void main() {
         matcId: matcId ?? 'id-1',
         backends: backends,
         resgen: resgen,
+        linkGenerated: linkGenerated,
+        resgenPrefixes: resgenPrefixes,
       );
     }
 
@@ -607,6 +748,7 @@ void main() {
           matcSha256: null,
           backends: allMaterialBackends,
           resgen: false,
+          linkedGenerated: false,
           inputs: {'materials/skin.mat': contentId(skin), 'materials/eye/iris.mat': contentId(eye)},
           outputs: {
             'materials/skin.mat': ['skin.filamat'],
@@ -630,6 +772,7 @@ void main() {
           matcSha256: null,
           backends: allMaterialBackends,
           resgen: false,
+          linkedGenerated: false,
           inputs: {'materials/skin.mat': contentId(skin)},
           outputs: {
             'materials/skin.mat': ['skin.filamat'],
@@ -659,6 +802,7 @@ void main() {
           matcSha256: null,
           backends: allMaterialBackends,
           resgen: false,
+          linkedGenerated: false,
           inputs: {'materials/skin.mat': contentId(skin), 'materials/eye/iris.mat': contentId(eye)},
           outputs: const {},
         ),
@@ -679,6 +823,7 @@ void main() {
           matcSha256: null,
           backends: ['opengl'],
           resgen: false,
+          linkedGenerated: false,
           inputs: {'materials/skin.mat': contentId(skin), 'materials/eye/iris.mat': contentId(eye)},
           outputs: {
             'materials/skin.mat': ['skin.filamat'],
@@ -698,6 +843,48 @@ void main() {
       plan = planFor(inputs: [skin, eye], backends: ['opengl'], resgen: true);
       expect(plan.toCompile, [skin, eye]);
       expect(plan.reason, contains('resgen changed'));
+    });
+
+    test('a link_generated change recompiles everything (manifest stays accurate)', () {
+      outputDir.createSync(recursive: true);
+      File(p.join(outputDir.path, materialManifestName)).writeAsStringSync(
+        encodeMaterialsManifest(
+          matcId: 'id-1',
+          matcSha256: null,
+          backends: allMaterialBackends,
+          resgen: true,
+          linkedGenerated: false,
+          inputs: {'materials/skin.mat': contentId(skin)},
+          outputs: {
+            'materials/skin.mat': ['skin.filamat', 'skin.c', 'skin.h'],
+          },
+        ),
+      );
+      File(p.join(outputDir.path, 'skin.filamat')).writeAsBytesSync([1]);
+      File(p.join(outputDir.path, 'skin.c')).writeAsStringSync('x');
+      File(p.join(outputDir.path, 'skin.h')).writeAsStringSync('x');
+
+      // Same emission (resgen: true), but linking turned on -> full rebuild
+      // so the manifest cannot record a stale linkedGenerated value.
+      final plan = planFor(inputs: [skin], resgen: true, linkGenerated: true);
+      expect(plan.toCompile, [skin]);
+      expect(plan.reason, contains('link_generated changed'));
+    });
+
+    test('plan-time symbol collision checks run (duplicate and built-in prefixes)', () {
+      final image = File(p.join(appRoot.path, 'materials', 'image.mat'))..writeAsStringSync('material {}');
+      // Duplicate prefixes between two inputs are caught by the plan.
+      expect(
+        () => planFor(inputs: [skin, eye], resgen: true, resgenPrefixes: {'skin': 'MAT', 'iris': 'MAT'}),
+        throwsA(isA<MaterialToolsError>().having((e) => e.message, 'message', contains('MAT_PACKAGE'))),
+      );
+      // link_generated applies the built-in (reserved) prefix set.
+      expect(
+        () => planFor(inputs: [image], linkGenerated: true),
+        throwsA(isA<MaterialToolsError>().having((e) => e.message, 'message', contains('IMAGE_PACKAGE'))),
+      );
+      // ...which stays off without linking.
+      expect(planFor(inputs: [image], resgen: true).reason, contains('no manifest'));
     });
   });
 
@@ -877,6 +1064,29 @@ void main() {
       expect(tools.resgenRuns, unorderedEquals(['APP_SKIN skin.filamat', 'my_eye my_eye.filamat']));
     });
 
+    test('resgen output is patched like thermion\'s own materials (external C linkage)', () async {
+      final tools = FakeTools();
+      await run(
+        tools: tools,
+        rawConfig: {
+          'inputs': ['materials/skin.mat'],
+          'output': 'build/materials',
+          'resgen': true,
+        },
+      );
+      // The .c must start by including its own header so the const
+      // definition follows the header's extern "C" declaration — otherwise
+      // CBuilder's -x c++ gives it internal linkage and -O3 strips it.
+      final c = File(p.join(outputDir().path, 'skin.c')).readAsStringSync();
+      expect(c, startsWith('#include "skin.h"\n'));
+      expect(c, contains('const uint8_t SKIN_PACKAGE[]'));
+      // The raw `extern "C" {` in the header gains __cplusplus guards so the
+      // header is valid C too.
+      final h = File(p.join(outputDir().path, 'skin.h')).readAsStringSync();
+      expect(h, contains('#ifdef __cplusplus\nextern "C" {\n#endif'));
+      expect(h, contains('\n#ifdef __cplusplus\n}\n#endif\n'));
+    });
+
     test('an input removed from the config drops its outputs without downloading tools', () async {
       final tools = FakeTools();
       await run(
@@ -1005,6 +1215,236 @@ void main() {
       );
       expect(result.compiled, 1);
       expect(File(p.join(outside.path, 'nested', 'out', 'skin.filamat')).existsSync(), isTrue);
+    });
+  });
+
+  group('patchResgenOutput', () {
+    test('prepends the self-include and guards extern "C"; idempotent', () {
+      final dir = freshDir('patch');
+      File(
+        p.join(dir.path, 'skin.c'),
+      ).writeAsStringSync('#include <stdint.h>\nconst uint8_t SKIN_PACKAGE[] = { 0x00 };\n');
+      File(p.join(dir.path, 'skin.h')).writeAsStringSync(
+        '#ifndef SKIN_H_\n#define SKIN_H_\n#include <stdint.h>\n'
+        'extern "C" {\n    extern const uint8_t SKIN_PACKAGE[];\n}\n#endif\n',
+      );
+
+      patchResgenOutput(dir, log: (_) {});
+      expect(File(p.join(dir.path, 'skin.c')).readAsStringSync(), startsWith('#include "skin.h"\n#include <stdint.h>'));
+      expect(File(p.join(dir.path, 'skin.h')).readAsStringSync(), contains('#ifdef __cplusplus\nextern "C" {\n#endif'));
+
+      // Second run changes nothing (both patches are no-ops).
+      final c = File(p.join(dir.path, 'skin.c')).readAsStringSync();
+      final h = File(p.join(dir.path, 'skin.h')).readAsStringSync();
+      patchResgenOutput(dir, log: (_) {});
+      expect(File(p.join(dir.path, 'skin.c')).readAsStringSync(), c);
+      expect(File(p.join(dir.path, 'skin.h')).readAsStringSync(), h);
+    });
+
+    test('a .c without a sibling .h is left alone', () {
+      final dir = freshDir('patch_noheader');
+      File(p.join(dir.path, 'lonely.c')).writeAsStringSync('const uint8_t LONELY[] = {0};\n');
+      patchResgenOutput(dir, log: (_) {});
+      expect(File(p.join(dir.path, 'lonely.c')).readAsStringSync(), 'const uint8_t LONELY[] = {0};\n');
+    });
+  });
+
+  group('link_generated', () {
+    late Directory appRoot;
+    late Directory toolsCache;
+
+    setUp(() {
+      appRoot = freshDir('link_app');
+      toolsCache = freshDir('link_tools_cache');
+      Directory(p.join(appRoot.path, 'materials')).createSync(recursive: true);
+      File(p.join(appRoot.path, 'materials', 'skin.mat')).writeAsStringSync('material { name : skin }');
+    });
+
+    Future<UserMaterialsResult> run({required FakeTools tools, Map<String, dynamic> extraConfig = const {}}) {
+      return compileUserMaterials(
+        appRoot: appRoot,
+        config: parseMaterialCompilationConfig({
+          'inputs': ['materials'],
+          'output': 'build/materials',
+          ...extraConfig,
+        })!,
+        filamentVersion: 'v1.77.2',
+        packageVersion: '0.6.0-pre.0',
+        hostOS: 'linux',
+        hostArch: 'x64',
+        toolsCacheRoot: toolsCache.path,
+        download: tools.downloader(),
+        runProcess: tools.run,
+      );
+    }
+
+    Directory outputDir() => Directory(p.join(appRoot.path, 'build', 'materials'));
+    File manifestFile() => File(p.join(outputDir().path, materialManifestName));
+
+    test('implies resgen emission and returns exactly the emitted .c set', () async {
+      final tools = FakeTools();
+      final result = await run(tools: tools, extraConfig: {'link_generated': true});
+
+      // resgen ran although the resgen flag is absent...
+      expect(tools.resgenRuns, ['skin skin.filamat']);
+      expect(File(p.join(outputDir().path, 'skin.c')).existsSync(), isTrue);
+      expect(File(p.join(outputDir().path, 'skin.h')).existsSync(), isTrue);
+      // ...and the manifest records both emission and linking.
+      final manifest = readMaterialsManifest(manifestFile())!;
+      expect(manifest.resgen, isTrue);
+      expect(manifest.linkedGenerated, isTrue);
+      expect(manifest.outputs['materials/skin.mat'], containsAll(['skin.filamat', 'skin.c', 'skin.h']));
+      // The linked set is the emitted .c, not the whole output directory.
+      expect(result.linkedSources.map((f) => f.path).toList(), [File(p.join(outputDir().path, 'skin.c')).path]);
+    });
+
+    test('disabled by default: no resgen, no linked sources, no build mutation', () async {
+      final tools = FakeTools();
+      final result = await run(tools: tools);
+
+      expect(tools.resgenRuns, isEmpty);
+      expect(result.linkedSources, isEmpty);
+      // The hook wires linking through linkGeneratedIntoNativeBuild, which
+      // is a no-op for an empty set: sources and includeDirs stay untouched.
+      final sources = <String>['native/src/Thermion.cpp'];
+      final includeDirs = <String>['native/include'];
+      expect(
+        linkGeneratedIntoNativeBuild(
+          sources: sources,
+          includeDirs: includeDirs,
+          linkedSources: result.linkedSources,
+          outputDir: result.outputDir,
+        ),
+        0,
+      );
+      expect(sources, ['native/src/Thermion.cpp']);
+      expect(includeDirs, ['native/include']);
+      expect(readMaterialsManifest(manifestFile())!.linkedGenerated, isFalse);
+    });
+
+    test('mutates the CBuilder inputs when enabled: .c onto sources, output dir onto includeDirs', () async {
+      final tools = FakeTools();
+      final result = await run(tools: tools, extraConfig: {'link_generated': true});
+
+      final sources = <String>['native/src/Thermion.cpp'];
+      final includeDirs = <String>['native/include'];
+      final added = linkGeneratedIntoNativeBuild(
+        sources: sources,
+        includeDirs: includeDirs,
+        linkedSources: result.linkedSources,
+        outputDir: result.outputDir,
+      );
+      expect(added, 1);
+      expect(sources, ['native/src/Thermion.cpp', File(p.join(outputDir().path, 'skin.c')).path]);
+      expect(includeDirs, ['native/include', outputDir().path]);
+      // Idempotent: a second application adds nothing.
+      expect(
+        linkGeneratedIntoNativeBuild(
+          sources: sources,
+          includeDirs: includeDirs,
+          linkedSources: result.linkedSources,
+          outputDir: result.outputDir,
+        ),
+        1,
+      );
+      expect(sources, hasLength(2));
+      expect(includeDirs, hasLength(2));
+    });
+
+    test('an up-to-date second run links without recompiling', () async {
+      final tools = FakeTools();
+      await run(tools: tools, extraConfig: {'link_generated': true});
+      final matcRunsAfterFirst = tools.matcCompiles.length;
+
+      final result = await run(tools: tools, extraConfig: {'link_generated': true});
+      expect(result.compiled, 0);
+      expect(tools.matcCompiles.length, matcRunsAfterFirst);
+      expect(result.linkedSources.map((f) => f.path).toList(), [File(p.join(outputDir().path, 'skin.c')).path]);
+    });
+
+    test('stale leftovers the manifest does not vouch for are never linked', () async {
+      final tools = FakeTools();
+      final result = await run(tools: tools, extraConfig: {'link_generated': true});
+
+      // A stale .c from an older run (or a hand-dropped file) sits in the
+      // output directory but is not in the manifest's outputs: ignored.
+      File(p.join(outputDir().path, 'orphan.c')).writeAsStringSync('const uint8_t ORPHAN_PACKAGE[] = {0};');
+      final config = parseMaterialCompilationConfig({
+        'inputs': ['materials'],
+        'output': 'build/materials',
+        'link_generated': true,
+      })!;
+      expect(
+        linkedGeneratedSources(
+          config: config,
+          inputs: result.inputs,
+          outputDir: result.outputDir,
+          appRoot: appRoot,
+        ).map((f) => f.path).toList(),
+        [File(p.join(outputDir().path, 'skin.c')).path],
+      );
+
+      // A vouched-but-deleted .c is an error, not a silent gap...
+      File(p.join(outputDir().path, 'skin.c')).deleteSync();
+      expect(
+        () => linkedGeneratedSources(
+          config: config,
+          inputs: result.inputs,
+          outputDir: result.outputDir,
+          appRoot: appRoot,
+        ),
+        throwsA(isA<MaterialToolsError>().having((e) => e.message, 'message', contains('skin.c'))),
+      );
+      // ...and the next run notices the missing output and recompiles it.
+      final rerun = await run(tools: tools, extraConfig: {'link_generated': true});
+      expect(rerun.compiled, 1);
+      expect(rerun.linkedSources.map((f) => f.path).toList(), [File(p.join(outputDir().path, 'skin.c')).path]);
+      expect(File(p.join(outputDir().path, 'orphan.c')).existsSync(), isTrue); // untouched, unlinked
+    });
+
+    test('duplicate prefixes between inputs fail the build before compiling', () async {
+      File(p.join(appRoot.path, 'materials', 'body.mat')).writeAsStringSync('material { name : body }');
+      final tools = FakeTools();
+      await expectLater(
+        run(
+          tools: tools,
+          extraConfig: {
+            'link_generated': true,
+            'resgen_prefixes': {'skin': 'APP_MAT', 'body': 'APP_MAT'},
+          },
+        ),
+        throwsA(
+          isA<MaterialToolsError>()
+              .having((e) => e.message, 'message', contains('skin.mat'))
+              .having((e) => e.message, 'message', contains('body.mat'))
+              .having((e) => e.message, 'message', contains('APP_MAT_PACKAGE')),
+        ),
+      );
+      // Nothing ran: no outputs, no manifest.
+      expect(outputDir().existsSync(), isFalse);
+      expect(tools.matcCompiles, isEmpty);
+    });
+
+    test('a built-in material name fails under link_generated only', () async {
+      File(p.join(appRoot.path, 'materials', 'grid.mat')).writeAsStringSync('material { name : grid }');
+      final tools = FakeTools();
+
+      // Without linking, grid.mat is a normal runtime-loaded material.
+      final plain = await run(tools: tools);
+      expect(plain.compiled, 2);
+      expect(plain.linkedSources, isEmpty);
+
+      // With linking it would redefine GRID_PACKAGE -> caught up front.
+      await expectLater(
+        run(
+          tools: tools,
+          extraConfig: {
+            'inputs': ['materials/grid.mat'],
+            'link_generated': true,
+          },
+        ),
+        throwsA(isA<MaterialToolsError>().having((e) => e.message, 'message', contains('GRID_PACKAGE'))),
+      );
     });
   });
 }
