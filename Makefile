@@ -49,7 +49,7 @@ ifndef FILAMENT_PATH
 	@echo "FILAMENT_PATH is not set"
 else
 	@echo "Using Filament build from ${FILAMENT_PATH}"
-	./materials/build.sh	
+	cd thermion_dart && ./materials/build.sh
 endif
 
 resources: FORCE

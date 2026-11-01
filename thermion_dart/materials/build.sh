@@ -35,9 +35,17 @@ if [ -z "${FILAMENT_PATH:-}" ]; then
     exit 1
 fi
 
+# Resolve every path from this script's location so it works from any cwd.
+# The .mat sources live inside the thermion_dart package (moved from the repo
+# root) so they ship with it and the Dart build hook can compile them — see
+# thermion_dart/lib/src/hooks/material_tools.dart.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$PACKAGE_ROOT/.." && pwd)"
+
 MATC="${FILAMENT_PATH}/matc"
 RESGEN="${FILAMENT_PATH}/resgen"
-MATERIAL_DIR="thermion_dart/native/include/material"
+MATERIAL_DIR="${PACKAGE_ROOT}/native/include/material"
 MATERIALS=(image unlit_fixed_size grid linear_depth silhouette edge_outline wireframe translation_axis bone_overlay capture_uv)
 # capture_uv is now in the main list; gizmo handled separately below
 GIZMO_NAME="gizmo"
@@ -64,8 +72,8 @@ build_variant() {
     echo "  ${suffix}: matc ${arch_flags[*]}"
 
     ${MATC} "${arch_flags[@]}" \
-        -o "materials/${material}.filamat" "materials/${material}.mat" || return 1
-    ${RESGEN} -c -p "${material}" -x "${MATERIAL_DIR}/" "materials/${material}.filamat" || return 1
+        -o "${SCRIPT_DIR}/${material}.filamat" "${SCRIPT_DIR}/${material}.mat" || return 1
+    ${RESGEN} -c -p "${material}" -x "${MATERIAL_DIR}/" "${SCRIPT_DIR}/${material}.filamat" || return 1
 
     # Rename to suffixed files
     mv "${MATERIAL_DIR}/${material}.c" "${MATERIAL_DIR}/${material}_${suffix}.c"
@@ -91,7 +99,7 @@ build_variant() {
         "${MATERIAL_DIR}/${material}_${suffix}.h"
 
     # Clean up intermediate .filamat
-    rm -f "materials/${material}.filamat"
+    rm -f "${SCRIPT_DIR}/${material}.filamat"
 }
 
 # -------------------------------------------------------------------
@@ -182,8 +190,8 @@ for suffix in apple android desktop opengl vulkan webgpu web_webgl web_combined;
     echo "  ${suffix}: matc ${matc_flags}"
 
     ${MATC} ${matc_flags} \
-        -o "materials/gizmo.filamat" "materials/gizmo.mat" || exit 1
-    ${RESGEN} -c -p "gizmo" -x "${MATERIAL_DIR}/" "materials/gizmo.filamat" || exit 1
+        -o "${SCRIPT_DIR}/gizmo.filamat" "${SCRIPT_DIR}/gizmo.mat" || exit 1
+    ${RESGEN} -c -p "gizmo" -x "${MATERIAL_DIR}/" "${SCRIPT_DIR}/gizmo.filamat" || exit 1
 
     # Rename .c/.h to gizmo_material_<suffix>
     mv "${MATERIAL_DIR}/gizmo.c" "${MATERIAL_DIR}/gizmo_material_${suffix}.c"
@@ -211,7 +219,7 @@ for suffix in apple android desktop opengl vulkan webgpu web_webgl web_combined;
     perl -i -0pe 's/\n\}\n/\n#ifdef __cplusplus\n}\n#endif\n/' \
         "${MATERIAL_DIR}/gizmo_material_${suffix}.h"
 
-    rm -f "materials/gizmo.filamat"
+    rm -f "${SCRIPT_DIR}/gizmo.filamat"
 done
 
 # Gizmo forwarding header (include stem is gizmo_material, not gizmo)
@@ -224,12 +232,17 @@ echo ""
 # -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
-# Compile example asset materials (standalone .filamat, not embedded)
+# Compile example asset materials (standalone .filamat, not embedded).
+# The examples live at the repo root, which pub consumers of this package
+# don't have — skip silently there.
 # -------------------------------------------------------------------
-for material in "${EXAMPLE_MATERIALS[@]}"; do
-    echo "=== examples/assets/$material (all platforms) ==="
-    ${MATC} -a opengl -a metal -a vulkan -a webgpu \
-        -o "examples/assets/${material}.filamat" "examples/assets/${material}.mat" || exit 1
-done
+if [ -d "${REPO_ROOT}/examples/assets" ]; then
+    for material in "${EXAMPLE_MATERIALS[@]}"; do
+        echo "=== examples/assets/$material (all platforms) ==="
+        ${MATC} -a opengl -a metal -a vulkan -a webgpu \
+            -o "${REPO_ROOT}/examples/assets/${material}.filamat" \
+            "${REPO_ROOT}/examples/assets/${material}.mat" || exit 1
+    done
+fi
 
 echo "=== Done ==="

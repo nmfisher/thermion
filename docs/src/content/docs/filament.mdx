@@ -22,7 +22,13 @@ To rebuild the materials bundled with Thermion, from the repository root:
 make materials
 ```
 
-This compiles the `.mat` sources under [`materials/`](https://github.com/nmfisher/thermion/tree/develop/materials) against your local Filament build (`FILAMENT_PATH`).
+This compiles the `.mat` sources under [`thermion_dart/materials/`](https://github.com/nmfisher/thermion/tree/develop/thermion_dart/materials) against your local Filament build (`FILAMENT_PATH`).
+
+You normally don't need to run this: the Dart build hook recompiles the
+bundled materials automatically with version-matched tools (see
+[Materials & Textures](/materials/)). `make materials` remains the way to
+refresh the *committed* artifacts under
+`thermion_dart/native/include/material/` after a Filament version bump.
 
 ## Footguns
 

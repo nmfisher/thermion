@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### New features
+
+- Recompile the bundled materials in the Dart build hook on the developer's
+  machine (issue #399). The hook downloads the version-matched, WebGPU-capable
+  `matc`/`resgen` pair for the host platform from R2 into
+  `~/.cache/thermion/filament-tools` (once per Filament version) and
+  regenerates every material variant into
+  `.dart_tool/thermion_dart/materials/<version>`, so bumping `filament.version`
+  refreshes the materials on the next build without a manual `make materials`.
+  A fingerprint over the version, the `.mat` sources and the variant table
+  makes unchanged builds a no-op. On download/tool failure the hook warns and
+  falls back to the committed artifacts; opt out entirely with
+  `compile_materials: false` under `hooks.user_defines.thermion_dart` in the
+  consuming package's pubspec.yaml. The `.mat` sources moved from
+  `materials/` to `thermion_dart/materials/` so they ship with the package.
+
 ### Changes
 
 - Apply the web target frame rate to actual drawing, independently for each engine.
