@@ -32,7 +32,11 @@ void main() {
     setUpAll(() async {
       await FFIFilamentApp.create(
         config: FFIFilamentConfig(
-          backend: Platform.isMacOS ? Backend.METAL : Backend.DEFAULT,
+          backend: Platform.isLinux
+              ? Backend.OPENGL
+              : Platform.isMacOS
+              ? Backend.METAL
+              : Backend.DEFAULT,
           loadResource: (uri) => File(uri).readAsBytes(),
         ),
       );
