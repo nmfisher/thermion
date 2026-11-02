@@ -1218,9 +1218,19 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE void View_pickJobThread(TJobThread *jobThread, TView *tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback)
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
-    auto *view = reinterpret_cast<View *>(tView);
-    view->pick(x, y, [=](filament::View::PickingQueryResult const &result)
-               { PROXY(callback(requestId, utils::Entity::smuggle(result.renderable), result.depth, result.fragCoords.x, result.fragCoords.y, result.fragCoords.z)); });
+    // Post to the job thread: View::pick links a query into a list that
+    // FRenderer::renderJob reads twice per frame without a lock (structure
+    // pass decision, then the Picking Resolve Pass). A query linked from
+    // another thread between the two reads makes the resolve pass read a
+    // never-created FrameGraph handle -> FrameGraph::assertValid panic.
+    std::packaged_task<void()> lambda(
+        [=]
+        {
+          auto *view = reinterpret_cast<View *>(tView);
+          view->pick(x, y, [=](filament::View::PickingQueryResult const &result)
+                     { PROXY(callback(requestId, utils::Entity::smuggle(result.renderable), result.depth, result.fragCoords.x, result.fragCoords.y, result.fragCoords.z)); });
+        });
+    auto fut = rt->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void View_setColorGradingJobThread(TJobThread *jobThread, TView *tView, TColorGrading *tColorGrading, uint32_t requestId, VoidCallback onComplete)
