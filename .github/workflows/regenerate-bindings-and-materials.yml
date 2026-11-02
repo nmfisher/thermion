@@ -266,9 +266,9 @@ jobs:
           git add -f thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart || true
           git add -f thermion_dart/native/include/material/*.h || true
           git add -f thermion_dart/native/include/material/*.c || true
-          git add -f thermion_dart/native/include/material/*.S || true
-          git add -f thermion_dart/native/include/material/*.apple.S || true
-          git add -f thermion_dart/native/include/material/*.bin || true
+          # Only .h/.c are committed: the .S/.apple.S/.bin resgen outputs are
+          # unused (build hook and web CMakeLists compile .c only) and stay
+          # ignored, so they are never force-added back.
           git add -f examples/assets/*.filamat || true
           # formatting fixes (same paths as the Format step)
           git add thermion_dart/lib thermion_dart/bin thermion_dart/hook thermion_dart/tool thermion_dart/test thermion_flutter/thermion_flutter/lib
