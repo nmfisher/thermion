@@ -233,7 +233,9 @@ abstract class ThermionViewer {
   ///
   /// Removes the asset's and its instances' bounding boxes from this scene.
   /// Destroying the asset also releases their geometry and generated materials.
-  /// Does nothing for unowned assets or once viewer disposal starts.
+  /// Throws [StateError] for a live asset this viewer does not own. Adding an
+  /// asset to this viewer's scene does not transfer ownership.
+  /// Does nothing for already destroyed assets or once viewer disposal starts.
   /// Destroy app-owned assets through [FilamentApp.destroyAsset].
   Future destroyAsset(ThermionAsset asset);
 

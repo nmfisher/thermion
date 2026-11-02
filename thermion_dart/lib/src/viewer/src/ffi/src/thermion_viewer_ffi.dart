@@ -719,7 +719,13 @@ class ThermionViewerFFI extends ThermionViewer {
 
   Future<void> _destroyAsset(ThermionAsset asset) async {
     if (!_ownsAsset(asset)) {
-      return;
+      // Owner cleanup may have already released a queued instance or alias.
+      if (asset.isDestroyed) return;
+      throw StateError(
+        'Cannot destroy asset: this viewer does not own it. '
+        'Destroy it through its owning viewer or FilamentApp.destroyAsset. '
+        'Adding an asset to a scene does not transfer ownership.',
+      );
     }
     _assets.remove(asset);
 
