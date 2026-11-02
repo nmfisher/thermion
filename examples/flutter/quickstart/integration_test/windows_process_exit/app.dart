@@ -48,18 +48,26 @@ void main(List<String> arguments) {
         child: Texture(textureId: texture.flutterTextureId),
       ),
     ));
-    // The first Windows blit primes the surface; exercise another frame too.
-    for (var frame = 0; frame < 2; frame++) {
-      await viewer.renderSingleFrame();
-      await texture.markTextureFrameAvailable();
-    }
+    // One publication starts the lazy blit worker and is sufficient to trigger
+    // the shutdown regression. Sustained blitting is a separate graphics test.
+    await viewer.renderSingleFrame();
+    await texture.markTextureFrameAvailable();
     await WidgetsBinding.instance.endOfFrame;
-    ready.writeAsStringSync('frames-published', flush: true);
 
     if (mode == 'dart-exit') {
+      ready.writeAsStringSync('frame-published', flush: true);
       // Do not dispose the viewer, texture, engine, or plugin before this call.
       exit(0);
     }
+
+    // The control exercises orderly application cleanup, then lets window
+    // destruction stop/join the native plugin's still-running blit worker.
+    runApp(const SizedBox.expand());
+    await WidgetsBinding.instance.endOfFrame;
+    await plugin.destroyTextureForView(viewer.view);
+    await viewer.dispose();
+    await viewer.app.destroy();
+    ready.writeAsStringSync('viewer-disposed', flush: true);
     // run.ps1 sends a normal window-close request after observing readiness.
   }, (error, stack) {
     stderr.writeln('$error\n$stack');
