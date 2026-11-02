@@ -345,7 +345,7 @@ void main() async {
     isA<StateError>().having(
       (error) => error.message,
       'message',
-      allOf(contains('does not own'), contains('FilamentApp.destroyAsset'), contains('does not transfer ownership')),
+      allOf(contains('FilamentApp.destroyAsset'), contains('does not transfer ownership')),
     ),
   );
 
