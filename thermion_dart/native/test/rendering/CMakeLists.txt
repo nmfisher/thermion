@@ -62,10 +62,3 @@ if(THERMION_TEST_LIBRARY AND FILAMENT_TEST_INCLUDE_DIR)
     set_tests_properties(render_pause_nonblocking
         PROPERTIES TIMEOUT 10)
 endif()
-
-# Frame admission needs no GPU or Filament library.
-add_executable(frame_admission_test frame_admission_test.cpp)
-target_compile_features(frame_admission_test PRIVATE cxx_std_17)
-target_include_directories(frame_admission_test PRIVATE ../../include)
-add_test(NAME frame_admission COMMAND frame_admission_test)
-set_tests_properties(frame_admission PROPERTIES TIMEOUT 10)

@@ -37,9 +37,6 @@
 
 #include "Log.hpp"
 #include "rendering/RenderManager.hpp"
-#ifdef __EMSCRIPTEN__
-#include "rendering/FrameAdmission.hpp"
-#endif
 #include "PluginAPI.hpp"
 
 namespace thermion
@@ -147,11 +144,14 @@ namespace thermion
     }
 
     auto beforeBegin = std::chrono::high_resolution_clock::now();
-#ifdef __EMSCRIPTEN__
-    bool beginFrame = detail::beginFrameWithRetry(
-        *mRenderer, attachment.swapChain, frameTimeInNanos);
-#else
     bool beginFrame = mRenderer->beginFrame(attachment.swapChain, frameTimeInNanos);
+#ifdef __EMSCRIPTEN__
+    // Filament 1.77.2 flushes its queued backend poll after rejecting admission.
+    // Its single-threaded flush executes that work, so one retry can use fresh
+    // fence state. Each attempt advances Filament's internal frame bookkeeping.
+    if (!beginFrame) {
+      beginFrame = mRenderer->beginFrame(attachment.swapChain, frameTimeInNanos);
+    }
 #endif
     auto afterBegin = std::chrono::high_resolution_clock::now();
     float beginMs = std::chrono::duration_cast<std::chrono::nanoseconds>(afterBegin - beforeBegin).count() / 1e6f;

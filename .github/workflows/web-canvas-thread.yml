@@ -10,7 +10,6 @@ on:
       - 'thermion_dart/native/src/c_api/ThermionDartJobThreadApi.cpp'
       - 'thermion_dart/native/web/**'
       - 'thermion_dart/native/test/web/**'
-      - 'thermion_dart/native/test/rendering/**'
   workflow_dispatch:
 
 permissions:
@@ -34,14 +33,6 @@ jobs:
         with:
           version: '6.0.4'
           actions-cache-folder: 'emsdk-cache'
-
-      - name: Test native frame scheduling and admission
-        run: |
-          build_dir="$RUNNER_TEMP/thermion-rendering-tests"
-          cmake -S thermion_dart/native/test/rendering -B "$build_dir" \
-            -DCMAKE_BUILD_TYPE=Release
-          cmake --build "$build_dir" --parallel 2
-          ctest --test-dir "$build_dir" --output-on-failure
 
       - name: Download matching Filament web libraries
         run: |
@@ -71,5 +62,6 @@ jobs:
           cmake --build "$build_dir" --parallel 2
           node "$build_dir/web_upload_drain_test.js"
           node "$build_dir/web_canvas_thread_test.js"
+          node "$build_dir/web_frame_admission_test.js"
           node thermion_dart/native/test/web/worker_render_noop_test.cjs \
             "$RUNNER_TEMP/thermion-web-OFF/build/out/thermion_dart.js"
