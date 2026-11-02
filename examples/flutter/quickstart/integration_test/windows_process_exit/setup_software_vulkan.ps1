@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$bundle = (Resolve-Path $BundleDirectory).Path
+$bundle = (New-Item -ItemType Directory -Force $BundleDirectory).FullName
 $download = Join-Path $env:RUNNER_TEMP 'thermion-software-vulkan'
 New-Item -ItemType Directory -Force $download | Out-Null
 
@@ -30,6 +30,11 @@ Copy-Item "$runtimeX64/vulkan-1.dll", "$runtimeX64/vulkaninfo.exe" $bundle
 
 $env:VK_DRIVER_FILES = Join-Path $bundle 'dzn_icd.x86_64.json'
 $env:DZN_DEBUG = 'warp'
+# Elevated Windows processes ignore driver-path environment overrides. GitHub's
+# runner is elevated, so install this ICD through the normal discovery key.
+$driversKey = 'HKLM:\SOFTWARE\Khronos\Vulkan\Drivers'
+New-Item $driversKey -Force | Out-Null
+New-ItemProperty $driversKey -Name $env:VK_DRIVER_FILES -PropertyType DWord -Value 0 -Force | Out-Null
 "VK_DRIVER_FILES=$env:VK_DRIVER_FILES" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
 'DZN_DEBUG=warp' | Out-File $env:GITHUB_ENV -Append -Encoding utf8
 & "$bundle/vulkaninfo.exe" --summary

@@ -65,6 +65,12 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.head_ref || github.ref }}
 
+      - name: Set up software Vulkan (Mesa Dozen over WARP)
+        shell: pwsh
+        run: |
+          & ./examples/flutter/quickstart/integration_test/windows_process_exit/setup_software_vulkan.ps1 `
+            -BundleDirectory examples/flutter/quickstart/build/windows/x64/runner/Release
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -85,12 +91,6 @@ jobs:
         run: |
           flutter pub get
           flutter build windows --release --target integration_test/windows_process_exit/app.dart
-
-      - name: Set up software Vulkan (Mesa Dozen over WARP)
-        shell: pwsh
-        run: |
-          & ./examples/flutter/quickstart/integration_test/windows_process_exit/setup_software_vulkan.ps1 `
-            -BundleDirectory examples/flutter/quickstart/build/windows/x64/runner/Release
 
       - name: Test process exit and normal plugin teardown
         shell: pwsh
