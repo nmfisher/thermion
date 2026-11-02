@@ -37,6 +37,9 @@
 
 #include "Log.hpp"
 #include "rendering/RenderManager.hpp"
+#ifdef __EMSCRIPTEN__
+#include "rendering/FrameAdmission.hpp"
+#endif
 #include "PluginAPI.hpp"
 
 namespace thermion
@@ -144,7 +147,12 @@ namespace thermion
     }
 
     auto beforeBegin = std::chrono::high_resolution_clock::now();
+#ifdef __EMSCRIPTEN__
+    bool beginFrame = detail::beginFrameWithRetry(
+        *mEngine, *mRenderer, attachment.swapChain, frameTimeInNanos);
+#else
     bool beginFrame = mRenderer->beginFrame(attachment.swapChain, frameTimeInNanos);
+#endif
     auto afterBegin = std::chrono::high_resolution_clock::now();
     float beginMs = std::chrono::duration_cast<std::chrono::nanoseconds>(afterBegin - beforeBegin).count() / 1e6f;
 
