@@ -1,5 +1,19 @@
 > Shared changelog for `thermion_dart` and `thermion_flutter` (released in lockstep).
 
+## 0.6.0-pre.1 - 2026-11-02
+
+- Includes the Filament 1.77.2 upgrade and API changes described under
+  `0.6.0-pre.0` below; that earlier prerelease was not published to pub.dev.
+- Use `ffigen_js` 0.1.0 for correct C struct sizes, field offsets and four-byte
+  float-array access on web, including shadow and ambient-occlusion settings.
+- Retry web frame admission once after Filament flushes a rejected frame's
+  pending backend work, without drawing or advancing animations twice.
+- `viewer.destroyAsset` now throws `StateError` for live assets the viewer
+  does not own. Adding an asset to a scene does not transfer ownership.
+  Repeated cleanup of destroyed assets and cleanup during viewer teardown
+  remain safe. Destroy app-owned assets through `FilamentApp.destroyAsset`.
+- `thermion_flutter` accepts the matching `thermion_dart` prerelease dependency.
+
 ## 0.6.0-pre.0 - 2026-11-01
 
 Update to Filament v1.77.2! You will need to recompile your materials with `matc`.
