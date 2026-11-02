@@ -237,7 +237,7 @@ jobs:
           v="${{ needs.check.outputs.version }}"
           ID=""
           for i in $(seq 1 12); do
-            ID="$(gh run list --workflow "Publish to pub.dev" --event push --branch "v$v" --limit 1 --json id --jq '.[0].id // ""' 2>/dev/null || true)"
+            ID="$(gh run list --workflow "Publish to pub.dev" --event push --branch "v$v" --limit 1 --json databaseId --jq '.[0].databaseId // ""' 2>/dev/null || true)"
             [ -n "$ID" ] && break
             sleep 25
           done
@@ -253,7 +253,7 @@ jobs:
         run: |
           set -euo pipefail
           v="${{ needs.check.outputs.version }}"
-          ID="$(gh run list --workflow "Deploy site" --event push --branch "v$v" --limit 1 --json id --jq '.[0].id // ""' 2>/dev/null || true)"
+          ID="$(gh run list --workflow "Deploy site" --event push --branch "v$v" --limit 1 --json databaseId --jq '.[0].databaseId // ""' 2>/dev/null || true)"
           if [ -z "$ID" ]; then
             echo "::error::No 'Deploy site' run fired for tag v$v. See https://github.com/${{ github.repository }}/actions/workflows/deploy.yml"
             exit 1
