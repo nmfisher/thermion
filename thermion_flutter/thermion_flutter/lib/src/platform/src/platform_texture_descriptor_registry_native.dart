@@ -11,9 +11,8 @@ import 'method_channel_platform_texture_descriptor.dart';
 import 'platform_texture_descriptor.dart';
 import 'platform_texture_descriptor_registry.dart';
 
-typedef TextureMutationRunner = Future<T> Function<T>(
-  Future<T> Function() operation,
-);
+typedef TextureMutationRunner =
+    Future<T> Function<T>(Future<T> Function() operation);
 
 class FilamentRenderingContext {
   const FilamentRenderingContext({
