@@ -47,6 +47,12 @@ permissions:
   contents: read
   actions: read
 
+# The watcher uses gh without checking out a repository. The CLI also needs
+# an explicit token; permissions alone do not populate its environment.
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GH_REPO: ${{ github.repository }}
+
 concurrency:
   # One release at a time. A newer dispatch cancels an in-flight one.
   group: release
