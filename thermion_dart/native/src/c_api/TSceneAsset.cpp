@@ -111,7 +111,10 @@ extern "C"
             return nullptr;
         }
         
-        auto gltfAsset = reinterpret_cast<GltfSceneAsset *>(tSceneAsset);
+        // A GltfSceneAssetInstance is Gltf-typed too but is not a
+        // GltfSceneAsset; resolve it to its owner like the buffer getters do.
+        auto gltfAsset = reinterpret_cast<GltfSceneAsset *>(
+            sceneAsset->isInstance() ? sceneAsset->getInstanceOwner() : sceneAsset);
         auto *filamentAsset = gltfAsset->getAsset();
         TRACE("SceneAsset %d FilamentAsset %d", sceneAsset, filamentAsset);
         return reinterpret_cast<TFilamentAsset *>(filamentAsset);
