@@ -1,5 +1,13 @@
 > Shared changelog for `thermion_dart` and `thermion_flutter` (released in lockstep).
 
+## 0.6.0-pre.2 - 2026-11-02
+
+- Includes the Filament 1.77.2 upgrade and web/lifecycle fixes described in
+  `0.6.0-pre.1` and `0.6.0-pre.0` below; neither earlier prerelease was published.
+- Keep ownership-error tests independent of incidental wording and correct the
+  release workflow's GitHub run-ID lookups.
+- `thermion_flutter` accepts the matching `thermion_dart` prerelease dependency.
+
 ## 0.6.0-pre.1 - 2026-11-02
 
 - Includes the Filament 1.77.2 upgrade and API changes described under
