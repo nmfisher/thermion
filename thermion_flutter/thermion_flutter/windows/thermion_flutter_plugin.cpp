@@ -168,32 +168,6 @@ namespace thermion::tflutter::windows
     }
   }
 
-#ifdef THERMION_BLIT_WORKER_SHUTDOWN_TEST
-  // Only compiled into the CI test build. Exercise the real worker and plugin
-  // destructor without initializing a Flutter engine or any GPU resources.
-  class ShutdownTestMessenger final : public flutter::BinaryMessenger {
-   public:
-    void Send(const std::string&, const uint8_t*, size_t,
-              flutter::BinaryReply) const override {}
-    void SetMessageHandler(const std::string&,
-                           flutter::BinaryMessageHandler) override {}
-  };
-
-  extern "C" __declspec(dllexport) void* ThermionTestStartBlitWorker() {
-    static ShutdownTestMessenger messenger;
-    auto channel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-        &messenger, "thermion/shutdown-test",
-        &flutter::StandardMethodCodec::GetInstance());
-    auto* plugin = new ThermionFlutterPlugin(nullptr, nullptr, channel);
-    EnsureBlitWorkerStarted();
-    return plugin;
-  }
-
-  extern "C" __declspec(dllexport) void ThermionTestDestroyPlugin(void* plugin) {
-    delete static_cast<ThermionFlutterPlugin*>(plugin);
-  }
-#endif
-
   static void EnqueueBlit(BlitJob&& job) {
     EnsureBlitWorkerStarted();
     {
