@@ -341,7 +341,15 @@ void main() async {
     });
   }
 
-  test('app-created geometry stays app-owned when added to the viewer', () async {
+  final unownedAssetError = throwsA(
+    isA<StateError>().having(
+      (error) => error.message,
+      'message',
+      allOf(contains('does not own'), contains('FilamentApp.destroyAsset'), contains('does not transfer ownership')),
+    ),
+  );
+
+  test('destroyAsset rejects app-created geometry even when added to the viewer', () async {
     await ViewerBuilder(testHelper).execute((result) async {
       final app = FilamentApp.instance!;
       final asset = await app.createGeometry(GeometryUtils.cube());
@@ -352,8 +360,8 @@ void main() async {
       await result.viewer.addToScene(instance);
       final box = await result.viewer.showBoundingBox(asset);
       try {
-        await result.viewer.destroyAsset(asset);
-        await result.viewer.destroyAsset(instance);
+        await expectLater(result.viewer.destroyAsset(asset), unownedAssetError);
+        await expectLater(result.viewer.destroyAsset(instance), unownedAssetError);
         await result.viewer.destroyAssets();
         expect(app.renderableManager.hasComponent(entity), isTrue);
         expect(app.renderableManager.hasComponent(instanceEntity), isTrue);
@@ -379,6 +387,64 @@ void main() async {
       expect(app.renderableManager.hasComponent(box.entity), isFalse);
     });
   });
+
+  test('destroyAsset rejects app-created glTF assets and instances', () async {
+    await ViewerBuilder(testHelper).execute((result) async {
+      final asset = await app.loadGltfFromBuffer(gltfData, releaseSourceData: false);
+      try {
+        final instance = await asset.createInstance();
+        await result.viewer.addToScene(asset);
+        await result.viewer.addToScene(instance);
+        for (final target in [asset, instance]) {
+          final entity = target.entity;
+          await expectLater(result.viewer.destroyAsset(target), unownedAssetError);
+          expect(target.isDestroyed, isFalse);
+          expect(app.transformManager.hasComponent(entity), isTrue);
+        }
+        await result.viewer.destroyAssets();
+        expect(asset.isDestroyed, isFalse);
+        expect(instance.isDestroyed, isFalse);
+      } finally {
+        await result.viewer.removeFromScene(asset);
+        await app.destroyAsset(asset);
+      }
+      // Cleanup after external destruction remains safe for foreign handles.
+      await result.viewer.destroyAsset(asset);
+    });
+  });
+
+  for (final kind in ['geometry', 'glTF']) {
+    test('destroyAsset rejects $kind assets and instances owned by another viewer', () async {
+      await ViewerBuilder(testHelper).execute((first) async {
+        await ViewerBuilder(testHelper).execute((second) async {
+          final asset = kind == 'geometry'
+              ? await first.viewer.createGeometry(GeometryUtils.cube())
+              : await first.viewer.loadGltfFromBuffer(gltfData, releaseSourceData: false);
+          try {
+            final instance = await asset.createInstance();
+            await second.viewer.addToScene(asset);
+            await second.viewer.addToScene(instance);
+            for (final target in [asset, instance]) {
+              await expectLater(second.viewer.destroyAsset(target), unownedAssetError);
+              expect(target.isDestroyed, isFalse);
+            }
+            await second.viewer.destroyAssets();
+            expect(asset.isDestroyed, isFalse);
+            expect(instance.isDestroyed, isFalse);
+            await second.viewer.removeFromScene(instance);
+            await second.viewer.removeFromScene(asset);
+            await first.viewer.destroyAsset(instance);
+            await first.viewer.destroyAsset(asset);
+            // Another viewer may still receive cleanup for stale wrappers.
+            await second.viewer.destroyAsset(instance);
+            await second.viewer.destroyAsset(asset);
+          } finally {
+            if (!asset.isDestroyed) await first.viewer.destroyAsset(asset);
+          }
+        });
+      });
+    });
+  }
 
   test('remove and destroy assets and lights while the viewer is disposed', () async {
     await ViewerBuilder(testHelper).execute((result) async {
