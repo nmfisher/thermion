@@ -290,11 +290,11 @@ class FFIView extends View<Pointer<TView>> {
     y = viewport.height - y;
     _pendingPickCount++;
     try {
-      if (FILAMENT_WASM) {
-        View_pickJobThread(_app.jobThreadHandle, view, pickRequestId, x, y, _onPickResultHolder.pointer);
-      } else {
-        View_pick(view, pickRequestId, x, y, _onPickResultHolder.pointer);
-      }
+      // Always on the job thread: View::pick links a query into the list
+      // the render job reads twice per frame without a lock, so calling
+      // View_pick from the Dart thread could land between the two reads
+      // (FrameGraph::assertValid abort on Windows after repeated picks).
+      View_pickJobThread(_app.jobThreadHandle, view, pickRequestId, x, y, _onPickResultHolder.pointer);
     } catch (_) {
       _pendingPickCount--;
       _pickRequests[pickRequestId % kMaxPickRequests] = null;
