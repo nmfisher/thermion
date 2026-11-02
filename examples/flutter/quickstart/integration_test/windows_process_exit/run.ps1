@@ -33,7 +33,11 @@ foreach ($mode in @('no-viewer', 'window-close', 'dart-exit')) {
     }
     Get-Content $stdout
     Get-Content $stderr
-    $marker = if ($mode -eq 'no-viewer') { 'flutter-ready' } else { 'frames-published' }
+    $marker = switch ($mode) {
+        'no-viewer' { 'flutter-ready' }
+        'window-close' { 'viewer-disposed' }
+        'dart-exit' { 'frame-published' }
+    }
     $readyContent = if (Test-Path $ready) { Get-Content $ready -Raw } else { '' }
     if ($process.ExitCode -ne 0 -or $readyContent -ne $marker -or
         ($mode -eq 'window-close' -and -not $closeRequested)) {
