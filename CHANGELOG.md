@@ -1,6 +1,6 @@
 > Shared changelog for `thermion_dart` and `thermion_flutter` (released in lockstep).
 
-## 0.6.0 - 2026-11-01
+## 0.6.0-pre.0 - 2026-11-01
 
 Update to Filament v1.77.2! You will need to recompile your materials with `matc`.
 

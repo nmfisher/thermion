@@ -7,7 +7,7 @@ description: >
   parameter setters (setParameterFloat/Float3/Float4/Int/Bool/Texture/Mat3/Mat4),
   texture binding with samplers, swapping materials on loaded assets
   (setMaterialInstanceForAll, setMaterialInstanceAt), flat vs smooth shading,
-  and the rebuildVertices requirement. Use when changing an object's color,
+  and the requiredGeometryCapabilities requirement. Use when changing an object's color,
   making it metallic/rough/glowing, showing wireframe, applying textures, or
   swapping materials at runtime. Triggers: material, materials, pbr, metallic,
   roughness, base color, color, texture, unlit, wireframe, flat shading,
@@ -59,7 +59,7 @@ clearcoat family or the transmission family of features, not both.
 final unlit = await viewer.app.createUnlitMaterialInstance();
 
 // Wireframe: edges + faces with separate colors (requires the asset to have
-// been loaded with rebuildVertices: true — see Gotchas).
+// been loaded with requiredGeometryCapabilities: {SceneAssetGeometryCapability.barycentrics} — see Gotchas).
 final wireframe = await viewer.app.createWireframeMaterialInstance();
 await wireframe.setEdgeColor(0.3, 0.3, 0.3, 1.0);
 await wireframe.setFaceColor(0.1, 0.1, 0.1, 1.0);
@@ -84,7 +84,7 @@ final saved = await asset.getMaterialInstancesAsMap();
 await asset.setMaterialInstancesFromMap(saved);
 ```
 
-Loading with `rebuildVertices: true` makes these swaps work on any glTF
+Loading with `requiredGeometryCapabilities: {SceneAssetGeometryCapability.barycentrics}` makes these swaps work on any glTF
 (the loader rebuilds vertex buffers with a superset of attributes).
 
 ## Generic parameter setters
@@ -130,18 +130,20 @@ when done — GPU memory is not garbage-collected.
 ## Flat vs smooth shading
 
 ```dart
-final asset = await viewer.loadGltf('assets/rock.glb', rebuildVertices: true);
+final asset = await viewer.loadGltf('assets/rock.glb',
+    requiredGeometryCapabilities: const {SceneAssetGeometryCapability.barycentrics});
 await asset.setFlatShading(true);   // per-face normals
 await asset.setFlatShading(false);  // per-vertex (smooth)
 ```
 
-Throws unless the asset was loaded with `rebuildVertices: true` (flat
-shading swaps TANGENTS on the rebuilt vertex buffers).
+Throws unless the asset was loaded with `requiredGeometryCapabilities:
+{SceneAssetGeometryCapability.barycentrics}` (flat shading swaps TANGENTS on
+the rebuilt vertex buffers).
 
 ## Gotchas
 
 - `setFlatShading` and `setStencilHighlight` **throw** unless the asset was
-  loaded with `loadGltf(..., rebuildVertices: true)` (~3x vertex memory);
+  loaded with `requiredGeometryCapabilities: {SceneAssetGeometryCapability.barycentrics}` (~3x vertex memory);
   wireframe swaps also need it.
 - Color values are **linear** (not sRGB) floats in `[0, 1]`.
 - Unlit materials ignore lights and IBL entirely.

@@ -16,7 +16,9 @@
 #
 # Intended for CI: run it whenever filament.version changes, then commit the
 # diff (see the materials jobs in
-# .github/workflows/regenerate-bindings-and-materials.yml). matc output for a
+# .github/workflows/regenerate-bindings-and-materials.yml; only the resgen
+# .c/.h outputs under thermion_dart/native/include/material/ are committed —
+# the .S/.apple.S/.bin outputs are unused and .gitignore'd). matc output for a
 # fixed version is deterministic, so an already-up-to-date tree produces no
 # diff and no commit.
 set -eu
