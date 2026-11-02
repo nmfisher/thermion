@@ -1,5 +1,215 @@
 > Shared changelog for `thermion_dart` and `thermion_flutter` (released in lockstep).
 
+## 0.6.0 - 2026-11-02
+
+Stable release of `0.6.0-pre.3`, with no runtime changes since that prerelease.
+
+Update to Filament v1.77.2! You will need to recompile your materials with `matc`.
+
+### Breaking changes
+
+Native and Wasm libraries must be rebuilt together with the updated Dart bindings; many of the changes below are C API changes.
+
+- Linux setup now uses Clang/libc++ 18, matching the Filament archive build.
+  Ubuntu 22.04's default libc++ 14 cannot link the new archives. Deployed apps
+  also need a compatible libc++ runtime; see the [Linux setup instructions](docs/src/content/docs/linux.mdx)
+  (#327).
+
+- Replace the `rebuildVertices` in `ThermionViewer.loadGltf`,
+  `ThermionViewer.loadGltfFromBuffer`, and `FilamentApp.loadGltfFromBuffer` with
+  `requiredGeometryCapabilities`. An empty set leaves gltfio geometry untouched;
+  requesting `barycentrics` or `uniqueTriangleCorners` creates per-triangle vertices, while
+  requesting `writableVertices`, `preservedTopology`, or `accessibleGeometryBuffers`
+  preserves source vertex order, indices, and morph-target compatibility in
+  directly writable buffers.
+  Assets report the complete capability set actually provided through
+  `ThermionAsset.geometryCapabilities`.
+
+- remove the unused `FilamentApp.createColorGrading` — it returned a raw
+  pointer nobody could destroy; use `View.createColorGradingBuilder().build()`
+  instead.
+
+- remove `View.setToneMapper` and `ThermionViewer.setToneMapper` - use
+  `view.createColorGradingBuilder().toneMapper(...).build()` followed by
+  `view.setColorGrading()` instead.
+
+- Replace `ThermionAsset.getMorphTargetNames` and `setMorphTargetWeights` with
+  `getMorphTargets` / `getMorphTargetSets`. `RenderableManager.setMorphWeights`
+  now infers and enforces the complete target count; use `setMorphWeightAt` for
+  a single indexed update.
+
+- Rename `RenderThread` to `JobThread` throughout the C++ implementation,
+  C API entry points and Dart bindings/callers: `RenderThread_create` becomes
+  `JobThread_create`, `Engine_createRenderThread` becomes
+  `Engine_createJobThread`, and `FFIFilamentApp.renderThreadHandle` becomes
+  `jobThreadHandle`. Update renamed call sites.
+
+- Rename `withIntCallback` to `withInt32Callback` to make its native width
+  explicit. Update callers.
+
+- `RenderManager.destroy()` now returns `Future<void>`. Await it before
+  destroying engine resources. Manager detachment and deletion run on the
+  owning thread after earlier commands.
+
+- Add `ThermionAsset.owner` for the immediate owning asset. Deprecate
+  `instanceOwner`; use `owner`, or `isInstance ? owner : null` for the native
+  instance source. The deprecated getter retains its existing behavior.
+  Classes using `implements ThermionAsset` must add `owner`. Subclasses can
+  inherit the compatibility default.
+
+- Bounding-box geometry and its generated material are now owned by the target
+  asset and shared between viewers. Viewer show/hide calls control scene
+  attachment. The `destroy` parameter on `viewer.hideBoundingBox` is retained
+  but deprecated and still works (when true, it destroys the shared box in
+  every viewer); use `asset.destroyBoundingBox()` to discard the cached
+  geometry and material.
+
+- Remove the unused native `RenderManager_requestRender` API. Update any custom bindings that called it.
+
+- `thermion_flutter` (Android) migrates to Flutter's built-in Kotlin: the
+  plugin no longer applies the Kotlin Gradle Plugin itself, so apply it in
+  your own Gradle build if you relied on that. Minimum supported SDK is now
+  Flutter 3.44 / Dart 3.12.
+
+- `ColorGrading` follows Filament's ownership model (caller manages
+  lifecycle). A `ColorGrading` must be dissociated from every view
+  (`setColorGrading` with a replacement or null) BEFORE calling
+  `ColorGrading.dispose()`. Attaching one grading to multiple views remains
+  supported, but its lifetime is entirely yours.
+
+- `LightManager.setShadowCaster`/`setShadowOptions` and
+  `RenderableManager.setCastShadows`/`setReceiveShadows` now return `Future`
+  instead of `void` (internally, these now correctly run on the
+  main Filament thread).
+
+- Custom materials must be recompiled with `matc` from the Filament 1.77.2
+  archives. Material packages built against an incompatible Filament material
+  format are now rejected before loading: `createMaterial` completes with a
+  Dart `FormatException` (for example, `Material format version 69 is
+  incompatible with expected version 75`) instead of letting Filament abort
+  the process (#331).
+
+- `thermion_dart` on Darwin moves to `objective_c` 9.x, so Swift Package
+  Manager-only apps can drop CocoaPods (#308).
+
+- `TranslationAxisMaterial.createMaterialInstance` and the `ToneMapper` factory
+  methods take the abstract `FilamentApp` instead of `FFIFilamentApp`, so
+  callers no longer need to downcast (`ToneMapper.aces(FilamentApp.instance!)`
+  just works).
+
+### Changes
+- Use `ffigen_js` 0.1.0 for correct C struct sizes, field offsets and four-byte
+  float-array access on web, including shadow and ambient-occlusion settings.
+- Retry web frame admission once after Filament flushes a rejected frame's
+  pending backend work, without drawing or advancing animations twice.
+- `viewer.destroyAsset` throws `StateError` for live assets the viewer does not
+  own. Adding an asset to a scene does not transfer ownership. Repeated cleanup
+  of destroyed assets and cleanup during viewer teardown remain safe. Destroy
+  app-owned assets through `FilamentApp.destroyAsset`.
+- Refresh the canonical generated Swift bindings and verify all generated
+  artifacts before publishing.
+
+- `allocate` FFI shim now takes `byteCount` instead of `count`
+- Add SAO/GTAO algorithm selection and GTAO sampling, thickness, and
+  visibility-bitmask controls to `AmbientOcclusionOptions`.
+- Expose global and per-light PCSS penumbra and blocker-search controls.
+- Expose visible-renderable diagnostics on views.
+
+- C++ exceptions are disabled in Filament and Thermion runtime builds (debug
+  and release), so Filament panics now abort the process. Behaviour change
+  only — no consumer code changes needed; Dart exceptions and ordinary error
+  results remain available, and host tools keep C++ exceptions (#327).
+
+- Remove `imageio` and its headers from runtime archives. Thermion does not use
+  this library; it is still built for host tools such as `cmgen` (#327).
+
+- Add `ThermionAsset.isDestroyed`, true once destruction of the asset or its
+  owner has started and the asset can no longer be used.
+
+- `ThermionViewer.setBackgroundColor` and `ThermionViewer.loadSkybox` now
+  return the created `Skybox`, and `ThermionViewer.getSkybox` returns whatever
+  skybox is currently attached to the viewer's scene. The viewer no longer
+  caches the skybox internally: `removeSkybox` derives it from the scene,
+  detaches it, and returns it without destroying caller-owned resources, so
+  you now own the returned skybox.
+
+- `Skybox` is now exported from the public API with methods for layer mask, intensity, etc.
+
+- Apply the web target frame rate to actual drawing, independently for each engine.
+
+- Run web worker commands and shutdown independently of animation frames.
+  Workers drain accepted commands on their owning thread before deleting
+  themselves.
+
+- Deliver web worker completions through a module-lifetime callback queue,
+  without Dart polling. Read view names into caller-owned UTF-8 buffers on native
+  and web, with capacity checks and ordered resize retries. Use `ffigen_js`
+  0.1.0 so Wasm buffers use the existing allocation/free API.
+
+- Make web pause controls nonblocking to prevent deadlocks with main-thread
+  upload callbacks.
+
+- Let Dart isolates exit after their native void callbacks finish, without
+  closing the shared callback listener while requests are still pending.
+
+- Add opt-in main-thread rendering for standalone web clients. Build the web
+  library with `THERMION_WEB_MAIN_THREAD=ON` to run Thermion on the browser's
+  main thread, without creating a render worker or transferring the canvas;
+  drive frames by calling `FilamentApp.render()` from your animation loop. The
+  default worker-based build is unchanged (#377).
+
+- Upgrade Filament from 1.75.0 to 1.77.2 and expose the bundled release through
+  the public Dart `filamentVersion` constant (#327).
+
+- Include WebGPU-capable `matc` and `resgen` tools in the standard Linux archives
+  for regenerating materials (#327).
+
+- `ThermionAsset.setCastShadows` / `setReceiveShadows` skip entities without a
+  renderable component (bones, empties, attachment nodes) instead of logging
+  `Error: invalid renderable` for each one.
+
+- `FilamentApp` exposes the native engine handle as a public
+  `Pointer<TEngine> get engine` (thermion_dart is FFI-backed on every supported
+  target, including web/WASM).
+
+- `ColorGrading` and `ColorGradingBuilder` expose `dispose()` through the
+  public interface (previously FFI-only / missing).
+
+- `RenderableBuilder.geometryNonIndexed` and
+  `ThermionRenderableManager.setGeometryAtNonIndexed` expose Filament's
+  non-indexed geometry, so procedural geometry (e.g. particles) can render
+  without an `IndexBuffer`, including attribute-less vertex buffers built
+  with `bufferCount(0)`.
+
+- Fix intermittent `RenderableManager.setMorphWeights` crashes by validating
+  source ranges, copying FFI payloads before asynchronous dispatch, and
+  applying updates on the owning render thread. This also prevents temporary
+  morph-weight buffers from leaking Emscripten stack space on web.
+
+- Add `MorphTarget` and asset-bound `MorphTargetSet` APIs for discovering the
+  entity, index, and optional name of every morph target. Named and indexed
+  updates no longer require callers to construct an opaque full weight array;
+  strict full-pose updates remain available through `setAllWeights`.
+
+- Apply overlapping custom morph animations oldest-first so the most recently
+  added animation has final priority for shared targets. Active animations
+  continue to overwrite manual weights on their next update.
+
+- Fix topology-preserving glTF assets so their vertex streams can be updated
+  through `VertexBuffer.setBufferAt`; editable buffers no longer use
+  the `BufferObject` backing reserved for unwelded smooth/flat shading swaps.
+  Buffer updates, flat shading, and stencil highlighting now throw actionable
+  errors when used with incompatible buffer storage or asset capabilities.
+  Stencil highlighting accepts both editable and unwelded glTF geometry, plus
+  procedural geometry, because its silhouette pass only requires preserved
+  vertex/index buffers; flat shading remains unwelded-only.
+
+- Expose native `VertexBuffer.storageMode` metadata and first-class
+  `BufferObject` creation, upload, and attachment APIs. `supportsSetBufferAt`
+  is now derived from immutable metadata supplied by the native builder or
+  owning asset, without a global pointer registry or duplicated glTF load
+  state in Dart. Asset-owned vertex buffers are explicitly borrowed.
+
 ## 0.6.0-pre.3 - 2026-11-02
 
 - Includes the Filament 1.77.2 upgrade and web/lifecycle fixes described in the
