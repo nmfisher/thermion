@@ -228,7 +228,8 @@ VkResult createVulkanInstance(VkInstance *instance)
         #ifdef _WIN32
         VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
         #endif
-        VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
+        // External-memory capabilities are core in Vulkan 1.1 (requested
+        // below). Drivers need not advertise the former extension name.
         // VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
         // VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME
         VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME};
