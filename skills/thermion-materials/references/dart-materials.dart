@@ -51,10 +51,13 @@ Future<void> main(List<String> argv) async {
   await mat.setBaseColorFactor(0.85, 0.5, 0.2, 1.0);
   await pbrAsset.setMaterialInstanceForAll(mat.materialInstance);
 
-  // Right cube: wireframe. rebuildVertices: true rebuilds vertex buffers with
-  // barycentric attributes so the wireframe material can be swapped in freely.
-  final wireAsset =
-      await viewer.loadGltf(assetUri('cube.glb'), rebuildVertices: true);
+  // Right cube: wireframe. requiredGeometryCapabilities: {barycentrics}
+  // rebuilds vertex buffers with barycentric attributes so the wireframe
+  // material can be swapped in freely.
+  final wireAsset = await viewer.loadGltf(assetUri('cube.glb'),
+      requiredGeometryCapabilities: const {
+        SceneAssetGeometryCapability.barycentrics
+      });
   await wireAsset.transformToUnitCube();
   await wireAsset.setTransform(Matrix4.translation(Vector3(1.2, 0, 0)));
 

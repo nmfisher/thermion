@@ -104,8 +104,12 @@ Future<void> setupMaterialsAndLighting(
   }
 
   // Wireframe cube, far left.
-  final wireframe =
-      await viewer.loadGltf("$assetsDir/cube.glb", rebuildVertices: true);
+  final wireframe = await viewer.loadGltf(
+    "$assetsDir/cube.glb",
+    requiredGeometryCapabilities: const {
+      SceneAssetGeometryCapability.barycentrics,
+    },
+  );
   await wireframe.transformToUnitCube();
   await wireframe.setTransform(
     Matrix4.translation(Vector3(-6.2, 0.5, 0)) *
@@ -119,8 +123,12 @@ Future<void> setupMaterialsAndLighting(
   await wireframe.setMaterialInstanceForAll(wireMat.materialInstance);
 
   // Flat-shaded cube, far right.
-  final flat =
-      await viewer.loadGltf("$assetsDir/cube.glb", rebuildVertices: true);
+  final flat = await viewer.loadGltf(
+    "$assetsDir/cube.glb",
+    requiredGeometryCapabilities: const {
+      SceneAssetGeometryCapability.barycentrics,
+    },
+  );
   await flat.transformToUnitCube();
   await flat.setTransform(
     Matrix4.translation(Vector3(6.2, 0.5, 0)) *

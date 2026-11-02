@@ -41,7 +41,9 @@ class _PickPageState extends State<PickPage> {
     final cubes = <ThermionAsset>[];
     for (final x in [-1.5, 0.0, 1.5]) {
       final cube = await viewer.loadGltf('assets/cube.glb',
-          rebuildVertices: true);
+          requiredGeometryCapabilities: const {
+            SceneAssetGeometryCapability.barycentrics
+          });
       await cube.transformToUnitCube();
       await cube.setTransform(Matrix4.translation(Vector3(x, 0, 0)));
       cubes.add(cube);
