@@ -20,22 +20,29 @@ struct SwapChain {
     bool cachedComplete;
 };
 
-struct Renderer {
-    std::vector<std::pair<SwapChain*, uint64_t>> attempts;
-    bool beginFrame(SwapChain* swapChain, uint64_t timestamp) {
-        attempts.emplace_back(swapChain, timestamp);
-        return swapChain->cachedComplete;
-    }
-};
-
 struct Engine {
-    std::vector<SwapChain*> swapChains;
+    std::vector<SwapChain*> pendingPolls;
     unsigned executions = 0;
     void execute() {
         ++executions;
-        for (auto* swapChain : swapChains) {
+        for (auto* swapChain : pendingPolls) {
             swapChain->cachedComplete = swapChain->gpuComplete;
         }
+        pendingPolls.clear();
+    }
+};
+
+struct Renderer {
+    Engine& engine;
+    std::vector<std::pair<SwapChain*, uint64_t>> attempts;
+    bool beginFrame(SwapChain* swapChain, uint64_t timestamp) {
+        attempts.emplace_back(swapChain, timestamp);
+        // Match Filament's ordering: queue the poll, read cached completion,
+        // then flush/execute the poll if the frame was rejected.
+        engine.pendingPolls.push_back(swapChain);
+        const bool accepted = swapChain->cachedComplete;
+        if (!accepted) engine.execute();
+        return accepted;
     }
 };
 
@@ -45,21 +52,32 @@ int main()
     constexpr uint64_t timestamp = 123456789;
     {
         SwapChain ready{true, true};
-        Engine engine{{&ready}};
-        Renderer renderer;
-        require(beginFrameWithRetry(engine, renderer, &ready, timestamp),
+        Engine engine;
+        Renderer renderer{engine};
+        require(beginFrameWithRetry(renderer, &ready, timestamp),
                 "ready frame was rejected");
         require(renderer.attempts.size() == 1 && engine.executions == 0,
                 "ready frame retried or needlessly drained the backend");
     }
     {
         SwapChain stale{true, false};
-        Engine engine{{&stale}};
-        Renderer renderer;
-        require(beginFrameWithRetry(engine, renderer, &stale, timestamp),
+        Engine engine;
+        Renderer renderer{engine};
+        engine.execute(); // No fresh poll has been queued yet.
+        require(!stale.cachedComplete, "an empty drain invented a fence poll");
+        require(!renderer.beginFrame(&stale, timestamp),
+                "start-of-tick drain unexpectedly refreshed a future poll");
+        require(stale.cachedComplete,
+                "rejection did not execute the newly queued completion poll");
+    }
+    {
+        SwapChain stale{true, false};
+        Engine engine;
+        Renderer renderer{engine};
+        require(beginFrameWithRetry(renderer, &stale, timestamp),
                 "completed frame was dropped because its cache was stale");
         require(renderer.attempts.size() == 2 && engine.executions == 1,
-                "rejection did not drain and retry exactly once");
+                "retry added a redundant drain after Filament already flushed");
         for (const auto& attempt : renderer.attempts) {
             require(attempt.first == &stale && attempt.second == timestamp,
                     "retry changed swapchain or animation timestamp");
@@ -67,19 +85,19 @@ int main()
     }
     {
         SwapChain busy{false, false};
-        Engine engine{{&busy}};
-        Renderer renderer;
-        require(!beginFrameWithRetry(engine, renderer, &busy, timestamp),
+        Engine engine;
+        Renderer renderer{engine};
+        require(!beginFrameWithRetry(renderer, &busy, timestamp),
                 "busy GPU was forced to accept a frame");
-        require(renderer.attempts.size() == 2 && engine.executions == 1,
-                "busy GPU caused an unbounded retry or repeated drain");
+        require(renderer.attempts.size() == 2 && engine.executions == 2,
+                "busy GPU exceeded two admission attempts/rejection flushes");
     }
     {
         SwapChain ready{true, true}, stale{true, false};
-        Engine engine{{&ready, &stale}};
-        Renderer renderer;
-        for (auto* swapChain : engine.swapChains) {
-            require(beginFrameWithRetry(engine, renderer, swapChain, timestamp),
+        Engine engine;
+        Renderer renderer{engine};
+        for (auto* swapChain : std::array{&ready, &stale}) {
+            require(beginFrameWithRetry(renderer, swapChain, timestamp),
                     "partial rejection was hidden by another ready swapchain");
         }
         require(renderer.attempts.size() == 3 && engine.executions == 1,

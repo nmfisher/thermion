@@ -149,7 +149,7 @@ namespace thermion
     auto beforeBegin = std::chrono::high_resolution_clock::now();
 #ifdef __EMSCRIPTEN__
     bool beginFrame = detail::beginFrameWithRetry(
-        *mEngine, *mRenderer, attachment.swapChain, frameTimeInNanos);
+        *mRenderer, attachment.swapChain, frameTimeInNanos);
 #else
     bool beginFrame = mRenderer->beginFrame(attachment.swapChain, frameTimeInNanos);
 #endif
