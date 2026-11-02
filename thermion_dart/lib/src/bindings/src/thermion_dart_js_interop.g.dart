@@ -975,14 +975,31 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     VoidCallback onTextureUploadComplete,
     Pointer<NativeFunction<void Function(PointerClass<TTexture>)>> onComplete,
   );
-  external Pointer<TTexture> _Ktx2Reader_createTexture(Pointer<TEngine> tEngine, Pointer<Uint8> data, size_t size);
+  external Pointer<TKtx2LoadResult> _Ktx2Reader_createTexture(
+    Pointer<TEngine> tEngine,
+    Pointer<Uint8> data,
+    size_t size,
+    int transferFunction,
+    int maxMipLevels,
+  );
   external void _Ktx2Reader_createTextureJobThread(
     Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<Uint8> data,
     size_t size,
-    Pointer<NativeFunction<void Function(PointerClass<TTexture>)>> onComplete,
+    int transferFunction,
+    int maxMipLevels,
+    Pointer<NativeFunction<void Function(PointerClass<TKtx2LoadResult>)>> onComplete,
   );
+  external Pointer<TTexture> _Ktx2LoadResult_getTexture(Pointer<TKtx2LoadResult> tResult);
+  external int _Ktx2LoadResult_getSourceTransfer(Pointer<TKtx2LoadResult> tResult);
+  external int _Ktx2LoadResult_getResolvedFormat(Pointer<TKtx2LoadResult> tResult);
+  external int _Ktx2LoadResult_getHardwareSrgbDecode(Pointer<TKtx2LoadResult> tResult);
+  external int _Ktx2LoadResult_getAlphaMode(Pointer<TKtx2LoadResult> tResult);
+  external int _Ktx2LoadResult_getUploadedMipCount(Pointer<TKtx2LoadResult> tResult);
+  external int _Ktx2LoadResult_getSourceMipCount(Pointer<TKtx2LoadResult> tResult);
+  external int _Ktx2LoadResult_getSourceChannelCount(Pointer<TKtx2LoadResult> tResult);
+  external void _Ktx2LoadResult_destroy(Pointer<TKtx2LoadResult> tResult);
   external void _LightManager_computeLogSplits(Pointer<Float32> splitPositions, int cascades, double near, double far);
   external void _LightManager_computePracticalSplits(
     Pointer<Float32> splitPositions,
@@ -5383,9 +5400,21 @@ void Ktx1Reader_createTextureJobThread(
   return result;
 }
 
-Pointer<TTexture> Ktx2Reader_createTexture(Pointer<TEngine> tEngine, Pointer<Uint8> data, Dartsize_t size) {
-  final result = GeneratedBindings.instance._Ktx2Reader_createTexture(tEngine.cast(), data, size);
-  return Pointer<TTexture>(result);
+Pointer<TKtx2LoadResult> Ktx2Reader_createTexture(
+  Pointer<TEngine> tEngine,
+  Pointer<Uint8> data,
+  Dartsize_t size,
+  int transferFunction,
+  int maxMipLevels,
+) {
+  final result = GeneratedBindings.instance._Ktx2Reader_createTexture(
+    tEngine.cast(),
+    data,
+    size,
+    transferFunction,
+    maxMipLevels,
+  );
+  return Pointer<TKtx2LoadResult>(result);
 }
 
 void Ktx2Reader_createTextureJobThread(
@@ -5393,15 +5422,64 @@ void Ktx2Reader_createTextureJobThread(
   Pointer<TEngine> tEngine,
   Pointer<Uint8> data,
   Dartsize_t size,
-  Pointer<NativeFunction<void Function(Pointer<TTexture>)>> onComplete,
+  int transferFunction,
+  int maxMipLevels,
+  Pointer<NativeFunction<void Function(Pointer<TKtx2LoadResult>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Ktx2Reader_createTextureJobThread(
     jobThread.cast(),
     tEngine.cast(),
     data,
     size,
+    transferFunction,
+    maxMipLevels,
     onComplete.cast(),
   );
+  return result;
+}
+
+Pointer<TTexture> Ktx2LoadResult_getTexture(Pointer<TKtx2LoadResult> tResult) {
+  final result = GeneratedBindings.instance._Ktx2LoadResult_getTexture(tResult.cast());
+  return result.cast();
+}
+
+int Ktx2LoadResult_getSourceTransfer(Pointer<TKtx2LoadResult> tResult) {
+  final result = GeneratedBindings.instance._Ktx2LoadResult_getSourceTransfer(tResult.cast());
+  return result;
+}
+
+int Ktx2LoadResult_getResolvedFormat(Pointer<TKtx2LoadResult> tResult) {
+  final result = GeneratedBindings.instance._Ktx2LoadResult_getResolvedFormat(tResult.cast());
+  return result;
+}
+
+int Ktx2LoadResult_getHardwareSrgbDecode(Pointer<TKtx2LoadResult> tResult) {
+  final result = GeneratedBindings.instance._Ktx2LoadResult_getHardwareSrgbDecode(tResult.cast());
+  return result;
+}
+
+int Ktx2LoadResult_getAlphaMode(Pointer<TKtx2LoadResult> tResult) {
+  final result = GeneratedBindings.instance._Ktx2LoadResult_getAlphaMode(tResult.cast());
+  return result;
+}
+
+int Ktx2LoadResult_getUploadedMipCount(Pointer<TKtx2LoadResult> tResult) {
+  final result = GeneratedBindings.instance._Ktx2LoadResult_getUploadedMipCount(tResult.cast());
+  return result;
+}
+
+int Ktx2LoadResult_getSourceMipCount(Pointer<TKtx2LoadResult> tResult) {
+  final result = GeneratedBindings.instance._Ktx2LoadResult_getSourceMipCount(tResult.cast());
+  return result;
+}
+
+int Ktx2LoadResult_getSourceChannelCount(Pointer<TKtx2LoadResult> tResult) {
+  final result = GeneratedBindings.instance._Ktx2LoadResult_getSourceChannelCount(tResult.cast());
+  return result;
+}
+
+void Ktx2LoadResult_destroy(Pointer<TKtx2LoadResult> tResult) {
+  final result = GeneratedBindings.instance._Ktx2LoadResult_destroy(tResult.cast());
   return result;
 }
 
@@ -11424,6 +11502,21 @@ final class TJobThread extends Struct {
 
   static Pointer<TJobThread> stackAlloc() {
     return Pointer<TJobThread>(NativeLibrary.instance.stackAlloc<TJobThread>(0));
+  }
+}
+
+extension TKtx2LoadResultExt on Pointer<TKtx2LoadResult> {
+  TKtx2LoadResult toDart() {
+    return TKtx2LoadResult(this);
+  }
+}
+
+final class TKtx2LoadResult extends Struct {
+  Pointer<TKtx2LoadResult> get address => super.address.cast();
+  TKtx2LoadResult(super.address);
+
+  static Pointer<TKtx2LoadResult> stackAlloc() {
+    return Pointer<TKtx2LoadResult>(NativeLibrary.instance.stackAlloc<TKtx2LoadResult>(0));
   }
 }
 

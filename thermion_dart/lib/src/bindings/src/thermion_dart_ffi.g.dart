@@ -1459,13 +1459,23 @@ external void FilamentAsset_getWireframeJobThread(
 @ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
 external int FrameScheduler_initDartApi(ffi.Pointer<ffi.Void> data);
 
-@ffi.Native<ffi.Void Function(ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(FrameTickCallback)>()
+external void FrameScheduler_removeCallback(FrameTickCallback callback);
+
+@ffi.Native<ffi.Void Function(ffi.Int64)>()
+external void FrameScheduler_removePort(int port);
+
+// NOT isLeaf: takes the scheduler lifecycle mutex.
+@ffi.Native<ffi.Void Function(ffi.Int)>()
 external void FrameScheduler_setTargetFps(int fps);
 
-@ffi.Native<ffi.Void Function(FrameTickCallback, ffi.Int)>(isLeaf: true)
+// NOT isLeaf: takes the scheduler lifecycle mutex (can block on another
+// isolate's registration/teardown), so it must be able to reach a safepoint.
+@ffi.Native<ffi.Void Function(FrameTickCallback, ffi.Int)>()
 external void FrameScheduler_startWithCallback(FrameTickCallback tickCallback, int targetFps);
 
-@ffi.Native<ffi.Void Function(ffi.Int64, ffi.Int)>(isLeaf: true)
+// NOT isLeaf: takes the scheduler lifecycle mutex.
+@ffi.Native<ffi.Void Function(ffi.Int64, ffi.Int)>()
 external void FrameScheduler_startWithPort(int port, int targetFps);
 
 @ffi.Native<ffi.Int64 Function()>(isLeaf: true)
@@ -2058,11 +2068,15 @@ external void Ktx1Reader_createTextureJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TTexture> Function(ffi.Pointer<TEngine>, ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
-external ffi.Pointer<TTexture> Ktx2Reader_createTexture(
+@ffi.Native<
+  ffi.Pointer<TKtx2LoadResult> Function(ffi.Pointer<TEngine>, ffi.Pointer<ffi.Uint8>, ffi.Size, ffi.Int32, ffi.Int32)
+>(isLeaf: true)
+external ffi.Pointer<TKtx2LoadResult> Ktx2Reader_createTexture(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<ffi.Uint8> data,
   int size,
+  int transferFunction,
+  int maxMipLevels,
 );
 
 @ffi.Native<
@@ -2071,7 +2085,9 @@ external ffi.Pointer<TTexture> Ktx2Reader_createTexture(
     ffi.Pointer<TEngine>,
     ffi.Pointer<ffi.Uint8>,
     ffi.Size,
-    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>>,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TKtx2LoadResult>)>>,
   )
 >(isLeaf: true)
 external void Ktx2Reader_createTextureJobThread(
@@ -2079,8 +2095,37 @@ external void Ktx2Reader_createTextureJobThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<ffi.Uint8> data,
   int size,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>> onComplete,
+  int transferFunction,
+  int maxMipLevels,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TKtx2LoadResult>)>> onComplete,
 );
+
+@ffi.Native<ffi.Pointer<TTexture> Function(ffi.Pointer<TKtx2LoadResult>)>(isLeaf: true)
+external ffi.Pointer<TTexture> Ktx2LoadResult_getTexture(ffi.Pointer<TKtx2LoadResult> tResult);
+
+@ffi.Native<ffi.Int32 Function(ffi.Pointer<TKtx2LoadResult>)>(isLeaf: true)
+external int Ktx2LoadResult_getSourceTransfer(ffi.Pointer<TKtx2LoadResult> tResult);
+
+@ffi.Native<ffi.Int32 Function(ffi.Pointer<TKtx2LoadResult>)>(isLeaf: true)
+external int Ktx2LoadResult_getResolvedFormat(ffi.Pointer<TKtx2LoadResult> tResult);
+
+@ffi.Native<ffi.Int32 Function(ffi.Pointer<TKtx2LoadResult>)>(isLeaf: true)
+external int Ktx2LoadResult_getHardwareSrgbDecode(ffi.Pointer<TKtx2LoadResult> tResult);
+
+@ffi.Native<ffi.Int32 Function(ffi.Pointer<TKtx2LoadResult>)>(isLeaf: true)
+external int Ktx2LoadResult_getAlphaMode(ffi.Pointer<TKtx2LoadResult> tResult);
+
+@ffi.Native<ffi.Int32 Function(ffi.Pointer<TKtx2LoadResult>)>(isLeaf: true)
+external int Ktx2LoadResult_getUploadedMipCount(ffi.Pointer<TKtx2LoadResult> tResult);
+
+@ffi.Native<ffi.Int32 Function(ffi.Pointer<TKtx2LoadResult>)>(isLeaf: true)
+external int Ktx2LoadResult_getSourceMipCount(ffi.Pointer<TKtx2LoadResult> tResult);
+
+@ffi.Native<ffi.Int32 Function(ffi.Pointer<TKtx2LoadResult>)>(isLeaf: true)
+external int Ktx2LoadResult_getSourceChannelCount(ffi.Pointer<TKtx2LoadResult> tResult);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TKtx2LoadResult>)>(isLeaf: true)
+external void Ktx2LoadResult_destroy(ffi.Pointer<TKtx2LoadResult> tResult);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Float>, ffi.Uint8, ffi.Float, ffi.Float)>(isLeaf: true)
 external void LightManager_computeLogSplits(
@@ -6011,6 +6056,8 @@ sealed class TIntentAction {
 final class TJobThread extends ffi.Opaque {}
 
 final class TKtx1Bundle extends ffi.Opaque {}
+
+final class TKtx2LoadResult extends ffi.Opaque {}
 
 final class TLightManager extends ffi.Opaque {}
 

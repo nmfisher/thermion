@@ -17,8 +17,15 @@ functions:
     exclude:
       # FrameScheduler_stop joins the scheduler callback thread. Blocking
       # functions must not be Dart FFI leaf calls. This excludes it only from
-      # isLeaf:true, not from the bindings.
+      # isLeaf:true, not from the bindings. The multi-client registration calls
+      # also take the scheduler lifecycle mutex (and the last removal joins the
+      # dispatch thread), so they must not be leaf calls either.
       - 'FrameScheduler_stop'
+      - 'FrameScheduler_startWithCallback'
+      - 'FrameScheduler_startWithPort'
+      - 'FrameScheduler_removePort'
+      - 'FrameScheduler_removeCallback'
+      - 'FrameScheduler_setTargetFps'
 enums:
   as-int:
     include:
