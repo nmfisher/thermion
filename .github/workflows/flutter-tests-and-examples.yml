@@ -80,7 +80,7 @@ jobs:
           flutter pub get
           flutter test test/frame_scheduler_clock_test.dart
 
-      - name: Build release plugin and shutdown harness
+      - name: Build release plugin, test fixture DLL, and shutdown harness
         working-directory: examples/flutter/quickstart
         env:
           THERMION_BUILD_BLIT_WORKER_SHUTDOWN_TEST: 'ON'

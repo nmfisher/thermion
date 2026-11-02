@@ -26,22 +26,6 @@ set_target_properties(${PLUGIN_NAME} PROPERTIES
 target_compile_features(${PLUGIN_NAME} PUBLIC cxx_std_20)
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 
-# Flutter's build command does not expose arbitrary CMake options. CI opts in
-# through the environment; normal consumer builds contain no test hooks.
-option(THERMION_BUILD_BLIT_WORKER_SHUTDOWN_TEST
-  "Build the Windows blit worker process-exit regression test"
-  "$ENV{THERMION_BUILD_BLIT_WORKER_SHUTDOWN_TEST}")
-if(THERMION_BUILD_BLIT_WORKER_SHUTDOWN_TEST)
-  target_compile_definitions(${PLUGIN_NAME} PRIVATE
-    THERMION_BLIT_WORKER_SHUTDOWN_TEST)
-  add_executable(thermion_blit_worker_shutdown_test
-    "test/blit_worker_shutdown_test.cpp")
-  target_compile_features(thermion_blit_worker_shutdown_test PRIVATE cxx_std_17)
-  set_target_properties(thermion_blit_worker_shutdown_test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${runner_BINARY_DIR}/$<CONFIG>")
-  add_dependencies(thermion_blit_worker_shutdown_test ${PLUGIN_NAME})
-endif()
-
 set(GENERATED_HEADERS_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/../.dart_tool/generated_headers.cmake")
 
 # `generated_headers.cmake` is produced by `thermion_flutter`'s build hook
@@ -248,4 +232,11 @@ set(thermion_flutter_bundled_libraries
 
 add_definitions(-DTHERMION_WIN32_KHR_BUILD=1)
 
-
+# Flutter's build command does not expose arbitrary CMake options. CI opts in
+# through the environment; the production plugin target is unchanged.
+option(THERMION_BUILD_BLIT_WORKER_SHUTDOWN_TEST
+  "Build the Windows blit worker process-exit regression test"
+  "$ENV{THERMION_BUILD_BLIT_WORKER_SHUTDOWN_TEST}")
+if(THERMION_BUILD_BLIT_WORKER_SHUTDOWN_TEST)
+  add_subdirectory(test)
+endif()

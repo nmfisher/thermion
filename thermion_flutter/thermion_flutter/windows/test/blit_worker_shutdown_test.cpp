@@ -1,5 +1,6 @@
 // Run by run_blit_worker_shutdown_test.ps1 in a separate process for each case.
-// Keep the DLL loaded until process exit so its CRT detach handlers execute.
+// Keep the fixture DLL loaded until process exit so its CRT detach handlers
+// execute against the unmodified production plugin implementation.
 #include <windows.h>
 
 #include <cstdio>
@@ -30,7 +31,7 @@ int wmain(int argc, wchar_t* argv[]) {
   const auto destroy = reinterpret_cast<DestroyPlugin>(
       GetProcAddress(module, "ThermionTestDestroyPlugin"));
   if (!start || !destroy) {
-    std::fprintf(stderr, "Missing shutdown test hooks\n");
+    std::fprintf(stderr, "Missing shutdown fixture entry points\n");
     return 4;
   }
   auto* plugin = start();
