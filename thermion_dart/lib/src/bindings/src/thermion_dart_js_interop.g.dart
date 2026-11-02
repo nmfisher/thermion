@@ -10226,62 +10226,122 @@ final class Aabb3 extends Struct {
   Pointer<Aabb3> get address => super.address.cast();
   double get centerX {
     final addr = Pointer<Aabb3>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set centerX(double val) {
-    NativeLibrary.instance.setValue(Pointer<Aabb3>(this.address.addr + 0), val.toJS, 'float');
+    final addr = Pointer<Aabb3>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get centerY {
     final addr = Pointer<Aabb3>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set centerY(double val) {
-    NativeLibrary.instance.setValue(Pointer<Aabb3>(this.address.addr + 4), val.toJS, 'float');
+    final addr = Pointer<Aabb3>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get centerZ {
     final addr = Pointer<Aabb3>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set centerZ(double val) {
-    NativeLibrary.instance.setValue(Pointer<Aabb3>(this.address.addr + 8), val.toJS, 'float');
+    final addr = Pointer<Aabb3>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get halfExtentX {
     final addr = Pointer<Aabb3>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set halfExtentX(double val) {
-    NativeLibrary.instance.setValue(Pointer<Aabb3>(this.address.addr + 12), val.toJS, 'float');
+    final addr = Pointer<Aabb3>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get halfExtentY {
     final addr = Pointer<Aabb3>(this.address.addr + 16);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set halfExtentY(double val) {
-    NativeLibrary.instance.setValue(Pointer<Aabb3>(this.address.addr + 16), val.toJS, 'float');
+    final addr = Pointer<Aabb3>(this.address.addr + 16);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get halfExtentZ {
     final addr = Pointer<Aabb3>(this.address.addr + 20);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set halfExtentZ(double val) {
-    NativeLibrary.instance.setValue(Pointer<Aabb3>(this.address.addr + 20), val.toJS, 'float');
+    final addr = Pointer<Aabb3>(this.address.addr + 20);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   Aabb3(super.address);
@@ -10335,100 +10395,190 @@ final class TAmbientOcclusionOptions extends Struct {
   /// !< Ambient Occlusion radius in meters, between 0 and ~10
   double get radius {
     final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set radius(double val) {
-    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 0), val.toJS, 'float');
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< Controls ambient occlusion's contrast. Must be positive
   double get power {
     final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set power(double val) {
-    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 4), val.toJS, 'float');
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< Self-occlusion bias in meters. Use to avoid self-occlusion. Between 0 and a few mm
   double get bias {
     final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set bias(double val) {
-    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 8), val.toJS, 'float');
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< How each dimension of the AO buffer is scaled. Must be either 0.5 or 1.0
   double get resolution {
     final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set resolution(double val) {
-    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 12), val.toJS, 'float');
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< Strength of the Ambient Occlusion effect
   double get intensity {
     final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 16);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set intensity(double val) {
-    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 16), val.toJS, 'float');
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 16);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< depth distance that constitute an edge for filtering
   double get bilateralThreshold {
     final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 20);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set bilateralThreshold(double val) {
-    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 20), val.toJS, 'float');
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 20);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< affects # of samples used for AO
   int get quality {
     final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 24);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getInt32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set quality(int val) {
-    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 24), val.toJS, 'i32');
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 24);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setInt32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
   }
 
   /// !< affects AO smoothness
   int get lowPassFilter {
     final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 28);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getInt32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set lowPassFilter(int val) {
-    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 28), val.toJS, 'i32');
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 28);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setInt32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
   }
 
   /// !< affects AO buffer upsampling quality
   int get upsampling {
     final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 32);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getInt32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set upsampling(int val) {
-    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 32), val.toJS, 'i32');
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 32);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setInt32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
   }
 
   /// !< enables or disables screen-space ambient occlusion
@@ -10439,11 +10589,8 @@ final class TAmbientOcclusionOptions extends Struct {
   }
 
   set enabled(bool val) {
-    NativeLibrary.instance.setValue(
-      Pointer<TAmbientOcclusionOptions>(this.address.addr + 36),
-      (val ? 1 : 0).toJS,
-      'i8',
-    );
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 36);
+    NativeLibrary.instance.setValue(addr, (val ? 1 : 0).toJS, 'i8');
   }
 
   /// !< enables bent normals computation from AO, and specular AO
@@ -10454,59 +10601,72 @@ final class TAmbientOcclusionOptions extends Struct {
   }
 
   set bentNormals(bool val) {
-    NativeLibrary.instance.setValue(
-      Pointer<TAmbientOcclusionOptions>(this.address.addr + 37),
-      (val ? 1 : 0).toJS,
-      'i8',
-    );
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 37);
+    NativeLibrary.instance.setValue(addr, (val ? 1 : 0).toJS, 'i8');
   }
 
   /// !< min angle in radian to consider
   double get minHorizonAngleRad {
-    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 38);
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 40);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set minHorizonAngleRad(double val) {
-    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 38), val.toJS, 'float');
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 40);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
-  TSsct get ssct {
-    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 42);
-    final value = NativeLibrary.instance.getValue(addr, '*');
-    return TSsct(Pointer<TSsct>(addr));
-  }
-
+  TSsct get ssct => TSsct(Pointer<TSsct>(this.address.addr + 44));
   set ssct(TSsct val) {
-    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 42), val.address.toJS, '*');
+    final heap = NativeLibrary.instance.HEAPU8.toDart;
+    final source = val.address.addr;
+    final bytes = heap.sublist(source, source + 40);
+    heap.setRange(this.address.addr + 44, this.address.addr + 44 + 40, bytes);
   }
 
-  TGtao get gtao {
-    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 81);
-    final value = NativeLibrary.instance.getValue(addr, '*');
-    return TGtao(Pointer<TGtao>(addr));
-  }
-
+  TGtao get gtao => TGtao(Pointer<TGtao>(this.address.addr + 84));
   set gtao(TGtao val) {
-    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 81), val.address.toJS, '*');
+    final heap = NativeLibrary.instance.HEAPU8.toDart;
+    final source = val.address.addr;
+    final bytes = heap.sublist(source, source + 20);
+    heap.setRange(this.address.addr + 84, this.address.addr + 84 + 20, bytes);
   }
 
   /// !< ambient occlusion algorithm
   int get aoType {
-    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 93);
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 104);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getInt32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set aoType(int val) {
-    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 93), val.toJS, 'i32');
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 104);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setInt32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
   }
 
   TAmbientOcclusionOptions(super.address);
 
   static Pointer<TAmbientOcclusionOptions> stackAlloc() {
-    return Pointer<TAmbientOcclusionOptions>(NativeLibrary.instance.stackAlloc<TAmbientOcclusionOptions>(97));
+    return Pointer<TAmbientOcclusionOptions>(NativeLibrary.instance.stackAlloc<TAmbientOcclusionOptions>(108));
   }
 }
 
@@ -10739,122 +10899,242 @@ final class TFogOptions extends Struct {
   Pointer<TFogOptions> get address => super.address.cast();
   double get distance {
     final addr = Pointer<TFogOptions>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set distance(double val) {
-    NativeLibrary.instance.setValue(Pointer<TFogOptions>(this.address.addr + 0), val.toJS, 'float');
+    final addr = Pointer<TFogOptions>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get cutOffDistance {
     final addr = Pointer<TFogOptions>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set cutOffDistance(double val) {
-    NativeLibrary.instance.setValue(Pointer<TFogOptions>(this.address.addr + 4), val.toJS, 'float');
+    final addr = Pointer<TFogOptions>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get maximumOpacity {
     final addr = Pointer<TFogOptions>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set maximumOpacity(double val) {
-    NativeLibrary.instance.setValue(Pointer<TFogOptions>(this.address.addr + 8), val.toJS, 'float');
+    final addr = Pointer<TFogOptions>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get height {
     final addr = Pointer<TFogOptions>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set height(double val) {
-    NativeLibrary.instance.setValue(Pointer<TFogOptions>(this.address.addr + 12), val.toJS, 'float');
+    final addr = Pointer<TFogOptions>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get heightFalloff {
     final addr = Pointer<TFogOptions>(this.address.addr + 16);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set heightFalloff(double val) {
-    NativeLibrary.instance.setValue(Pointer<TFogOptions>(this.address.addr + 16), val.toJS, 'float');
+    final addr = Pointer<TFogOptions>(this.address.addr + 16);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get density {
     final addr = Pointer<TFogOptions>(this.address.addr + 20);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set density(double val) {
-    NativeLibrary.instance.setValue(Pointer<TFogOptions>(this.address.addr + 20), val.toJS, 'float');
+    final addr = Pointer<TFogOptions>(this.address.addr + 20);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get inScatteringStart {
     final addr = Pointer<TFogOptions>(this.address.addr + 24);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set inScatteringStart(double val) {
-    NativeLibrary.instance.setValue(Pointer<TFogOptions>(this.address.addr + 24), val.toJS, 'float');
+    final addr = Pointer<TFogOptions>(this.address.addr + 24);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get inScatteringSize {
     final addr = Pointer<TFogOptions>(this.address.addr + 28);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set inScatteringSize(double val) {
-    NativeLibrary.instance.setValue(Pointer<TFogOptions>(this.address.addr + 28), val.toJS, 'float');
+    final addr = Pointer<TFogOptions>(this.address.addr + 28);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   Pointer<TTexture> get skyColor {
     final addr = Pointer<TFogOptions>(this.address.addr + 32);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return Pointer<TTexture>(data.getUint32(addr.addr, Endian.little));
+    }
     final value = NativeLibrary.instance.getValue(addr, '*');
     return Pointer<TTexture>(value.toDartInt);
   }
 
   set skyColor(Pointer<TTexture> val) {
-    NativeLibrary.instance.setValue(Pointer<TFogOptions>(this.address.addr + 32), val.toJS, '*');
+    final addr = Pointer<TFogOptions>(this.address.addr + 32);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val.addr, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, '*');
   }
 
   double get linearColorR {
     final addr = Pointer<TFogOptions>(this.address.addr + 36);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set linearColorR(double val) {
-    NativeLibrary.instance.setValue(Pointer<TFogOptions>(this.address.addr + 36), val.toJS, 'float');
+    final addr = Pointer<TFogOptions>(this.address.addr + 36);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get linearColorG {
     final addr = Pointer<TFogOptions>(this.address.addr + 40);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set linearColorG(double val) {
-    NativeLibrary.instance.setValue(Pointer<TFogOptions>(this.address.addr + 40), val.toJS, 'float');
+    final addr = Pointer<TFogOptions>(this.address.addr + 40);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get linearColorB {
     final addr = Pointer<TFogOptions>(this.address.addr + 44);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set linearColorB(double val) {
-    NativeLibrary.instance.setValue(Pointer<TFogOptions>(this.address.addr + 44), val.toJS, 'float');
+    final addr = Pointer<TFogOptions>(this.address.addr + 44);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   bool get fogColorFromIbl {
@@ -10864,7 +11144,8 @@ final class TFogOptions extends Struct {
   }
 
   set fogColorFromIbl(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TFogOptions>(this.address.addr + 48), (val ? 1 : 0).toJS, 'i8');
+    final addr = Pointer<TFogOptions>(this.address.addr + 48);
+    NativeLibrary.instance.setValue(addr, (val ? 1 : 0).toJS, 'i8');
   }
 
   bool get enabled {
@@ -10874,13 +11155,14 @@ final class TFogOptions extends Struct {
   }
 
   set enabled(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TFogOptions>(this.address.addr + 49), (val ? 1 : 0).toJS, 'i8');
+    final addr = Pointer<TFogOptions>(this.address.addr + 49);
+    NativeLibrary.instance.setValue(addr, (val ? 1 : 0).toJS, 'i8');
   }
 
   TFogOptions(super.address);
 
   static Pointer<TFogOptions> stackAlloc() {
-    return Pointer<TFogOptions>(NativeLibrary.instance.stackAlloc<TFogOptions>(50));
+    return Pointer<TFogOptions>(NativeLibrary.instance.stackAlloc<TFogOptions>(52));
   }
 }
 
@@ -10967,7 +11249,8 @@ final class TGtao extends Struct {
   }
 
   set sampleSliceCount(int val) {
-    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 0), val.toJS, 'i8');
+    final addr = Pointer<TGtao>(this.address.addr + 0);
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i8');
   }
 
   /// !< integration steps per slice; higher values reduce bias
@@ -10978,57 +11261,80 @@ final class TGtao extends Struct {
   }
 
   set sampleStepsPerSlice(int val) {
-    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 1), val.toJS, 'i8');
+    final addr = Pointer<TGtao>(this.address.addr + 1);
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i8');
   }
 
   /// !< ignored when visibility bitmasks are enabled
   double get thicknessHeuristic {
-    final addr = Pointer<TGtao>(this.address.addr + 2);
+    final addr = Pointer<TGtao>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set thicknessHeuristic(double val) {
-    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 2), val.toJS, 'float');
+    final addr = Pointer<TGtao>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< enables visibility bitmasks mode
   bool get useVisibilityBitmasks {
-    final addr = Pointer<TGtao>(this.address.addr + 6);
+    final addr = Pointer<TGtao>(this.address.addr + 8);
     final value = NativeLibrary.instance.getValue(addr, 'i8');
     return value.toDartInt == 1;
   }
 
   set useVisibilityBitmasks(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 6), (val ? 1 : 0).toJS, 'i8');
+    final addr = Pointer<TGtao>(this.address.addr + 8);
+    NativeLibrary.instance.setValue(addr, (val ? 1 : 0).toJS, 'i8');
   }
 
   /// !< world-space thickness used by visibility bitmasks
   double get constThickness {
-    final addr = Pointer<TGtao>(this.address.addr + 7);
+    final addr = Pointer<TGtao>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set constThickness(double val) {
-    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 7), val.toJS, 'float');
+    final addr = Pointer<TGtao>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< increases thickness with distance
   bool get linearThickness {
-    final addr = Pointer<TGtao>(this.address.addr + 11);
+    final addr = Pointer<TGtao>(this.address.addr + 16);
     final value = NativeLibrary.instance.getValue(addr, 'i8');
     return value.toDartInt == 1;
   }
 
   set linearThickness(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 11), (val ? 1 : 0).toJS, 'i8');
+    final addr = Pointer<TGtao>(this.address.addr + 16);
+    NativeLibrary.instance.setValue(addr, (val ? 1 : 0).toJS, 'i8');
   }
 
   TGtao(super.address);
 
   static Pointer<TGtao> stackAlloc() {
-    return Pointer<TGtao>(NativeLibrary.instance.stackAlloc<TGtao>(12));
+    return Pointer<TGtao>(NativeLibrary.instance.stackAlloc<TGtao>(20));
   }
 }
 
@@ -11591,12 +11897,22 @@ final class TShadowOptions extends Struct {
   Pointer<TShadowOptions> get address => super.address.cast();
   int get mapSize {
     final addr = Pointer<TShadowOptions>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getUint32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set mapSize(int val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 0), val.toJS, 'i32');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
   }
 
   int get shadowCascades {
@@ -11606,253 +11922,438 @@ final class TShadowOptions extends Struct {
   }
 
   set shadowCascades(int val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 4), val.toJS, 'i8');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 4);
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i8');
   }
 
-  Array<Float32> get cascadeSplitPositions {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 5);
-    final value = NativeLibrary.instance.getValue(addr, '*');
-    return Array<Float32>((numElements: 3, addr: Pointer<Float32>(this.address.addr + 5)));
-  }
-
+  Array<Float32> get cascadeSplitPositions =>
+      Array<Float32>((numElements: 3, addr: Pointer<Float32>(this.address.addr + 8)));
   set cascadeSplitPositions(Array<Float32> val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 5), val.internal.addr.addr.toJS, '*');
+    final heap = NativeLibrary.instance.HEAPU8.toDart;
+    final source = val.internal.addr.addr;
+    final bytes = heap.sublist(source, source + 12);
+    heap.setRange(this.address.addr + 8, this.address.addr + 8 + 12, bytes);
   }
 
   double get constantBias {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 17);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 20);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set constantBias(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 17), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 20);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get normalBias {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 21);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 24);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set normalBias(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 21), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 24);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get shadowFar {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 25);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 28);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set shadowFar(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 25), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 28);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get shadowNearHint {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 29);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 32);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set shadowNearHint(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 29), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 32);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get shadowFarHint {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 33);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 36);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set shadowFarHint(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 33), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 36);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   bool get stable {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 37);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 40);
     final value = NativeLibrary.instance.getValue(addr, 'i8');
     return value.toDartInt == 1;
   }
 
   set stable(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 37), (val ? 1 : 0).toJS, 'i8');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 40);
+    NativeLibrary.instance.setValue(addr, (val ? 1 : 0).toJS, 'i8');
   }
 
   bool get lispsm {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 38);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 41);
     final value = NativeLibrary.instance.getValue(addr, 'i8');
     return value.toDartInt == 1;
   }
 
   set lispsm(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 38), (val ? 1 : 0).toJS, 'i8');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 41);
+    NativeLibrary.instance.setValue(addr, (val ? 1 : 0).toJS, 'i8');
   }
 
   double get polygonOffsetConstant {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 39);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 44);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set polygonOffsetConstant(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 39), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 44);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get polygonOffsetSlope {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 43);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 48);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set polygonOffsetSlope(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 43), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 48);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   bool get screenSpaceContactShadows {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 47);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 52);
     final value = NativeLibrary.instance.getValue(addr, 'i8');
     return value.toDartInt == 1;
   }
 
   set screenSpaceContactShadows(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 47), (val ? 1 : 0).toJS, 'i8');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 52);
+    NativeLibrary.instance.setValue(addr, (val ? 1 : 0).toJS, 'i8');
   }
 
   int get stepCount {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 48);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 53);
     final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
     return value;
   }
 
   set stepCount(int val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 48), val.toJS, 'i8');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 53);
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i8');
   }
 
   double get maxShadowDistance {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 49);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 56);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set maxShadowDistance(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 49), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 56);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   bool get vsmElvsm {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 53);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 60);
     final value = NativeLibrary.instance.getValue(addr, 'i8');
     return value.toDartInt == 1;
   }
 
   set vsmElvsm(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 53), (val ? 1 : 0).toJS, 'i8');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 60);
+    NativeLibrary.instance.setValue(addr, (val ? 1 : 0).toJS, 'i8');
   }
 
   double get vsmBlurWidth {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 54);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 64);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set vsmBlurWidth(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 54), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 64);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get shadowBulbRadius {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 58);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 68);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set shadowBulbRadius(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 58), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 68);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get penumbraScale {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 62);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 72);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set penumbraScale(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 62), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 72);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get penumbraRatioScale {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 66);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 76);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set penumbraRatioScale(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 66), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 76);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get maxPenumbraRatio {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 70);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 80);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set maxPenumbraRatio(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 70), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 80);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get maxSearchRadius {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 74);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 84);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set maxSearchRadius(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 74), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 84);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get transformX {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 78);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 88);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set transformX(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 78), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 88);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get transformY {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 82);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 92);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set transformY(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 82), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 92);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get transformZ {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 86);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 96);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set transformZ(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 86), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 96);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get transformW {
-    final addr = Pointer<TShadowOptions>(this.address.addr + 90);
+    final addr = Pointer<TShadowOptions>(this.address.addr + 100);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set transformW(double val) {
-    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 90), val.toJS, 'float');
+    final addr = Pointer<TShadowOptions>(this.address.addr + 100);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   TShadowOptions(super.address);
 
   static Pointer<TShadowOptions> stackAlloc() {
-    return Pointer<TShadowOptions>(NativeLibrary.instance.stackAlloc<TShadowOptions>(94));
+    return Pointer<TShadowOptions>(NativeLibrary.instance.stackAlloc<TShadowOptions>(104));
   }
 }
 
@@ -11883,42 +12384,82 @@ final class TSoftShadowOptions extends Struct {
   Pointer<TSoftShadowOptions> get address => super.address.cast();
   double get penumbraScale {
     final addr = Pointer<TSoftShadowOptions>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set penumbraScale(double val) {
-    NativeLibrary.instance.setValue(Pointer<TSoftShadowOptions>(this.address.addr + 0), val.toJS, 'float');
+    final addr = Pointer<TSoftShadowOptions>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get penumbraRatioScale {
     final addr = Pointer<TSoftShadowOptions>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set penumbraRatioScale(double val) {
-    NativeLibrary.instance.setValue(Pointer<TSoftShadowOptions>(this.address.addr + 4), val.toJS, 'float');
+    final addr = Pointer<TSoftShadowOptions>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get maxPenumbraRatio {
     final addr = Pointer<TSoftShadowOptions>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set maxPenumbraRatio(double val) {
-    NativeLibrary.instance.setValue(Pointer<TSoftShadowOptions>(this.address.addr + 8), val.toJS, 'float');
+    final addr = Pointer<TSoftShadowOptions>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get maxSearchRadius {
     final addr = Pointer<TSoftShadowOptions>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set maxSearchRadius(double val) {
-    NativeLibrary.instance.setValue(Pointer<TSoftShadowOptions>(this.address.addr + 12), val.toJS, 'float');
+    final addr = Pointer<TSoftShadowOptions>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   TSoftShadowOptions(super.address);
@@ -11943,100 +12484,190 @@ final class TSsct extends Struct {
   /// !< full cone angle in radian, between 0 and pi/2
   double get lightConeRad {
     final addr = Pointer<TSsct>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set lightConeRad(double val) {
-    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 0), val.toJS, 'float');
+    final addr = Pointer<TSsct>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< how far shadows can be cast
   double get shadowDistance {
     final addr = Pointer<TSsct>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set shadowDistance(double val) {
-    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 4), val.toJS, 'float');
+    final addr = Pointer<TSsct>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< max distance for contact
   double get contactDistanceMax {
     final addr = Pointer<TSsct>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set contactDistanceMax(double val) {
-    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 8), val.toJS, 'float');
+    final addr = Pointer<TSsct>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< intensity
   double get intensity {
     final addr = Pointer<TSsct>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set intensity(double val) {
-    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 12), val.toJS, 'float');
+    final addr = Pointer<TSsct>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< light direction X
   double get lightDirectionX {
     final addr = Pointer<TSsct>(this.address.addr + 16);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set lightDirectionX(double val) {
-    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 16), val.toJS, 'float');
+    final addr = Pointer<TSsct>(this.address.addr + 16);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< light direction Y
   double get lightDirectionY {
     final addr = Pointer<TSsct>(this.address.addr + 20);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set lightDirectionY(double val) {
-    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 20), val.toJS, 'float');
+    final addr = Pointer<TSsct>(this.address.addr + 20);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< light direction Z
   double get lightDirectionZ {
     final addr = Pointer<TSsct>(this.address.addr + 24);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set lightDirectionZ(double val) {
-    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 24), val.toJS, 'float');
+    final addr = Pointer<TSsct>(this.address.addr + 24);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< depth bias in world units (mitigate self shadowing)
   double get depthBias {
     final addr = Pointer<TSsct>(this.address.addr + 28);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set depthBias(double val) {
-    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 28), val.toJS, 'float');
+    final addr = Pointer<TSsct>(this.address.addr + 28);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< depth slope bias (mitigate self shadowing)
   double get depthSlopeBias {
     final addr = Pointer<TSsct>(this.address.addr + 32);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set depthSlopeBias(double val) {
-    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 32), val.toJS, 'float');
+    final addr = Pointer<TSsct>(this.address.addr + 32);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   /// !< tracing sample count, between 1 and 255
@@ -12047,7 +12678,8 @@ final class TSsct extends Struct {
   }
 
   set sampleCount(int val) {
-    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 36), val.toJS, 'i8');
+    final addr = Pointer<TSsct>(this.address.addr + 36);
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i8');
   }
 
   /// !< # of rays to trace, between 1 and 255
@@ -12058,7 +12690,8 @@ final class TSsct extends Struct {
   }
 
   set rayCount(int val) {
-    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 37), val.toJS, 'i8');
+    final addr = Pointer<TSsct>(this.address.addr + 37);
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i8');
   }
 
   /// !< enables or disables SSCT
@@ -12069,13 +12702,14 @@ final class TSsct extends Struct {
   }
 
   set enabled(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TSsct>(this.address.addr + 38), (val ? 1 : 0).toJS, 'i8');
+    final addr = Pointer<TSsct>(this.address.addr + 38);
+    NativeLibrary.instance.setValue(addr, (val ? 1 : 0).toJS, 'i8');
   }
 
   TSsct(super.address);
 
   static Pointer<TSsct> stackAlloc() {
-    return Pointer<TSsct>(NativeLibrary.instance.stackAlloc<TSsct>(39));
+    return Pointer<TSsct>(NativeLibrary.instance.stackAlloc<TSsct>(40));
   }
 }
 
@@ -12481,42 +13115,82 @@ final class TViewport extends Struct {
   Pointer<TViewport> get address => super.address.cast();
   int get left {
     final addr = Pointer<TViewport>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getInt32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set left(int val) {
-    NativeLibrary.instance.setValue(Pointer<TViewport>(this.address.addr + 0), val.toJS, 'i32');
+    final addr = Pointer<TViewport>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setInt32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
   }
 
   int get bottom {
     final addr = Pointer<TViewport>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getInt32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set bottom(int val) {
-    NativeLibrary.instance.setValue(Pointer<TViewport>(this.address.addr + 4), val.toJS, 'i32');
+    final addr = Pointer<TViewport>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setInt32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
   }
 
   int get width {
     final addr = Pointer<TViewport>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getUint32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set width(int val) {
-    NativeLibrary.instance.setValue(Pointer<TViewport>(this.address.addr + 8), val.toJS, 'i32');
+    final addr = Pointer<TViewport>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
   }
 
   int get height {
     final addr = Pointer<TViewport>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getUint32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
   set height(int val) {
-    NativeLibrary.instance.setValue(Pointer<TViewport>(this.address.addr + 12), val.toJS, 'i32');
+    final addr = Pointer<TViewport>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
   }
 
   TViewport(super.address);
@@ -12543,7 +13217,8 @@ final class TVsmShadowOptions extends Struct {
   }
 
   set anisotropy(int val) {
-    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 0), val.toJS, 'i8');
+    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 0);
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i8');
   }
 
   bool get mipmapping {
@@ -12553,7 +13228,8 @@ final class TVsmShadowOptions extends Struct {
   }
 
   set mipmapping(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 1), (val ? 1 : 0).toJS, 'i8');
+    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 1);
+    NativeLibrary.instance.setValue(addr, (val ? 1 : 0).toJS, 'i8');
   }
 
   int get msaaSamples {
@@ -12563,7 +13239,8 @@ final class TVsmShadowOptions extends Struct {
   }
 
   set msaaSamples(int val) {
-    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 2), val.toJS, 'i8');
+    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 2);
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i8');
   }
 
   bool get highPrecision {
@@ -12573,27 +13250,48 @@ final class TVsmShadowOptions extends Struct {
   }
 
   set highPrecision(bool val) {
-    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 3), (val ? 1 : 0).toJS, 'i8');
+    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 3);
+    NativeLibrary.instance.setValue(addr, (val ? 1 : 0).toJS, 'i8');
   }
 
   double get minVarianceScale {
     final addr = Pointer<TVsmShadowOptions>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set minVarianceScale(double val) {
-    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 4), val.toJS, 'float');
+    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   double get lightBleedReduction {
     final addr = Pointer<TVsmShadowOptions>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
   set lightBleedReduction(double val) {
-    NativeLibrary.instance.setValue(Pointer<TVsmShadowOptions>(this.address.addr + 8), val.toJS, 'float');
+    final addr = Pointer<TVsmShadowOptions>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
   TVsmShadowOptions(super.address);
@@ -12620,32 +13318,62 @@ final class double3 extends Struct {
   Pointer<double3> get address => super.address.cast();
   double get x {
     final addr = Pointer<double3>(this.address.addr + 0);
+    if (addr.addr % 8 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat64(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'double').toDartDouble;
     return value;
   }
 
   set x(double val) {
-    NativeLibrary.instance.setValue(Pointer<double3>(this.address.addr + 0), val.toJS, 'double');
+    final addr = Pointer<double3>(this.address.addr + 0);
+    if (addr.addr % 8 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat64(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'double');
   }
 
   double get y {
     final addr = Pointer<double3>(this.address.addr + 8);
+    if (addr.addr % 8 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat64(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'double').toDartDouble;
     return value;
   }
 
   set y(double val) {
-    NativeLibrary.instance.setValue(Pointer<double3>(this.address.addr + 8), val.toJS, 'double');
+    final addr = Pointer<double3>(this.address.addr + 8);
+    if (addr.addr % 8 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat64(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'double');
   }
 
   double get z {
     final addr = Pointer<double3>(this.address.addr + 16);
+    if (addr.addr % 8 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat64(addr.addr, Endian.little);
+    }
     final value = NativeLibrary.instance.getValue(addr, 'double').toDartDouble;
     return value;
   }
 
   set z(double val) {
-    NativeLibrary.instance.setValue(Pointer<double3>(this.address.addr + 16), val.toJS, 'double');
+    final addr = Pointer<double3>(this.address.addr + 16);
+    if (addr.addr % 8 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat64(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'double');
   }
 
   double3(super.address);
@@ -12663,44 +13391,36 @@ extension double4x4Ext on Pointer<double4x4> {
 
 final class double4x4 extends Struct {
   Pointer<double4x4> get address => super.address.cast();
-  Array<Float64> get col1 {
-    final addr = Pointer<double4x4>(this.address.addr + 0);
-    final value = NativeLibrary.instance.getValue(addr, '*');
-    return Array<Float64>((numElements: 4, addr: Pointer<Float64>(this.address.addr + 0)));
-  }
-
+  Array<Float64> get col1 => Array<Float64>((numElements: 4, addr: Pointer<Float64>(this.address.addr + 0)));
   set col1(Array<Float64> val) {
-    NativeLibrary.instance.setValue(Pointer<double4x4>(this.address.addr + 0), val.internal.addr.addr.toJS, '*');
+    final heap = NativeLibrary.instance.HEAPU8.toDart;
+    final source = val.internal.addr.addr;
+    final bytes = heap.sublist(source, source + 32);
+    heap.setRange(this.address.addr + 0, this.address.addr + 0 + 32, bytes);
   }
 
-  Array<Float64> get col2 {
-    final addr = Pointer<double4x4>(this.address.addr + 32);
-    final value = NativeLibrary.instance.getValue(addr, '*');
-    return Array<Float64>((numElements: 4, addr: Pointer<Float64>(this.address.addr + 32)));
-  }
-
+  Array<Float64> get col2 => Array<Float64>((numElements: 4, addr: Pointer<Float64>(this.address.addr + 32)));
   set col2(Array<Float64> val) {
-    NativeLibrary.instance.setValue(Pointer<double4x4>(this.address.addr + 32), val.internal.addr.addr.toJS, '*');
+    final heap = NativeLibrary.instance.HEAPU8.toDart;
+    final source = val.internal.addr.addr;
+    final bytes = heap.sublist(source, source + 32);
+    heap.setRange(this.address.addr + 32, this.address.addr + 32 + 32, bytes);
   }
 
-  Array<Float64> get col3 {
-    final addr = Pointer<double4x4>(this.address.addr + 64);
-    final value = NativeLibrary.instance.getValue(addr, '*');
-    return Array<Float64>((numElements: 4, addr: Pointer<Float64>(this.address.addr + 64)));
-  }
-
+  Array<Float64> get col3 => Array<Float64>((numElements: 4, addr: Pointer<Float64>(this.address.addr + 64)));
   set col3(Array<Float64> val) {
-    NativeLibrary.instance.setValue(Pointer<double4x4>(this.address.addr + 64), val.internal.addr.addr.toJS, '*');
+    final heap = NativeLibrary.instance.HEAPU8.toDart;
+    final source = val.internal.addr.addr;
+    final bytes = heap.sublist(source, source + 32);
+    heap.setRange(this.address.addr + 64, this.address.addr + 64 + 32, bytes);
   }
 
-  Array<Float64> get col4 {
-    final addr = Pointer<double4x4>(this.address.addr + 96);
-    final value = NativeLibrary.instance.getValue(addr, '*');
-    return Array<Float64>((numElements: 4, addr: Pointer<Float64>(this.address.addr + 96)));
-  }
-
+  Array<Float64> get col4 => Array<Float64>((numElements: 4, addr: Pointer<Float64>(this.address.addr + 96)));
   set col4(Array<Float64> val) {
-    NativeLibrary.instance.setValue(Pointer<double4x4>(this.address.addr + 96), val.internal.addr.addr.toJS, '*');
+    final heap = NativeLibrary.instance.HEAPU8.toDart;
+    final source = val.internal.addr.addr;
+    final bytes = heap.sublist(source, source + 32);
+    heap.setRange(this.address.addr + 96, this.address.addr + 96 + 32, bytes);
   }
 
   double4x4(super.address);
