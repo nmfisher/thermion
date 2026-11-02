@@ -1012,11 +1012,39 @@ namespace thermion
     int GltfSceneAsset::getPrimitiveOffsetForEntity(utils::Entity entity) const
     {
         auto it = _entityToPrimitiveOffset.find(utils::Entity::smuggle(entity));
-        if (it == _entityToPrimitiveOffset.end())
+        if (it != _entityToPrimitiveOffset.end())
         {
-            return -1; // Entity not found or has no preserved geometry
+            return it->second;
         }
-        return it->second;
+
+        // _entityToPrimitiveOffset is keyed by the owner asset's entities (the
+        // primary instance). An entity of a secondary instance is mapped to the
+        // owner entity at the same index: gltfio enumerates every instance in
+        // the same node order, which is the same assumption createInstance and
+        // rebuildVertexBuffers already rely on when they copy the preserved
+        // buffers onto instances 1+. If the entity counts differ the mapping
+        // is not 1:1 and we refuse to guess.
+        const utils::Entity *ownerEntities = _asset->getEntities();
+        const size_t ownerEntityCount = _asset->getEntityCount();
+        for (const auto &instance : _instances)
+        {
+            auto *filamentInstance = instance->getInstance();
+            if (!filamentInstance || filamentInstance->getEntityCount() != ownerEntityCount)
+            {
+                continue;
+            }
+            const utils::Entity *instEntities = filamentInstance->getEntities();
+            for (size_t i = 0; i < ownerEntityCount; i++)
+            {
+                if (instEntities[i] != entity)
+                {
+                    continue;
+                }
+                auto owned = _entityToPrimitiveOffset.find(utils::Entity::smuggle(ownerEntities[i]));
+                return owned == _entityToPrimitiveOffset.end() ? -1 : static_cast<int>(owned->second);
+            }
+        }
+        return -1; // Entity not found or has no preserved geometry
     }
 
     void GltfSceneAsset::setFlatShading(bool flatShading)
