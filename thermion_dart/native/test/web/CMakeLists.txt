@@ -41,3 +41,17 @@ target_link_options(web_canvas_thread_test PRIVATE
   -sINITIAL_MEMORY=134217728 -sSTACK_SIZE=10485760
   -sFULL_ES3=1 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2
   -sENVIRONMENT=node -sEXIT_RUNTIME=1)
+
+# Compile the production render loop against scripted Filament API responses.
+# This exercises admission, drawing and plugin updates without a GPU/backend.
+add_executable(web_frame_admission_test
+  web_frame_admission_test.cpp
+  ../../src/rendering/RenderManager.cpp
+  ../../web/src/cpp/RenderManagerWeb.cpp)
+target_compile_features(web_frame_admission_test PRIVATE cxx_std_17)
+target_compile_definitions(web_frame_admission_test PRIVATE THERMION_WEB_MAIN_THREAD=1)
+target_include_directories(web_frame_admission_test PRIVATE
+  ../../include "${FILAMENT_TEST_LIB_DIR}/include")
+target_compile_options(web_frame_admission_test PRIVATE -pthread -fno-exceptions)
+target_link_options(web_frame_admission_test PRIVATE
+  -pthread -sENVIRONMENT=node -sEXIT_RUNTIME=1)

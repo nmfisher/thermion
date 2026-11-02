@@ -62,5 +62,6 @@ jobs:
           cmake --build "$build_dir" --parallel 2
           node "$build_dir/web_upload_drain_test.js"
           node "$build_dir/web_canvas_thread_test.js"
+          node "$build_dir/web_frame_admission_test.js"
           node thermion_dart/native/test/web/worker_render_noop_test.cjs \
             "$RUNNER_TEMP/thermion-web-OFF/build/out/thermion_dart.js"
