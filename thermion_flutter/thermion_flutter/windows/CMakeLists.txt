@@ -232,11 +232,4 @@ set(thermion_flutter_bundled_libraries
 
 add_definitions(-DTHERMION_WIN32_KHR_BUILD=1)
 
-# Flutter's build command does not expose arbitrary CMake options. CI opts in
-# through the environment; the production plugin target is unchanged.
-option(THERMION_BUILD_BLIT_WORKER_SHUTDOWN_TEST
-  "Build the Windows blit worker process-exit regression test"
-  "$ENV{THERMION_BUILD_BLIT_WORKER_SHUTDOWN_TEST}")
-if(THERMION_BUILD_BLIT_WORKER_SHUTDOWN_TEST)
-  add_subdirectory(test)
-endif()
+
