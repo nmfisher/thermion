@@ -114,7 +114,14 @@ namespace thermion::tflutter::windows
   static std::condition_variable _blitCv;
   static std::queue<BlitJob> _blitQueue;
   static std::set<int64_t> _retiringTextureIds;
-  static std::thread _blitWorker;
+  // Heap-held, never a namespace-scope std::thread: this DLL's onexit table
+  // destroys file statics at DLL_PROCESS_DETACH. When the process exits via
+  // exit()/ExitProcess while the plugin is still alive (dart:io exit(), any
+  // path that skips window teardown), ExitProcess has already killed the
+  // worker but the std::thread still holds its id, so ~thread() saw
+  // joinable() and called std::terminate -> abort -> 0xC0000409. The pointer
+  // is deliberately leaked at process exit.
+  static std::thread* _blitWorker = nullptr;
   static std::atomic<bool> _blitWorkerStarted{false};
   static std::atomic<bool> _blitWorkerShouldStop{false};
 
@@ -157,7 +164,7 @@ namespace thermion::tflutter::windows
   static void EnsureBlitWorkerStarted() {
     bool expected = false;
     if (_blitWorkerStarted.compare_exchange_strong(expected, true)) {
-      _blitWorker = std::thread(BlitWorkerLoop);
+      _blitWorker = new std::thread(BlitWorkerLoop);
     }
   }
 
@@ -232,8 +239,8 @@ namespace thermion::tflutter::windows
     if (_blitWorkerStarted.load()) {
       _blitWorkerShouldStop.store(true);
       _blitCv.notify_all();
-      if (_blitWorker.joinable()) {
-        _blitWorker.join();
+      if (_blitWorker && _blitWorker->joinable()) {
+        _blitWorker->join();
       }
     }
   }
