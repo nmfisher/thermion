@@ -722,8 +722,8 @@ class ThermionViewerFFI extends ThermionViewer {
       // Owner cleanup may have already released a queued instance or alias.
       if (asset.isDestroyed) return;
       throw StateError(
-        'Cannot destroy asset: this viewer does not own it. '
-        'Destroy it through its owning viewer or FilamentApp.destroyAsset. '
+        'This viewer did not create this asset and cannot destroy it. '
+        'Destroy it through its owning viewer or by FilamentApp.destroyAsset. '
         'Adding an asset to a scene does not transfer ownership.',
       );
     }
