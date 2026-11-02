@@ -25,6 +25,16 @@ namespace thermion
         // queued operation for that app. Use resource handles from the same app.
         // Destroy the resources and await their jobs before destroying the thread.
         // A thread handle is invalid after JobThread_destroy().
+        // Engine creation runs on a job thread and can outlive the window that
+        // asked for it. Platform teardown paths (Flutter plugin destructors)
+        // bracket themselves with these so a half-built engine is never torn
+        // down underneath its own creation.
+        // `EngineLifecycle_lock` returns false if `timeoutMs` elapsed without
+        // acquiring - the caller then proceeds unsynchronised and MUST NOT
+        // call `EngineLifecycle_unlock`.
+        EMSCRIPTEN_KEEPALIVE bool EngineLifecycle_lock(int timeoutMs);
+        EMSCRIPTEN_KEEPALIVE void EngineLifecycle_unlock();
+
         EMSCRIPTEN_KEEPALIVE TJobThread* JobThread_create();
         // Creates a JobThread that transfers the given canvas element
         // (CSS selector) to its worker — one thread per viewer on web.

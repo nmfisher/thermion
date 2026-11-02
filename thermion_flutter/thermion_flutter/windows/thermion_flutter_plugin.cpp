@@ -36,7 +36,7 @@
 
 #include "flutter_d3d_texture.h"
 
-// Declared here rather than by including c_api/ThermionDartRenderThreadApi.h:
+// Declared here rather than by including c_api/ThermionDartJobThreadApi.h:
 // that header drags in the whole T* API surface, and this translation unit is
 // already sensitive to Filament header ordering (see the utils::io forward
 // declaration in the plugin header). DLL_EXPORT resolves to dllimport here

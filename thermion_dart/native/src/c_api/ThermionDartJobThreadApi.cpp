@@ -1,3 +1,4 @@
+#include <chrono>
 #include <array>
 #include <algorithm>
 #include <atomic>
@@ -256,6 +257,52 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  // Engine creation vs. window/engine teardown.
+  //
+  // Engine creation runs on a job thread and can outlive the window that asked
+  // for it: a second engine's Engine_create may run while another window is
+  // closing (a popout watchdog firing mid-boot did exactly this and aborted a
+  // plugin worker thread). Teardown paths take this lock through
+  // EngineLifecycle_lock/unlock so a half-built engine can never be torn down
+  // underneath its own creation.
+  //
+  // timed_mutex, not mutex: a create that never returns must not make a
+  // window unclosable. Teardown proceeds with a warning after the budget.
+  // Function-local lazy static (never destroyed): nothing runs at image load.
+#ifndef __EMSCRIPTEN__
+  static std::timed_mutex& _engineLifecycleMutex()
+  {
+    static std::timed_mutex* m = new std::timed_mutex();
+    return *m;
+  }
+#endif
+
+  // Blocks until no engine creation is in flight, or until the budget
+  // expires. Returns true if the lock was acquired (caller must unlock).
+  EMSCRIPTEN_KEEPALIVE bool EngineLifecycle_lock(int timeoutMs)
+  {
+#ifndef __EMSCRIPTEN__
+    if (_engineLifecycleMutex().try_lock_for(std::chrono::milliseconds(timeoutMs)))
+    {
+      return true;
+    }
+    Log("EngineLifecycle_lock: engine creation still in flight after %d ms; "
+        "proceeding with teardown unsynchronised.",
+        timeoutMs);
+    return false;
+#else
+    (void)timeoutMs;
+    return false;
+#endif
+  }
+
+  EMSCRIPTEN_KEEPALIVE void EngineLifecycle_unlock()
+  {
+#ifndef __EMSCRIPTEN__
+    _engineLifecycleMutex().unlock();
+#endif
+  }
+
   EMSCRIPTEN_KEEPALIVE void Engine_createJobThread(TJobThread *jobThread,
       TBackend backend,
       void *platform,
@@ -269,6 +316,9 @@ extern "C"
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
+#ifndef __EMSCRIPTEN__
+          std::lock_guard<std::timed_mutex> lifecycle(_engineLifecycleMutex());
+#endif
           auto *engine = Engine_create(backend, platform, sharedContext, stereoscopicEyeCount, disableHandleUseAfterFreeCheck);
 
           PROXY(onComplete(engine));
