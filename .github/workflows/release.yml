@@ -234,7 +234,16 @@ jobs:
     needs: [check, tag]
     if: ${{ needs.check.outputs.should_release == 'true' }}
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: write # retry only failed publish jobs after runner-allocation errors
+      checks: read # inspect the runner acquisition annotation before retrying
     steps:
+      - uses: actions/checkout@v4
+        with:
+          # Use this release workflow's code, independently of the ref being released.
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
       - name: Wait for Publish to pub.dev run
         id: publish
         shell: bash
@@ -285,6 +294,11 @@ jobs:
               if [ "$CONCL" = "success" ]; then
                 echo "Publish succeeded: $URL"
                 exit 0
+              fi
+              if python3 scripts/retry-release-runner.py \
+                  --repository "$GH_REPO" --run-id "$PUBLISH_ID"; then
+                sleep 30
+                continue
               fi
               echo "::error::Publish run ended with '$CONCL': $URL"
               exit 1
