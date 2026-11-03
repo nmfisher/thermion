@@ -75,6 +75,13 @@ workflows.
 
    Pre-release versions are fine on pub.dev (e.g. `0.5.0-pre`, `0.7.0-pre`).
 
+   The version is displayed in two places, both derived from
+   `thermion_dart/pubspec.yaml` at build time (never hardcoded): the docs-site
+   header badge (`docs/src/components/SiteTitle.astro`) and the web gallery's
+   bottom-right badge (`examples/dart/web_gallery/web/versions.dart`, baked in
+   via `-DTHERMION_VERSION` during the `deploy.yml` WASM compile). Nothing else
+   needs updating when bumping.
+
 2. **Add a changelog entry** — prepend a `## <version>` section to **both**:
    - `thermion_dart/CHANGELOG.md`
    - `thermion_flutter/thermion_flutter/CHANGELOG.md`

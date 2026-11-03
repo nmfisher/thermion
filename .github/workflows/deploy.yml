@@ -38,6 +38,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The Thermion version (thermion_dart/pubspec.yaml is the source of truth;
+      # thermion_flutter matches in lockstep — see docs/RELEASING.md). On a tag
+      # push this equals the tag; on a manual dispatch it's whatever develop
+      # holds. Shared by the gallery WASM badge (compile-time define) and the
+      # docs header badge (Astro reads $THERMION_VERSION at build time).
+      - name: Resolve Thermion version
+        run: |
+          VERSION="$(sed -n 's/^version: *//p' thermion_dart/pubspec.yaml)"
+          if [ -z "$VERSION" ]; then
+            echo "Could not read version from thermion_dart/pubspec.yaml" >&2
+            exit 1
+          fi
+          echo "THERMION_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Building site for Thermion v$VERSION"
+
       # --- documentation (Astro) ---
       - uses: pnpm/action-setup@v4
         with:
@@ -74,7 +89,15 @@ jobs:
         run: cp -r examples/assets examples/dart/web_gallery/web/assets
       - name: Compile gallery to WASM
         working-directory: examples/dart/web_gallery
-        run: dart compile wasm web/main.dart -o web/main.wasm
+        # THERMION_VERSION is baked into the bundle via String.fromEnvironment
+        # (web/versions.dart) and shown in the gallery's bottom-right badge.
+        # FILAMENT_VERSION must match thermion_dart/lib/filament_version.dart
+        # (generated from /filament.version); it's display-only here.
+        run: |
+          FILAMENT_VERSION="$(cat filament.version | awk '{print $2}')"
+          dart compile wasm web/main.dart -o web/main.wasm \
+            -DTHERMION_VERSION="$THERMION_VERSION" \
+            -DFILAMENT_VERSION="$FILAMENT_VERSION"
       - name: Stage gallery under docs output
         run: |
           mkdir -p docs/dist/gallery
