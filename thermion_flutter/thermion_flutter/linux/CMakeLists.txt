@@ -188,15 +188,21 @@ if(NOT _FILAMENT_HEADERS)
       "package_config.json nor the monorepo fallback); cannot locate "
       "Filament headers.")
   endif()
-  message(FATAL_ERROR
+  # Not fatal: on a clean pub cache Flutter configures CMake BEFORE the
+  # assemble step that runs thermion_dart's build hook, so the artifact cannot
+  # exist yet. Warn and skip the artifact include dirs; the hook then fetches
+  # the artifact and CMake must re-configure to pick the headers up.
+  message(WARNING
     "thermion_flutter: no Filament headers found under "
     "${_td_root}/.dart_tool/thermion_dart/lib/${_version_dir}/linux/*/include "
     "(version pinned by ${_td_root}/../filament.version), and "
     "generated_headers.cmake provided no usable entry either. The artifact is "
-    "downloaded by thermion_dart's build hook — on a clean machine the first "
-    "build fetches it; rerun once that has completed.")
+    "downloaded by thermion_dart's build hook, which runs after configure on "
+    "a clean machine; re-run the build/configure once the hook has completed "
+    "so the headers are picked up.")
+else()
+  message(STATUS "thermion_flutter: Filament headers: ${_FILAMENT_HEADERS}")
 endif()
-message(STATUS "thermion_flutter: Filament headers: ${_FILAMENT_HEADERS}")
 
 target_include_directories(${PLUGIN_NAME} PRIVATE
   ${_FILAMENT_HEADERS}
