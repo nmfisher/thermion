@@ -653,7 +653,12 @@ class FFIView extends View<Pointer<TView>> {
   }) async {
     // primitiveIndex parameter is deprecated and ignored
     // The offset is now computed automatically from the entity
-    entity ??= asset.entity;
+    //
+    // Without an explicit [entity] every renderable node of [asset] is
+    // highlighted. The asset's root node is usually not renderable (and for an
+    // instance never is), so highlighting only `asset.entity` would be a
+    // silent no-op.
+    final targets = entity != null ? <int>[entity] : <int>[asset.entity, ...await asset.getChildEntities()];
 
     // Use geometrySource for vertex/index buffers when provided (e.g. for
     // instances where the root asset has the preserved geometry data).
@@ -675,11 +680,37 @@ class FFIView extends View<Pointer<TView>> {
       await setHighlightOverlayEnabled(true);
     }
 
-    // Get the starting primitive offset for this entity
+    for (final target in targets) {
+      await _addEntityHighlight(
+        ffiGeoAsset,
+        target,
+        warnIfMissing: entity != null,
+        outlineWidth: outlineWidth,
+        r: r,
+        g: g,
+        b: b,
+      );
+    }
+  }
+
+  Future<void> _addEntityHighlight(
+    FFIAsset ffiGeoAsset,
+    int entity, {
+    required bool warnIfMissing,
+    required double outlineWidth,
+    required double r,
+    required double g,
+    required double b,
+  }) async {
+    final geoAsset = ffiGeoAsset;
+    // Get the starting primitive offset for this entity. For an instance entity
+    // the native side resolves the owner entity at the same index.
     final offset = await ffiGeoAsset.getPrimitiveOffsetForEntity(entity);
     if (offset < 0) {
       // The asset has preserved geometry, but this particular entity has no
-      // rebuilt buffers (e.g. its primitives are all lines/points).
+      // rebuilt buffers (e.g. its primitives are all lines/points) or it is
+      // not renderable.
+      if (!warnIfMissing) return;
       _logger.warning(
         "Stencil highlight: no accessible geometry buffers for entity $entity "
         "(its primitives are all non-triangles and have no rebuilt buffers).",
