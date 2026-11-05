@@ -1120,6 +1120,65 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<TMat4> _Mat4_create();
   external void _Mat4_destroy(Pointer<TMat4> matrix);
   external Pointer<Float64> _Mat4_getData(Pointer<TMat4> matrix);
+
+  /// Compiles a material source string to a .filamat package at runtime.
+  ///
+  /// `tJobThread` is the render job thread that owns `tEngine`; the compile
+  /// runs there because MaterialBuilder::build drives the engine's
+  /// JobSystem, whose calling thread must have been adopted — which the
+  /// engine-creating job thread is. `materialSource` is the GLSL of the
+  /// material() function, the same string format accepted by
+  /// MaterialBuilder::material(), e.g.:
+  ///
+  /// void material(inout MaterialInputs material) {
+  /// prepareMaterial(material);
+  /// material.baseColor.rgb = float3(1.0, 0.0, 0.0);
+  /// }
+  ///
+  /// `name` is the material name (used in diagnostics/shader names). `shading`
+  /// selects the lighting model. The output target API is derived from the
+  /// compiled platform this function is linked into (e.g. Metal on Apple
+  /// platforms, OpenGL+Vulkan on Android/Linux/Windows), matching how the
+  /// precompiled Thermion materials are built.
+  ///
+  /// Returns null when compilation fails or this build lacks runtime material
+  /// support. Failure diagnostics are logged through the Filament logger.
+  ///
+  /// This call blocks the calling Dart thread until the compile finishes on
+  /// the job thread (hundreds of ms). The Dart API dispatches it via the
+  /// same future-based task pattern as the other *JobThread entry points,
+  /// so Dart code simply awaits.
+  ///
+  /// The returned package is owned by the caller and must be released with
+  /// MaterialCompiler_destroyPackage.
+  external Pointer<TMaterialCompilerPackage> _MaterialCompiler_compileMaterialSource(
+    Pointer<TJobThread> tJobThread,
+    Pointer<TEngine> tEngine,
+    Pointer<Char> name,
+    Pointer<Char> materialSource,
+    int shading,
+  );
+
+  /// Frees a package returned by MaterialCompiler_compileMaterialSource.
+  /// Null is ignored.
+  external void _MaterialCompiler_destroyPackage(Pointer<TMaterialCompilerPackage> package);
+
+  /// Copies the compiled package bytes into `out`, which must hold at least
+  /// MaterialCompiler_getPackageSize bytes. Returns the number of bytes copied.
+  external size_t _MaterialCompiler_getPackageBytes(
+    Pointer<TMaterialCompilerPackage> package,
+    Pointer<Uint8> out,
+    size_t capacity,
+  );
+
+  /// Returns the byte size of the compiled package.
+  external size_t _MaterialCompiler_getPackageSize(Pointer<TMaterialCompilerPackage> package);
+
+  /// Returns 1 when this build was compiled with runtime material
+  /// compilation support (the `runtime_materials` build flag), 0 otherwise.
+  /// When 0, MaterialCompiler_compileMaterialSource returns null and callers
+  /// should fall back to precompiled .filamat packages.
+  external int _MaterialCompiler_isSupported();
   external int _MaterialInstance_getTransparencyMode(Pointer<TMaterialInstance> materialInstance);
   external int _MaterialInstance_isStencilWriteEnabled(Pointer<TMaterialInstance> materialInstance);
   external void _MaterialInstance_setCullingMode(Pointer<TMaterialInstance> materialInstance, int culling);
@@ -2301,9 +2360,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int pixelDataType,
     Pointer<NativeFunction<void Function(bool)>> onComplete,
   );
-  external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext(Pointer<Char> canvasSelector);
+  external int _Thermion_createGLContext(Pointer<Char> canvasSelector);
   external void _Thermion_destroyCanvas(Pointer<Char> canvasSelector);
-  external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_getGLContext();
+  external int _Thermion_getGLContext();
   external void _Thermion_setCanvasElementSize(Pointer<Char> name, int width, int height);
   external Pointer<TToneMapper> _ToneMapper_createACES(Pointer<TEngine> tEngine);
   external void _ToneMapper_createACESJobThread(
@@ -5715,6 +5774,86 @@ Pointer<Float64> Mat4_getData(Pointer<TMat4> matrix) {
   return Pointer<Float64>(result);
 }
 
+/// Compiles a material source string to a .filamat package at runtime.
+///
+/// `tJobThread` is the render job thread that owns `tEngine`; the compile
+/// runs there because MaterialBuilder::build drives the engine's
+/// JobSystem, whose calling thread must have been adopted — which the
+/// engine-creating job thread is. `materialSource` is the GLSL of the
+/// material() function, the same string format accepted by
+/// MaterialBuilder::material(), e.g.:
+///
+/// void material(inout MaterialInputs material) {
+/// prepareMaterial(material);
+/// material.baseColor.rgb = float3(1.0, 0.0, 0.0);
+/// }
+///
+/// `name` is the material name (used in diagnostics/shader names). `shading`
+/// selects the lighting model. The output target API is derived from the
+/// compiled platform this function is linked into (e.g. Metal on Apple
+/// platforms, OpenGL+Vulkan on Android/Linux/Windows), matching how the
+/// precompiled Thermion materials are built.
+///
+/// Returns null when compilation fails or this build lacks runtime material
+/// support. Failure diagnostics are logged through the Filament logger.
+///
+/// This call blocks the calling Dart thread until the compile finishes on
+/// the job thread (hundreds of ms). The Dart API dispatches it via the
+/// same future-based task pattern as the other *JobThread entry points,
+/// so Dart code simply awaits.
+///
+/// The returned package is owned by the caller and must be released with
+/// MaterialCompiler_destroyPackage.
+Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialSource(
+  Pointer<TJobThread> tJobThread,
+  Pointer<TEngine> tEngine,
+  Pointer<Char> name,
+  Pointer<Char> materialSource,
+  int shading,
+) {
+  final result = GeneratedBindings.instance._MaterialCompiler_compileMaterialSource(
+    tJobThread.cast(),
+    tEngine.cast(),
+    name,
+    materialSource,
+    shading,
+  );
+  return Pointer<TMaterialCompilerPackage>(result);
+}
+
+/// Frees a package returned by MaterialCompiler_compileMaterialSource.
+/// Null is ignored.
+void MaterialCompiler_destroyPackage(Pointer<TMaterialCompilerPackage> package) {
+  final result = GeneratedBindings.instance._MaterialCompiler_destroyPackage(package.cast());
+  return result;
+}
+
+/// Copies the compiled package bytes into `out`, which must hold at least
+/// MaterialCompiler_getPackageSize bytes. Returns the number of bytes copied.
+Dartsize_t MaterialCompiler_getPackageBytes(
+  Pointer<TMaterialCompilerPackage> package,
+  Pointer<Uint8> out,
+  Dartsize_t capacity,
+) {
+  final result = GeneratedBindings.instance._MaterialCompiler_getPackageBytes(package.cast(), out, capacity);
+  return result;
+}
+
+/// Returns the byte size of the compiled package.
+Dartsize_t MaterialCompiler_getPackageSize(Pointer<TMaterialCompilerPackage> package) {
+  final result = GeneratedBindings.instance._MaterialCompiler_getPackageSize(package.cast());
+  return result;
+}
+
+/// Returns 1 when this build was compiled with runtime material
+/// compilation support (the `runtime_materials` build flag), 0 otherwise.
+/// When 0, MaterialCompiler_compileMaterialSource returns null and callers
+/// should fall back to precompiled .filamat packages.
+int MaterialCompiler_isSupported() {
+  final result = GeneratedBindings.instance._MaterialCompiler_isSupported();
+  return result;
+}
+
 int MaterialInstance_getTransparencyMode(Pointer<TMaterialInstance> materialInstance) {
   final result = GeneratedBindings.instance._MaterialInstance_getTransparencyMode(materialInstance.cast());
   return result;
@@ -8776,7 +8915,7 @@ void Texture_setImageJobThread(
   return result;
 }
 
-DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext(Pointer<Char> canvasSelector) {
+int Thermion_createGLContext(Pointer<Char> canvasSelector) {
   final result = GeneratedBindings.instance._Thermion_createGLContext(canvasSelector);
   return result;
 }
@@ -8786,7 +8925,7 @@ void Thermion_destroyCanvas(Pointer<Char> canvasSelector) {
   return result;
 }
 
-DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_getGLContext() {
+int Thermion_getGLContext() {
   final result = GeneratedBindings.instance._Thermion_getGLContext();
   return result;
 }
@@ -10351,8 +10490,6 @@ final class Aabb3 extends Struct {
   }
 }
 
-typedef EMSCRIPTEN_WEBGL_CONTEXT_HANDLE = int;
-typedef DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE = int;
 typedef EntityId = int;
 typedef DartEntityId = int;
 typedef FrameTickCallback = Pointer<NativeFunction<FrameTickCallbackFunction>>;
@@ -11515,6 +11652,21 @@ final class TMaterial extends Struct {
   }
 }
 
+extension TMaterialCompilerPackageExt on Pointer<TMaterialCompilerPackage> {
+  TMaterialCompilerPackage toDart() {
+    return TMaterialCompilerPackage(this);
+  }
+}
+
+final class TMaterialCompilerPackage extends Struct {
+  Pointer<TMaterialCompilerPackage> get address => super.address.cast();
+  TMaterialCompilerPackage(super.address);
+
+  static Pointer<TMaterialCompilerPackage> stackAlloc() {
+    return Pointer<TMaterialCompilerPackage>(NativeLibrary.instance.stackAlloc<TMaterialCompilerPackage>(0));
+  }
+}
+
 extension TMaterialInstanceExt on Pointer<TMaterialInstance> {
   TMaterialInstance toDart() {
     return TMaterialInstance(this);
@@ -11885,6 +12037,16 @@ sealed class TSceneAssetType {
   static const SCENE_ASSET_TYPE_IBL = 4;
   static const SCENE_ASSET_TYPE_IMAGE = 5;
   static const SCENE_ASSET_TYPE_GIZMO = 6;
+}
+
+/// Shading models, mirroring filamat::MaterialBuilder::Shading.
+/// Keep in sync with filament::Shading in MaterialEnums.h.
+sealed class TShading {
+  static const SHADING_UNLIT = 0;
+  static const SHADING_LIT = 1;
+  static const SHADING_SUBSURFACE = 2;
+  static const SHADING_CLOTH = 3;
+  static const SHADING_SPECULAR_GLOSSINESS = 4;
 }
 
 extension TShadowOptionsExt on Pointer<TShadowOptions> {
@@ -13516,6 +13678,9 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TMaterial:
         final ptr = TMaterial.stackAlloc();
+        return ptr.toDart() as T;
+      case TMaterialCompilerPackage:
+        final ptr = TMaterialCompilerPackage.stackAlloc();
         return ptr.toDart() as T;
       case TMaterialInstance:
         final ptr = TMaterialInstance.stackAlloc();

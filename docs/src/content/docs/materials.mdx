@@ -109,5 +109,33 @@ compiled `.uberz` archives are bundled into the app via the build hook.
 Existing material sources live in `materials/` (e.g. `image.mat`, `grid.mat`,
 `silhouette.mat`).
 
+## Compiling materials at runtime
+
+Instead of precompiling `.filamat`/`.uberz` files, apps that need to generate
+materials at runtime (user-authored or procedural shaders) can compile GLSL
+`material()` source directly on the device with
+`FilamentApp.compileMaterialSource`:
+
+```dart
+final material = await FilamentApp.instance!.compileMaterialSource(
+  'my_material',
+  '''
+  void material(inout MaterialInputs material) {
+    prepareMaterial(material);
+    material.baseColor.rgb = float3(1.0, 0.0, 0.0);
+  }
+  ''',
+  shading: MaterialShading.lit,
+);
+```
+
+This is an opt-in build feature: it links Filament's `libfilamat` (which
+bakes in glslang and SPIRV-Tools, adding roughly 8–45 MB). Enable it with a
+`runtime_materials: true` user define under `hooks.user_defines.thermion_dart`
+in your app's `pubspec.yaml`; `FilamentApp.runtimeMaterialsSupported` reports
+whether the loaded build has it. Not available on web or iOS — precompile
+with `matc` there. Compilation runs on Thermion's job thread and is
+CPU-intensive (hundreds of milliseconds).
+
 > A runnable example covering material swapping, parameter setting, and texture
 > binding is in `examples/flutter/materials_and_textures`.

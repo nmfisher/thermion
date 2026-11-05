@@ -51,6 +51,45 @@ layouts with a Dart `FormatException` before calling Filament's material
 builder. It does not validate every payload or backend requirement; other
 invalid packages can still cause a native panic.
 
+#### Runtime material compilation (optional)
+
+Instead of precompiling `.filamat` packages with `matc`, apps that need to
+generate materials at runtime (e.g. user-authored or procedurally generated
+shaders) can compile GLSL material source directly on the device:
+
+```dart
+final material = await FilamentApp.instance!.compileMaterialSource(
+  'my_material',
+  '''
+  void material(inout MaterialInputs material) {
+    prepareMaterial(material);
+    material.baseColor.rgb = float3(1.0, 0.0, 0.0);
+  }
+  ''',
+  shading: MaterialShading.lit,
+);
+```
+
+This requires linking `libfilamat` — Filament's offline material compiler,
+which bakes in glslang and SPIRV-Tools — so it is opt-in. Add the flag to your
+app's `pubspec.yaml`:
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      runtime_materials: true
+```
+
+The flag adds roughly 8–45 MB to the native library depending on platform and
+build mode (release `libfilamat.a` is ~45 MB; less is carried into the final
+binary). `FilamentApp.instance!.runtimeMaterialsSupported` reports whether the
+loaded build has it; `compileMaterialSource` throws `UnsupportedError`
+otherwise. Runtime compilation is not available on web or iOS (Filament's iOS
+archives do not ship `libfilamat`); precompile with `matc` there. Compilation
+is synchronous and CPU-intensive (hundreds of milliseconds) — run it before
+startup or from a background isolate.
+
 ### Quickstart (Flutter)
 
 From the command line:

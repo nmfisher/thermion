@@ -107,6 +107,43 @@ outputDirectory : ${outputDirectory.path}
 
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
 
+    // Runtime material compilation (filamat). Opt-in because it bakes
+    // glslang/SPIRV-Tools into libthermion_dart, adding tens of MB. See the
+    // runtime_materials section in README.md.
+    //
+    // Set `runtime_materials: true` under hooks.user_defines.thermion_dart in
+    // the consuming app's pubspec.yaml.
+    final runtimeMaterialsRaw = input.userDefines["runtime_materials"];
+    var runtimeMaterials = false;
+    if (runtimeMaterialsRaw == true ||
+        runtimeMaterialsRaw == "true" ||
+        runtimeMaterialsRaw == 1 ||
+        runtimeMaterialsRaw == "1") {
+      runtimeMaterials = true;
+    } else if (runtimeMaterialsRaw != null &&
+        runtimeMaterialsRaw != false &&
+        runtimeMaterialsRaw != "false" &&
+        runtimeMaterialsRaw != 0 &&
+        runtimeMaterialsRaw != "0") {
+      logger.warning(
+        "Ignoring unrecognized runtime_materials value '$runtimeMaterialsRaw' "
+        "(expected true or false); continuing without runtime material compilation.",
+      );
+    }
+    final defines = <String, String?>{};
+    if (runtimeMaterials) {
+      if (targetOS == OS.iOS) {
+        throw Exception(
+          "runtime_materials is not supported on iOS: Filament's iOS archives "
+          "do not include libfilamat.a. Remove runtime_materials from your "
+          "pubspec.yaml user defines and precompile .filamat packages with "
+          "matc instead.",
+        );
+      }
+      logger.info("runtime_materials enabled; linking filamat for runtime shader compilation");
+      defines["THERMION_ENABLE_RUNTIME_MATERIALS"] = "1";
+    }
+
     final libResult = await getLibDir(
       packageRoot,
       targetOS,
@@ -177,7 +214,6 @@ outputDirectory : ${outputDirectory.path}
     final materialSuffix = materialResolution.suffix;
     final materialDefine = materialResolution.define;
 
-    final defines = <String, String?>{};
     final materialDir = path.join(pkgRootFilePath, 'native/include/material');
     // A selected variant whose blobs are missing is a hard error: silently
     // falling back would compile the wrong backends into the app.
@@ -229,7 +265,17 @@ outputDirectory : ${outputDirectory.path}
     var libs = [
       "filament",
       "backend",
-      if (targetOS != OS.iOS) "filamat",
+      // Runtime material compilation (filamat::MaterialBuilder). Opt-in via
+      // the `runtime_materials` user define; see the block that parses it
+      // above. Nothing else in the library references filamat, so it is only
+      // linked when enabled (it would otherwise be dead weight — tens of MB
+      // of glslang/SPIRV-Tools).
+      if (runtimeMaterials) "filamat",
+      // libfilamat.a references SHADERS_PACKAGE etc. from libshaders.a
+      // (the generated shader-common chunks CodeGenerator emits into every
+      // material). On Linux, "shaders" was already linked for gltfio; other
+      // platforms only need it when runtime_materials pulls filamat in.
+      if (runtimeMaterials && targetOS != OS.linux) "shaders",
       if (targetOS == OS.linux) "shaders",
       "utils",
       // Android links Filament's Perfetto tracing archive. utils is always
