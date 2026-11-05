@@ -85,10 +85,16 @@ The flag adds roughly 8–45 MB to the native library depending on platform and
 build mode (release `libfilamat.a` is ~45 MB; less is carried into the final
 binary). `FilamentApp.instance!.runtimeMaterialsSupported` reports whether the
 loaded build has it; `compileMaterialSource` throws `UnsupportedError`
-otherwise. Runtime compilation is not available on web or iOS (Filament's iOS
-archives do not ship `libfilamat`); precompile with `matc` there. Compilation
+otherwise. On web, the flag additionally selects a **filamat-enabled engine
+variant** — the build hook fetches `thermion_dart-<sha>-web-runtime-materials.zip`
+instead of the default wasm (~20 MB larger; it links `libfilamat`, the default
+build dead-code-eliminates it). iOS is unsupported (Filament's iOS archives do
+not ship `libfilamat`); precompile with `matc` there. Compilation
 is synchronous and CPU-intensive (hundreds of milliseconds) — run it before
 startup or from a background isolate.
+
+A live web demo — a GLSL editor that compiles and applies materials in the
+browser — is in `examples/dart/material_editor`.
 
 ### Quickstart (Flutter)
 
@@ -207,6 +213,16 @@ Unknown values log a warning and fall back to the default engine.
 `web_local: true` composes with this: it then copies from
 `native/web/build-main-thread/build/out/` (build that variant locally with
 `emcmake cmake .. -DTHERMION_WEB_MAIN_THREAD=ON` into a separate directory).
+
+#### Runtime-materials web engine
+
+`runtime_materials: true` (the same user define that enables runtime material
+compilation on native) also selects a web engine variant with `libfilamat`
+linked — `compileMaterialSource` then works in the browser. The build hook
+fetches `thermion_dart-<sha>-web-runtime-materials.zip` (~20 MB larger than
+the default engine; the default dead-code-eliminates filamat). It composes
+with `web_variant` and `web_local` like any other variant. See the live
+editor demo in `examples/dart/material_editor`.
 Once this lands, a matching `thermion_dart-<sha>-web-main-thread.zip` appears
 on R2 only after the next native-changed push to `develop` bumps
 `web.version` — until then main-thread consumers must keep building locally.

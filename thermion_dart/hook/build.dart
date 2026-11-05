@@ -843,7 +843,14 @@ Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
   //                                callbacks execute on the calling thread)
   // Unknown values warn and fall back to the default. See
   // lib/src/hooks/web_artifacts.dart (pure logic, unit-tested).
-  final variant = resolveWebVariant(input.userDefines["web_variant"]);
+  //
+  // Independently, `runtime_materials: true` selects a build of that engine
+  // with filamat linked (compileMaterialSource works on web); see
+  // withRuntimeMaterials in the same file.
+  final variant = withRuntimeMaterials(
+    resolveWebVariant(input.userDefines["web_variant"]),
+    input.userDefines["runtime_materials"],
+  );
   for (final warning in variant.warnings) {
     logger.warning(warning);
   }

@@ -133,9 +133,12 @@ This is an opt-in build feature: it links Filament's `libfilamat` (which
 bakes in glslang and SPIRV-Tools, adding roughly 8–45 MB). Enable it with a
 `runtime_materials: true` user define under `hooks.user_defines.thermion_dart`
 in your app's `pubspec.yaml`; `FilamentApp.runtimeMaterialsSupported` reports
-whether the loaded build has it. Not available on web or iOS — precompile
-with `matc` there. Compilation runs on Thermion's job thread and is
-CPU-intensive (hundreds of milliseconds).
+whether the loaded build has it. On web the same flag selects a
+filamat-enabled engine variant (~20 MB larger than the default wasm). iOS is
+unsupported — precompile with `matc` there. Compilation runs on Thermion's
+job thread and is CPU-intensive (hundreds of milliseconds).
 
-> A runnable example covering material swapping, parameter setting, and texture
-> binding is in `examples/flutter/materials_and_textures`.
+> A runnable web example — a live GLSL material editor that compiles and
+> applies materials in the browser — is in `examples/dart/material_editor`.
+> Material swapping, parameter setting, and texture binding with
+> precompiled materials: `examples/flutter/materials_and_textures`.

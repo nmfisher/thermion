@@ -299,7 +299,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: thermion_dart/native/web/lib/release
-          key: filament-web-${{ hashFiles('filament.version') }}
+          # -filamat: key rotation for the runtime-materials engine. The
+          # artifact zip must contain libfilamat.a (FILAMENT_BUILD_FILAMAT=ON
+          # in scripts/build_web.sh); older caches predate it.
+          key: filament-web-${{ hashFiles('filament.version') }}-filamat
 
       - name: Compile web
         if: steps.changes.outputs.native-changed == 'true'
@@ -316,6 +319,24 @@ jobs:
             -B thermion_dart/native/web/build-main-thread \
             -DCMAKE_BUILD_TYPE=Release -DTHERMION_WEB_MAIN_THREAD=ON
           cmake --build thermion_dart/native/web/build-main-thread --parallel 2
+
+      # Runtime-materials engine (filamat linked; fetched by apps that set
+      # runtime_materials: true). Same separate-build-dir pattern as
+      # main-thread above. Soft-skips when the downloaded Filament web
+      # artifact predates FILAMENT_BUILD_FILAMAT=ON (no libfilamat.a): the
+      # variant can't link until the filament web artifact is rebuilt via
+      # build-filament.yml and the cache key rotates.
+      - name: Compile web (runtime-materials)
+        if: steps.changes.outputs.native-changed == 'true'
+        run: |
+          if [ ! -f thermion_dart/native/web/lib/release/libfilamat.a ]; then
+            echo "::warning::libfilamat.a missing from the Filament web artifact; skipping the runtime-materials engine build. Rebuild the filament web artifact (scripts/build_web.sh now passes FILAMENT_BUILD_FILAMAT=ON) via build-filament.yml."
+            exit 0
+          fi
+          emcmake cmake -S thermion_dart/native/web \
+            -B thermion_dart/native/web/build-runtime-materials \
+            -DCMAKE_BUILD_TYPE=Release -DTHERMION_ENABLE_RUNTIME_MATERIALS=ON
+          cmake --build thermion_dart/native/web/build-runtime-materials --parallel 2
 
       - name: Test web uploads without visible frames
         if: steps.changes.outputs.native-changed == 'true'
@@ -351,6 +372,20 @@ jobs:
             "s3://thermion/thermion_dart-${SHORT_SHA}-web-main-thread.zip" \
             --endpoint-url "$R2_ENDPOINT" \
             --region auto
+          # Runtime-materials variant (runtime_materials: true in the consuming
+          # app's pubspec.yaml fetches this): filamat linked, tens of MB larger,
+          # compileMaterialSource works on web. Skipped (with the build above)
+          # when the Filament web artifact predates FILAMENT_BUILD_FILAMAT=ON.
+          if [ -d "$GITHUB_WORKSPACE/thermion_dart/native/web/build-runtime-materials/build/out" ]; then
+            cd "$GITHUB_WORKSPACE/thermion_dart/native/web/build-runtime-materials/build/out"
+            zip "thermion_dart-${SHORT_SHA}-web-runtime-materials.zip" thermion_dart.js thermion_dart.wasm
+            aws s3 cp "thermion_dart-${SHORT_SHA}-web-runtime-materials.zip" \
+              "s3://thermion/thermion_dart-${SHORT_SHA}-web-runtime-materials.zip" \
+              --endpoint-url "$R2_ENDPOINT" \
+              --region auto
+          else
+            echo "::warning::runtime-materials web engine was not built; skipping its upload."
+          fi
           # Write the SHA so the download script knows which artifact to fetch
           echo "$SHORT_SHA" > "${{ github.workspace }}/thermion_dart/native/web/web.version"
 

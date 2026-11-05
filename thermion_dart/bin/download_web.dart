@@ -6,6 +6,17 @@ import 'package:path/path.dart' as path;
 
 const _r2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
 
+/// CLI variant selectors → the artifact zip suffix used on R2 (mirrors
+/// lib/src/hooks/web_artifacts.dart, which the build hook uses; this script
+/// predates that abstraction and stays dependency-free so it can run before
+/// pub get has materialized anything).
+const _variants = {
+  'default': '',
+  'worker': '',
+  'main_thread': '-main-thread',
+  'runtime-materials': '-runtime-materials',
+};
+
 Future<String> _getWebVersion() async {
   // Resolve package:thermion_dart/ to its lib/ directory so we can locate
   // native/web/web.version regardless of how this script was invoked.
@@ -28,14 +39,14 @@ Future<String> _getWebVersion() async {
   return versionFile.readAsStringSync().trim();
 }
 
-Future<Directory> _downloadToCache(String version, Directory cacheDir) async {
+Future<Directory> _downloadToCache(String version, String zipSuffix, Directory cacheDir) async {
   final successToken = File(path.join(cacheDir.path, 'success'));
   if (successToken.existsSync()) {
     stdout.writeln('Web artifacts already cached at ${cacheDir.path}');
     return cacheDir;
   }
 
-  final zipName = 'thermion_dart-${version}-web.zip';
+  final zipName = 'thermion_dart-${version}-web$zipSuffix.zip';
   final url = '$_r2BaseUrl/$zipName';
   final zipFile = File(path.join(cacheDir.path, zipName));
 
@@ -94,28 +105,43 @@ void _copyToOutput(Directory cacheDir, String outputDir) {
 
 void main(List<String> args) async {
   String outputDir = 'web';
+  String variant = 'default';
 
   for (var i = 0; i < args.length; i++) {
     if (args[i] == '-o' || args[i] == '--output') {
       if (i + 1 < args.length) {
         outputDir = args[++i];
       }
+    } else if (args[i] == '--variant') {
+      if (i + 1 < args.length) {
+        variant = args[++i];
+      }
     } else if (args[i] == '-h' || args[i] == '--help') {
-      stdout.writeln('Usage: dart run thermion_dart:download_web [-o <dir>]');
-      stdout.writeln('  -o, --output  Output directory (default: web/)');
+      stdout.writeln('Usage: dart run thermion_dart:download_web [-o <dir>] [--variant <name>]');
+      stdout.writeln('  -o, --output   Output directory (default: web/)');
+      stdout.writeln('  --variant      Engine variant: ${_variants.keys.join(', ')} (default: default)');
+      stdout.writeln('                runtime-materials = filamat-enabled engine for');
+      stdout.writeln('                runtime material compilation (~20 MB larger).');
       return;
     }
   }
 
+  final zipSuffix = _variants[variant];
+  if (zipSuffix == null) {
+    stderr.writeln("Unknown variant '$variant'. Valid: ${_variants.keys.join(', ')}");
+    exit(1);
+  }
+
   final version = await _getWebVersion();
-  stdout.writeln('Web artifact version: $version');
+  stdout.writeln('Web artifact version: $version (variant: $variant)');
 
   outputDir = path.normalize(outputDir);
 
-  // Cache under .dart_tool/thermion_dart/web/{version}/
-  final cacheDir = Directory(path.join('.dart_tool', 'thermion_dart', 'web', version));
+  // Cache under .dart_tool/thermion_dart/web/{version}{suffix}/ — variants
+  // never share a directory (the success token would mask the wrong files).
+  final cacheDir = Directory(path.join('.dart_tool', 'thermion_dart', 'web', '$version$zipSuffix'));
 
-  await _downloadToCache(version, cacheDir);
+  await _downloadToCache(version, zipSuffix, cacheDir);
   _copyToOutput(cacheDir, outputDir);
 
   stdout.writeln('Done.');

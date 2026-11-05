@@ -249,10 +249,16 @@ if [ "$BUILD_RELEASE" = true ]; then
   fi
 
   # Configure and build filament
+  # FILAMENT_BUILD_FILAMAT is OFF by default for WASM upstream (build time);
+  # Thermion's runtime-materials engine links filamat from this artifact, so
+  # force it on. The combined archive installed as libfilamat.a bundles
+  # glslang/SPIRV/spirv-cross, and unreferenced symbols are GC'd by wasm-ld in
+  # engines that don't link it — the default artifact size is unchanged.
   cmake -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DFILAMENT_ENABLE_EXCEPTIONS=OFF \
     -DFILAMENT_SKIP_SAMPLES=1 -DFILAMENT_BUILD_TESTING=OFF \
+    -DFILAMENT_BUILD_FILAMAT=ON \
     -DCMAKE_CXX_STANDARD=20 \
     -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
@@ -366,10 +372,13 @@ if [ "$BUILD_DEBUG" = true ]; then
   fi
 
   # Configure and build filament
+  # FILAMENT_BUILD_FILAMAT=ON mirrors the release build above (see the
+  # comment there): Thermion's runtime-materials web engine needs it.
   cmake -G Ninja \
     -DCMAKE_BUILD_TYPE=Debug \
     -DFILAMENT_ENABLE_EXCEPTIONS=OFF \
     -DFILAMENT_SKIP_SAMPLES=1 -DFILAMENT_BUILD_TESTING=OFF \
+    -DFILAMENT_BUILD_FILAMAT=ON \
     -DCMAKE_CXX_STANDARD=20 \
     -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \

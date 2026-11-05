@@ -146,9 +146,11 @@ abstract class FilamentApp<T> {
   /// Whether the loaded native build supports compiling materials from
   /// GLSL source at runtime (the `runtime_materials` build flag).
   ///
-  /// Always false on web and when the app was built without the flag.
-  /// When false, [compileMaterialSource] throws [UnsupportedError];
-  /// use `matc`-compiled `.filamat` packages with [createMaterial] instead.
+  /// False when the app was built without the flag — including the default
+  /// web engine (the filamat-enabled web variant reports true) and iOS
+  /// (unsupported). When false, [compileMaterialSource] throws
+  /// [UnsupportedError]; use `matc`-compiled `.filamat` packages with
+  /// [createMaterial] instead.
   bool get runtimeMaterialsSupported;
 
   /// Compiles GLSL material [source] to a `.filamat` package at runtime and
@@ -168,9 +170,9 @@ abstract class FilamentApp<T> {
   /// [shading] selects the lighting model.
   ///
   /// Throws [UnsupportedError] when [runtimeMaterialsSupported] is false
-  /// (web builds, or native builds without the `runtime_materials` flag).
-  /// Compile failures are logged through the Filament logger and rethrown
-  /// as a [StateError].
+  /// (builds without the `runtime_materials` flag, incl. the default web
+  /// engine). Compile failures are logged through the Filament logger and
+  /// rethrown as a [StateError].
   ///
   /// This is a synchronous, CPU-intensive native call (hundreds of ms).
   /// Prefer calling before startup or from a background isolate.

@@ -71,12 +71,61 @@ void main() {
     test('webLocalBuildDir maps variant to its build directory', () {
       expect(webLocalBuildDir(''), 'build');
       expect(webLocalBuildDir('-main-thread'), 'build-main-thread');
+      expect(webLocalBuildDir('-runtime-materials'), 'build-runtime-materials');
+      expect(webLocalBuildDir('-main-thread-runtime-materials'), 'build-main-thread-runtime-materials');
     });
 
     test('main_thread resolution round-trips through naming helpers', () {
       final r = resolveWebVariant('main_thread');
       expect(webArtifactZipName('v', r.zipSuffix), 'thermion_dart-v-web-main-thread.zip');
       expect(webLocalBuildDir(r.zipSuffix), 'build-main-thread');
+    });
+  });
+
+  group('withRuntimeMaterials', () {
+    test('disabled by default / explicit false / falsy strings', () {
+      for (final raw in [null, false, 'false', 0, '0']) {
+        final r = withRuntimeMaterials(resolveWebVariant(null), raw);
+        expect(r.zipSuffix, '', reason: 'raw=$raw');
+        expect(r.cacheSuffix, '');
+        expect(r.warnings, isEmpty);
+      }
+    });
+
+    test('enabled forms append the suffix', () {
+      for (final raw in [true, 'true', 1, '1']) {
+        final r = withRuntimeMaterials(resolveWebVariant(null), raw);
+        expect(r.zipSuffix, '-runtime-materials', reason: 'raw=$raw');
+        expect(r.cacheSuffix, '-runtime-materials');
+        expect(r.warnings, isEmpty);
+      }
+    });
+
+    test('composes with main_thread', () {
+      final r = withRuntimeMaterials(resolveWebVariant('main_thread'), true);
+      expect(r.zipSuffix, '-main-thread-runtime-materials');
+      expect(r.cacheSuffix, '-main-thread-runtime-materials');
+      expect(webArtifactZipName('v', r.zipSuffix), 'thermion_dart-v-web-main-thread-runtime-materials.zip');
+      expect(webLocalBuildDir(r.zipSuffix), 'build-main-thread-runtime-materials');
+    });
+
+    test('preserves warnings from the underlying variant', () {
+      final base = resolveWebVariant('mono_thread');
+      final r = withRuntimeMaterials(base, true);
+      // Unknown web_variant already warned; the resolution is the default
+      // engine, so runtime-materials still composes onto it.
+      expect(r.warnings, hasLength(1));
+      expect(r.zipSuffix, '-runtime-materials');
+    });
+
+    test('naming round-trip for the plain runtime-materials variant', () {
+      final r = withRuntimeMaterials(resolveWebVariant(null), true);
+      expect(webArtifactZipName('v', r.zipSuffix), 'thermion_dart-v-web-runtime-materials.zip');
+      expect(webLocalBuildDir(r.zipSuffix), 'build-runtime-materials');
+      expect(
+        webArtifactUrl('v', r.zipSuffix),
+        'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/thermion_dart-v-web-runtime-materials.zip',
+      );
     });
   });
 }

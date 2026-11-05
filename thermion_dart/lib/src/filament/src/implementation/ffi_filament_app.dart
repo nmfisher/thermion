@@ -671,7 +671,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   @override
-  bool get runtimeMaterialsSupported => !FILAMENT_WASM && bindings.MaterialCompiler_isSupported() != 0;
+  bool get runtimeMaterialsSupported => bindings.MaterialCompiler_isSupported() != 0;
 
   @override
   Future<Material> compileMaterialSource(
@@ -679,11 +679,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     String source, {
     MaterialShading shading = MaterialShading.lit,
   }) async {
-    if (FILAMENT_WASM || !runtimeMaterialsSupported) {
+    if (!runtimeMaterialsSupported) {
       throw UnsupportedError(
         'Runtime material compilation is not available in this build. Rebuild '
         'with the runtime_materials user define (hooks.user_defines.thermion_dart '
-        'in your pubspec.yaml; not supported on web/iOS) or precompile a '
+        'in your pubspec.yaml; on web this selects the filamat-enabled engine '
+        'variant, on iOS it is unsupported) or precompile a '
         '.filamat package with matc and load it with createMaterial.',
       );
     }
