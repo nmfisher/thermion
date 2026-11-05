@@ -1,0 +1,83 @@
+#pragma once
+
+#include "APIExport.h"
+#include "APIBoundaryTypes.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    /// Shading models, mirroring filamat::MaterialBuilder::Shading.
+    /// Keep in sync with filament::Shading in MaterialEnums.h.
+    enum TShading
+    {
+        SHADING_UNLIT = 0,
+        SHADING_LIT = 1,
+        SHADING_SUBSURFACE = 2,
+        SHADING_CLOTH = 3,
+        SHADING_SPECULAR_GLOSSINESS = 4,
+    };
+    typedef enum TShading TShading;
+
+    /// Opaque payload type for a compiled material package.
+    typedef struct TMaterialCompilerPackage TMaterialCompilerPackage;
+
+    /// Returns 1 when this build was compiled with runtime material
+    /// compilation support (the `runtime_materials` build flag), 0 otherwise.
+    /// When 0, MaterialCompiler_compileMaterialSource returns null and callers
+    /// should fall back to precompiled .filamat packages.
+    EMSCRIPTEN_KEEPALIVE uint8_t MaterialCompiler_isSupported();
+
+    /// Compiles a material source string to a .filamat package at runtime.
+    ///
+    /// `tJobThread` is the render job thread that owns `tEngine`; the compile
+    /// runs there because MaterialBuilder::build drives the engine's
+    /// JobSystem, whose calling thread must have been adopted — which the
+    /// engine-creating job thread is. `materialSource` is the GLSL of the
+    /// material() function, the same string format accepted by
+    /// MaterialBuilder::material(), e.g.:
+    ///
+    ///   void material(inout MaterialInputs material) {
+    ///       prepareMaterial(material);
+    ///       material.baseColor.rgb = float3(1.0, 0.0, 0.0);
+    ///   }
+    ///
+    /// `name` is the material name (used in diagnostics/shader names). `shading`
+    /// selects the lighting model. The output target API is derived from the
+    /// compiled platform this function is linked into (e.g. Metal on Apple
+    /// platforms, OpenGL+Vulkan on Android/Linux/Windows), matching how the
+    /// precompiled Thermion materials are built.
+    ///
+    /// Returns null when compilation fails or this build lacks runtime material
+    /// support. Failure diagnostics are logged through the Filament logger.
+    ///
+    /// This call blocks the calling Dart thread until the compile finishes on
+    /// the job thread (hundreds of ms). The Dart API dispatches it via the
+    /// same future-based task pattern as the other *JobThread entry points,
+    /// so Dart code simply awaits.
+    ///
+    /// The returned package is owned by the caller and must be released with
+    /// MaterialCompiler_destroyPackage.
+    EMSCRIPTEN_KEEPALIVE TMaterialCompilerPackage *MaterialCompiler_compileMaterialSource(
+        TJobThread *tJobThread,
+        TEngine *tEngine,
+        const char *name,
+        const char *materialSource,
+        TShading shading);
+
+    /// Copies the compiled package bytes into `out`, which must hold at least
+    /// MaterialCompiler_getPackageSize bytes. Returns the number of bytes copied.
+    EMSCRIPTEN_KEEPALIVE size_t MaterialCompiler_getPackageBytes(
+        TMaterialCompilerPackage *package, uint8_t *out, size_t capacity);
+
+    /// Returns the byte size of the compiled package.
+    EMSCRIPTEN_KEEPALIVE size_t MaterialCompiler_getPackageSize(TMaterialCompilerPackage *package);
+
+    /// Frees a package returned by MaterialCompiler_compileMaterialSource.
+    /// Null is ignored.
+    EMSCRIPTEN_KEEPALIVE void MaterialCompiler_destroyPackage(TMaterialCompilerPackage *package);
+
+#ifdef __cplusplus
+}
+#endif

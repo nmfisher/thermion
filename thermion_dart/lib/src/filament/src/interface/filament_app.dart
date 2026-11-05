@@ -143,6 +143,39 @@ abstract class FilamentApp<T> {
   /// requirement. Other invalid packages can still cause a native Filament panic.
   Future<Material> createMaterial(Uint8List data);
 
+  /// Whether the loaded native build supports compiling materials from
+  /// GLSL source at runtime (the `runtime_materials` build flag).
+  ///
+  /// Always false on web and when the app was built without the flag.
+  /// When false, [compileMaterialSource] throws [UnsupportedError];
+  /// use `matc`-compiled `.filamat` packages with [createMaterial] instead.
+  bool get runtimeMaterialsSupported;
+
+  /// Compiles GLSL material [source] to a `.filamat` package at runtime and
+  /// creates a [Material] from it.
+  ///
+  /// [source] is the GLSL of the `material()` function, the same format
+  /// accepted by `MaterialBuilder::material()`:
+  ///
+  /// ```glsl
+  /// void material(inout MaterialInputs material) {
+  ///   prepareMaterial(material);
+  ///   material.baseColor.rgb = float3(1.0, 0.0, 0.0);
+  /// }
+  /// ```
+  ///
+  /// [name] labels the material in diagnostics and generated shader names.
+  /// [shading] selects the lighting model.
+  ///
+  /// Throws [UnsupportedError] when [runtimeMaterialsSupported] is false
+  /// (web builds, or native builds without the `runtime_materials` flag).
+  /// Compile failures are logged through the Filament logger and rethrown
+  /// as a [StateError].
+  ///
+  /// This is a synchronous, CPU-intensive native call (hundreds of ms).
+  /// Prefer calling before startup or from a background isolate.
+  Future<Material> compileMaterialSource(String name, String source, {MaterialShading shading = MaterialShading.lit});
+
   //
   Future<MaterialInstance> createUbershaderMaterialInstance({
     bool doubleSided = false,
