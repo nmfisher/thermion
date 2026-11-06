@@ -404,49 +404,53 @@ void main() async {
   });
 
   test('stencil highlight is instance-safe: instance 1 maps to the owner entity', () async {
-    await testHelper.withViewer((viewer) async {
-      final owner = await viewer.loadGltf(
-        "file://${testHelper.assetsDir}/cube.glb",
-        requiredGeometryCapabilities: const {SceneAssetGeometryCapability.accessibleGeometryBuffers},
-        initialInstances: 2,
-        addToScene: false,
-      );
-      final instances = await owner.getInstances();
-      expect(instances.length, 2);
-      await viewer.addToScene(instances[0]);
-      await viewer.addToScene(instances[1]);
-      await instances[1].setTransform(Matrix4.translation(Vector3(2, 0, 0)));
-
-      // Every renderable entity of instance 1 resolves to a non-negative
-      // primitive offset on the OWNER asset (the old lookup returned -1).
-      final ffiOwner = owner as FFIAsset;
-      var renderables = 0;
-      for (final e in [instances[1].entity, ...await instances[1].getChildEntities()]) {
-        final offset = await ffiOwner.getPrimitiveOffsetForEntity(e);
-        final ownerOffsets = await Future.wait(
-          [owner.entity, ...await owner.getChildEntities()].map(ffiOwner.getPrimitiveOffsetForEntity),
+    await testHelper.withViewer(
+      (viewer) async {
+        final owner = await viewer.loadGltf(
+          "file://${testHelper.assetsDir}/cube.glb",
+          requiredGeometryCapabilities: const {SceneAssetGeometryCapability.accessibleGeometryBuffers},
+          initialInstances: 2,
+          addToScene: false,
         );
-        if (offset >= 0) {
-          renderables++;
-          expect(ownerOffsets, contains(offset));
+        final instances = await owner.getInstances();
+        expect(instances.length, 2);
+        await viewer.addToScene(instances[0]);
+        await viewer.addToScene(instances[1]);
+        await instances[1].setTransform(Matrix4.translation(Vector3(2, 0, 0)));
+
+        // Every renderable entity of instance 1 resolves to a non-negative
+        // primitive offset on the OWNER asset (the old lookup returned -1).
+        final ffiOwner = owner as FFIAsset;
+        var renderables = 0;
+        for (final e in [instances[1].entity, ...await instances[1].getChildEntities()]) {
+          final offset = await ffiOwner.getPrimitiveOffsetForEntity(e);
+          final ownerOffsets = await Future.wait(
+            [owner.entity, ...await owner.getChildEntities()].map(ffiOwner.getPrimitiveOffsetForEntity),
+          );
+          if (offset >= 0) {
+            renderables++;
+            expect(ownerOffsets, contains(offset));
+          }
         }
-      }
-      expect(renderables, greaterThan(0));
+        expect(renderables, greaterThan(0));
 
-      await testHelper.capture(viewer.view, "instance_highlight_before");
-      // Highlight instance 1 (no explicit entity: every renderable node), the
-      // geometry comes from the owner. Must not throw or crash.
-      await viewer.view.setStencilHighlight(instances[1], geometrySource: owner);
-      await testHelper.capture(viewer.view, "instance_highlight_on");
+        await testHelper.capture(viewer.view, "instance_highlight_before");
+        // Highlight instance 1 (no explicit entity: every renderable node), the
+        // geometry comes from the owner. Must not throw or crash.
+        await viewer.view.setStencilHighlight(instances[1], geometrySource: owner);
+        await testHelper.capture(viewer.view, "instance_highlight_on");
 
-      // The outline follows the instance: move it and capture again.
-      await instances[1].setTransform(Matrix4.translation(Vector3(-2, 0, 0)));
-      await testHelper.capture(viewer.view, "instance_highlight_moved");
+        // The outline follows the instance: move it and capture again.
+        await instances[1].setTransform(Matrix4.translation(Vector3(-2, 0, 0)));
+        await testHelper.capture(viewer.view, "instance_highlight_moved");
 
-      await viewer.view.removeStencilHighlight(instances[1]);
-      await testHelper.capture(viewer.view, "instance_highlight_off");
-      // Removing twice is harmless.
-      await viewer.view.removeStencilHighlight(instances[1]);
-    }, postProcessing: true, createStencilBuffer: true);
+        await viewer.view.removeStencilHighlight(instances[1]);
+        await testHelper.capture(viewer.view, "instance_highlight_off");
+        // Removing twice is harmless.
+        await viewer.view.removeStencilHighlight(instances[1]);
+      },
+      postProcessing: true,
+      createStencilBuffer: true,
+    );
   });
 }
