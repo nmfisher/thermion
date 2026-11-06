@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
 
 
 #include <utils/Entity.h>
@@ -24,6 +25,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE double4x4 TransformManager_getLocalTransform(TTransformManager *tTransformManager, EntityId entityId)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *transformManager = reinterpret_cast<filament::TransformManager *>(tTransformManager);
         const auto &entity = utils::Entity::import(entityId);
         auto transformInstance = transformManager->getInstance(entity);
@@ -38,6 +40,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE double4x4 TransformManager_getWorldTransform(TTransformManager *tTransformManager, EntityId entityId)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *transformManager = reinterpret_cast<filament::TransformManager *>(tTransformManager);
         const auto &entity = utils::Entity::import(entityId);
         auto transformInstance = transformManager->getInstance(entity);
@@ -52,6 +55,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_setTransform(TTransformManager *tTransformManager, EntityId entityId, double4x4 transform)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *transformManager = reinterpret_cast<filament::TransformManager *>(tTransformManager);
         const auto &entity = utils::Entity::import(entityId);
         auto transformInstance = transformManager->getInstance(entity);
@@ -64,6 +68,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformNative(TTransformManager *manager, EntityId entity, TMat4 *matrix)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
         auto instance = tm->getInstance(utils::Entity::import(entity));
         if (instance) tm->setTransform(instance, *reinterpret_cast<const filament::math::mat4 *>(matrix));
@@ -71,6 +76,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_getLocalTransformInto(TTransformManager *manager, EntityId entity, double *out16)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
         auto instance = tm->getInstance(utils::Entity::import(entity));
         if (!instance) { std::fill_n(out16, 16, 0.0); return; }
@@ -79,6 +85,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_getWorldTransformInto(TTransformManager *manager, EntityId entity, double *out16)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
         auto instance = tm->getInstance(utils::Entity::import(entity));
         if (!instance) { std::fill_n(out16, 16, 0.0); return; }
@@ -87,6 +94,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformFromBuffer(TTransformManager *manager, EntityId entity, const double *matrix16)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
         auto instance = tm->getInstance(utils::Entity::import(entity));
         if (instance) tm->setTransform(instance, load_mat4(matrix16));
@@ -94,6 +102,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE bool TransformManager_transformToUnitCube(TTransformManager *tTransformManager, EntityId entityId, Aabb3 boundingBox)
     {
+    THERMION_ENGINE_API_GUARD;
 
         auto *transformManager = reinterpret_cast<filament::TransformManager *>(tTransformManager);
         const auto &entity = utils::Entity::import(entityId);
@@ -115,6 +124,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_setParent(TTransformManager *tTransformManager, EntityId childId, EntityId parentId, bool preserveScaling)
     {
+        THERMION_ENGINE_API_GUARD;
         auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
         const auto child = Entity::import(childId);
         const auto parent = Entity::import(parentId);
@@ -175,6 +185,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE EntityId TransformManager_getParent(TTransformManager *tTransformManager, EntityId childId)
     {
+        THERMION_ENGINE_API_GUARD;
         auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
         const auto child = Entity::import(childId);
         const auto &childInstance = tm->getInstance(child);
@@ -184,6 +195,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE EntityId TransformManager_getAncestor(TTransformManager *tTransformManager, EntityId childEntityId)
     {
+        THERMION_ENGINE_API_GUARD;
         auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
 
         const auto child = Entity::import(childEntityId);
@@ -206,6 +218,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_createComponent(TTransformManager *tTransformManager, EntityId entityId)
     {
+        THERMION_ENGINE_API_GUARD;
         auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
         auto entity = Entity::import(entityId);
         if (tm->hasComponent(entity))
@@ -218,6 +231,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_removeComponent(TTransformManager *tTransformManager, EntityId entityId)
     {
+        THERMION_ENGINE_API_GUARD;
         auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
         auto entity = Entity::import(entityId);
         if (!tm->hasComponent(entity))
@@ -230,6 +244,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE bool TransformManager_hasComponent(TTransformManager *tTransformManager, EntityId entityId)
     {
+        THERMION_ENGINE_API_GUARD;
         auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
         auto entity = Entity::import(entityId);
         return tm->hasComponent(entity);
@@ -237,24 +252,28 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE bool TransformManager_empty(TTransformManager *tTransformManager)
     {
+        THERMION_ENGINE_API_GUARD;
         auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
         return tm->empty();
     }
 
     EMSCRIPTEN_KEEPALIVE int TransformManager_getComponentCount(TTransformManager *tTransformManager)
     {
+        THERMION_ENGINE_API_GUARD;
         auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
         return static_cast<int>(tm->getComponentCount());
     }
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_openLocalTransformTransaction(TTransformManager *tTransformManager)
     {
+        THERMION_ENGINE_API_GUARD;
         auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
         tm->openLocalTransformTransaction();
     }
 
     EMSCRIPTEN_KEEPALIVE int TransformManager_getChildCount(TTransformManager *tTransformManager, EntityId entityId)
     {
+        THERMION_ENGINE_API_GUARD;
         auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
         const auto &entity = utils::Entity::import(entityId);
         auto transformInstance = tm->getInstance(entity);
@@ -267,6 +286,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_getChildren(TTransformManager *tTransformManager, EntityId entityId, EntityId *children, int count)
     {
+        THERMION_ENGINE_API_GUARD;
         auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
         const auto &entity = utils::Entity::import(entityId);
         auto transformInstance = tm->getInstance(entity);
@@ -294,6 +314,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_commitLocalTransformTransaction(TTransformManager *tTransformManager)
     {
+        THERMION_ENGINE_API_GUARD;
         auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
         tm->commitLocalTransformTransaction();
     }

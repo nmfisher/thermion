@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
 #include "c_api/transform_pipeline/TTransformPipeline.h"
 #include "transform_pipeline/InputEventManager.hpp"
 #include "transform_pipeline/MovementIntentCalculator.hpp"
@@ -15,6 +16,7 @@ using namespace thermion::plugin::input;
 
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_setEngine(void* enginePtr) {
+    THERMION_ENGINE_API_GUARD;
     auto pipeline = getPipeline();
     if (pipeline && enginePtr) {
         filament::Engine* engine = static_cast<filament::Engine*>(enginePtr);
@@ -25,6 +27,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_setEngine(void* enginePtr) {
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_onMouseEvent(
     int eventType, int button,
     double localX, double localY, double deltaX, double deltaY) {
+    THERMION_ENGINE_API_GUARD;
     auto pipeline = getPipeline();
     if (pipeline) {
         auto eventManager = pipeline->getEventManager();
@@ -43,6 +46,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_onMouseEvent(
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_onKeyEvent(
     int eventType, int logicalKey, int physicalKey, int synthesized) {
+    THERMION_ENGINE_API_GUARD;
     auto pipeline = getPipeline();
     if (pipeline) {
         auto eventManager = pipeline->getEventManager();
@@ -61,6 +65,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_onKeyEvent(
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_onScrollEvent(
     double localX, double localY, double delta) {
+    THERMION_ENGINE_API_GUARD;
     auto pipeline = getPipeline();
     if (pipeline) {
         auto eventManager = pipeline->getEventManager();
@@ -77,6 +82,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_onScrollEvent(
 
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_update(float deltaTime) {
+    THERMION_ENGINE_API_GUARD;
     TRACE("[C API] DELTA_TIME_DEBUG: update_pipeline called with deltaTime=%.6f", deltaTime);
     auto pipeline = getPipeline();
     if (pipeline) {
@@ -88,6 +94,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_update(float deltaTime) {
 }
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_registerPipelineStage(void* pipelineStageHandle, const char* name) {
+    THERMION_ENGINE_API_GUARD;
     auto pipeline = getPipeline();
     if (pipeline && pipelineStageHandle) {
         // Cast the opaque handle to PipelineStage* - this works because
@@ -102,6 +109,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_registerPipelineStage(void* pipeline
 }
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_unregisterPipelineStage(void* pipelineStageHandle) {
+    THERMION_ENGINE_API_GUARD;
     auto pipeline = getPipeline();
     if (pipeline && pipelineStageHandle) {
         // Cast the opaque handle to PipelineStage*
@@ -115,6 +123,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_unregisterPipelineStage(void* pipeli
 }
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_cleanup() {
+    THERMION_ENGINE_API_GUARD;
     TRACE("[C API] Cleaning up pipeline");
     auto pipeline = getPipeline();
     if (pipeline) {
@@ -126,6 +135,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_cleanup() {
 }
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_addKeyBinding(int logicalKey, int intentAction, float value) {
+    THERMION_ENGINE_API_GUARD;
     auto pipeline = getPipeline();
     if (pipeline) {
         auto calculator = pipeline->getCalculator();
@@ -139,6 +149,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_addKeyBinding(int logicalKey, int in
 }
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_removeKeyBindingsForKey(int logicalKey) {
+    THERMION_ENGINE_API_GUARD;
     auto pipeline = getPipeline();
     if (pipeline) {
         auto calculator = pipeline->getCalculator();
@@ -152,6 +163,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_removeKeyBindingsForKey(int logicalK
 }
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_removeKeyBindingsForAction(int intentAction) {
+    THERMION_ENGINE_API_GUARD;
     auto pipeline = getPipeline();
     if (pipeline) {
         auto calculator = pipeline->getCalculator();
@@ -165,6 +177,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_removeKeyBindingsForAction(int inten
 }
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_clearKeyBindings() {
+    THERMION_ENGINE_API_GUARD;
     auto pipeline = getPipeline();
     if (pipeline) {
         auto calculator = pipeline->getCalculator();
@@ -178,6 +191,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_clearKeyBindings() {
 }
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_addMouseButtonBinding(int mouseButton, int intentAction, float value) {
+    THERMION_ENGINE_API_GUARD;
     auto pipeline = getPipeline();
     if (pipeline) {
         auto calculator = pipeline->getCalculator();
@@ -191,6 +205,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_addMouseButtonBinding(int mouseButto
 }
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_removeMouseButtonBindings(int mouseButton) {
+    THERMION_ENGINE_API_GUARD;
     auto pipeline = getPipeline();
     if (pipeline) {
         auto calculator = pipeline->getCalculator();
@@ -204,6 +219,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_removeMouseButtonBindings(int mouseB
 }
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_setMouseSensitivity(float sensitivity) {
+    THERMION_ENGINE_API_GUARD;
     auto pipeline = getPipeline();
     if (pipeline) {
         auto calculator = pipeline->getCalculator();
@@ -217,6 +233,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_setMouseSensitivity(float sensitivit
 }
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_setInvertMouseY(bool invert) {
+    THERMION_ENGINE_API_GUARD;
     auto pipeline = getPipeline();
     if (pipeline) {
         auto calculator = pipeline->getCalculator();

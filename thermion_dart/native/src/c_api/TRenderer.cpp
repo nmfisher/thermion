@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
 #ifdef _WIN32
 #include "ThermionWin32.h"
 #endif
@@ -29,6 +30,7 @@ namespace thermion
 #include "c_api/TRenderer.h"
 
 EMSCRIPTEN_KEEPALIVE void Renderer_setClearOptions(TRenderer *tRenderer, double clearR, double clearG, double clearB, double clearA, uint8_t clearStencil, bool clear, bool discard) {
+    THERMION_ENGINE_API_GUARD;
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     filament::Renderer::ClearOptions clearOpts;
     clearOpts.clearColor = filament::math::float4 { static_cast<float>(clearR), static_cast<float>(clearG), static_cast<float>(clearB),static_cast<float>(clearA)};
@@ -39,23 +41,27 @@ EMSCRIPTEN_KEEPALIVE void Renderer_setClearOptions(TRenderer *tRenderer, double 
 }
 
 EMSCRIPTEN_KEEPALIVE bool Renderer_beginFrame(TRenderer *tRenderer, TSwapChain *tSwapChain, uint64_t frameTimeInNanos) {
+    THERMION_ENGINE_API_GUARD;
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     auto *swapChain = reinterpret_cast<filament::SwapChain *>(tSwapChain);
     return renderer->beginFrame(swapChain, frameTimeInNanos);
 }
 
 EMSCRIPTEN_KEEPALIVE void Renderer_endFrame(TRenderer *tRenderer) {
+    THERMION_ENGINE_API_GUARD;
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     renderer->endFrame();
 }
 
 EMSCRIPTEN_KEEPALIVE void Renderer_render(TRenderer *tRenderer, TView *tView) {
+    THERMION_ENGINE_API_GUARD;
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     auto *view = reinterpret_cast<filament::View *>(tView);
     renderer->render(view);
 }
 
 EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneView(TRenderer *tRenderer, TView *tView) {
+    THERMION_ENGINE_API_GUARD;
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     auto *view = reinterpret_cast<filament::View *>(tView);
     renderer->renderStandaloneView(view);
@@ -68,6 +74,7 @@ EMSCRIPTEN_KEEPALIVE void Renderer_setFrameRateOptions(
     uint8_t history, 
     uint8_t interval 
 ) {
+    THERMION_ENGINE_API_GUARD;
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     filament::Renderer::FrameRateOptions fro;
     fro.headRoomRatio = headRoomRatio;
@@ -95,6 +102,7 @@ EMSCRIPTEN_KEEPALIVE void Renderer_readPixels(
     TPixelDataType tPixelDataType,
     uint8_t *out, 
     size_t outLength) {
+    THERMION_ENGINE_API_GUARD;
     
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     auto *renderTarget = reinterpret_cast<filament::RenderTarget *>(tRenderTarget);
