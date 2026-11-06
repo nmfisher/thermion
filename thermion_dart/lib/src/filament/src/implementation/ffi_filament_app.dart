@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
 
+import '../../../bindings/heap_buffer.dart';
+
 import '../../../bindings/bindings.dart' as bindings;
 
 import 'package:thermion_dart/src/filament/src/implementation/ffi_animation_manager.dart';
@@ -724,11 +726,18 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       if (size == 0) {
         throw StateError('Runtime material compilation produced an empty package for "$name".');
       }
+      // The package bytes are an OUTPUT buffer. On web, a Uint8List lives in
+      // JS memory, not Filament's wasm heap: `buffer.address` (ffigen_js)
+      // would copy the (empty) Dart bytes INTO a temporary wasm allocation
+      // and never copy back, leaving `bytes` zeroed. passOutput copies out
+      // of the wasm allocation after the call (native: a no-op borrow).
       final bytes = Uint8List(size);
-      final copied = bindings.MaterialCompiler_getPackageBytes(package, bytes.address, size);
-      if (copied != size) {
-        throw StateError('Material package read truncated: $copied of $size bytes.');
-      }
+      await bytes.passOutput((buffer) {
+        final copied = bindings.MaterialCompiler_getPackageBytes(package, buffer.address, size);
+        if (copied != size) {
+          throw StateError('Material package read truncated: $copied of $size bytes.');
+        }
+      });
       return await createMaterial(bytes);
     } finally {
       bindings.MaterialCompiler_destroyPackage(package);
