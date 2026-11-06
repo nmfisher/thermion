@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
 #include <cstdint>
 #include <cstring>
 
@@ -14,6 +15,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TBufferObjectBuilder* BufferObjectBuilder_create()
         {
+            THERMION_ENGINE_API_GUARD;
             return reinterpret_cast<TBufferObjectBuilder*>(new BufferObject::Builder());
         }
 
@@ -21,6 +23,7 @@ namespace thermion
             TBufferObjectBuilder* tBuilder,
             uint32_t sizeInBytes)
         {
+            THERMION_ENGINE_API_GUARD;
             reinterpret_cast<BufferObject::Builder*>(tBuilder)->size(sizeInBytes);
         }
 
@@ -28,6 +31,7 @@ namespace thermion
             TBufferObjectBuilder* tBuilder,
             TEngine* tEngine)
         {
+            THERMION_ENGINE_API_GUARD;
             auto* builder = reinterpret_cast<BufferObject::Builder*>(tBuilder);
             auto* engine = reinterpret_cast<Engine*>(tEngine);
             return reinterpret_cast<TBufferObject*>(builder->build(*engine));
@@ -35,6 +39,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void BufferObjectBuilder_destroy(TBufferObjectBuilder* tBuilder)
         {
+            THERMION_ENGINE_API_GUARD;
             delete reinterpret_cast<BufferObject::Builder*>(tBuilder);
         }
 
@@ -45,6 +50,7 @@ namespace thermion
             size_t sizeInBytes,
             uint32_t byteOffset)
         {
+            THERMION_ENGINE_API_GUARD;
             auto* copy = new uint8_t[sizeInBytes];
             std::memcpy(copy, data, sizeInBytes);
             auto* engine = reinterpret_cast<Engine*>(tEngine);
@@ -60,6 +66,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void BufferObject_destroy(TEngine* tEngine, TBufferObject* tBuffer)
         {
+            THERMION_ENGINE_API_GUARD;
             reinterpret_cast<Engine*>(tEngine)->destroy(
                 reinterpret_cast<BufferObject*>(tBuffer));
         }

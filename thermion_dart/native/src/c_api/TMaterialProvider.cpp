@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
  
 
 #include <filament/MaterialInstance.h>
@@ -59,6 +60,7 @@ namespace thermion
             bool hasIOR,
             bool hasVolume)
         {
+            THERMION_ENGINE_API_GUARD;
             gltfio::MaterialKey config;
             gltfio::UvMap uvMap;
             memset(&config, 0, sizeof(gltfio::MaterialKey));

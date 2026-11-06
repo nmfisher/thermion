@@ -1,9 +1,35 @@
 #include "rendering/NativeJobThread.hpp"
+#include "rendering/EngineApiLock.hpp"
 #include "Log.hpp"
 #include <cstdlib>
 #include <ctime>
+#include <chrono>
+#include <thread>
 
 namespace thermion {
+
+std::recursive_mutex& engineApiMutex() {
+    // Leaked on purpose: never destroyed, so nothing runs at DLL unload.
+    static std::recursive_mutex* m = new std::recursive_mutex();
+    return *m;
+}
+
+std::atomic<int>& engineApiWaiters() {
+    static std::atomic<int>* w = new std::atomic<int>(0);
+    return *w;
+}
+
+// Let direct callers that are already waiting take the lock before the next
+// task. Yield first; back off to short sleeps if a caller holds it for long.
+static void yieldToDirectCallers() {
+    for (int spins = 0; engineApiWaiters().load(std::memory_order_acquire) > 0; ++spins) {
+        if (spins < 64) {
+            std::this_thread::yield();
+        } else {
+            std::this_thread::sleep_for(std::chrono::microseconds(50));
+        }
+    }
+}
 
 std::unique_ptr<NativeJobThread> NativeJobThread::create(const char*) {
     return std::make_unique<NativeJobThread>();
@@ -52,7 +78,14 @@ void NativeJobThread::run() {
         auto task = std::move(_tasks.front());
         _tasks.pop_front();
         taskLock.unlock();
-        task();
+        {
+            // Serialise with the direct (non-JobThread) C exports called from
+            // other threads (see EngineApiLock.hpp). Held per task, never
+            // while waiting for work.
+            yieldToDirectCallers();
+            std::lock_guard<std::recursive_mutex> engineLock(engineApiMutex());
+            task();
+        }
         taskLock.lock();
     }
 }

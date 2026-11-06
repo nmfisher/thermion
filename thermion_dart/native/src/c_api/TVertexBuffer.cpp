@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
 #include <filament/Engine.h>
 #include <filament/BufferObject.h>
 #include <filament/VertexBuffer.h>
@@ -25,21 +26,25 @@ namespace thermion
         // ============================================================================
 
         EMSCRIPTEN_KEEPALIVE TVertexBufferBuilder* VertexBufferBuilder_create() {
+            THERMION_ENGINE_API_GUARD;
             auto* builder = new VertexBufferBuilderState();
             return reinterpret_cast<TVertexBufferBuilder*>(builder);
         }
 
         EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_bufferCount(TVertexBufferBuilder* tBuilder, uint8_t count) {
+            THERMION_ENGINE_API_GUARD;
             auto* builder = reinterpret_cast<VertexBufferBuilderState*>(tBuilder);
             builder->builder.bufferCount(count);
         }
 
         EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_vertexCount(TVertexBufferBuilder* tBuilder, uint32_t count) {
+            THERMION_ENGINE_API_GUARD;
             auto* builder = reinterpret_cast<VertexBufferBuilderState*>(tBuilder);
             builder->builder.vertexCount(count);
         }
 
         EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_enableBufferObjects(TVertexBufferBuilder* tBuilder, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto* builder = reinterpret_cast<VertexBufferBuilderState*>(tBuilder);
             builder->builder.enableBufferObjects(enabled);
             builder->storageMode = enabled
@@ -48,6 +53,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TVertexBufferStorageMode VertexBufferBuilder_getStorageMode(TVertexBufferBuilder* tBuilder) {
+            THERMION_ENGINE_API_GUARD;
             return reinterpret_cast<VertexBufferBuilderState*>(tBuilder)->storageMode;
         }
 
@@ -59,6 +65,7 @@ namespace thermion
             uint32_t byteOffset,
             uint8_t byteStride
         ) {
+            THERMION_ENGINE_API_GUARD;
             auto* builder = reinterpret_cast<VertexBufferBuilderState*>(tBuilder);
 
             // Map TVertexAttribute to filament::VertexAttribute explicitly
@@ -123,6 +130,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_normalized(TVertexBufferBuilder* tBuilder, TVertexAttribute attribute, bool normalize) {
+            THERMION_ENGINE_API_GUARD;
             auto* builder = reinterpret_cast<VertexBufferBuilderState*>(tBuilder);
 
             // Map TVertexAttribute to filament::VertexAttribute explicitly
@@ -152,6 +160,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TVertexBuffer* VertexBufferBuilder_build(TVertexBufferBuilder* tBuilder, TEngine* tEngine) {
+            THERMION_ENGINE_API_GUARD;
             auto* builder = reinterpret_cast<VertexBufferBuilderState*>(tBuilder);
             auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
             auto* vertexBuffer = builder->builder.build(*engine);
@@ -159,6 +168,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_destroy(TVertexBufferBuilder* tBuilder) {
+            THERMION_ENGINE_API_GUARD;
             auto* builder = reinterpret_cast<VertexBufferBuilderState*>(tBuilder);
             delete builder;
         }
@@ -168,6 +178,7 @@ namespace thermion
         // ============================================================================
 
         EMSCRIPTEN_KEEPALIVE size_t VertexBuffer_getVertexCount(TVertexBuffer* tBuffer) {
+            THERMION_ENGINE_API_GUARD;
             auto* vertexBuffer = reinterpret_cast<filament::VertexBuffer*>(tBuffer);
             return vertexBuffer->getVertexCount();
         }
@@ -180,6 +191,7 @@ namespace thermion
             size_t sizeInBytes,
             uint32_t byteOffset
         ) {
+            THERMION_ENGINE_API_GUARD;
             auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
             auto* vertexBuffer = reinterpret_cast<filament::VertexBuffer*>(tBuffer);
 
@@ -209,6 +221,7 @@ namespace thermion
             uint8_t bufferIndex,
             TBufferObject* tBufferObject
         ) {
+            THERMION_ENGINE_API_GUARD;
             auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
             auto* vertexBuffer = reinterpret_cast<filament::VertexBuffer*>(tBuffer);
             auto* bufferObject = reinterpret_cast<filament::BufferObject*>(tBufferObject);
@@ -216,6 +229,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void VertexBuffer_destroy(TEngine* tEngine, TVertexBuffer* tBuffer) {
+            THERMION_ENGINE_API_GUARD;
             auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
             auto* vertexBuffer = reinterpret_cast<filament::VertexBuffer*>(tBuffer);
             engine->destroy(vertexBuffer);

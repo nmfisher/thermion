@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
  
 
 #include <gltfio/AssetLoader.h>
@@ -31,6 +32,7 @@ extern "C"
         TVertexBufferStorageMode vertexBufferStorageMode,
         Aabb3 boundingBox
     ) {
+        THERMION_ENGINE_API_GUARD;
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
         auto *vertexBuffer = reinterpret_cast<filament::VertexBuffer *>(tVertexBuffer);
         auto *indexBuffer = reinterpret_cast<filament::IndexBuffer *>(tIndexBuffer);
@@ -75,6 +77,7 @@ extern "C"
         TFilamentAsset *tFilamentAsset,
         uint32_t requiredGeometryCapabilities
     ) {
+        THERMION_ENGINE_API_GUARD;
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
         auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
         auto *filamentAsset = reinterpret_cast<filament::gltfio::FilamentAsset *>(tFilamentAsset);
@@ -105,6 +108,7 @@ extern "C"
     }
     
     EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset) {
+        THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
             Log("Error - not a gltf asset");
@@ -121,11 +125,13 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE TSceneAssetType SceneAsset_getType(TSceneAsset *tSceneAsset) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         return static_cast<TSceneAssetType>(asset->getType());
     }
 
     EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if(asset->isInstance()) {
             TRACE("Destroyed instance");
@@ -137,29 +143,34 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE void SceneAsset_addToScene(TSceneAsset *tSceneAsset, TScene *tScene) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         auto *scene = reinterpret_cast<Scene*>(tScene);
         asset->addAllEntities(scene);
     }
 
     EMSCRIPTEN_KEEPALIVE void SceneAsset_removeFromScene(TSceneAsset *tSceneAsset, TScene *tScene) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         auto *scene = reinterpret_cast<Scene*>(tScene);
         asset->removeAllEntities(scene);
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId SceneAsset_getEntity(TSceneAsset *tSceneAsset) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         return utils::Entity::smuggle(asset->getEntity());
     }
 
 	EMSCRIPTEN_KEEPALIVE int SceneAsset_getChildEntityCount(TSceneAsset* tSceneAsset) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         return asset->getChildEntityCount();
     }
 
     EMSCRIPTEN_KEEPALIVE void SceneAsset_getChildEntities(TSceneAsset* tSceneAsset, EntityId *out)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         auto entities = asset->getChildEntities();
         for(int i = 0; i < asset->getChildEntityCount(); i++) {
@@ -169,6 +180,7 @@ extern "C"
 
      EMSCRIPTEN_KEEPALIVE EntityId *SceneAsset_getCameraEntities(TSceneAsset* tSceneAsset)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf && !asset->isInstance())
         {
@@ -184,6 +196,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE size_t SceneAsset_getCameraEntityCount(TSceneAsset* tSceneAsset)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf && !asset->isInstance())
         {
@@ -197,6 +210,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE EntityId *SceneAsset_getLightEntities(TSceneAsset* tSceneAsset)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf && !asset->isInstance())
         {            
@@ -211,6 +225,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE size_t SceneAsset_getLightEntityCount(TSceneAsset* tSceneAsset)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf && !asset->isInstance())
         {            
@@ -222,18 +237,21 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_getInstance(TSceneAsset *tSceneAsset, int index) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         auto *instance = asset->getInstanceAt(index);
         return reinterpret_cast<TSceneAsset*>(instance);
     }
 
     EMSCRIPTEN_KEEPALIVE size_t SceneAsset_getInstanceCount(TSceneAsset *tSceneAsset) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         return asset->getInstanceCount();
     }
 
     EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createInstance(TSceneAsset *tSceneAsset, TMaterialInstance **tMaterialInstances, int materialInstanceCount)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *materialInstances = reinterpret_cast<MaterialInstance **>(tMaterialInstances);
         auto *sceneAsset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         auto *instance = sceneAsset->createInstance(materialInstances, materialInstanceCount);
@@ -241,20 +259,24 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE Aabb3 SceneAsset_getBoundingBox(TSceneAsset *tSceneAsset) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         auto box = asset->getBoundingBox();
         return Aabb3{box.center().x, box.center().y, box.center().z, box.extent().x, box.extent().y, box.extent().z};
     }
 
     EMSCRIPTEN_KEEPALIVE uint32_t SceneAsset_getGeometryCapabilities(TSceneAsset *tSceneAsset) {
+        THERMION_ENGINE_API_GUARD;
         return reinterpret_cast<SceneAsset*>(tSceneAsset)->getGeometryCapabilities();
     }
 
     EMSCRIPTEN_KEEPALIVE bool SceneAsset_supportsFlatShading(TSceneAsset *tSceneAsset) {
+        THERMION_ENGINE_API_GUARD;
         return reinterpret_cast<SceneAsset*>(tSceneAsset)->supportsFlatShading();
     }
 
     EMSCRIPTEN_KEEPALIVE TVertexBuffer *SceneAsset_getVertexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if (asset->getType() == SceneAsset::SceneAssetType::Geometry) {
             auto geometrySceneAsset = reinterpret_cast<GeometrySceneAsset *>(asset);
@@ -273,6 +295,7 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE TVertexBufferStorageMode SceneAsset_getVertexBufferStorageMode(
         TSceneAsset *tSceneAsset,
         int primitiveIndex) {
+        THERMION_ENGINE_API_GUARD;
         if (primitiveIndex < 0) {
             return VERTEX_BUFFER_STORAGE_MODE_UNKNOWN;
         }
@@ -281,6 +304,7 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE TIndexBuffer *SceneAsset_getIndexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if (asset->getType() == SceneAsset::SceneAssetType::Geometry) {
             auto geometrySceneAsset = reinterpret_cast<GeometrySceneAsset *>(asset);
@@ -297,6 +321,7 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE int SceneAsset_getPrimitiveOffsetForEntity(TSceneAsset *tSceneAsset, EntityId entity) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
             return -1;
@@ -309,6 +334,7 @@ extern "C"
 
 
     EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceData(TSceneAsset *tSceneAsset) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
             Log("releaseSourceData only supported on glTF assets");
@@ -323,6 +349,7 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE void SceneAsset_setFlatShading(TSceneAsset *tSceneAsset, bool flatShading) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
             Log("setFlatShading only supported on glTF assets");
@@ -334,6 +361,7 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE void SceneAsset_getBones(TSceneAsset *tSceneAsset, size_t skinIndex, EntityId *out) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         auto *bones = asset->getBones(skinIndex);
         for(int i = 0; i < asset->getBoneCount(skinIndex); i++) {
@@ -343,11 +371,13 @@ extern "C"
 
 
     EMSCRIPTEN_KEEPALIVE size_t SceneAsset_getBoneCount(TSceneAsset *tSceneAsset, size_t skinIndex) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         return asset->getBoneCount(skinIndex);
     }
 
     EMSCRIPTEN_KEEPALIVE const char *SceneAsset_getBoneName(TSceneAsset *tSceneAsset, size_t skinIndex, size_t boneIndex) {
+        THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         return asset->getBoneName(skinIndex, boneIndex);
     }

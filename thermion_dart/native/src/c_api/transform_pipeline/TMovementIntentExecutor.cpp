@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
 #include <utils/Entity.h>
 #include <filament/Engine.h>
 
@@ -21,11 +22,13 @@ namespace thermion::plugin::input {
 using namespace thermion;
 
 EMSCRIPTEN_KEEPALIVE void MovementIntentExecutor_destroy(TMovementIntentExecutor* tProcessor) {
+    THERMION_ENGINE_API_GUARD;
     auto *processor = reinterpret_cast<MovementIntentExecutor *>(tProcessor);
     delete processor;
 }
 
 EMSCRIPTEN_KEEPALIVE void Pipeline_registerMovementIntentExecutor(TMovementIntentExecutor* tProcessor) {
+    THERMION_ENGINE_API_GUARD;
     auto pipeline = getPipeline();
     auto *processor = reinterpret_cast<MovementIntentExecutor *>(tProcessor);
     if (pipeline) {
@@ -41,6 +44,7 @@ EMSCRIPTEN_KEEPALIVE void MovementIntentExecutor_process(
     const TMovementIntent* tIntent,
     uint64_t deltaTimeInNanos
 ) {
+    THERMION_ENGINE_API_GUARD;
     auto *executor = reinterpret_cast<MovementIntentExecutor *>(tExecutor);
 
     // Convert TMovementIntent C struct to C++ MovementIntent
