@@ -303,11 +303,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Rebase before touching the index: `git pull --rebase` refuses to
-          # run with staged changes ("cannot pull with rebase: Your index
-          # contains uncommitted changes"), which silently skipped the rebase
-          # and made the push below fail non-fast-forward.
-          git pull --rebase origin "$PUSH_BRANCH"
+          # Commit BEFORE rebasing: earlier steps (ffigen regeneration,
+          # dart format) leave these files modified, and `git pull
+          # --rebase` refuses to run over a dirty tree/index. Committing is
+          # local and always safe; the rebase then replays this commit onto
+          # the remote head. --autostash absorbs any remaining stray dirt
+          # (stashed for the rebase, restored after; the runner is
+          # discarded anyway).
           git add -f thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart || true
           git add -f thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart || true
           git add -f thermion_dart/native/include/material/*.h || true
@@ -318,9 +320,11 @@ jobs:
           git add -f examples/assets/*.filamat || true
           # formatting fixes (same paths as the Format step)
           git add thermion_dart/lib thermion_dart/bin thermion_dart/hook thermion_dart/tool thermion_dart/test thermion_flutter/thermion_flutter/lib
-          git commit -m "chore: update generated artifacts + format (CI)
+          git diff --cached --quiet ||
+            git commit -m "chore: update generated artifacts + format (CI)
 
           🤖 Generated with GitHub Actions"
+          git pull --rebase --autostash origin "$PUSH_BRANCH"
           git push origin "HEAD:$PUSH_BRANCH"
 
       - name: Cache Filament web binaries
@@ -477,11 +481,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Rebase before staging (a rebase cannot run with a dirty index);
-          # see the note in the artifacts commit step above.
-          git pull --rebase origin "$PUSH_BRANCH"
+          # Commit BEFORE rebasing: the R2 upload step has already rewritten
+          # web.version (it is dirty when this step starts), and a rebase
+          # cannot run over a dirty tree. Local commit first, then rebase
+          # onto the remote head; --autostash absorbs any other stray dirt.
           git add -f thermion_dart/native/web/web.version
           git diff --cached --quiet || git commit -m "chore: update web.version"
+          git pull --rebase --autostash origin "$PUSH_BRANCH"
           git push origin "HEAD:$PUSH_BRANCH"
 
       - name: Upload artifacts
@@ -555,10 +561,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Rebase before staging: `git pull --rebase` cannot run with staged
-          # changes, and the previous order (add, then rebase) made this step
-          # fail and the push below get rejected non-fast-forward.
-          git pull --rebase origin "$PUSH_BRANCH"
+          # Commit BEFORE rebasing (a rebase cannot run over a dirty tree;
+          # the material regeneration leaves the outputs modified). Local
+          # commit first, then rebase onto the remote head.
           git add -A thermion_dart/native/include/material examples/assets
           git commit -m "chore: regenerate materials for filament.version (CI)
 
@@ -567,7 +572,7 @@ jobs:
           version in filament.version.
 
           🤖 Generated with GitHub Actions"
-          git pull --rebase origin "$PUSH_BRANCH"
+          git pull --rebase --autostash origin "$PUSH_BRANCH"
           git push origin "HEAD:$PUSH_BRANCH"
 
       # Nothing changed: normal for WIP pushes that didn't touch
