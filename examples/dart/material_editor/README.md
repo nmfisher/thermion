@@ -23,11 +23,11 @@ good material.
   (`thermion_dart-<sha>-web-runtime-materials.zip`) instead of the default
   wasm — that build links `libfilamat`, which is what makes
   `FilamentApp.compileMaterialSource` work in the browser.
-- `compileMaterialSource` dispatches the compile to the engine's job thread,
-  which drives `MaterialBuilder::build` and returns a validated
-  `.filamat`-equivalent package. The editor creates a `MaterialInstance`,
-  swaps it onto the mesh with `setMaterialInstanceForAll`, and destroys the
-  previous material.
+- `compileMaterialSource` dispatches the compile to the engine's job thread on
+  native, which drives `MaterialBuilder::build` and returns a validated
+  `.filamat`-equivalent package. On web it runs inline on the main thread (see
+  Notes below). The editor creates a `MaterialInstance`, swaps it onto the mesh
+  with `setMaterialInstanceForAll`, and destroys the previous material.
 - The default engine variant stays small precisely because it never
   references filamat symbols — the linker drops them. This variant is ~20 MB
   bigger because it actually contains the compiler.
@@ -48,7 +48,10 @@ dart run tool/build.dart
 - The page must be served with COOP/COEP headers (cross-origin isolation) —
   `tool/serve.dart` sets them; any static host must too.
 - Compile cost is real CPU work (glslang + SPIRV passes); on a slow machine a
-  complex shader can take a second or two. The UI stays responsive because
-  the compile runs on the engine's job thread.
+  complex shader can take a second or two. On **native** the UI stays
+  responsive because the compile runs on the engine's job thread. On **web**
+  the engine is single-threaded (no worker/JobSystem threads), so the compile
+  runs inline on the main thread and the page blocks for its duration
+  (~1s) — clicks and animation freeze until it finishes.
 - Shading model and mesh are switchable in the toolbar; the shading model is
   passed straight to `compileMaterialSource`.

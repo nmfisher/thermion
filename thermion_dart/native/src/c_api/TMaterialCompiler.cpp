@@ -141,6 +141,22 @@ namespace thermion
                 return nullptr;
             }
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+
+#if defined(__EMSCRIPTEN__)
+            // Web must compile inline, never via the JobThread. Emscripten
+            // builds run FEngine single-threaded (threading disabled), so the
+            // JobThread queue is only drained when the main thread returns to
+            // the JS event loop — but the future.get() used by the packaged-task
+            // path (non-web, below) busy-spins the main thread waiting
+            // for the queued job, which therefore can never start: the first
+            // compile deadlocks the page at 100% CPU. The main thread created
+            // the engine (FEngine's constructor adopts its creator), so
+            // calling compileLocked here is valid for MaterialBuilder::build
+            // — the tradeoff is that the UI blocks for the duration of the
+            // compile (~1s) instead of staying responsive as it does on
+            // native.
+            return compileLocked(engine, name, materialSource, shading);
+#else
             auto *jobThread = reinterpret_cast<JobThread *>(tJobThread);
 
             // Runs the CPU-bound compile on the job thread that created the
@@ -157,6 +173,7 @@ namespace thermion
                 });
             auto future = jobThread->addTask(task);
             return future.get();
+#endif
         }
 
         EMSCRIPTEN_KEEPALIVE size_t MaterialCompiler_getPackageSize(TMaterialCompilerPackage *package)
