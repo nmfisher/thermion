@@ -670,6 +670,71 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
   }
 
+  @override
+  bool get runtimeMaterialsSupported => bindings.MaterialCompiler_isSupported() != 0;
+
+  @override
+  Future<Material> compileMaterialSource(
+    String name,
+    String source, {
+    MaterialShading shading = MaterialShading.lit,
+  }) async {
+    if (!runtimeMaterialsSupported) {
+      throw UnsupportedError(
+        'Runtime material compilation is not available in this build. Rebuild '
+        'with the runtime_materials user define (hooks.user_defines.thermion_dart '
+        'in your pubspec.yaml; on web this selects the filamat-enabled engine '
+        'variant, on iOS it is unsupported) or precompile a '
+        '.filamat package with matc and load it with createMaterial.',
+      );
+    }
+    if (source.isEmpty) {
+      throw ArgumentError.value(source, 'source', 'Material source must not be empty.');
+    }
+    final nativeShading = switch (shading) {
+      MaterialShading.unlit => bindings.TShading.SHADING_UNLIT,
+      MaterialShading.lit => bindings.TShading.SHADING_LIT,
+      MaterialShading.subsurface => bindings.TShading.SHADING_SUBSURFACE,
+      MaterialShading.cloth => bindings.TShading.SHADING_CLOTH,
+      MaterialShading.specularGlossiness => bindings.TShading.SHADING_SPECULAR_GLOSSINESS,
+    };
+    final namePtr = name.toNativeUtf8().cast<Char>();
+    final sourcePtr = source.toNativeUtf8().cast<Char>();
+    // Dispatches the compile to the job thread that created the engine (the
+    // native entry point blocks on a packaged-task future). Required because
+    // MaterialBuilder::build drives the engine JobSystem, whose calling
+    // thread must have been adopted.
+    final package = bindings.MaterialCompiler_compileMaterialSource(
+      jobThreadHandle,
+      engine,
+      namePtr,
+      sourcePtr,
+      nativeShading,
+    );
+    free(namePtr);
+    free(sourcePtr);
+    if (package == nullptr) {
+      throw StateError(
+        'Runtime material compilation failed for material "$name". Check the '
+        'Filament logs for shader compile diagnostics.',
+      );
+    }
+    try {
+      final size = bindings.MaterialCompiler_getPackageSize(package);
+      if (size == 0) {
+        throw StateError('Runtime material compilation produced an empty package for "$name".');
+      }
+      final bytes = Uint8List(size);
+      final copied = bindings.MaterialCompiler_getPackageBytes(package, bytes.address, size);
+      if (copied != size) {
+        throw StateError('Material package read truncated: $copied of $size bytes.');
+      }
+      return await createMaterial(bytes);
+    } finally {
+      bindings.MaterialCompiler_destroyPackage(package);
+    }
+  }
+
   //
   Future<MaterialInstance> createUbershaderMaterialInstance({
     bool doubleSided = false,

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thermion Material Editor</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      background: #101418; color: #cfd6e0; overflow: hidden;
+      font: 13px ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    #layout { display: flex; width: 100vw; height: 100vh; }
+    #stage { position: relative; flex: 1 1 60%; min-width: 0; }
+    canvas { width: 100%; height: 100%; display: block; }
+    #panel {
+      flex: 0 0 40%; max-width: 560px; min-width: 320px;
+      display: flex; flex-direction: column; gap: 8px;
+      box-sizing: border-box; padding: 12px;
+      background: #0b0e12; border-left: 1px solid #232a33;
+    }
+    #panel h1 { margin: 0; font-size: 14px; font-weight: 600; color: #e8edf4; }
+    #panel .hint { color: #7d8896; font-size: 11px; line-height: 1.5; }
+    #toolbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    #toolbar label { color: #9aa6b6; font-size: 11px; }
+    select, button {
+      font: inherit; font-size: 12px; padding: 4px 8px;
+      background: #1a2028; color: #e8edf4; border: 1px solid #2c3540;
+      border-radius: 4px; cursor: pointer;
+    }
+    select:focus, button:focus { outline: none; border-color: #6ea8ff; }
+    button:hover { background: #232b35; }
+    #editor {
+      flex: 1 1 auto; resize: none; width: 100%; box-sizing: border-box;
+      padding: 10px; line-height: 1.5; tab-size: 2; white-space: pre;
+      background: #0f1319; color: #d7e0ea; caret-color: #6ea8ff;
+      border: 1px solid #2c3540; border-radius: 6px;
+    }
+    #editor:focus { outline: none; border-color: #46586c; }
+    #editor.err { border-color: #a04040; }
+    #status {
+      min-height: 34px; max-height: 110px; overflow-y: auto;
+      padding: 6px 8px; border-radius: 4px; font-size: 11px; line-height: 1.5;
+      background: #12181f; border: 1px solid #232a33; white-space: pre-wrap;
+    }
+    #status.ok { color: #8fd18f; }
+    #status.err { color: #f09090; }
+    #status.busy { color: #e3c47c; }
+    #loading {
+      position: absolute; inset: 0; z-index: 5;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 14px;
+      background: #101418; color: #cfd6e0;
+    }
+    #loading[hidden] { display: none !important; }
+    #loading .spinner {
+      width: 30px; height: 30px; border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.18);
+      border-top-color: #6ea8ff;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #error {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      color: #f88; max-width: 80%; text-align: center; display: none;
+      white-space: pre-wrap;
+    }
+    @media (max-width: 720px) {
+      #layout { flex-direction: column; }
+      #panel { flex: 1 1 45%; max-width: none; border-left: none; border-top: 1px solid #232a33; }
+      #stage { flex: 1 1 55%; }
+    }
+  </style>
+</head>
+<body>
+  <div id="layout">
+    <div id="stage">
+      <canvas id="thermion_canvas"></canvas>
+      <div id="loading"><div class="spinner"></div><div id="loading-text">Loading engine…</div></div>
+      <div id="error"></div>
+    </div>
+    <div id="panel">
+      <h1>Material Editor</h1>
+      <div class="hint">
+        Edit the <code>material()</code> GLSL below. It is compiled in the
+        browser with filamat (runtime_materials build) and applied to the mesh
+        on the left. Ctrl/Cmd+Enter recompiles immediately.
+      </div>
+      <div id="toolbar">
+        <label>mesh</label>
+        <select id="mesh-select">
+          <option value="sphere" selected>sphere</option>
+          <option value="cube">cube</option>
+          <option value="cylinder">cylinder</option>
+          <option value="cone">cone</option>
+          <option value="plane">plane</option>
+        </select>
+        <label>shading</label>
+        <select id="shading-select">
+          <option value="lit" selected>lit</option>
+          <option value="unlit">unlit</option>
+          <option value="subsurface">subsurface</option>
+          <option value="cloth">cloth</option>
+          <option value="specularGlossiness">specular-glossiness</option>
+        </select>
+        <button id="compile-btn" type="button">Compile</button>
+        <button id="reset-btn" type="button">Reset</button>
+      </div>
+      <textarea id="editor" spellcheck="false"></textarea>
+      <div id="status">Ready.</div>
+    </div>
+  </div>
+
+  <script src="thermion_dart.js"></script>
+  <script type="module">
+    // Bootstrap the cross-origin-isolated Emscripten module, then the Dart
+    // WASM entry — same sequence as the web gallery.
+    try {
+      window.thermion_dart = await thermion_dart();
+    } catch (err) {
+      const el = document.getElementById('error');
+      el.textContent = 'Failed to load thermion_dart.js: ' + err +
+        '\n\nServe with COOP/COEP headers (dart run tool/serve.dart).';
+      el.style.display = 'block';
+      throw err;
+    }
+    try {
+      const dartModulePromise = WebAssembly.compileStreaming(fetch('./main.wasm'));
+      const dart2wasm_runtime = await import('./main.mjs');
+      const moduleInstance = await dart2wasm_runtime.instantiate(dartModulePromise, {});
+      await dart2wasm_runtime.invoke(moduleInstance);
+    } catch (jsErr) {
+      const el = document.getElementById('error');
+      if (el) {
+        el.textContent = 'Failed to boot editor: ' + jsErr;
+        el.style.display = 'block';
+      }
+      throw jsErr;
+    }
+  </script>
+</body>
+</html>
