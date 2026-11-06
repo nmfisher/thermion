@@ -268,11 +268,15 @@ outputDirectory : ${outputDirectory.path}
       // Runtime material compilation (filamat::MaterialBuilder). Opt-in via
       // the `runtime_materials` user define; see the block that parses it
       // above. Release builds link it only when enabled (it would otherwise
-      // be dead weight — tens of MB of glslang/SPIRV-Tools). Debug builds
-      // must ALWAYS link it on non-iOS: filament's debug archives ship
-      // libmatdbg.a, whose ShaderReplacer references filamat::Chunk — drop
-      // filamat from a debug link and it fails with undefined symbols.
-      if (targetOS != OS.iOS && (runtimeMaterials || buildMode == BuildMode.debug)) "filamat",
+      // be dead weight — tens of MB of glslang/SPIRV-Tools), with two
+      // exceptions that must ALWAYS link it on non-iOS:
+      // - debug: filament's debug archives ship libmatdbg.a, whose
+      //   ShaderReplacer references filamat::Chunk.
+      // - Linux: the Linux archives deliberately exclude libzstd.a
+      //   (scripts/build_linux.sh — "bundled in Filament already"), so the
+      //   combined filamat archive is the only zstd provider for
+      //   basis_transcoder/MaterialParser/gltfio (ZSTD_* symbols).
+      if (targetOS != OS.iOS && (runtimeMaterials || buildMode == BuildMode.debug || targetOS == OS.linux)) "filamat",
       // libfilamat.a references SHADERS_PACKAGE etc. from libshaders.a
       // (the generated shader-common chunks CodeGenerator emits into every
       // material). On Linux, "shaders" was already linked for gltfio; other
