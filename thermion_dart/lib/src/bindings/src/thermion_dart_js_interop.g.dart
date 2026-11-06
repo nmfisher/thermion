@@ -1171,6 +1171,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     size_t capacity,
   );
 
+  /// Returns a pointer to the compiled package bytes living in native/Wasm
+  /// heap memory, or null. Valid until MaterialCompiler_destroyPackage; pair
+  /// with MaterialCompiler_getPackageSize for the length. Web callers should
+  /// read the bytes through this pointer (typed-array view over the Wasm
+  /// heap) instead of MaterialCompiler_getPackageBytes, which can only write
+  /// into a native scratch buffer on that platform.
+  external Pointer<Uint8> _MaterialCompiler_getPackagePtr(Pointer<TMaterialCompilerPackage> package);
+
   /// Returns the byte size of the compiled package.
   external size_t _MaterialCompiler_getPackageSize(Pointer<TMaterialCompilerPackage> package);
 
@@ -5837,6 +5845,17 @@ Dartsize_t MaterialCompiler_getPackageBytes(
 ) {
   final result = GeneratedBindings.instance._MaterialCompiler_getPackageBytes(package.cast(), out, capacity);
   return result;
+}
+
+/// Returns a pointer to the compiled package bytes living in native/Wasm
+/// heap memory, or null. Valid until MaterialCompiler_destroyPackage; pair
+/// with MaterialCompiler_getPackageSize for the length. Web callers should
+/// read the bytes through this pointer (typed-array view over the Wasm
+/// heap) instead of MaterialCompiler_getPackageBytes, which can only write
+/// into a native scratch buffer on that platform.
+Pointer<Uint8> MaterialCompiler_getPackagePtr(Pointer<TMaterialCompilerPackage> package) {
+  final result = GeneratedBindings.instance._MaterialCompiler_getPackagePtr(package.cast());
+  return Pointer<Uint8>(result);
 }
 
 /// Returns the byte size of the compiled package.

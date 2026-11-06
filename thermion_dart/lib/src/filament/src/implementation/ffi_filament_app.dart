@@ -744,24 +744,32 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       if (size == 0) {
         throw StateError('Runtime material compilation produced an empty package for "$name".');
       }
-      // The package bytes are an OUTPUT buffer. On web, a Uint8List lives in
-      // JS memory, not Filament's wasm heap: `buffer.address` (ffigen_js)
-      // would copy the (empty) Dart bytes INTO a temporary wasm allocation
-      // and never copy back, leaving `bytes` zeroed. passOutput copies out
-      // of the wasm allocation after the call (native: a no-op borrow).
-      final bytes = Uint8List(size);
-      await bytes.passOutput((buffer) {
-        // TEMPORARY trace: the wasm-heap view before the copy (should be all
-        // zero: freshly allocated) and after the native memcpy.
-        _tracePackageBytes('getPackageBytes wasm buffer (pre-copy)', buffer);
-        final copied = bindings.MaterialCompiler_getPackageBytes(package, buffer.address, size);
-        if (copied != size) {
-          throw StateError('Material package read truncated: $copied of $size bytes.');
+      // The package bytes are an OUTPUT buffer. On web, no typed-data
+      // borrow ffigen_js provides can act as one: `buffer.address` copies
+      // the (still-empty) Dart bytes INTO a fresh wasm allocation and never
+      // copies back, so passOutput delivered zeros (the FormatException this
+      // branch used to throw). Read the compiled bytes straight out of the
+      // wasm heap through the payload pointer instead — the same typed-array
+      // view mechanism the readPixels/readString paths use — then hand the
+      // copy to createMaterial. Native keeps the zero-copy borrow: a Dart
+      // Uint8List's `.address` pins its own storage, so the memcpy lands
+      // directly in `bytes`.
+      final Uint8List bytes;
+      if (FILAMENT_WASM) {
+        final packagePtr = bindings.MaterialCompiler_getPackagePtr(package);
+        if (packagePtr == nullptr) {
+          throw StateError('Runtime material compilation returned no package buffer for "$name".');
         }
-        _tracePackageBytes('getPackageBytes wasm buffer (post-copy)', buffer);
-      });
-      // TEMPORARY trace: Dart-side bytes after passOutput copied them back.
-      _tracePackageBytes('getPackageBytes Dart bytes (post-passOutput)', bytes);
+        bytes = Uint8List.fromList(packagePtr.asTypedList(size));
+      } else {
+        bytes = Uint8List(size);
+        await bytes.passOutput((buffer) {
+          final copied = bindings.MaterialCompiler_getPackageBytes(package, buffer.address, size);
+          if (copied != size) {
+            throw StateError('Material package read truncated: $copied of $size bytes.');
+          }
+        });
+      }
       return await createMaterial(bytes);
     } finally {
       bindings.MaterialCompiler_destroyPackage(package);

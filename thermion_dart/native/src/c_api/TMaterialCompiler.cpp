@@ -22,8 +22,6 @@
 #include <new>
 #include <vector>
 
-#include "trace_shim.h"
-
 namespace thermion
 {
     extern "C"
@@ -193,18 +191,23 @@ namespace thermion
                 return 0;
             }
             const size_t n = payload->bytes.size() < capacity ? payload->bytes.size() : capacity;
-            // TEMPORARY trace: what this side of the boundary is about to copy.
-            thermion::trace::tracePackageBytes(
-                "MaterialCompiler_getPackageBytes payload", payload->bytes.data(),
-                payload->bytes.size());
-            char dstLine[128];
-            std::snprintf(dstLine, sizeof(dstLine),
-                          "[material-trace] MaterialCompiler_getPackageBytes: dst=%p capacity=%zu "
-                          "copying=%zu",
-                          static_cast<void *>(out), capacity, n);
-            thermion::trace::logLine(dstLine);
             std::memcpy(out, payload->bytes.data(), n);
             return n;
+        }
+
+        // Web has no way to hand a JS-side buffer to native code as an output
+        // pointer: every typed-data borrow ffigen_js provides is copy-in, so
+        // MaterialCompiler_getPackageBytes can only ever write into a native
+        // scratch allocation the caller cannot read back. Web callers instead
+        // read the package straight out of the wasm heap through this pointer
+        // (plus MaterialCompiler_getPackageSize), the same pattern the
+        // readPixels/readString paths use for bulk data. The pointer is valid
+        // until MaterialCompiler_destroyPackage.
+        EMSCRIPTEN_KEEPALIVE const uint8_t *MaterialCompiler_getPackagePtr(
+            TMaterialCompilerPackage *package)
+        {
+            auto *payload = reinterpret_cast<PackagePayload *>(package);
+            return payload == nullptr ? nullptr : payload->bytes.data();
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialCompiler_destroyPackage(TMaterialCompilerPackage *package)
@@ -246,6 +249,12 @@ extern "C"
         (void)out;
         (void)capacity;
         return 0;
+    }
+
+    EMSCRIPTEN_KEEPALIVE const uint8_t *MaterialCompiler_getPackagePtr(TMaterialCompilerPackage *package)
+    {
+        (void)package;
+        return nullptr;
     }
 
     EMSCRIPTEN_KEEPALIVE void MaterialCompiler_destroyPackage(TMaterialCompilerPackage *package)

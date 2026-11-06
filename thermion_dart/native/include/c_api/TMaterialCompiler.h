@@ -71,6 +71,15 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE size_t MaterialCompiler_getPackageBytes(
         TMaterialCompilerPackage *package, uint8_t *out, size_t capacity);
 
+    /// Returns a pointer to the compiled package bytes living in native/Wasm
+    /// heap memory, or null. Valid until MaterialCompiler_destroyPackage; pair
+    /// with MaterialCompiler_getPackageSize for the length. Web callers should
+    /// read the bytes through this pointer (typed-array view over the Wasm
+    /// heap) instead of MaterialCompiler_getPackageBytes, which can only write
+    /// into a native scratch buffer on that platform.
+    EMSCRIPTEN_KEEPALIVE const uint8_t *MaterialCompiler_getPackagePtr(
+        TMaterialCompilerPackage *package);
+
     /// Returns the byte size of the compiled package.
     EMSCRIPTEN_KEEPALIVE size_t MaterialCompiler_getPackageSize(TMaterialCompilerPackage *package);
 

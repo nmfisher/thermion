@@ -2354,6 +2354,15 @@ external int MaterialCompiler_getPackageBytes(
   int capacity,
 );
 
+/// Returns a pointer to the compiled package bytes living in native/Wasm
+/// heap memory, or null. Valid until MaterialCompiler_destroyPackage; pair
+/// with MaterialCompiler_getPackageSize for the length. Web callers should
+/// read the bytes through this pointer (typed-array view over the Wasm
+/// heap) instead of MaterialCompiler_getPackageBytes, which can only write
+/// into a native scratch buffer on that platform.
+@ffi.Native<ffi.Pointer<ffi.Uint8> Function(ffi.Pointer<TMaterialCompilerPackage>)>(isLeaf: true)
+external ffi.Pointer<ffi.Uint8> MaterialCompiler_getPackagePtr(ffi.Pointer<TMaterialCompilerPackage> package);
+
 /// Returns the byte size of the compiled package.
 @ffi.Native<ffi.Size Function(ffi.Pointer<TMaterialCompilerPackage>)>(isLeaf: true)
 external int MaterialCompiler_getPackageSize(ffi.Pointer<TMaterialCompilerPackage> package);
