@@ -306,6 +306,11 @@ outputDirectory : ${outputDirectory.path}
       "z",
       "stb",
       "uberzlib",
+      // Linked DIRECTLY (not via the combined filamat archive): filament's
+      // combine-static-libs.sh appends members with `ar -qc`, which does not
+      // regenerate the archive symbol table, so smolv members bundled there
+      // are invisible to linker symbol lookup. Keep it AFTER "filamat" above
+      // (leaf library; left-to-right archive resolution).
       "smol-v",
       "basis_transcoder",
       "uberarchive",
