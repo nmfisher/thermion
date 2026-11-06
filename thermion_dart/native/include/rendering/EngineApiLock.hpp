@@ -29,9 +29,11 @@
 // Deadlock argument (see also the commit message):
 //   1. The lock is only ever held for the duration of one export call or one
 //      job-thread task. Exports never wait on the job thread (they do not
-//      enqueue-and-wait), and job-thread tasks never wait on the caller's
-//      thread: results go back through NativeCallable.listener callbacks,
-//      which post to the Dart event loop and return immediately.
+//      enqueue-and-wait). Job-thread tasks never call into Dart while holding
+//      it: a NativeCallable.listener call from the job thread can block inside
+//      the Dart VM until the isolate's thread makes progress (observed on
+//      Windows), so every Dart completion raised inside a task goes through
+//      deferDartCallback() and runs after the task releases the lock.
 //   2. Lock order is always engine-API lock first. The other native locks
 //      (RenderManager::mMutex, AnimationManager::mMutex, the texture-provider
 //      and frame-scheduler mutexes, EngineLifecycle) are taken inside it, or
@@ -59,9 +61,16 @@
 
 #define THERMION_ENGINE_API_GUARD ((void)0)
 
+#include <functional>
+namespace thermion {
+// Web dispatches Dart completions through its own proxy queue; run inline.
+inline void deferDartCallback(std::function<void()> fn) { fn(); }
+} // namespace thermion
+
 #else
 
 #include <atomic>
+#include <functional>
 #include <mutex>
 
 namespace thermion {
@@ -77,6 +86,17 @@ std::recursive_mutex& engineApiMutex();
 // lock between tasks and starves the caller's thread for seconds. Before
 // taking the lock for its next task the job thread waits until this is 0.
 std::atomic<int>& engineApiWaiters();
+
+// Never call into Dart while holding engineApiMutex(). A Dart completion
+// (NativeCallable.listener) invoked from the job thread can block inside the
+// Dart VM until the isolate's own thread makes progress; if that thread is
+// waiting for this lock in a direct export, both stop (seen on Windows: the
+// job thread parked in flutter_windows, the platform thread in
+// LightManager_setPosition). Inside a job task this queues fn and
+// NativeJobThread::run calls it right after the task releases the lock, in
+// order. Anywhere else (direct exports on the Dart thread, Filament driver
+// threads) it runs fn immediately.
+void deferDartCallback(std::function<void()> fn);
 
 class EngineApiGuard {
 public:
