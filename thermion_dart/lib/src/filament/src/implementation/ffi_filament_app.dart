@@ -57,10 +57,7 @@ int _geometryCapabilitiesToNative(Set<SceneAssetGeometryCapability> capabilities
 /// FormatException is diagnosed: logs byte-for-byte what Dart holds at each
 /// hop of the compile -> getPackageBytes -> createMaterial pipeline so the
 /// first corrupting hop is identifiable from the browser console.
-String _hexDump24(Uint8List bytes) => bytes
-    .take(24)
-    .map((b) => b.toRadixString(16).padLeft(2, '0'))
-    .join(' ');
+String _hexDump24(Uint8List bytes) => bytes.take(24).map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
 
 void _tracePackageBytes(String label, Uint8List bytes) {
   // ignore: avoid_print
