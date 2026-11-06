@@ -207,7 +207,7 @@ namespace thermion
                         if (callbackPtr)
                         {
                             auto callback = ((VoidCallback)callbackPtr);
-                            callback(requestId);
+                            thermion::deferDartCallback([callback, requestId] { callback(requestId); });
                         } },
                     (void *)callbackData);
             return reinterpret_cast<TTexture *>(texture);

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "rendering/EngineApiLock.hpp"
+
 #include <vector>
 
 #include <utils/Entity.h>
@@ -125,7 +127,9 @@ namespace thermion
 
                 Gizmo::GizmoPickResultType resultType = _gizmo->getPickResult(result.renderable);
 
-                _callback(resultType, result.fragCoords.x, result.fragCoords.y, result.fragCoords.z);
+                auto callback = _callback;
+                auto frag = result.fragCoords;
+                thermion::deferDartCallback([=] { callback(resultType, frag.x, frag.y, frag.z); });
             }
 
         private:
