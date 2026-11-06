@@ -447,6 +447,6 @@ void main() async {
       await testHelper.capture(viewer.view, "instance_highlight_off");
       // Removing twice is harmless.
       await viewer.view.removeStencilHighlight(instances[1]);
-    });
+    }, postProcessing: true, createStencilBuffer: true);
   });
 }
