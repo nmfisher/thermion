@@ -1,4 +1,6 @@
 #include "rendering/JobThread.hpp"
+#include "rendering/EngineApiLock.hpp"
+#include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -55,5 +57,41 @@ int main() {
         }
         check(executed == 201);
     }
-    std::puts("PASS: native FIFO, packaged result, nested completion and 25 shutdown cycles");
+    // Dart completions raised inside a task must run after the task, with the
+    // engine API lock released (a Dart callback can block until another thread
+    // that needs the lock makes progress).
+    {
+        auto owner = JobThread::create();
+        std::atomic<bool> ran{false};
+        std::atomic<bool> lockFree{false};
+        std::atomic<bool> deferred{false};
+        bool inTask = false;
+        owner->addDetachedTask([&] {
+            inTask = true;
+            deferDartCallback([&] {
+                deferred = !inTask;
+                std::thread probe([&] {
+                    if (engineApiMutex().try_lock()) {
+                        lockFree = true;
+                        engineApiMutex().unlock();
+                    }
+                });
+                probe.join();
+                ran = true;
+            });
+            inTask = false;
+        });
+        const auto deadline = std::chrono::steady_clock::now() + 2s;
+        while (!ran) {
+            check(std::chrono::steady_clock::now() < deadline);
+            std::this_thread::yield();
+        }
+        check(deferred);
+        check(lockFree);
+        bool direct = false;
+        deferDartCallback([&] { direct = true; });  // outside a task: inline
+        check(direct);
+        JobThread::destroy(std::move(owner));
+    }
+    std::puts("PASS: native FIFO, packaged result, nested completion, 25 shutdown cycles, Dart callbacks deferred past the engine lock");
 }

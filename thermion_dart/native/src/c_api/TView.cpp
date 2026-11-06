@@ -526,7 +526,12 @@ namespace thermion
             THERMION_ENGINE_API_GUARD;
             auto *view = reinterpret_cast<View *>(tView);
             view->pick(x, y, [=](filament::View::PickingQueryResult const &result)
-                       { callback(requestId, utils::Entity::smuggle(result.renderable), result.depth, result.fragCoords.x, result.fragCoords.y, result.fragCoords.z); });
+                       {
+                           auto entity = utils::Entity::smuggle(result.renderable);
+                           auto depth = result.depth;
+                           auto frag = result.fragCoords;
+                           thermion::deferDartCallback([=] { callback(requestId, entity, depth, frag.x, frag.y, frag.z); });
+                       });
         }
 
         EMSCRIPTEN_KEEPALIVE void View_setDitheringEnabled(TView *tView, bool enabled)
