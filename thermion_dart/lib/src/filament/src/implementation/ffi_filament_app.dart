@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
 
+import '../../../bindings/heap_buffer.dart';
+
 import '../../../bindings/bindings.dart' as bindings;
 
 import 'package:thermion_dart/src/filament/src/implementation/ffi_animation_manager.dart';
@@ -49,6 +51,23 @@ int _geometryCapabilitiesToNative(Set<SceneAssetGeometryCapability> capabilities
     };
   }
   return bits;
+}
+
+/// TEMPORARY material-package transfer tracing. Remove once the web
+/// FormatException is diagnosed: logs byte-for-byte what Dart holds at each
+/// hop of the compile -> getPackageBytes -> createMaterial pipeline so the
+/// first corrupting hop is identifiable from the browser console.
+String _hexDump24(Uint8List bytes) => bytes
+    .take(24)
+    .map((b) => b.toRadixString(16).padLeft(2, '0'))
+    .join(' ');
+
+void _tracePackageBytes(String label, Uint8List bytes) {
+  // ignore: avoid_print
+  print(
+    '[material-trace] $label: length=${bytes.length} '
+    'offsetInBytes=${bytes.offsetInBytes} bytes[${_hexDump24(bytes)}]',
+  );
 }
 
 void _validateRequiredGeometryCapabilities(Set<SceneAssetGeometryCapability> capabilities) {
@@ -644,10 +663,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw const FormatException('Material package is empty.');
     }
     try {
+      // TEMPORARY trace: see what Material_getPackageVersion is about to see.
+      _tracePackageBytes('createMaterial input', data);
       // Each .address is a separate synchronous borrow. The render-thread
       // entry point snapshots in native code before returning, and the native
       // builder checks that snapshot again before passing it to Filament.
       final actualVersion = Material_getPackageVersion(data.address, data.length).toInt();
+      // ignore: avoid_print
+      print('[material-trace] Material_getPackageVersion -> $actualVersion');
       if (actualVersion < 0) {
         throw const FormatException('Invalid material package chunk layout or version metadata.');
       }
@@ -667,6 +690,84 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       return FFIMaterial(ptr, this);
     } finally {
       if (FILAMENT_WASM) data.free();
+    }
+  }
+
+  @override
+  bool get runtimeMaterialsSupported => bindings.MaterialCompiler_isSupported() != 0;
+
+  @override
+  Future<Material> compileMaterialSource(
+    String name,
+    String source, {
+    MaterialShading shading = MaterialShading.lit,
+  }) async {
+    if (!runtimeMaterialsSupported) {
+      throw UnsupportedError(
+        'Runtime material compilation is not available in this build. Rebuild '
+        'with the runtime_materials user define (hooks.user_defines.thermion_dart '
+        'in your pubspec.yaml; on web this selects the filamat-enabled engine '
+        'variant, on iOS it is unsupported) or precompile a '
+        '.filamat package with matc and load it with createMaterial.',
+      );
+    }
+    if (source.isEmpty) {
+      throw ArgumentError.value(source, 'source', 'Material source must not be empty.');
+    }
+    final nativeShading = switch (shading) {
+      MaterialShading.unlit => bindings.TShading.SHADING_UNLIT,
+      MaterialShading.lit => bindings.TShading.SHADING_LIT,
+      MaterialShading.subsurface => bindings.TShading.SHADING_SUBSURFACE,
+      MaterialShading.cloth => bindings.TShading.SHADING_CLOTH,
+      MaterialShading.specularGlossiness => bindings.TShading.SHADING_SPECULAR_GLOSSINESS,
+    };
+    final namePtr = name.toNativeUtf8().cast<Char>();
+    final sourcePtr = source.toNativeUtf8().cast<Char>();
+    // Dispatches the compile to the job thread that created the engine (the
+    // native entry point blocks on a packaged-task future). Required because
+    // MaterialBuilder::build drives the engine JobSystem, whose calling
+    // thread must have been adopted.
+    final package = bindings.MaterialCompiler_compileMaterialSource(
+      jobThreadHandle,
+      engine,
+      namePtr,
+      sourcePtr,
+      nativeShading,
+    );
+    free(namePtr);
+    free(sourcePtr);
+    if (package == nullptr) {
+      throw StateError(
+        'Runtime material compilation failed for material "$name". Check the '
+        'Filament logs for shader compile diagnostics.',
+      );
+    }
+    try {
+      final size = bindings.MaterialCompiler_getPackageSize(package);
+      if (size == 0) {
+        throw StateError('Runtime material compilation produced an empty package for "$name".');
+      }
+      // The package bytes are an OUTPUT buffer. On web, a Uint8List lives in
+      // JS memory, not Filament's wasm heap: `buffer.address` (ffigen_js)
+      // would copy the (empty) Dart bytes INTO a temporary wasm allocation
+      // and never copy back, leaving `bytes` zeroed. passOutput copies out
+      // of the wasm allocation after the call (native: a no-op borrow).
+      final bytes = Uint8List(size);
+      await bytes.passOutput((buffer) {
+        // TEMPORARY trace: the wasm-heap view before the copy (should be all
+        // zero: freshly allocated) and after the native memcpy.
+        _tracePackageBytes('getPackageBytes wasm buffer (pre-copy)', buffer);
+        final copied = bindings.MaterialCompiler_getPackageBytes(package, buffer.address, size);
+        if (copied != size) {
+          throw StateError('Material package read truncated: $copied of $size bytes.');
+        }
+        _tracePackageBytes('getPackageBytes wasm buffer (post-copy)', buffer);
+      });
+      // TEMPORARY trace: Dart-side bytes after passOutput copied them back.
+      _tracePackageBytes('getPackageBytes Dart bytes (post-passOutput)', bytes);
+      return await createMaterial(bytes);
+    } finally {
+      bindings.MaterialCompiler_destroyPackage(package);
     }
   }
 

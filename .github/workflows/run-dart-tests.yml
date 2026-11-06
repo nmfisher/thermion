@@ -284,6 +284,70 @@ jobs:
             ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5
 
+  # Exercises runtime material compilation (filamat::MaterialBuilder behind the
+  # `runtime_materials` user define). macOS/Metal only: the flag is unsupported
+  # on web/iOS, and one leg is enough to cover the link path and the
+  # compile-validate-instantiate round trip in test/runtime_material_test.dart.
+  # The rest of that test file exercises the "unsupported" branch in the main
+  # macOS job above, which builds without the flag.
+  dart-tests-runtime-materials:
+    name: Dart Tests Runtime Materials (macOS)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-macOS-${{ hashFiles('thermion_dart/pubspec.lock', 'thermion_dart/pubspec.yaml') }}
+          restore-keys: |
+            pub-macOS-
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Enable runtime materials for tests
+        shell: bash
+        run: |
+          # See the equivalent step in dart-tests: strip the local-only
+          # hooks.user_defines block before appending, so the file never
+          # carries two top-level `hooks:` keys.
+          awk '
+            /^hooks:/ { skip=1; next }
+            skip && /^[^[:space:]#]/ { skip=0 }
+            !skip { print }
+          ' thermion_dart/pubspec.yaml > thermion_dart/pubspec.yaml.tmp
+          mv thermion_dart/pubspec.yaml.tmp thermion_dart/pubspec.yaml
+          cat >> thermion_dart/pubspec.yaml <<'EOF'
+          hooks:
+            user_defines:
+              thermion_dart:
+                mode: debug
+                runtime_materials: true
+          EOF
+
+      - name: Clean cached Filament libraries
+        shell: bash
+        run: rm -rf thermion_dart/.dart_tool/thermion_dart/lib
+
+      - name: Run runtime material tests (macOS)
+        working-directory: thermion_dart
+        run: |
+          dart pub get
+          dart test -j1 test/runtime_material_test.dart --concurrency=1
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-dart-runtime-materials
+          path: |
+            ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
+
   # Exercises the single-backend material variants (_opengl/_vulkan) that
   # materials.backends opts into. Each runner gets the backend it can
   # actually render with: Linux tests render through EGL/llvmpipe under xvfb
@@ -411,23 +475,23 @@ jobs:
           - name: Linux
             artifact: dart-test-output-Linux
             baseline_asset: dart-test-output-Linux.zip
-            baseline_sha256: 3d1320d5b5005b783d8b31be56fb4e90f61381bf00611853d1da5ee24b4fd0b0
+            baseline_sha256: 3d39f49022db9bd7934bdadf72b32c3976cf0039e08444df99cba24d7b6146af
           - name: Windows
             artifact: dart-test-output-Windows
             baseline_asset: dart-test-output-Windows.zip
-            baseline_sha256: c1dde33528bc038bcb77f56f3c778fe4ea46a24220f7ba4be116602eae16e75f
+            baseline_sha256: a4b895bb057ceaade2b7fe79ea37445275bb0eb3b02b468028a281af3a4ab361
           - name: macOS
             artifact: dart-test-output-macOS
             baseline_asset: dart-test-output-macOS.zip
-            baseline_sha256: 1ea03e794b422d4b3656b0344816478310d767080db24fc2a209e44f5bd17a12
+            baseline_sha256: c0893efe51fbd7053a2b250cd8d9f8fb29e627c32ec3797a14b31b09c6167c60
           - name: Linux opengl-only
             artifact: dart-material-output-Linux opengl-only
             baseline_asset: dart-material-output-Linux-opengl-only.zip
-            baseline_sha256: 09182187eb06f07381c8a06ed234d7bf95c37e0800cb4ee0c03edcd7b0867e3c
+            baseline_sha256: 1e49bec4db471f011966a4f72a15cd65ed64103cc5664ce631ae844087fd9c0b
           - name: Windows vulkan-only
             artifact: dart-material-output-Windows vulkan-only
             baseline_asset: dart-material-output-Windows-vulkan-only.zip
-            baseline_sha256: 4d9825f3481ebb5e4a45f9eec1a498fca7b5b1da99d516ed5e6cb3db560c8435
+            baseline_sha256: 70e87623f8a4bfe17508fa41cec60e749856dba86c6bb5cc0f7970ee3b5eb299
     steps:
       - uses: actions/checkout@v4
         with:
@@ -446,7 +510,7 @@ jobs:
           # in baseline-review.json in the matching release. To refresh,
           # review captures, publish a new release, then update this tag
           # and the per-platform SHA-256 values above.
-          BASELINE_TAG: render-baselines-2026-10-28-grid
+          BASELINE_TAG: render-baselines-2026-11-06-instance-highlight
           BASELINE_ASSET: ${{ matrix.baseline_asset }}
           BASELINE_SHA256: ${{ matrix.baseline_sha256 }}
         run: |
