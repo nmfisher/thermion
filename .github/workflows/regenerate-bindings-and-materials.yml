@@ -324,14 +324,16 @@ jobs:
       # runtime_materials: true). Same separate-build-dir pattern as
       # main-thread above. Self-heals a stale cache: actions/cache may have
       # saved lib/release under this key from a pre-filamat artifact before
-      # the filament web zip was rebuilt — when libfilamat.a is missing
-      # after `make wasm`, re-download the zip straight from R2 (cache
-      # bypass) and re-extract, then build.
+      # the filament web zip was rebuilt — when the combined filamat archive
+      # is missing after `make wasm`, re-download the zip straight from R2
+      # (cache bypass) and re-extract, then build. (The web artifact keeps
+      # the build-tree name libfilamat_combined.a; native zips rename it to
+      # libfilamat.a.)
       - name: Compile web (runtime-materials)
         if: steps.changes.outputs.native-changed == 'true'
         run: |
-          if [ ! -f thermion_dart/native/web/lib/release/libfilamat.a ]; then
-            echo "libfilamat.a missing from cached artifact; re-fetching from R2..."
+          if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ]; then
+            echo "libfilamat_combined.a missing from cached artifact; re-fetching from R2..."
             rm -f thermion_dart/native/web/lib/release/filament-*.zip
             FILAMENT_VERSION="$(cut -d' ' -f2 filament.version)"
             if ! curl -fL -o "thermion_dart/native/web/lib/release/filament-${FILAMENT_VERSION}-web-release.zip" \
@@ -343,7 +345,7 @@ jobs:
             rm -rf include lib
             unzip -o "filament-${FILAMENT_VERSION}-web-release.zip"
             cd "$GITHUB_WORKSPACE"
-            if [ ! -f thermion_dart/native/web/lib/release/libfilamat.a ]; then
+            if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ]; then
               echo "::warning::the Filament web artifact on R2 predates FILAMENT_BUILD_FILAMAT=ON; skipping the runtime-materials engine build. Dispatch build-filament.yml (platform: web) to publish the filamat-enabled artifact."
               exit 0
             fi
