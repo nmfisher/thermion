@@ -23,6 +23,12 @@ good material.
   (`thermion_dart-<sha>-web-runtime-materials.zip`) instead of the default
   wasm — that build links `libfilamat`, which is what makes
   `FilamentApp.compileMaterialSource` work in the browser.
+- The pubspec also sets `web_variant: main_thread`, so the hook actually
+  fetches the **combined main-thread runtime-materials variant**
+  (`thermion_dart-<sha>-web-main-thread-runtime-materials.zip`): worker-mode
+  pthread spawn fails in this environment, while main-thread mode runs
+  everything inline — which also pairs naturally with the inline material
+  compile (see Notes).
 - `compileMaterialSource` dispatches the compile to the engine's job thread on
   native, which drives `MaterialBuilder::build` and returns a validated
   `.filamat`-equivalent package. On web it runs inline on the main thread (see

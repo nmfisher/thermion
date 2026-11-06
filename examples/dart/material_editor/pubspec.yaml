@@ -20,8 +20,14 @@ dependencies:
 # runtime_materials: true makes the build hook fetch the filamat-enabled web
 # engine variant (thermion_dart-<sha>-web-runtime-materials.zip) instead of
 # the default one — that is what makes compileMaterialSource work here.
+#
+# web_variant: main_thread additionally selects the main-thread engine build
+# (thermion_dart-<sha>-web-main-thread-runtime-materials.zip): worker-mode
+# pthread spawn fails in this environment, while main-thread mode runs
+# everything inline (and pairs naturally with the inline material compile).
 hooks:
   user_defines:
     thermion_dart:
       skip_native_build: true
+      web_variant: main_thread
       runtime_materials: true

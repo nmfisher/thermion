@@ -1,8 +1,9 @@
 // Compile the editor's Dart entry to web/main.wasm.
 // thermion_dart.js/.wasm must already exist in web/ — the build hook fetches
-// the runtime-materials variant on `dart pub get`/`dart run` (the pubspec
-// sets runtime_materials: true); with a network-less checkout run
-// `dart run thermion_dart:download_web -o web` after overriding the variant.
+// the main-thread runtime-materials variant on `dart pub get`/`dart run`
+// (the pubspec sets web_variant: main_thread + runtime_materials: true); with
+// a network-less checkout run `dart run thermion_dart:download_web -o web
+// --variant main-thread-runtime-materials` instead.
 //
 //   dart run tool/build.dart
 import 'dart:io';

@@ -15,6 +15,7 @@ const _variants = {
   'worker': '',
   'main_thread': '-main-thread',
   'runtime-materials': '-runtime-materials',
+  'main-thread-runtime-materials': '-main-thread-runtime-materials',
 };
 
 Future<String> _getWebVersion() async {
@@ -122,6 +123,7 @@ void main(List<String> args) async {
       stdout.writeln('  --variant      Engine variant: ${_variants.keys.join(', ')} (default: default)');
       stdout.writeln('                runtime-materials = filamat-enabled engine for');
       stdout.writeln('                runtime material compilation (~20 MB larger).');
+      stdout.writeln('                main-thread-runtime-materials = both combined.');
       return;
     }
   }

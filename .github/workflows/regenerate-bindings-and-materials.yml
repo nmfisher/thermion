@@ -382,6 +382,26 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release -DTHERMION_ENABLE_RUNTIME_MATERIALS=ON
           cmake --build thermion_dart/native/web/build-runtime-materials --parallel 2
 
+      # Combined main-thread + runtime-materials engine (web_variant:
+      # main_thread AND runtime_materials: true in the consuming app's
+      # pubspec.yaml). Same filamat prerequisite and skip logic as the
+      # runtime-materials build above (which also self-healed the cache, so
+      # by this point the combined archive is either present or definitively
+      # unavailable); separate build dir for the combined CMake options.
+      - name: Compile web (main-thread runtime-materials)
+        if: steps.changes.outputs.native-changed == 'true'
+        run: |
+          if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ]; then
+            echo "::warning::libfilamat_combined.a unavailable; skipping the main-thread runtime-materials engine build."
+            exit 0
+          fi
+          emcmake cmake -S thermion_dart/native/web \
+            -B thermion_dart/native/web/build-main-thread-runtime-materials \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DTHERMION_WEB_MAIN_THREAD=ON \
+            -DTHERMION_ENABLE_RUNTIME_MATERIALS=ON
+          cmake --build thermion_dart/native/web/build-main-thread-runtime-materials --parallel 2
+
       - name: Test web uploads without visible frames
         if: steps.changes.outputs.native-changed == 'true'
         run: |
@@ -431,6 +451,19 @@ jobs:
               --region auto
           else
             echo "::warning::runtime-materials web engine was not built; skipping its upload."
+          fi
+          # Combined main-thread + runtime-materials variant (web_variant:
+          # main_thread AND runtime_materials: true). Same skip logic as the
+          # runtime-materials build/upload above.
+          if [ -d "$GITHUB_WORKSPACE/thermion_dart/native/web/build-main-thread-runtime-materials/build/out" ]; then
+            cd "$GITHUB_WORKSPACE/thermion_dart/native/web/build-main-thread-runtime-materials/build/out"
+            zip "thermion_dart-${SHORT_SHA}-web-main-thread-runtime-materials.zip" thermion_dart.js thermion_dart.wasm
+            aws s3 cp "thermion_dart-${SHORT_SHA}-web-main-thread-runtime-materials.zip" \
+              "s3://thermion/thermion_dart-${SHORT_SHA}-web-main-thread-runtime-materials.zip" \
+              --endpoint-url "$R2_ENDPOINT" \
+              --region auto
+          else
+            echo "::warning::main-thread runtime-materials web engine was not built; skipping its upload."
           fi
           # Write the SHA so the download script knows which artifact to fetch
           echo "$SHORT_SHA" > "${{ github.workspace }}/thermion_dart/native/web/web.version"
