@@ -303,6 +303,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Rebase before touching the index: `git pull --rebase` refuses to
+          # run with staged changes ("cannot pull with rebase: Your index
+          # contains uncommitted changes"), which silently skipped the rebase
+          # and made the push below fail non-fast-forward.
+          git pull --rebase origin "$PUSH_BRANCH"
           git add -f thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart || true
           git add -f thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart || true
           git add -f thermion_dart/native/include/material/*.h || true
@@ -313,9 +318,6 @@ jobs:
           git add -f examples/assets/*.filamat || true
           # formatting fixes (same paths as the Format step)
           git add thermion_dart/lib thermion_dart/bin thermion_dart/hook thermion_dart/tool thermion_dart/test thermion_flutter/thermion_flutter/lib
-          # Rebase before pushing in case a concurrent push landed (single
-          # pusher now, but humans can still push to develop between steps).
-          git pull --rebase origin "$PUSH_BRANCH" || true
           git commit -m "chore: update generated artifacts + format (CI)
 
           🤖 Generated with GitHub Actions"
@@ -475,8 +477,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Rebase before staging (a rebase cannot run with a dirty index);
+          # see the note in the artifacts commit step above.
+          git pull --rebase origin "$PUSH_BRANCH"
           git add -f thermion_dart/native/web/web.version
-          git pull --rebase origin "$PUSH_BRANCH" || true
           git diff --cached --quiet || git commit -m "chore: update web.version"
           git push origin "HEAD:$PUSH_BRANCH"
 
@@ -551,6 +555,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Rebase before staging: `git pull --rebase` cannot run with staged
+          # changes, and the previous order (add, then rebase) made this step
+          # fail and the push below get rejected non-fast-forward.
+          git pull --rebase origin "$PUSH_BRANCH"
           git add -A thermion_dart/native/include/material examples/assets
           git commit -m "chore: regenerate materials for filament.version (CI)
 
