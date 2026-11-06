@@ -406,6 +406,10 @@ void main() async {
   test('stencil highlight is instance-safe: instance 1 maps to the owner entity', () async {
     await testHelper.withViewer(
       (viewer) async {
+        // The captured cube is a lit glTF; without an environment light it
+        // renders pure black and the captures would be meaningless (this is
+        // exactly what the original #423 version produced — four blank frames).
+        await viewer.loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
         final owner = await viewer.loadGltf(
           "file://${testHelper.assetsDir}/cube.glb",
           requiredGeometryCapabilities: const {SceneAssetGeometryCapability.accessibleGeometryBuffers},
