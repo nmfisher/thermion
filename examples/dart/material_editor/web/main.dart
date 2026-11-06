@@ -237,16 +237,20 @@ Future<void> _boot() async {
   );
   meshSelect.addEventListener(
     'change',
-    (Event _) async {
-      final next = meshSelect.value;
-      final factory = _meshes[next];
-      if (next == currentMesh || factory == null) return;
-      currentMesh = next;
-      // Recreate the mesh at the same place; the current material instance
-      // is applied to the new geometry.
-      await viewer.destroyAsset(meshEntity);
-      meshEntity = await viewer.createGeometry(factory());
-      await _applyToAll(meshEntity, currentInstance);
+    (Event _) {
+      // The outer closure must stay synchronous: .toJS cannot convert a
+      // function returning Future. Push the async work onto the event loop.
+      Future(() async {
+        final next = meshSelect.value;
+        final factory = _meshes[next];
+        if (next == currentMesh || factory == null) return;
+        currentMesh = next;
+        // Recreate the mesh at the same place; the current material instance
+        // is applied to the new geometry.
+        await viewer.destroyAsset(meshEntity);
+        meshEntity = await viewer.createGeometry(factory());
+        await _applyToAll(meshEntity, currentInstance);
+      });
     }.toJS,
   );
 
