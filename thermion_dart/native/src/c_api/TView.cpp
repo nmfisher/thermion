@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
 
 
 #include <filament/View.h>
@@ -21,12 +22,14 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void View_setBlendMode(TView *tView, TBlendMode tBlendMode)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             view->setBlendMode(static_cast<filament::View::BlendMode>(tBlendMode));
         }
 
         EMSCRIPTEN_KEEPALIVE TViewport View_getViewport(TView *tView)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             auto &vp = view->getViewport();
             TViewport tvp;
@@ -39,6 +42,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void View_setViewport(TView *tView, uint32_t width, uint32_t height)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             view->setViewport({0, 0, width, height});
             TRACE("Set viewport to %dx%d", width, height);
@@ -46,6 +50,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void View_setViewportRect(TView *tView, uint32_t left, uint32_t bottom, uint32_t width, uint32_t height)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             // Viewport's origin fields are int32_t (its extents uint32_t); the
             // explicit casts avoid C++11 narrowing errors in the brace-init.
@@ -55,6 +60,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TRenderTarget *View_getRenderTarget(TView *tView)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             auto tRenderTarget = reinterpret_cast<TRenderTarget *>(view->getRenderTarget());
             return tRenderTarget;
@@ -62,6 +68,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void View_setRenderTarget(TView *tView, TRenderTarget *tRenderTarget)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             auto renderTarget = reinterpret_cast<RenderTarget *>(tRenderTarget);
             view->setRenderTarget(renderTarget);
@@ -69,18 +76,21 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabled(TView *tView, bool enabled)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             view->setFrustumCullingEnabled(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE int32_t View_getVisibleRenderableCount(TView *tView)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             return view->getVisibleRenderableCount();
         }
 
         EMSCRIPTEN_KEEPALIVE void View_setPostProcessing(TView *tView, bool enabled)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             view->setPostProcessingEnabled(enabled);
             TRACE("Set postprocessing enabled : %d", enabled);
@@ -88,24 +98,28 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void View_setShadowsEnabled(TView *tView, bool enabled)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             view->setShadowingEnabled(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void View_setShadowType(TView *tView, int shadowType)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             view->setShadowType((ShadowType)shadowType);
         }
 
         EMSCRIPTEN_KEEPALIVE int View_getShadowType(TView *tView)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             return static_cast<int>(view->getShadowType());
         }
 
         EMSCRIPTEN_KEEPALIVE void View_setSoftShadowOptions(TView *tView, TSoftShadowOptions options)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             SoftShadowOptions opts;
             opts.penumbraRatioScale = options.penumbraRatioScale;
@@ -117,6 +131,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TSoftShadowOptions View_getSoftShadowOptions(TView *tView)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             auto options = view->getSoftShadowOptions();
             TSoftShadowOptions tOptions;
@@ -129,6 +144,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void View_setVsmShadowOptions(TView *tView, TVsmShadowOptions options)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             VsmShadowOptions opts;
             opts.anisotropy = options.anisotropy;
@@ -142,6 +158,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TVsmShadowOptions View_getVsmShadowOptions(TView *tView)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             auto options = view->getVsmShadowOptions();
             TVsmShadowOptions tOptions;
@@ -156,6 +173,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void View_setBloom(TView *tView, bool enabled, float strength)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             decltype(view->getBloomOptions()) opts;
             opts.enabled = enabled;
@@ -166,6 +184,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void View_setColorGrading(TView *tView, TColorGrading *tColorGrading)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *view = reinterpret_cast<View *>(tView);
             auto *colorGrading = reinterpret_cast<ColorGrading *>(tColorGrading);
             view->setColorGrading(colorGrading);
@@ -173,6 +192,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TColorGrading* View_getColorGrading(TView *tView)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *view = reinterpret_cast<View *>(tView);
             auto *cg = view->getColorGrading();
             if(!cg) {
@@ -185,60 +205,70 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createLinear(TEngine* tEngine)
         {
+            THERMION_ENGINE_API_GUARD;
             TRACE("Creating LinearToneMapper");
             return reinterpret_cast<TToneMapper *>(new LinearToneMapper());
         }
 
         EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createACES(TEngine* tEngine)
         {
+            THERMION_ENGINE_API_GUARD;
             TRACE("Creating ACESToneMapper");
             return reinterpret_cast<TToneMapper *>(new ACESToneMapper());
         }
 
         EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createACESLegacy(TEngine* tEngine)
         {
+            THERMION_ENGINE_API_GUARD;
             TRACE("Creating ACESLegacyToneMapper");
             return reinterpret_cast<TToneMapper *>(new ACESLegacyToneMapper());
         }
 
         EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createFilmic(TEngine* tEngine)
         {
+            THERMION_ENGINE_API_GUARD;
             TRACE("Creating FilmicToneMapper");
             return reinterpret_cast<TToneMapper *>(new FilmicToneMapper());
         }
 
         EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createPBRNeutral(TEngine* tEngine)
         {
+            THERMION_ENGINE_API_GUARD;
             TRACE("Creating PBRNeutralToneMapper");
             return reinterpret_cast<TToneMapper *>(new PBRNeutralToneMapper());
         }
 
         EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createAGX(TEngine* tEngine)
         {
+            THERMION_ENGINE_API_GUARD;
             TRACE("Creating AgxToneMapper");
             return reinterpret_cast<TToneMapper *>(new AgxToneMapper());
         }
 
         EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createAGXWithLook(TEngine* tEngine, int look)
         {
+            THERMION_ENGINE_API_GUARD;
             TRACE("Creating AgxToneMapper with look %d", look);
             return reinterpret_cast<TToneMapper *>(new AgxToneMapper(static_cast<AgxToneMapper::AgxLook>(look)));
         }
 
         EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createGeneric(TEngine* tEngine, float contrast, float midGrayIn, float midGrayOut, float hdrMax)
         {
+            THERMION_ENGINE_API_GUARD;
             TRACE("Creating GenericToneMapper (contrast=%f, midGrayIn=%f, midGrayOut=%f, hdrMax=%f)", contrast, midGrayIn, midGrayOut, hdrMax);
             return reinterpret_cast<TToneMapper *>(new GenericToneMapper(contrast, midGrayIn, midGrayOut, hdrMax));
         }
 
         EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createDisplayRange(TEngine* tEngine)
         {
+            THERMION_ENGINE_API_GUARD;
             TRACE("Creating DisplayRangeToneMapper");
             return reinterpret_cast<TToneMapper *>(new DisplayRangeToneMapper());
         }
 
         EMSCRIPTEN_KEEPALIVE void ToneMapper_destroy(TToneMapper *toneMapper)
         {
+            THERMION_ENGINE_API_GUARD;
             auto tm = reinterpret_cast<ToneMapper *>(toneMapper);
             delete tm;
             TRACE("Destroyed ToneMapper");
@@ -250,6 +280,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TColorGradingBuilder* ColorGradingBuilder_create()
         {
+            THERMION_ENGINE_API_GUARD;
             TRACE("Creating ColorGradingBuilder");
             auto builder = new ColorGrading::Builder();
             return reinterpret_cast<TColorGradingBuilder*>(builder);
@@ -257,6 +288,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TColorGrading* ColorGradingBuilder_build(TColorGradingBuilder* tBuilder, TEngine* tEngine)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             auto engine = reinterpret_cast<Engine*>(tEngine);
 
@@ -268,6 +300,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_destroy(TColorGradingBuilder* tBuilder)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             delete builder;
             TRACE("Destroyed ColorGradingBuilder");
@@ -275,6 +308,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void ColorGrading_destroy(TEngine* tEngine, TColorGrading* tColorGrading)
         {
+            THERMION_ENGINE_API_GUARD;
             auto engine = reinterpret_cast<Engine*>(tEngine);
             auto colorGrading = reinterpret_cast<ColorGrading*>(tColorGrading);
             engine->destroy(colorGrading);
@@ -284,24 +318,28 @@ namespace thermion
         // Quality and format
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_quality(TColorGradingBuilder* tBuilder, TQualityLevel level)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             builder->quality(static_cast<ColorGrading::QualityLevel>(level));
         }
 
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_format(TColorGradingBuilder* tBuilder, TLutFormat format)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             builder->format(static_cast<ColorGrading::LutFormat>(format));
         }
 
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_dimensions(TColorGradingBuilder* tBuilder, uint8_t dim)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             builder->dimensions(dim);
         }
 
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_toneMapper(TColorGradingBuilder* tBuilder, TToneMapper* toneMapper)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             auto tm = reinterpret_cast<ToneMapper*>(toneMapper);
             builder->toneMapper(tm);
@@ -310,18 +348,21 @@ namespace thermion
         // Basic adjustments
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_exposure(TColorGradingBuilder* tBuilder, float exposure)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             builder->exposure(exposure);
         }
 
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_nightAdaptation(TColorGradingBuilder* tBuilder, float adaptation)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             builder->nightAdaptation(adaptation);
         }
 
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_whiteBalance(TColorGradingBuilder* tBuilder, float temperature, float tint)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             builder->whiteBalance(temperature, tint);
         }
@@ -329,18 +370,21 @@ namespace thermion
         // Color adjustments
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_contrast(TColorGradingBuilder* tBuilder, float contrast)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             builder->contrast(contrast);
         }
 
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_vibrance(TColorGradingBuilder* tBuilder, float vibrance)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             builder->vibrance(vibrance);
         }
 
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_saturation(TColorGradingBuilder* tBuilder, float saturation)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             builder->saturation(saturation);
         }
@@ -351,6 +395,7 @@ namespace thermion
             float outGreenR, float outGreenG, float outGreenB,
             float outBlueR, float outBlueG, float outBlueB)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             builder->channelMixer(
                 math::float3{outRedR, outRedG, outRedB},
@@ -365,6 +410,7 @@ namespace thermion
             float highlightsR, float highlightsG, float highlightsB, float highlightsW,
             float rangesX, float rangesY, float rangesZ, float rangesW)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             builder->shadowsMidtonesHighlights(
                 math::float4{shadowsR, shadowsG, shadowsB, shadowsW},
@@ -379,6 +425,7 @@ namespace thermion
             float offsetR, float offsetG, float offsetB,
             float powerR, float powerG, float powerB)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             builder->slopeOffsetPower(
                 math::float3{slopeR, slopeG, slopeB},
@@ -392,6 +439,7 @@ namespace thermion
             float midPointR, float midPointG, float midPointB,
             float highlightScaleR, float highlightScaleG, float highlightScaleB)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             builder->curves(
                 math::float3{shadowGammaR, shadowGammaG, shadowGammaB},
@@ -403,12 +451,14 @@ namespace thermion
         // Flags
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_luminanceScaling(TColorGradingBuilder* tBuilder, bool enabled)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             builder->luminanceScaling(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_gamutMapping(TColorGradingBuilder* tBuilder, bool enabled)
         {
+            THERMION_ENGINE_API_GUARD;
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
             builder->gamutMapping(enabled);
         }
@@ -430,12 +480,14 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void View_setLayerEnabled(TView *tView, int layer, bool enabled)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             view->setLayerEnabled(layer, enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void View_setCamera(TView *tView, TCamera *tCamera)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             view->setCamera(camera);
@@ -443,30 +495,35 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TScene *View_getScene(TView *tView)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             return reinterpret_cast<TScene *>(view->getScene());
         }
 
         EMSCRIPTEN_KEEPALIVE TCamera *View_getCamera(TView *tView)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             return reinterpret_cast<TCamera *>(&(view->getCamera()));
         }
 
         EMSCRIPTEN_KEEPALIVE void View_setStencilBufferEnabled(TView *tView, bool enabled)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             view->setStencilBufferEnabled(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE bool View_isStencilBufferEnabled(TView *tView)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             return view->isStencilBufferEnabled();
         }
 
         EMSCRIPTEN_KEEPALIVE void View_pick(TView *tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *view = reinterpret_cast<View *>(tView);
             view->pick(x, y, [=](filament::View::PickingQueryResult const &result)
                        { callback(requestId, utils::Entity::smuggle(result.renderable), result.depth, result.fragCoords.x, result.fragCoords.y, result.fragCoords.z); });
@@ -474,6 +531,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void View_setDitheringEnabled(TView *tView, bool enabled)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *view = reinterpret_cast<View *>(tView);
             if (enabled)
             {
@@ -487,12 +545,14 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE bool View_isDitheringEnabled(TView *tView)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *view = reinterpret_cast<View *>(tView);
             return view->getDithering() == Dithering::TEMPORAL;
         }
 
         EMSCRIPTEN_KEEPALIVE void View_setRenderQuality(TView *tView, TQualityLevel qualityLevel)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             RenderQuality rq;
             rq.hdrColorBuffer = (filament::QualityLevel)qualityLevel;
@@ -517,6 +577,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void View_setScene(TView *tView, TScene *tScene)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *view = reinterpret_cast<View *>(tView);
             auto *scene = reinterpret_cast<Scene *>(tScene);
             view->setScene(scene);
@@ -524,11 +585,13 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void View_setFrontFaceWindingInverted(TView *tView, bool inverted)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *view = reinterpret_cast<View *>(tView);
             view->setFrontFaceWindingInverted(inverted);
         }
         EMSCRIPTEN_KEEPALIVE void View_setFogOptions(TView *tView, TFogOptions tFogOptions)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
 
             FogOptions fogOptions {
@@ -552,6 +615,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TFogOptions View_getFogOptions(TView *tView)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             auto options = view->getFogOptions();
 
@@ -575,17 +639,20 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void View_setName(TView* tView, const char *name) {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             view->setName(name);
         }
 
         EMSCRIPTEN_KEEPALIVE const char *View_getName(TView* tView) {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             return view->getName();
         }
 
         EMSCRIPTEN_KEEPALIVE void View_setAmbientOcclusionOptions(TView *tView, TAmbientOcclusionOptions options)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             AmbientOcclusionOptions aoOptions;
 
@@ -628,6 +695,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TAmbientOcclusionOptions View_getAmbientOcclusionOptions(TView *tView)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             auto options = view->getAmbientOcclusionOptions();
 
@@ -672,11 +740,13 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void View_setTransparentPickingEnabled(TView* tView, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             view->setTransparentPickingEnabled(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE bool View_isTransparentPickingEnabled(TView* tView) {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             return view->isTransparentPickingEnabled();
         }

@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
  
 
 #include "c_api/TScene.h"
@@ -23,6 +24,7 @@ namespace thermion
             TTexture *tColor,
             TTexture *tDepth)
         {
+            THERMION_ENGINE_API_GUARD;
             if(!tColor || !tDepth) {
                 ERROR("Color & depth attachments must be provided");
                 return nullptr;
@@ -43,6 +45,7 @@ namespace thermion
             TEngine *tEngine,
             TRenderTarget *tRenderTarget
         ) {
+            THERMION_ENGINE_API_GUARD;
             auto engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *renderTarget = reinterpret_cast<filament::RenderTarget *>(tRenderTarget);
             engine->destroy(renderTarget);

@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
  
 
 #include "c_api/TGltfAssetLoader.h"
@@ -37,6 +38,7 @@ namespace thermion
 
 
 EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, TMaterialProvider *tMaterialProvider, TNameComponentManager *tNameComponentManager) {
+    THERMION_ENGINE_API_GUARD;
     auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
     auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
     auto *materialProvider = reinterpret_cast<gltfio::MaterialProvider *>(tMaterialProvider);
@@ -56,6 +58,7 @@ EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, 
 }
 
 EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_destroy(TGltfAssetLoader *tAssetLoader) {
+    THERMION_ENGINE_API_GUARD;
     auto *loader = reinterpret_cast<gltfio::AssetLoader *>(tAssetLoader);
     // The MaterialProvider is the caller's responsibility per Filament's
     // contract (see AssetLoader.h:68-70, example at 145-149). We typically
@@ -76,6 +79,7 @@ EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
     size_t length,
     uint32_t numInstances)
 {
+    THERMION_ENGINE_API_GUARD;
     auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
     auto *assetLoader = reinterpret_cast<gltfio::AssetLoader *>(tAssetLoader);
     
@@ -107,6 +111,7 @@ EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
 }
 
 EMSCRIPTEN_KEEPALIVE TMaterialInstance *GltfAssetLoader_getMaterialInstance(TRenderableManager *tRenderableManager, TFilamentAsset *tAsset) {
+    THERMION_ENGINE_API_GUARD;
     auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
     auto *asset = reinterpret_cast<gltfio::FilamentAsset *>(tAsset);
     auto renderable = asset->getRenderableEntities();
@@ -125,6 +130,7 @@ EMSCRIPTEN_KEEPALIVE TMaterialInstance *GltfAssetLoader_getMaterialInstance(TRen
 }
 
 EMSCRIPTEN_KEEPALIVE TMaterialProvider *GltfAssetLoader_getMaterialProvider(TGltfAssetLoader *tAssetLoader) {
+    THERMION_ENGINE_API_GUARD;
     auto *assetLoader = reinterpret_cast<gltfio::AssetLoader *>(tAssetLoader);
     auto &materialProvider = assetLoader->getMaterialProvider();
     return reinterpret_cast<TMaterialProvider *>(&materialProvider);
@@ -133,6 +139,7 @@ EMSCRIPTEN_KEEPALIVE TMaterialProvider *GltfAssetLoader_getMaterialProvider(TGlt
 EMSCRIPTEN_KEEPALIVE int32_t FilamentAsset_getResourceUriCount(
     TFilamentAsset *tFilamentAsset
 ) {
+    THERMION_ENGINE_API_GUARD;
     auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset *>(tFilamentAsset);
     return filamentAsset->getResourceUriCount();
 }
@@ -140,6 +147,7 @@ EMSCRIPTEN_KEEPALIVE int32_t FilamentAsset_getResourceUriCount(
 EMSCRIPTEN_KEEPALIVE const char* const* FilamentAsset_getResourceUris(
     TFilamentAsset *tFilamentAsset
 ) {
+    THERMION_ENGINE_API_GUARD;
     auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset *>(tFilamentAsset);
     return filamentAsset->getResourceUris();    
 }

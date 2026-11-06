@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
 #include <filament/MaterialInstance.h>
 #include <filament/RenderableManager.h>
 #include <math/mat4.h>
@@ -14,6 +15,7 @@ namespace thermion
         using namespace utils;
 
         EMSCRIPTEN_KEEPALIVE size_t RenderableManager_getPrimitiveCount(TRenderableManager *tRenderableManager, EntityId entityId) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -25,6 +27,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE bool RenderableManager_setMaterialInstanceAt(TRenderableManager *tRenderableManager, EntityId entityId, int primitiveIndex, TMaterialInstance *tMaterialInstance)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -37,6 +40,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TMaterialInstance *RenderableManager_getMaterialInstanceAt(TRenderableManager *tRenderableManager, EntityId entityId, int primitiveIndex) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -51,6 +55,7 @@ namespace thermion
         // procedural rendering path): no IndexBuffer, [offset, count) select a
         // vertex range of an attribute-less VertexBuffer.
         EMSCRIPTEN_KEEPALIVE bool RenderableManager_setGeometryAtNonIndexed(TRenderableManager *tRenderableManager, EntityId entityId, int primitiveIndex, uint8_t type, TVertexBuffer *tVertices, size_t offset, size_t count) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -65,6 +70,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE bool RenderableManager_isRenderable(TRenderableManager *tRenderableManager, EntityId entityId) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -72,23 +78,27 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableManager_destroyEntity(TRenderableManager *tRenderableManager, EntityId entityId) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             renderableManager->destroy(entity);
         }
 
         EMSCRIPTEN_KEEPALIVE bool RenderableManager_hasComponent(TRenderableManager *tRenderableManager, EntityId entityId) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             return renderableManager->hasComponent(entity);
         }
 
         EMSCRIPTEN_KEEPALIVE bool RenderableManager_empty(TRenderableManager *tRenderableManager) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             return renderableManager->empty();
         }
 
         EMSCRIPTEN_KEEPALIVE bool RenderableManager_getLightChannel(TRenderableManager *tRenderableManager, EntityId entityId, unsigned int channel) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -99,6 +109,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE bool RenderableManager_isShadowCaster(TRenderableManager *tRenderableManager, EntityId entityId) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -110,6 +121,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setCastShadows(TRenderableManager *tRenderableManager, EntityId entityId, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -121,6 +133,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE bool RenderableManager_isShadowReceiver(TRenderableManager *tRenderableManager, EntityId entityId) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -132,6 +145,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setReceiveShadows(TRenderableManager *tRenderableManager, EntityId entityId, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -143,6 +157,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE bool RenderableManager_getFogEnabled(TRenderableManager *tRenderableManager, EntityId entityId) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -154,6 +169,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE Aabb3 RenderableManager_getAabb(TRenderableManager *tRenderableManager, EntityId entityId) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -166,6 +182,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setVisibilityLayer(TRenderableManager *tRenderableManager, EntityId entityId, uint8_t layer) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             if (!renderableManager->hasComponent(entity)) {
@@ -177,6 +194,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setPriority(TRenderableManager *tRenderableManager, EntityId entityId, uint8_t priority) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             
@@ -189,6 +207,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE Aabb3 RenderableManager_getBoundingBox(TRenderableManager *tRenderableManager, EntityId entityId) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
 
@@ -204,12 +223,14 @@ namespace thermion
 
         // Component queries
         EMSCRIPTEN_KEEPALIVE size_t RenderableManager_getComponentCount(TRenderableManager *tRenderableManager) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             return renderableManager->getComponentCount();
         }
 
         // Material instance management
         EMSCRIPTEN_KEEPALIVE void RenderableManager_clearMaterialInstanceAt(TRenderableManager *tRenderableManager, EntityId entityId, int primitiveIndex) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -221,6 +242,7 @@ namespace thermion
 
         // Bounding box management
         EMSCRIPTEN_KEEPALIVE Aabb3 RenderableManager_getAxisAlignedBoundingBox(TRenderableManager *tRenderableManager, EntityId entityId) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -232,6 +254,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setAxisAlignedBoundingBox(TRenderableManager *tRenderableManager, EntityId entityId, Aabb3 aabb) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -247,6 +270,7 @@ namespace thermion
 
         // Layer mask and visibility
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setLayerMask(TRenderableManager *tRenderableManager, EntityId entityId, uint8_t select, uint8_t values) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -258,6 +282,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE uint8_t RenderableManager_getLayerMask(TRenderableManager *tRenderableManager, EntityId entityId) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -270,6 +295,7 @@ namespace thermion
 
         // Priority and channel
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setChannel(TRenderableManager *tRenderableManager, EntityId entityId, uint8_t channel) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -282,6 +308,7 @@ namespace thermion
 
         // Culling
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setCulling(TRenderableManager *tRenderableManager, EntityId entityId, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -294,6 +321,7 @@ namespace thermion
 
         // Fog
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setFogEnabled(TRenderableManager *tRenderableManager, EntityId entityId, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -306,6 +334,7 @@ namespace thermion
 
         // Light channels
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setLightChannel(TRenderableManager *tRenderableManager, EntityId entityId, unsigned int channel, bool enable) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -318,6 +347,7 @@ namespace thermion
 
         // Shadow options
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setScreenSpaceContactShadows(TRenderableManager *tRenderableManager, EntityId entityId, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -330,6 +360,7 @@ namespace thermion
 
         // Blend order
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setBlendOrderAt(TRenderableManager *tRenderableManager, EntityId entityId, size_t primitiveIndex, uint16_t order) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -341,6 +372,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setGlobalBlendOrderEnabledAt(TRenderableManager *tRenderableManager, EntityId entityId, size_t primitiveIndex, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -353,6 +385,7 @@ namespace thermion
 
         // Morph targets
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setMorphWeights(TRenderableManager *tRenderableManager, EntityId entityId, const float *weights, size_t count, size_t offset) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -364,6 +397,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE size_t RenderableManager_getMorphTargetCount(TRenderableManager *tRenderableManager, EntityId entityId) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -376,6 +410,7 @@ namespace thermion
 
         // Skinning / bone transforms
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromMat4(TRenderableManager *tRenderableManager, EntityId entityId, const float *transforms, size_t boneCount, size_t offset) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -388,6 +423,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromBone(TRenderableManager *tRenderableManager, EntityId entityId, const float *bones, size_t boneCount, size_t offset) {
+            THERMION_ENGINE_API_GUARD;
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -405,16 +441,19 @@ namespace thermion
         // ============================================================================
 
         EMSCRIPTEN_KEEPALIVE TRenderableBuilder* RenderableBuilder_create(size_t primitiveCount) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = new filament::RenderableManager::Builder(primitiveCount);
             return reinterpret_cast<TRenderableBuilder*>(builder);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_destroy(TRenderableBuilder *tBuilder) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             delete builder;
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_boundingBox(TRenderableBuilder *tBuilder, Aabb3 aabb) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             filament::Box box;
             box.center = {aabb.centerX, aabb.centerY, aabb.centerZ};
@@ -423,12 +462,14 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_material(TRenderableBuilder *tBuilder, size_t primitiveIndex, TMaterialInstance *tMaterialInstance) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             auto *materialInstance = reinterpret_cast<filament::MaterialInstance*>(tMaterialInstance);
             builder->material(primitiveIndex, materialInstance);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_geometry(TRenderableBuilder *tBuilder, size_t primitiveIndex, uint8_t type, TVertexBuffer *tVertices, TIndexBuffer *tIndices, size_t offset, size_t count) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             auto *vertexBuffer = reinterpret_cast<filament::VertexBuffer*>(tVertices);
             auto *indexBuffer = reinterpret_cast<filament::IndexBuffer*>(tIndices);
@@ -442,6 +483,7 @@ namespace thermion
         // bufferCount(0) and no declared attributes; positions are computed
         // from getVertexIndex() in the material's vertex block.
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_geometryNonIndexed(TRenderableBuilder *tBuilder, size_t primitiveIndex, uint8_t type, TVertexBuffer *tVertices, size_t offset, size_t count) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             auto *vertexBuffer = reinterpret_cast<filament::VertexBuffer*>(tVertices);
             auto primitiveType = static_cast<filament::RenderableManager::PrimitiveType>(type);
@@ -449,89 +491,106 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_priority(TRenderableBuilder *tBuilder, uint8_t priority) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             builder->priority(priority);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_channel(TRenderableBuilder *tBuilder, uint8_t channel) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             builder->channel(channel);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_culling(TRenderableBuilder *tBuilder, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             builder->culling(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_castShadows(TRenderableBuilder *tBuilder, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             builder->castShadows(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_receiveShadows(TRenderableBuilder *tBuilder, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             builder->receiveShadows(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_fog(TRenderableBuilder *tBuilder, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             builder->fog(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_lightChannel(TRenderableBuilder *tBuilder, unsigned int channel, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             builder->lightChannel(channel, enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_layerMask(TRenderableBuilder *tBuilder, uint8_t select, uint8_t values) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             builder->layerMask(select, values);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_screenSpaceContactShadows(TRenderableBuilder *tBuilder, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             builder->screenSpaceContactShadows(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_blendOrder(TRenderableBuilder *tBuilder, size_t primitiveIndex, uint16_t order) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             builder->blendOrder(primitiveIndex, order);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_globalBlendOrderEnabled(TRenderableBuilder *tBuilder, size_t primitiveIndex, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             builder->globalBlendOrderEnabled(primitiveIndex, enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_instances(TRenderableBuilder *tBuilder, size_t instanceCount) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             builder->instances(instanceCount);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_skinningFromMat4(TRenderableBuilder *tBuilder, size_t boneCount, const float *transforms) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             auto *mat4Transforms = reinterpret_cast<const filament::math::mat4f*>(transforms);
             builder->skinning(boneCount, mat4Transforms);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_skinningFromBone(TRenderableBuilder *tBuilder, size_t boneCount, const float *bones) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             auto *boneTransforms = reinterpret_cast<const filament::RenderableManager::Bone*>(bones);
             builder->skinning(boneCount, boneTransforms);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_enableSkinningBuffers(TRenderableBuilder *tBuilder, bool enabled) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             builder->enableSkinningBuffers(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_boneIndicesAndWeights(TRenderableBuilder *tBuilder, size_t primitiveIndex, const float *indicesAndWeights, size_t count, size_t bonesPerVertex) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             auto *float2Data = reinterpret_cast<const filament::math::float2*>(indicesAndWeights);
             builder->boneIndicesAndWeights(primitiveIndex, float2Data, count, bonesPerVertex);
         }
 
         EMSCRIPTEN_KEEPALIVE int RenderableBuilder_build(TRenderableBuilder *tBuilder, TEngine *tEngine, EntityId entityId) {
+            THERMION_ENGINE_API_GUARD;
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             auto *engine = reinterpret_cast<filament::Engine*>(tEngine);
             const auto &entity = utils::Entity::import(entityId);
