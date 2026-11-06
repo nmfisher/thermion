@@ -17,10 +17,16 @@
 #include <filament/Engine.h>
 
 #include <cstring>
+#include <cstdio>
+#include <cinttypes>
 #include <future>
 #include <mutex>
 #include <new>
 #include <vector>
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#endif
 
 namespace thermion
 {
@@ -29,6 +35,27 @@ namespace thermion
 
         namespace
         {
+
+            // TEMPORARY tracing (remove with the other material-trace calls):
+            // prints the first bytes of a package buffer so the Dart and native
+            // sides of the web byte transfer can be compared in the console.
+            void tracePackageBytes(const char *label, const uint8_t *bytes, size_t length)
+            {
+                char line[256];
+                int written = snprintf(line, sizeof(line),
+                                       "[material-trace] %s: length=%zu bytes=", label, length);
+                const size_t n = length < 24 ? length : 24;
+                for (size_t i = 0; i < n && written > 0 && size_t(written) < sizeof(line) - 4; ++i)
+                {
+                    written += snprintf(line + written, sizeof(line) - size_t(written), "%s%02x",
+                                        i ? " " : "", unsigned(bytes[i]));
+                }
+#ifdef __EMSCRIPTEN__
+                emscripten_log(EM_LOG_CONSOLE, "%s", line);
+#else
+                fprintf(stderr, "%s\n", line);
+#endif
+            }
 
             // filamat::MaterialBuilder::init/shutdown configure process-global
             // state (glslang/SPIRV machinery), so builds are serialized and
@@ -191,6 +218,20 @@ namespace thermion
                 return 0;
             }
             const size_t n = payload->bytes.size() < capacity ? payload->bytes.size() : capacity;
+            // TEMPORARY trace: what this side of the boundary is about to copy.
+            tracePackageBytes("MaterialCompiler_getPackageBytes payload", payload->bytes.data(),
+                              payload->bytes.size());
+#ifdef __EMSCRIPTEN__
+            emscripten_log(EM_LOG_CONSOLE,
+                           "[material-trace] MaterialCompiler_getPackageBytes: dst=%p capacity=%zu "
+                           "copying=%zu",
+                           static_cast<void *>(out), capacity, n);
+#else
+            fprintf(stderr,
+                    "[material-trace] MaterialCompiler_getPackageBytes: dst=%p capacity=%zu "
+                    "copying=%zu\n",
+                    static_cast<void *>(out), capacity, n);
+#endif
             std::memcpy(out, payload->bytes.data(), n);
             return n;
         }
