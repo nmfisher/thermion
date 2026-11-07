@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
  
 
 #include "c_api/TGltfResourceLoader.h"
@@ -54,6 +55,7 @@ namespace thermion
 #endif
 
 EMSCRIPTEN_KEEPALIVE TGltfResourceLoader *GltfResourceLoader_create(TEngine *tEngine) {
+    THERMION_ENGINE_API_GUARD;
     auto *engine = reinterpret_cast<Engine *>(tEngine);
     auto *gltfResourceLoader = new gltfio::ResourceLoader({
         .engine = engine,
@@ -78,6 +80,7 @@ EMSCRIPTEN_KEEPALIVE TGltfResourceLoader *GltfResourceLoader_create(TEngine *tEn
 }
 
 EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroy(TEngine *tEngine, TGltfResourceLoader *tGltfResourceLoader) {
+    THERMION_ENGINE_API_GUARD;
     auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
     TextureProviders providers;
     {
@@ -96,29 +99,34 @@ EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroy(TEngine *tEngine, TGltfReso
 EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceData(
     TGltfResourceLoader *loader, const char *uri, uint8_t *data, size_t length,
     void (*onRelease)(void *, size_t, void *), void *userData) {
+    THERMION_ENGINE_API_GUARD;
     TRACE("Adding data (length %d) for glTF resource URI %s", length, uri);
     auto *gltfResourceLoader = reinterpret_cast<filament::gltfio::ResourceLoader *>(loader);
     gltfResourceLoader->addResourceData(uri, {data, length, onRelease, userData});
 }
 
-EMSCRIPTEN_KEEPALIVE bool GltfResourceLoader_loadResources(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset) {    
+EMSCRIPTEN_KEEPALIVE bool GltfResourceLoader_loadResources(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset) {
+    THERMION_ENGINE_API_GUARD;
     auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
     auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset *>(tFilamentAsset);
     return gltfResourceLoader->loadResources(filamentAsset);
 }
 
 EMSCRIPTEN_KEEPALIVE bool GltfResourceLoader_asyncBeginLoad(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset) {
+    THERMION_ENGINE_API_GUARD;
     auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
     auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset *>(tFilamentAsset);
     return gltfResourceLoader->asyncBeginLoad(filamentAsset);
 }
 
 EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncUpdateLoad(TGltfResourceLoader *tGltfResourceLoader) {
+    THERMION_ENGINE_API_GUARD;
     auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
     gltfResourceLoader->asyncUpdateLoad();
 }
 
 EMSCRIPTEN_KEEPALIVE float GltfResourceLoader_asyncGetLoadProgress(TGltfResourceLoader *tGltfResourceLoader) {
+    THERMION_ENGINE_API_GUARD;
     auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
     return gltfResourceLoader->asyncGetLoadProgress();
 }

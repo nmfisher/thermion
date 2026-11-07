@@ -293,3 +293,27 @@ through A's handle. It checks that the WebGL contexts use their respective
 canvas sizes. It also holds A's queue while image creation completes on B.
 Images have no engine pointer, so this checks routing for standalone resources. The main-thread test checks nested selector restoration and
 upload callbacks, and the API fixture checks the missing-job failure path.
+
+## Engine API lock
+
+Filament's engine and component managers are not thread-safe. Queued
+`*JobThread` work runs on the job thread, but the direct C exports
+(`TransformManager_setTransform`, `MaterialInstance_set*`, `LightManager_set*`,
+`Camera_setModelMatrix`, ...) run on the caller's thread. `NativeJobThread::run`
+now holds a process-wide recursive mutex around each task, and every direct
+Filament-touching export takes it first (`rendering/EngineApiLock.hpp` lists
+the deliberately unguarded exports and the deadlock argument). Web builds
+compile the guard to nothing.
+
+`engine_api_lock_test` loads a built library at runtime, creates a NOOP-backend
+engine on a job thread, then hammers direct transform exports from the main
+thread while job-thread tasks write transforms and churn transform components.
+It also checks that a running job task blocks a direct getter. Without the lock
+the process crashes within seconds; with it the run must pass.
+
+```sh
+cmake -S thermion_dart/native/test/rendering -B build/thermion-lock \
+  -DTHERMION_TEST_LIBRARY=/absolute/path/to/thermion_dart.dll   # .dylib on macOS, .so on Linux
+cmake --build build/thermion-lock --config Release --target engine_api_lock_test
+ctest --test-dir build/thermion-lock -C Release -R engine_api_lock --output-on-failure
+```

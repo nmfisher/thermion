@@ -37,6 +37,17 @@ target_link_libraries(worker_queue_test PRIVATE Threads::Threads)
 add_test(NAME worker_queue COMMAND worker_queue_test)
 set_tests_properties(worker_queue PROPERTIES TIMEOUT 30)
 
+# Engine API lock regression: loads a built thermion_dart library at runtime
+# (path passed as the first argument), so it needs no Filament headers.
+add_executable(engine_api_lock_test engine_api_lock_test.cpp)
+target_compile_features(engine_api_lock_test PRIVATE cxx_std_17)
+target_link_libraries(engine_api_lock_test PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
+if(THERMION_TEST_LIBRARY)
+    add_test(NAME engine_api_lock
+        COMMAND engine_api_lock_test "${THERMION_TEST_LIBRARY}" 20)
+    set_tests_properties(engine_api_lock PROPERTIES TIMEOUT 90)
+endif()
+
 # Optional: the render-control regression uses Filament headers and symbols
 # from an existing native Thermion build, but does not create a GPU context.
 if(THERMION_TEST_LIBRARY AND FILAMENT_TEST_INCLUDE_DIR)

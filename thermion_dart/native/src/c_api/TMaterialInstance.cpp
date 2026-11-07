@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
 #include <vector>
 
 #include <filament/MaterialInstance.h>
@@ -31,12 +32,14 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TMaterialInstance *Material_createInstance(TMaterial *tMaterial)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *material = reinterpret_cast<filament::Material *>(tMaterial);
             auto *instance = material->createInstance();
             return reinterpret_cast<TMaterialInstance *>(instance);
         }
 
         EMSCRIPTEN_KEEPALIVE TFeatureLevel Material_getFeatureLevel(TMaterial *tMaterial) {
+            THERMION_ENGINE_API_GUARD;
             auto *material = reinterpret_cast<filament::Material *>(tMaterial);
             auto featureLevel = material->getFeatureLevel();
              switch(featureLevel) {
@@ -52,6 +55,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createImageMaterial(TEngine *tEngine) {
+            THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
             .package(IMAGE_IMAGE_DATA, IMAGE_IMAGE_SIZE)
@@ -61,6 +65,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGridMaterial(TEngine *tEngine) {
+            THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
                 .package(GRID_GRID_DATA, GRID_GRID_SIZE)
@@ -69,6 +74,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGizmoMaterial(TEngine *tEngine) {
+            THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
                 .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
@@ -77,6 +83,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSilhouetteMaterial(TEngine *tEngine) {
+            THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
                 .package(SILHOUETTE_SILHOUETTE_DATA, SILHOUETTE_SILHOUETTE_SIZE)
@@ -85,6 +92,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createEdgeOutlineMaterial(TEngine *tEngine) {
+            THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
                 .package(EDGE_OUTLINE_EDGE_OUTLINE_DATA, EDGE_OUTLINE_EDGE_OUTLINE_SIZE)
@@ -93,6 +101,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createWireframeMaterial(TEngine *tEngine) {
+            THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
                 .package(WIREFRAME_WIREFRAME_DATA, WIREFRAME_WIREFRAME_SIZE)
@@ -101,6 +110,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createTranslationAxisMaterial(TEngine *tEngine) {
+            THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
                 .package(TRANSLATION_AXIS_TRANSLATION_AXIS_DATA, TRANSLATION_AXIS_TRANSLATION_AXIS_SIZE)
@@ -109,6 +119,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createBoneOverlayMaterial(TEngine *tEngine) {
+            THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
                 .package(BONE_OVERLAY_BONE_OVERLAY_DATA, BONE_OVERLAY_BONE_OVERLAY_SIZE)
@@ -117,32 +128,38 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE bool Material_hasParameter(TMaterial *tMaterial, const char *propertyName) {
+            THERMION_ENGINE_API_GUARD;
             auto *material = reinterpret_cast<filament::Material *>(tMaterial);
             return material->hasParameter(propertyName);
         }
 
         EMSCRIPTEN_KEEPALIVE bool MaterialInstance_isStencilWriteEnabled(TMaterialInstance *tMaterialInstance)
         {
+            THERMION_ENGINE_API_GUARD;
             return reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance)->isStencilWriteEnabled();
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDoubleSided(TMaterialInstance *materialInstance, bool enabled)
         {
+            THERMION_ENGINE_API_GUARD;
             reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setDoubleSided(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthWrite(TMaterialInstance *materialInstance, bool enabled)
         {
+            THERMION_ENGINE_API_GUARD;
             reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setDepthWrite(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthCulling(TMaterialInstance *materialInstance, bool enabled)
         {
+            THERMION_ENGINE_API_GUARD;
             reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setDepthCulling(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat(TMaterialInstance *tMaterialInstance, const char *propertyName, double value)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
             auto fValue = static_cast<float>(value);
             materialInstance->setParameter(propertyName, fValue);
@@ -150,17 +167,20 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat2(TMaterialInstance *materialInstance, const char *propertyName, double x, double y)
         {
+            THERMION_ENGINE_API_GUARD;
             filament::math::float2 data{static_cast<float>(x), static_cast<float>(y)};
             reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setParameter(propertyName, data);
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat3(TMaterialInstance *materialInstance, const char *propertyName, double x, double y, double z)
         {
+            THERMION_ENGINE_API_GUARD;
             filament::math::float3 data{static_cast<float>(x), static_cast<float>(y), static_cast<float>(z) };
             reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setParameter(propertyName, data);
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat3Array(TMaterialInstance *tMaterialInstance, const char *propertyName, double* raw, uint32_t length) {
+            THERMION_ENGINE_API_GUARD;
             TRACE("Setting property %s to array from raw length %d", propertyName, length);
 
             std::vector<filament::math::float3> data;
@@ -175,6 +195,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat4(TMaterialInstance *tMaterialInstance, const char *propertyName, double x, double y, double z, double w)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
             filament::math::float4 data{static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(w)};
             materialInstance->setParameter(propertyName, data);
@@ -182,16 +203,19 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterInt(TMaterialInstance *tMaterialInstance, const char *propertyName, int value)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
             materialInstance->setParameter(propertyName, value);
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterBool(TMaterialInstance *materialInstance, const char *propertyName, bool value)
         {
+            THERMION_ENGINE_API_GUARD;
             reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setParameter(propertyName, value);
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterTexture(TMaterialInstance *tMaterialInstance, const char *propertyName, TTexture* tTexture, TTextureSampler* tSampler) {
+            THERMION_ENGINE_API_GUARD;
             auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
             auto texture = reinterpret_cast<::filament::Texture*>(tTexture);
             auto sampler = reinterpret_cast<::filament::TextureSampler*>(tSampler);
@@ -200,17 +224,20 @@ namespace thermion
 
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterMat3(TMaterialInstance *tMaterialInstance, const char *propertyName, double *matrix) {
+            THERMION_ENGINE_API_GUARD;
             auto *mi = reinterpret_cast<filament::MaterialInstance *>(tMaterialInstance);
             mi->setParameter(propertyName, convert_double_to_mat3f(matrix));
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterMat4(TMaterialInstance *tMaterialInstance, const char *propertyName, double *matrix) {
+            THERMION_ENGINE_API_GUARD;
             auto *mi = reinterpret_cast<filament::MaterialInstance *>(tMaterialInstance);
             mi->setParameter(propertyName, convert_double_to_mat4f(matrix));
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthFunc(TMaterialInstance *tMaterialInstance, TSamplerCompareFunc tDepthFunc)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
             auto depthFunc = static_cast<filament::MaterialInstance::DepthFunc>(tDepthFunc);
             materialInstance->setDepthFunc(depthFunc);
@@ -219,6 +246,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setStencilOpStencilFail(TMaterialInstance *tMaterialInstance,
                                                                            TStencilOperation tOp, TStencilFace tFace)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
             auto op = static_cast<filament::MaterialInstance::StencilOperation>(tOp);
             auto face = static_cast<filament::MaterialInstance::StencilFace>(tFace);
@@ -228,6 +256,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setStencilOpDepthFail(TMaterialInstance *tMaterialInstance,
                                                                          TStencilOperation tOp, TStencilFace tFace)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
             auto op = static_cast<filament::MaterialInstance::StencilOperation>(tOp);
             auto face = static_cast<filament::MaterialInstance::StencilFace>(tFace);
@@ -237,6 +266,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setStencilOpDepthStencilPass(TMaterialInstance *tMaterialInstance,
                                                                                 TStencilOperation tOp, TStencilFace tFace)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
             auto op = static_cast<filament::MaterialInstance::StencilOperation>(tOp);
             auto face = static_cast<filament::MaterialInstance::StencilFace>(tFace);
@@ -257,6 +287,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setStencilCompareFunction(TMaterialInstance *tMaterialInstance,
                                                                              TSamplerCompareFunc tFunc, TStencilFace tFace)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
             auto func = static_cast<filament::MaterialInstance::StencilCompareFunc>(tFunc);
             auto face = toStencilFace(tFace);
@@ -269,6 +300,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setStencilReferenceValue(TMaterialInstance *tMaterialInstance,
                                                                             uint8_t value, TStencilFace tFace)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
             auto face = static_cast<filament::MaterialInstance::StencilFace>(tFace);
             materialInstance->setStencilReferenceValue(value, face);
@@ -276,11 +308,13 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setStencilWrite(TMaterialInstance *materialInstance, bool enabled)
         {
+            THERMION_ENGINE_API_GUARD;
             reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setStencilWrite(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setCullingMode(TMaterialInstance *materialInstance, TCullingMode culling)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *instance = reinterpret_cast<::filament::MaterialInstance *>(materialInstance);
             auto cullingMode = static_cast<filament::MaterialInstance::CullingMode>(culling);
             instance->setCullingMode(cullingMode);
@@ -290,6 +324,7 @@ namespace thermion
             TMaterialInstance *materialInstance,
             uint8_t mask)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *instance = reinterpret_cast<::filament::MaterialInstance *>(materialInstance);
             instance->setStencilReadMask(mask);
         }
@@ -298,6 +333,7 @@ namespace thermion
             TMaterialInstance *materialInstance,
             uint8_t mask)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *instance = reinterpret_cast<::filament::MaterialInstance *>(materialInstance);
             instance->setStencilWriteMask(mask);
         }
@@ -306,6 +342,7 @@ namespace thermion
             TMaterialInstance *materialInstance,
             TTransparencyMode transparencyMode)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *instance = reinterpret_cast<::filament::MaterialInstance *>(materialInstance);
             instance->setTransparencyMode((filament::TransparencyMode)transparencyMode);
         }
@@ -313,6 +350,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE TTransparencyMode MaterialInstance_getTransparencyMode(
             TMaterialInstance *tMaterialInstance)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *instance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
             auto transparencyMode = instance->getTransparencyMode();
             return static_cast<TTransparencyMode>(transparencyMode);
@@ -320,6 +358,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TBlendingMode Material_getBlendingMode(TMaterial *tMaterial)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *material = reinterpret_cast<filament::Material *>(tMaterial);
             auto blendingMode = material->getBlendingMode();
             return static_cast<TBlendingMode>(blendingMode);
