@@ -6,6 +6,14 @@ project(${PROJECT_NAME})
 option(THERMION_WEB_MAIN_THREAD
   "Run Thermion commands on the calling thread instead of a render worker" OFF)
 
+# Runtime material compilation (filamat::MaterialBuilder). Opt-in: bakes
+# glslang/SPIRV-Tools into the wasm (tens of MB), so the default engine
+# leaves it out and wasm-ld dead-code-eliminates the unreferenced archive.
+# The hook selects this build via the `runtime_materials` user define, and
+# CI publishes it as the `-web-runtime-materials` artifact.
+option(THERMION_ENABLE_RUNTIME_MATERIALS
+  "Compile materials from GLSL source at runtime (links filamat)" OFF)
+
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif(NOT CMAKE_BUILD_TYPE)
@@ -219,9 +227,27 @@ set_property(TARGET filament PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_S
 set_property(TARGET filament PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libfilament.a")
 
 add_library(filamat STATIC IMPORTED)
-set_property(TARGET filamat PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libfilamat.a")
-set_property(TARGET filamat  PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libfilamat.a")
-set_property(TARGET filamat  PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libfilamat.a")
+# NB: the web artifact flattens filament's BUILD tree, where the filamat-only
+# archive is libfilamat.a and the full archive (filamat + glslang +
+# SPIRV-Tools + spirv-cross + zstd) keeps its libfilamat_combined.a name —
+# native platform zips rename the combined archive TO libfilamat.a instead.
+# Link the combined one or glslang/SPIRV symbols won't resolve.
+set_property(TARGET filamat PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libfilamat_combined.a")
+set_property(TARGET filamat  PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libfilamat_combined.a")
+set_property(TARGET filamat  PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libfilamat_combined.a")
+
+# smol-v ships complete in every filament zip (web release confirmed; native
+# zips install it via the same install rule). It must be linked DIRECTLY, not
+# via libfilamat_combined.a: the combined archive is assembled by filament's
+# combine-static-libs.sh with `ar -qc` (quick append), which does not
+# regenerate the archive's symbol table — members appended that way are
+# invisible to linker symbol lookup, so the smolv::Encode etc. members our
+# smolv patch added would still be unresolvable. See the smol_v link in the
+# runtime-materials section below.
+add_library(smol_v STATIC IMPORTED)
+set_property(TARGET smol_v PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libsmol-v.a")
+set_property(TARGET smol_v  PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libsmol-v.a")
+set_property(TARGET smol_v  PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libsmol-v.a")
 
 add_library(utils STATIC IMPORTED)
 set_property(TARGET utils PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libutils.a")
@@ -353,6 +379,20 @@ target_link_libraries(${MODULE_NAME}
  png
  ${EXTERNAL_ALL_LIBRARIES}
 )
+
+# Runtime material compilation. filamat's combined archive already bundles
+# glslang/SPIRV/spirv-cross/zstd; shaders provides the SHADERS_PACKAGE chunks
+# CodeGenerator bakes into every material. smol_v comes AFTER filamat (it is
+# a leaf library filamat references).
+if(THERMION_ENABLE_RUNTIME_MATERIALS)
+  add_library(shaders STATIC IMPORTED)
+  set_property(TARGET shaders PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libshaders.a")
+  set_property(TARGET shaders PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libshaders.a")
+  set_property(TARGET shaders PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libshaders.a")
+  target_compile_definitions(${MODULE_NAME} PRIVATE THERMION_ENABLE_RUNTIME_MATERIALS=1)
+  target_link_libraries(${MODULE_NAME} filamat shaders smol_v)
+  message(STATUS "Runtime material compilation enabled (filamat + smol-v linked)")
+endif()
 
 # Force linker to include all symbols from external libraries (prevents dead code elimination)
 # This is critical because nothing in Thermion directly references these libraries

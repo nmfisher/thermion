@@ -141,6 +141,14 @@ git checkout "${FILAMENT_VERSION}" || {
 # Keep host tools separate from the runtime archives built below.
 git apply "$SCRIPT_DIR/filament-no-exceptions.patch" || exit 1
 
+# Bundle smol-v into libfilamat_combined.a: upstream's FILAMAT_DEPS list
+# (used by combine_static_libs) omits it even though the filamat target
+# links it (target_link_libraries ... smol-v zstd), so every consumer of
+# the combined archive gets undefined _ZN5smolv... symbols — this aborts
+# runtime material compilation on web. Leaf libraries must come last in
+# a combined archive; smol-v has no deps among the bundled libs.
+git apply "$SCRIPT_DIR/filament-smolv-combined.patch" || exit 1
+
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
 sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF \\|g' build.sh
@@ -249,10 +257,16 @@ if [ "$BUILD_RELEASE" = true ]; then
   fi
 
   # Configure and build filament
+  # FILAMENT_BUILD_FILAMAT is OFF by default for WASM upstream (build time);
+  # Thermion's runtime-materials engine links filamat from this artifact, so
+  # force it on. The combined archive installed as libfilamat.a bundles
+  # glslang/SPIRV/spirv-cross, and unreferenced symbols are GC'd by wasm-ld in
+  # engines that don't link it — the default artifact size is unchanged.
   cmake -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DFILAMENT_ENABLE_EXCEPTIONS=OFF \
     -DFILAMENT_SKIP_SAMPLES=1 -DFILAMENT_BUILD_TESTING=OFF \
+    -DFILAMENT_BUILD_FILAMAT=ON \
     -DCMAKE_CXX_STANDARD=20 \
     -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
@@ -366,10 +380,13 @@ if [ "$BUILD_DEBUG" = true ]; then
   fi
 
   # Configure and build filament
+  # FILAMENT_BUILD_FILAMAT=ON mirrors the release build above (see the
+  # comment there): Thermion's runtime-materials web engine needs it.
   cmake -G Ninja \
     -DCMAKE_BUILD_TYPE=Debug \
     -DFILAMENT_ENABLE_EXCEPTIONS=OFF \
     -DFILAMENT_SKIP_SAMPLES=1 -DFILAMENT_BUILD_TESTING=OFF \
+    -DFILAMENT_BUILD_FILAMAT=ON \
     -DCMAKE_CXX_STANDARD=20 \
     -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \

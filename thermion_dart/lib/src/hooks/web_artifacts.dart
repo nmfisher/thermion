@@ -65,4 +65,43 @@ String webArtifactUrl(String version, String zipSuffix) => '$webR2BaseUrl/${webA
 /// Build-directory (relative to `thermion_dart/native/web/`) whose
 /// `build/out/` holds the engine for [zipSuffix] — the directory `web_local`
 /// copies from.
-String webLocalBuildDir(String zipSuffix) => zipSuffix.isEmpty ? 'build' : 'build-main-thread';
+String webLocalBuildDir(String zipSuffix) {
+  switch (zipSuffix) {
+    case '':
+      return 'build';
+    case '-main-thread':
+      return 'build-main-thread';
+    case '-runtime-materials':
+      return 'build-runtime-materials';
+    case '-main-thread-runtime-materials':
+      return 'build-main-thread-runtime-materials';
+    default:
+      // Unknown suffixes still resolve to a (nonexistent) directory, which
+      // the web_local copy step reports as a warning.
+      return 'build$zipSuffix';
+  }
+}
+
+/// Composes the runtime-materials variant onto a [WebVariantResolution].
+///
+/// The `runtime_materials` user define selects a web engine built with
+/// THERMION_ENABLE_RUNTIME_MATERIALS (filamat linked — `compileMaterialSource`
+/// works; ~tens of MB larger). It composes with any `web_variant` engine
+/// flavor: the artifact is named `thermion_dart-<version>-web<variant
+/// suffix>-runtime-materials.zip` and CI builds it for the default (worker)
+/// engine. [runtimeMaterials] is the raw user-define value; anything
+/// truthy-shaped enables it (mirroring the hook's flag parsing).
+WebVariantResolution withRuntimeMaterials(WebVariantResolution variant, Object? runtimeMaterials) {
+  final enabled =
+      runtimeMaterials == true || runtimeMaterials == 'true' || runtimeMaterials == 1 || runtimeMaterials == '1';
+  if (!enabled) return variant;
+  if (variant.zipSuffix.isNotEmpty && variant.zipSuffix != '-main-thread') {
+    // Unknown variant already warned in resolveWebVariant; don't stack.
+    return variant;
+  }
+  return (
+    zipSuffix: '${variant.zipSuffix}-runtime-materials',
+    cacheSuffix: '${variant.cacheSuffix}-runtime-materials',
+    warnings: variant.warnings,
+  );
+}

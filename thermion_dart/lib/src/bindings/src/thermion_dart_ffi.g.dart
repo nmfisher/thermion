@@ -2293,6 +2293,87 @@ external void Mat4_destroy(ffi.Pointer<TMat4> matrix);
 @ffi.Native<ffi.Pointer<ffi.Double> Function(ffi.Pointer<TMat4>)>(isLeaf: true)
 external ffi.Pointer<ffi.Double> Mat4_getData(ffi.Pointer<TMat4> matrix);
 
+/// Compiles a material source string to a .filamat package at runtime.
+///
+/// `tJobThread` is the render job thread that owns `tEngine`; the compile
+/// runs there because MaterialBuilder::build drives the engine's
+/// JobSystem, whose calling thread must have been adopted — which the
+/// engine-creating job thread is. `materialSource` is the GLSL of the
+/// material() function, the same string format accepted by
+/// MaterialBuilder::material(), e.g.:
+///
+/// void material(inout MaterialInputs material) {
+/// prepareMaterial(material);
+/// material.baseColor.rgb = float3(1.0, 0.0, 0.0);
+/// }
+///
+/// `name` is the material name (used in diagnostics/shader names). `shading`
+/// selects the lighting model. The output target API is derived from the
+/// compiled platform this function is linked into (e.g. Metal on Apple
+/// platforms, OpenGL+Vulkan on Android/Linux/Windows), matching how the
+/// precompiled Thermion materials are built.
+///
+/// Returns null when compilation fails or this build lacks runtime material
+/// support. Failure diagnostics are logged through the Filament logger.
+///
+/// This call blocks the calling Dart thread until the compile finishes on
+/// the job thread (hundreds of ms). The Dart API dispatches it via the
+/// same future-based task pattern as the other *JobThread entry points,
+/// so Dart code simply awaits.
+///
+/// The returned package is owned by the caller and must be released with
+/// MaterialCompiler_destroyPackage.
+@ffi.Native<
+  ffi.Pointer<TMaterialCompilerPackage> Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.UnsignedInt,
+  )
+>(isLeaf: true)
+external ffi.Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialSource(
+  ffi.Pointer<TJobThread> tJobThread,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Char> name,
+  ffi.Pointer<ffi.Char> materialSource,
+  int shading,
+);
+
+/// Frees a package returned by MaterialCompiler_compileMaterialSource.
+/// Null is ignored.
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialCompilerPackage>)>(isLeaf: true)
+external void MaterialCompiler_destroyPackage(ffi.Pointer<TMaterialCompilerPackage> package);
+
+/// Copies the compiled package bytes into `out`, which must hold at least
+/// MaterialCompiler_getPackageSize bytes. Returns the number of bytes copied.
+@ffi.Native<ffi.Size Function(ffi.Pointer<TMaterialCompilerPackage>, ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
+external int MaterialCompiler_getPackageBytes(
+  ffi.Pointer<TMaterialCompilerPackage> package,
+  ffi.Pointer<ffi.Uint8> out,
+  int capacity,
+);
+
+/// Returns a pointer to the compiled package bytes living in native/Wasm
+/// heap memory, or null. Valid until MaterialCompiler_destroyPackage; pair
+/// with MaterialCompiler_getPackageSize for the length. Web callers should
+/// read the bytes through this pointer (typed-array view over the Wasm
+/// heap) instead of MaterialCompiler_getPackageBytes, which can only write
+/// into a native scratch buffer on that platform.
+@ffi.Native<ffi.Pointer<ffi.Uint8> Function(ffi.Pointer<TMaterialCompilerPackage>)>(isLeaf: true)
+external ffi.Pointer<ffi.Uint8> MaterialCompiler_getPackagePtr(ffi.Pointer<TMaterialCompilerPackage> package);
+
+/// Returns the byte size of the compiled package.
+@ffi.Native<ffi.Size Function(ffi.Pointer<TMaterialCompilerPackage>)>(isLeaf: true)
+external int MaterialCompiler_getPackageSize(ffi.Pointer<TMaterialCompilerPackage> package);
+
+/// Returns 1 when this build was compiled with runtime material
+/// compilation support (the `runtime_materials` build flag), 0 otherwise.
+/// When 0, MaterialCompiler_compileMaterialSource returns null and callers
+/// should fall back to precompiled .filamat packages.
+@ffi.Native<ffi.Uint8 Function()>(isLeaf: true)
+external int MaterialCompiler_isSupported();
+
 @ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
 external int MaterialInstance_getTransparencyMode(ffi.Pointer<TMaterialInstance> materialInstance);
 
@@ -6033,6 +6114,8 @@ final class TMat4 extends ffi.Opaque {}
 
 final class TMaterial extends ffi.Opaque {}
 
+final class TMaterialCompilerPackage extends ffi.Opaque {}
+
 final class TMaterialInstance extends ffi.Opaque {}
 
 final class TMaterialProvider extends ffi.Opaque {}
@@ -6301,6 +6384,16 @@ sealed class TSceneAssetType {
 }
 
 final class TSceneManager extends ffi.Opaque {}
+
+/// Shading models, mirroring filamat::MaterialBuilder::Shading.
+/// Keep in sync with filament::Shading in MaterialEnums.h.
+sealed class TShading {
+  static const SHADING_UNLIT = 0;
+  static const SHADING_LIT = 1;
+  static const SHADING_SUBSURFACE = 2;
+  static const SHADING_CLOTH = 3;
+  static const SHADING_SPECULAR_GLOSSINESS = 4;
+}
 
 final class TShadowOptions extends ffi.Struct {
   @ffi.Uint32()
