@@ -14,7 +14,9 @@ class FFIGizmo extends GizmoAsset {
 
   final Pointer<TGizmo> handle;
 
-  FFIGizmo({required this.handle, required this.view, required this.entities, required FFIFilamentApp app}) {
+  final FFIFilamentApp app;
+
+  FFIGizmo({required this.handle, required this.view, required this.entities, required FFIFilamentApp app}) : app = app {
     _callbackHolder = _onPickResult.asCallback();
   }
 
@@ -96,7 +98,18 @@ class FFIGizmo extends GizmoAsset {
     final viewport = await view.getViewport();
     y = viewport.height - y;
 
-    Gizmo_pick(handle, x, y, _callbackHolder.pointer);
+    if (FILAMENT_WASM) {
+      // Web worker: the pick (View::pick + the gizmo entity-to-axis mapping)
+      // must run on the job thread, which is the worker that renders. Calling
+      // the direct export from the Dart thread links a picking query into the
+      // list the render job is reading (FrameGraph::assertValid abort). The
+      // pick-result callback is the completion; there is nothing to await.
+      Gizmo_pickJobThread(app.jobThreadHandle, handle, x, y, _callbackHolder.pointer);
+    } else {
+      // Native: the direct export is serialised against the job thread by the
+      // engine API lock and keeps its synchronous semantics.
+      Gizmo_pick(handle, x, y, _callbackHolder.pointer);
+    }
   }
 
   @override

@@ -211,6 +211,14 @@ namespace thermion
         }
     }
 
+    // Threading: View::pick links a query into the picking list the renderer
+    // reads while rendering, and the callback fires from the picking resolve
+    // pass on the thread that renders. This method must therefore be invoked
+    // on the engine's own thread: on the web worker variant through
+    // Gizmo_pickJobThread (which queues it on the job thread, like
+    // View_pickJobThread does for plain view picks); natively through the
+    // direct Gizmo_pick export, which PR #429's engine API lock serialises
+    // against the job thread.
     void Gizmo::pick(uint32_t x, uint32_t y, GizmoPickCallback callback)
     {
 

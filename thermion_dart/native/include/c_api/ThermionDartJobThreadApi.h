@@ -412,6 +412,17 @@ namespace thermion
             TGizmoType tGizmoType,
             void (*callback)(TGizmo *)
         );
+        // Gizmo_pick calls View::pick, which links a query into the list the
+        // renderer's picking pass reads. On the web worker variant it must run
+        // on the job thread (the worker that renders), never the Dart thread.
+        // The pick-result callback (the GizmoPickCallback) is the completion;
+        // there is no separate onComplete.
+        EMSCRIPTEN_KEEPALIVE void Gizmo_pickJobThread(TJobThread *jobThread,
+            TGizmo *tGizmo,
+            uint32_t x,
+            uint32_t y,
+            GizmoPickCallback callback
+        );
 
         // VertexBuffer render thread methods
         EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_buildJobThread(TJobThread *jobThread,

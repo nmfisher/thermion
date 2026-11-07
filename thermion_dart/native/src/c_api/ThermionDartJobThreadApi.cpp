@@ -2380,6 +2380,29 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  // Gizmo::pick calls View::pick, which links a picking query into the same
+  // list the render job's picking pass reads without a lock (see
+  // View_pickJobThread). On the web worker variant the query must be linked on
+  // the job thread; linking it from the Dart thread races the resolve pass and
+  // can abort in FrameGraph::assertValid. The whole Gizmo_pick body runs on
+  // the job thread so the entity-to-axis mapping and the axis highlight also
+  // stay on the render thread. The GizmoPickCallback is the completion; it
+  // fires from the picking resolve pass exactly as it does today.
+  EMSCRIPTEN_KEEPALIVE void Gizmo_pickJobThread(TJobThread *jobThread,
+      TGizmo *tGizmo,
+      uint32_t x,
+      uint32_t y,
+      GizmoPickCallback callback)
+  {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          Gizmo_pick(tGizmo, x, y, callback);
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_buildJobThread(TJobThread *jobThread,
       TVertexBufferBuilder *tBuilder,
       TEngine *tEngine,

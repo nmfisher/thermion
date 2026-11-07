@@ -754,6 +754,13 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _Gizmo_dummy(int t);
   external void _Gizmo_highlight(Pointer<TGizmo> tGizmo, int axis);
   external void _Gizmo_pick(Pointer<TGizmo> tGizmo, int x, int y, GizmoPickCallback callback);
+  external void _Gizmo_pickJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TGizmo> tGizmo,
+    int x,
+    int y,
+    GizmoPickCallback callback,
+  );
   external void _Gizmo_unhighlight(Pointer<TGizmo> tGizmo);
   external Pointer<TGltfAssetLoader> _GltfAssetLoader_create(
     Pointer<TEngine> tEngine,
@@ -4766,6 +4773,23 @@ void Gizmo_highlight(Pointer<TGizmo> tGizmo, int axis) {
 
 void Gizmo_pick(Pointer<TGizmo> tGizmo, int x, int y, DartGizmoPickCallback callback) {
   final result = GeneratedBindings.instance._Gizmo_pick(
+    tGizmo.cast(),
+    x,
+    y,
+    callback as Pointer<NativeFunction<GizmoPickCallbackFunction>>,
+  );
+  return result;
+}
+
+void Gizmo_pickJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TGizmo> tGizmo,
+  int x,
+  int y,
+  DartGizmoPickCallback callback,
+) {
+  final result = GeneratedBindings.instance._Gizmo_pickJobThread(
+    jobThread.cast(),
     tGizmo.cast(),
     x,
     y,

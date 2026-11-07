@@ -1529,6 +1529,17 @@ external void Gizmo_highlight(ffi.Pointer<TGizmo> tGizmo, int axis);
 @ffi.Native<ffi.Void Function(ffi.Pointer<TGizmo>, ffi.Uint32, ffi.Uint32, GizmoPickCallback)>(isLeaf: true)
 external void Gizmo_pick(ffi.Pointer<TGizmo> tGizmo, int x, int y, GizmoPickCallback callback);
 
+@ffi.Native<
+  ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TGizmo>, ffi.Uint32, ffi.Uint32, GizmoPickCallback)
+>(isLeaf: true)
+external void Gizmo_pickJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TGizmo> tGizmo,
+  int x,
+  int y,
+  GizmoPickCallback callback,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TGizmo>)>(isLeaf: true)
 external void Gizmo_unhighlight(ffi.Pointer<TGizmo> tGizmo);
 
