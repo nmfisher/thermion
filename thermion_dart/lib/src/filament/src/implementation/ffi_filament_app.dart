@@ -53,20 +53,6 @@ int _geometryCapabilitiesToNative(Set<SceneAssetGeometryCapability> capabilities
   return bits;
 }
 
-/// TEMPORARY material-package transfer tracing. Remove once the web
-/// FormatException is diagnosed: logs byte-for-byte what Dart holds at each
-/// hop of the compile -> getPackageBytes -> createMaterial pipeline so the
-/// first corrupting hop is identifiable from the browser console.
-String _hexDump24(Uint8List bytes) => bytes.take(24).map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
-
-void _tracePackageBytes(String label, Uint8List bytes) {
-  // ignore: avoid_print
-  print(
-    '[material-trace] $label: length=${bytes.length} '
-    'offsetInBytes=${bytes.offsetInBytes} bytes[${_hexDump24(bytes)}]',
-  );
-}
-
 void _validateRequiredGeometryCapabilities(Set<SceneAssetGeometryCapability> capabilities) {
   final requiresUnwelded =
       capabilities.contains(SceneAssetGeometryCapability.barycentrics) ||
@@ -660,14 +646,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw const FormatException('Material package is empty.');
     }
     try {
-      // TEMPORARY trace: see what Material_getPackageVersion is about to see.
-      _tracePackageBytes('createMaterial input', data);
       // Each .address is a separate synchronous borrow. The render-thread
       // entry point snapshots in native code before returning, and the native
       // builder checks that snapshot again before passing it to Filament.
       final actualVersion = Material_getPackageVersion(data.address, data.length).toInt();
-      // ignore: avoid_print
-      print('[material-trace] Material_getPackageVersion -> $actualVersion');
       if (actualVersion < 0) {
         throw const FormatException('Invalid material package chunk layout or version metadata.');
       }
