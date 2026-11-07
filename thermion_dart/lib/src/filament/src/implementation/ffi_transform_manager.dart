@@ -96,7 +96,27 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
 
   @override
   void setTransform(ThermionEntity entity, Matrix4 transform) {
-    matrixBuffers.TransformManager_setTransformFromBufferTypedData(transformManager, entity, transform.storage);
+    if (FILAMENT_WASM) {
+      // Web worker: never mutate the transform SoA/dirty list from the Dart
+      // thread - the worker's Animator writes the same state while rendering.
+      // Submit to the job thread instead; the wrapper snapshots the 16
+      // doubles before returning, so the queued task owns its copy and the
+      // completion future can be discarded.
+      unawaited(withVoidCallback((requestId, cb) {
+        matrixBuffers.TransformManager_setTransformFromBufferJobThreadTypedData(
+          app.jobThreadHandle,
+          transformManager,
+          entity,
+          transform.storage,
+          requestId,
+          cb,
+        );
+      }));
+    } else {
+      // Native: the direct export is serialised against the job thread by the
+      // engine API lock and keeps its synchronous semantics.
+      matrixBuffers.TransformManager_setTransformFromBufferTypedData(transformManager, entity, transform.storage);
+    }
   }
 
   @override
@@ -114,7 +134,28 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
   }
 
   void setTransformNative(ThermionEntity entity, NativeMatrix4 transform) {
-    bindings.TransformManager_setTransformNative(transformManager, entity, transform.getNativeHandle());
+    if (FILAMENT_WASM) {
+      // Web worker: same race as setTransform above. The wrapper borrows the
+      // matrix until the queued task runs, so retain the owner for the
+      // duration of the submission (withQueuedUse) and discard the future.
+      unawaited(
+        transform.withQueuedUse(
+          (handle) => withVoidCallback((requestId, cb) {
+            bindings.TransformManager_setTransformNativeJobThread(
+              app.jobThreadHandle,
+              transformManager,
+              entity,
+              handle,
+              requestId,
+              cb,
+            );
+          }),
+        ),
+      );
+    } else {
+      // Native: direct export, serialised by the engine API lock.
+      bindings.TransformManager_setTransformNative(transformManager, entity, transform.getNativeHandle());
+    }
   }
 
   /// Retains [transform] until completion. Do not access any escaped views meanwhile.
