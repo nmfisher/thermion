@@ -5,6 +5,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <type_traits>
+#if defined(__cpp_exceptions) || defined(_CPPUNWIND)
+#include <stdexcept>
+#endif
 
 using namespace thermion;
 using namespace std::chrono_literals;
@@ -93,5 +96,95 @@ int main() {
         check(direct);
         JobThread::destroy(std::move(owner));
     }
-    std::puts("PASS: native FIFO, packaged result, nested completion, 25 shutdown cycles, Dart callbacks deferred past the engine lock");
+    // Direct exports can also cause Filament to deliver callbacks (for example
+    // flushAndWait). Nested guards must retain them until the OUTERMOST unlock.
+    {
+        bool delivered = false;
+        bool reentered = false;
+        {
+            EngineApiGuard outer;
+            {
+                EngineApiGuard inner;
+                const int result = 42;
+                deferDartCallback([&, result] {
+                    check(result == 42); // task-local payload was copied
+                    std::thread probe([&] {
+                        check(engineApiMutex().try_lock());
+                        engineApiMutex().unlock();
+                    });
+                    probe.join();
+                    deferDartCallback([&] { reentered = true; });
+                    check(reentered); // no appending to the queue being drained
+                    delivered = true;
+                });
+            }
+            check(!delivered);
+        }
+        check(delivered);
+        check(engineApiWaiters() == 0);
+    }
+    // A callback blocked outside the lock must not stop another worker from
+    // running its task and draining its separate thread-local completion queue.
+    {
+        auto first = JobThread::create();
+        auto second = JobThread::create();
+        std::promise<void> firstDelivering, secondDelivered, releaseFirst;
+        auto firstReady = firstDelivering.get_future();
+        auto secondReady = secondDelivered.get_future();
+        auto release = releaseFirst.get_future();
+        first->addDetachedTask([&] {
+            const auto thread = std::this_thread::get_id();
+            deferDartCallback([&, thread] {
+                check(std::this_thread::get_id() == thread);
+                firstDelivering.set_value();
+                check(release.wait_for(2s) == std::future_status::ready);
+            });
+        });
+        check(firstReady.wait_for(2s) == std::future_status::ready);
+        second->addDetachedTask([&] {
+            const auto thread = std::this_thread::get_id();
+            deferDartCallback([&, thread] {
+                check(std::this_thread::get_id() == thread);
+                secondDelivered.set_value();
+            });
+        });
+        check(secondReady.wait_for(2s) == std::future_status::ready);
+        releaseFirst.set_value();
+        JobThread::destroy(std::move(first));
+        JobThread::destroy(std::move(second));
+    }
+#if defined(__cpp_exceptions) || defined(_CPPUNWIND)
+    // Exception-enabled embedders must not leave TLS pointing to a dead queue.
+    {
+        bool delivered = false;
+        try {
+            EngineApiGuard guard;
+            deferDartCallback([&] { delivered = true; });
+            throw std::runtime_error("unwind callback scope");
+        } catch (const std::runtime_error&) {
+        }
+        check(delivered);
+        bool inlineAfterUnwind = false;
+        deferDartCallback([&] { inlineAfterUnwind = true; });
+        check(inlineAfterUnwind);
+        check(engineApiWaiters() == 0);
+
+        auto owner = JobThread::create();
+        std::promise<void> callbackDone;
+        auto callbackReady = callbackDone.get_future();
+        std::packaged_task<int()> failing([&]() -> int {
+            EngineApiGuard nested;
+            deferDartCallback([&] { callbackDone.set_value(); });
+            throw std::runtime_error("packaged task failure");
+        });
+        auto future = owner->addTask(failing);
+        check(future.wait_for(2s) == std::future_status::ready);
+        bool caught = false;
+        try { future.get(); } catch (const std::runtime_error&) { caught = true; }
+        check(caught);
+        check(callbackReady.wait_for(2s) == std::future_status::ready);
+        JobThread::destroy(std::move(owner));
+    }
+#endif
+    std::puts("PASS: FIFO, shutdown, nested guards, reentrant completion, multiple workers, callback scope cleanup");
 }
