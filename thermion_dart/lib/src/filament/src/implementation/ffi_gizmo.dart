@@ -1,4 +1,5 @@
 import '../../../bindings/heap_buffer.dart';
+import '../../../bindings/src/pending_callback.dart';
 import 'dart:async';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'ffi_filament_app.dart';
@@ -8,6 +9,7 @@ class FFIGizmo extends GizmoAsset {
   final Set<ThermionEntity> entities;
 
   late final CallbackHolder<GizmoPickCallbackFunction> _callbackHolder;
+  late final PendingCallback _pickCallback;
 
   void Function(GizmoPickResultType axis, Vector3 coords)? _callback;
 
@@ -17,10 +19,14 @@ class FFIGizmo extends GizmoAsset {
 
   FFIGizmo({required this.handle, required this.view, required this.entities, required FFIFilamentApp app}) {
     _callbackHolder = _onPickResult.asCallback();
+    _pickCallback = PendingCallback(_callbackHolder.dispose);
   }
 
   Future dispose() async {
-    _callbackHolder.dispose();
+    _callback = null;
+    // GPU results and native notifications can outlive logical disposal.
+    // Keep the registration callable until every submitted pick is delivered.
+    _pickCallback.dispose();
   }
 
   static FFIMaterial? _gizmoMaterial;
@@ -77,6 +83,8 @@ class FFIGizmo extends GizmoAsset {
   }
 
   void _onPickResult(int resultType, double x, double y, double z) {
+    _pickCallback.complete();
+    if (_pickCallback.isDisposed) return;
     final type = switch (resultType) {
       TGizmoPickResultType.AxisX => GizmoPickResultType.AxisX,
       TGizmoPickResultType.AxisY => GizmoPickResultType.AxisY,
@@ -97,11 +105,19 @@ class FFIGizmo extends GizmoAsset {
 
   @override
   Future pick(int x, int y, {Future Function(GizmoPickResultType result, Vector3 coords)? handler}) async {
+    if (_pickCallback.isDisposed) throw StateError('Gizmo disposal has started');
     _callback = handler;
     final viewport = await view.getViewport();
+    if (_pickCallback.isDisposed) return;
     y = viewport.height - y;
 
-    Gizmo_pick(handle, x, y, _callbackHolder.pointer);
+    _pickCallback.begin();
+    try {
+      Gizmo_pick(handle, x, y, _callbackHolder.pointer);
+    } catch (_) {
+      _pickCallback.complete();
+      rethrow;
+    }
   }
 
   @override
