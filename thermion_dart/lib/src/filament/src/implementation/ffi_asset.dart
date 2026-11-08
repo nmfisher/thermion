@@ -175,7 +175,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       }
       var childEntities = makeInt32List(count);
       if (count > 0) {
-        SceneAsset_getChildEntities(_asset, childEntities.address);
+        withNativeBuffer(childEntities, (ptr) => SceneAsset_getChildEntities(_asset, ptr.cast()), copyBack: true);
       }
       _childEntities = Int32List.fromList(childEntities);
 
@@ -1054,7 +1054,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       throw UnimplementedError("TOOD");
     }
     final out = makeInt32List(await getBoneCount(skinIndex: skinIndex));
-    SceneAsset_getBones(asset, skinIndex, out.address);
+    withNativeBuffer(out, (ptr) => SceneAsset_getBones(asset, skinIndex, ptr.cast()), copyBack: true);
     return out;
   }
 

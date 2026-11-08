@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FFIDebugRegistry extends DebugRegistry<Pointer<TDebugRegistry>> {
@@ -56,7 +57,11 @@ class FFIDebugRegistry extends DebugRegistry<Pointer<TDebugRegistry>> {
     try {
       final outValue = makeInt32List(1);
 
-      final success = DebugRegistry_getProperty_bool(debugRegistry, ptr.cast(), outValue.address.cast());
+      final success = withNativeBuffer(
+        outValue,
+        (out) => DebugRegistry_getProperty_bool(debugRegistry, ptr.cast(), out.cast()),
+        copyBack: true,
+      );
       if (!success) {
         return null;
       }
@@ -72,7 +77,11 @@ class FFIDebugRegistry extends DebugRegistry<Pointer<TDebugRegistry>> {
     try {
       final outValue = Int32List(1);
 
-      final success = DebugRegistry_getProperty_int(debugRegistry, ptr.cast(), outValue.address.cast());
+      final success = withNativeBuffer(
+        outValue,
+        (out) => DebugRegistry_getProperty_int(debugRegistry, ptr.cast(), out.cast()),
+        copyBack: true,
+      );
       if (!success) {
         return null;
       }
@@ -88,7 +97,11 @@ class FFIDebugRegistry extends DebugRegistry<Pointer<TDebugRegistry>> {
     try {
       final outValue = Float32List(1);
 
-      final success = DebugRegistry_getProperty_float(debugRegistry, ptr.cast(), outValue.address);
+      final success = withNativeBuffer(
+        outValue,
+        (out) => DebugRegistry_getProperty_float(debugRegistry, ptr.cast(), out.cast()),
+        copyBack: true,
+      );
       if (!success) {
         return null;
       }

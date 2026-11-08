@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -304,7 +305,7 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
     final pointer = makeFloat32List(requiredSplits);
 
     // Call the native method
-    LightManager_computeUniformSplits(pointer.address, cascades);
+    withNativeBuffer(pointer, (ptr) => LightManager_computeUniformSplits(ptr.cast(), cascades), copyBack: true);
     return pointer;
   }
 
@@ -320,7 +321,7 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
     final pointer = makeFloat32List(requiredSplits);
 
     // Call the native method
-    LightManager_computeLogSplits(pointer.address, cascades, near, far);
+    withNativeBuffer(pointer, (ptr) => LightManager_computeLogSplits(ptr.cast(), cascades, near, far), copyBack: true);
     return pointer;
   }
 
@@ -340,7 +341,11 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
     final pointer = makeFloat32List(requiredSplits);
 
     // Call the native method
-    LightManager_computePracticalSplits(pointer.address, cascades, near, far, lambda);
+    withNativeBuffer(
+      pointer,
+      (ptr) => LightManager_computePracticalSplits(ptr.cast(), cascades, near, far, lambda),
+      copyBack: true,
+    );
     return pointer;
   }
 

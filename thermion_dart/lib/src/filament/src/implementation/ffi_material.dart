@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import 'ffi_filament_app.dart';
 import 'dart:async';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
@@ -113,7 +114,10 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
     }
     _withParameterName(
       name,
-      (ptr) => MaterialInstance_setParameterFloat3Array(pointer, ptr, data.address, array.length * 3),
+      (ptr) => withNativeBuffer(
+        data,
+        (buffer) => MaterialInstance_setParameterFloat3Array(pointer, ptr, buffer.cast(), array.length * 3),
+      ),
     );
 
     if (FILAMENT_WASM) {
@@ -224,7 +228,11 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
 
   @override
   Future setParameterMat3(String name, Matrix3 matrix) async {
-    _withParameterName(name, (ptr) => MaterialInstance_setParameterMat3(pointer, ptr, matrix.storage.address));
+    _withParameterName(
+      name,
+      (ptr) =>
+          withNativeBuffer(matrix.storage, (buffer) => MaterialInstance_setParameterMat3(pointer, ptr, buffer.cast())),
+    );
 
     if (FILAMENT_WASM) {
       matrix.storage.free();
@@ -233,7 +241,11 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
 
   @override
   Future setParameterMat4(String name, Matrix4 matrix) async {
-    _withParameterName(name, (ptr) => MaterialInstance_setParameterMat4(pointer, ptr, matrix.storage.address));
+    _withParameterName(
+      name,
+      (ptr) =>
+          withNativeBuffer(matrix.storage, (buffer) => MaterialInstance_setParameterMat4(pointer, ptr, buffer.cast())),
+    );
   }
 
   @override

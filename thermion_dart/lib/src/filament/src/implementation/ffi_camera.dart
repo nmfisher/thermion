@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 import '../../../bindings/bindings.dart';
@@ -237,7 +238,7 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   ///
   Future<Frustum> getFrustum() async {
     var out = Float64List(24);
-    Camera_getFrustum(camera, out.address);
+    withNativeBuffer(out, (ptr) => Camera_getFrustum(camera, ptr.cast()), copyBack: true);
 
     var frustum = Frustum();
 

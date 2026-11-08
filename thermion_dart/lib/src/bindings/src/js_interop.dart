@@ -20,6 +20,12 @@ typedef Float = Float32;
 typedef Double = Float64;
 typedef Bool = bool;
 
+void MovementIntentExecutor_processValue(
+  Pointer<TMovementIntentExecutor> executor,
+  TMovementIntent value,
+  int deltaTime,
+) => MovementIntentExecutor_process(executor, value.address, deltaTime.toBigInt);
+
 class FinalizableUint8List {
   final Pointer name;
   final Uint8List data;

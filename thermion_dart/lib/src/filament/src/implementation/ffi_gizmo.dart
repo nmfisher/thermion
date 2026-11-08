@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import 'dart:async';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'ffi_filament_app.dart';
@@ -55,7 +56,11 @@ class FFIGizmo extends GizmoAsset {
     }
     final gizmoEntityCount = SceneAsset_getChildEntityCount(gizmo.cast<TSceneAsset>());
     final gizmoEntities = Int32List(gizmoEntityCount);
-    SceneAsset_getChildEntities(gizmo.cast<TSceneAsset>(), gizmoEntities.address);
+    withNativeBuffer(
+      gizmoEntities,
+      (ptr) => SceneAsset_getChildEntities(gizmo.cast<TSceneAsset>(), ptr.cast()),
+      copyBack: true,
+    );
 
     final gizmoAsset = FFIGizmo(
       handle: gizmo,

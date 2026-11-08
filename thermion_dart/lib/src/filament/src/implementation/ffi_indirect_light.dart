@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -60,7 +61,7 @@ class FFIIndirectLight extends IndirectLight {
   }
 
   Future rotate(Matrix3 rotation) async {
-    IndirectLight_setRotation(this.pointer, rotation.storage.address);
+    withNativeBuffer(rotation.storage, (ptr) => IndirectLight_setRotation(this.pointer, ptr.cast()));
 
     if (FILAMENT_WASM) {
       //stackRestore(stackPtr);

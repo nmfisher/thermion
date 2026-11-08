@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -196,14 +197,20 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
     morphIndicesPtr.setRange(0, morphIndices.length, morphIndices);
 
     try {
-      return AnimationManager_setMorphAnimation(
-        animationManager,
-        entityId,
-        morphDataPtr.address,
-        morphIndicesPtr.address.cast(),
-        numMorphTargets,
-        numFrames,
-        frameLengthInMs,
+      return withNativeBuffer(
+        morphDataPtr,
+        (data) => withNativeBuffer(
+          morphIndicesPtr,
+          (indices) => AnimationManager_setMorphAnimation(
+            animationManager,
+            entityId,
+            data.cast(),
+            indices.cast(),
+            numMorphTargets,
+            numFrames,
+            frameLengthInMs,
+          ),
+        ),
       );
     } finally {
       morphDataPtr.free();
@@ -275,18 +282,21 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
     frameDataPtr.setRange(0, frameData.length, frameData);
 
     try {
-      return AnimationManager_addBoneAnimation(
-        animationManager,
-        asset.getNativeHandle(),
-        skinIndex,
-        boneIndex,
-        frameDataPtr.address,
-        numFrames,
-        frameLengthInMs,
-        fadeOutInSecs,
-        fadeInInSecs,
-        maxDelta,
-        loop,
+      return withNativeBuffer(
+        frameDataPtr,
+        (data) => AnimationManager_addBoneAnimation(
+          animationManager,
+          asset.getNativeHandle(),
+          skinIndex,
+          boneIndex,
+          data.cast(),
+          numFrames,
+          frameLengthInMs,
+          fadeOutInSecs,
+          fadeInInSecs,
+          maxDelta,
+          loop,
+        ),
       );
     } finally {
       frameDataPtr.free();
@@ -320,12 +330,16 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
     // 16 floats per bone (4x4 matrix)
     final transformsPtr = makeFloat32List(boneCount * 16);
     try {
-      AnimationManager_getRestLocalTransforms(
-        animationManager,
-        asset.getNativeHandle(),
-        skinIndex,
-        transformsPtr.address,
-        boneCount,
+      withNativeBuffer(
+        transformsPtr,
+        (data) => AnimationManager_getRestLocalTransforms(
+          animationManager,
+          asset.getNativeHandle(),
+          skinIndex,
+          data.cast(),
+          boneCount,
+        ),
+        copyBack: true,
       );
 
       return transformsPtr.toList();
@@ -354,12 +368,16 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
     final matrixPtr = makeFloat32List(16); // 4x4 matrix
     try {
-      AnimationManager_getInverseBindMatrix(
-        animationManager,
-        asset.getNativeHandle(),
-        skinIndex,
-        boneIndex,
-        matrixPtr.address,
+      withNativeBuffer(
+        matrixPtr,
+        (data) => AnimationManager_getInverseBindMatrix(
+          animationManager,
+          asset.getNativeHandle(),
+          skinIndex,
+          boneIndex,
+          data.cast(),
+        ),
+        copyBack: true,
       );
 
       return matrixPtr.toList();

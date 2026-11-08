@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import '../../../bindings/bindings.dart' as bindings;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
@@ -641,12 +642,15 @@ class FFIRenderableBuilder implements RenderableBuilder {
       dataPtr[offset++] = pair[1]; // weight
     }
 
-    bindings.RenderableBuilder_boneIndicesAndWeights(
-      _builderPtr!,
-      primitiveIndex,
-      dataPtr.address,
-      totalPairs,
-      bonesPerVertex,
+    withNativeBuffer(
+      dataPtr,
+      (data) => bindings.RenderableBuilder_boneIndicesAndWeights(
+        _builderPtr!,
+        primitiveIndex,
+        data.cast(),
+        totalPairs,
+        bonesPerVertex,
+      ),
     );
 
     if (FILAMENT_WASM) {

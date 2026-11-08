@@ -53,6 +53,34 @@ typedef PointerClass<T extends NativeType> = Pointer<T>;
 typedef VoidPointerClass = Pointer<Void>;
 typedef StructAllocator = Struct;
 
+// Struct.create may use GC-managed storage. Copy into native memory before a
+// guarded executor call, just as typed-data arguments use withNativeBuffer.
+void MovementIntentExecutor_processValue(
+  Pointer<TMovementIntentExecutor> executor,
+  TMovementIntent value,
+  int deltaTime,
+) {
+  final pointer = calloc<TMovementIntent>();
+  try {
+    final target = pointer.ref;
+    target.movementDirectionX = value.movementDirectionX;
+    target.movementDirectionY = value.movementDirectionY;
+    target.movementDirectionZ = value.movementDirectionZ;
+    target.movementSpeed = value.movementSpeed;
+    target.mouseDeltaX = value.mouseDeltaX;
+    target.mouseDeltaY = value.mouseDeltaY;
+    target.intentStates = value.intentStates;
+    target.customIntentCount = value.customIntentCount;
+    for (var i = 0; i < MAX_CUSTOM_INTENTS; i++) {
+      target.customIntentActions[i] = value.customIntentActions[i];
+      target.customIntentValues[i] = value.customIntentValues[i];
+    }
+    MovementIntentExecutor_process(executor, pointer, deltaTime);
+  } finally {
+    calloc.free(pointer);
+  }
+}
+
 class CallbackHolder<T extends Function> {
   final NativeCallable<T> nativeCallable;
 

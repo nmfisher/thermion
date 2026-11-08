@@ -3,6 +3,30 @@ import 'dart:js_interop';
 import 'dart:typed_data';
 import 'package:ffigen_js/ffigen_js.dart';
 
+/// Synchronous counterpart of pass(), with an explicit pointer for FFI calls.
+T withNativeBuffer<T>(TypedData data, T Function(Pointer<Uint8>) operation, {bool copyBack = false}) {
+  final bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+  // make*List already returns Wasm storage. Borrow it without a malloc that
+  // could grow memory and detach the input view before it can be copied.
+  if (_sameBuffer(bytes.toJS.buffer, _Heap(NativeLibrary.instance).HEAPU8.buffer)) {
+    return operation(Pointer<Uint8>.fromAddress(bytes.offsetInBytes));
+  }
+  final storage = _HeapBuffer(data.lengthInBytes);
+  try {
+    storage.data.setAll(0, data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
+    final result = operation(Pointer<Uint8>.fromAddress(storage._address));
+    if (copyBack) {
+      data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes).setAll(0, storage.data);
+    }
+    return result;
+  } finally {
+    storage.dispose();
+  }
+}
+
+@JS('Object.is')
+external bool _sameBuffer(JSObject a, JSObject b);
+
 extension type _Heap(NativeLibrary _) implements JSObject {
   external int _malloc(int bytes);
   external void _free(int address);
