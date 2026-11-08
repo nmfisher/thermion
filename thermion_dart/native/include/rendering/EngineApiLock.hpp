@@ -27,16 +27,21 @@
 // *JobThread wrappers forward to them) and exports call other exports.
 //
 // Deadlock argument (see also the commit message):
-//   1. The lock is only ever held for the duration of one export call or one
-//      job-thread task. Exports never wait on the job thread (they do not
-//      enqueue-and-wait). Job-thread tasks never call into Dart while holding
-//      it: a NativeCallable.listener call from the job thread can block inside
+//   1. Never enqueue work and wait for it while holding this lock: the worker
+//      needs the same lock to execute that work. An enqueue-and-wait export
+//      (such as #427's MaterialCompiler_compileMaterialSource) must remain
+//      unguarded on the submitting side; the queued task acquires the lock.
+//      Such an export must not be called from a job task either, unless it
+//      detects that case and performs the operation inline.
+//      Never call into Dart while holding it: a NativeCallable.listener call
+//      from the job thread can block inside
 //      the Dart VM until the isolate's thread makes progress (observed on
 //      Windows), so every Dart completion raised inside a task goes through
-//      deferDartCallback() and runs after the task releases the lock.
+//      deferDartCallback() and runs after the outermost EngineApiGuard releases
+//      the lock. This also covers callbacks raised by direct exports.
 //   2. Lock order is always engine-API lock first. The other native locks
 //      (RenderManager::mMutex, AnimationManager::mMutex, the texture-provider
-//      and frame-scheduler mutexes, EngineLifecycle) are taken inside it, or
+//      and frame-scheduler mutexes) are taken inside it, or
 //      on paths that do not hold the engine-API lock (frame scheduler thread,
 //      Flutter raster/blit threads, Filament's driver and JobSystem threads).
 //      The Dart/platform thread does take the engine-API lock for direct
@@ -46,16 +51,18 @@
 //      release callbacks only free memory or post to Dart.
 //
 // Exports that deliberately stay unguarded: JobThread_* (they join/enqueue the
-// job thread), *JobThread enqueue wrappers, EngineLifecycle_*, the frame
+// job thread), *JobThread enqueue wrappers, the frame
 // scheduler/telemetry APIs, RenderManager_setPaused/setTargetFps (atomics; a
 // pause must not wait for a frame), the TSWAP_CHAIN_CONFIG_* constant exports
 // (no Engine access), and pure-CPU helpers that never touch an Engine (Image_*,
 // Ktx1Bundle_*, TextureSampler_*, Mat4_*, SurfaceOrientation*, GltfParser_*,
 // MeshData_*, Material_get*Version).
 //
-// Web (Emscripten) builds compile the guard to nothing: there the engine is
-// owned by one worker (or the main thread) and the direct exports are not
-// called from a second thread.
+// Web (Emscripten) builds compile the guard to nothing. Main-thread builds
+// serialize frontend work on the browser thread. Worker builds still require
+// callers to route frontend access through the worker queue; this native lock
+// does not fix main-thread direct exports racing worker tasks. Enabling a
+// blocking mutex on the browser thread is not a substitute for that routing.
 
 #if defined(__EMSCRIPTEN__)
 
@@ -72,6 +79,7 @@ inline void deferDartCallback(std::function<void()> fn) { fn(); }
 #include <atomic>
 #include <functional>
 #include <mutex>
+#include <vector>
 
 namespace thermion {
 
@@ -79,8 +87,7 @@ namespace thermion {
 // runs at DLL unload and no static-destruction-order hazard exists).
 std::recursive_mutex& engineApiMutex();
 
-// Number of direct callers currently acquiring or waiting for
-// engineApiMutex(). The job
+// Number of guards currently acquiring or waiting for engineApiMutex(). The job
 // thread runs tasks back to back; std::recursive_mutex is not fair, so
 // without a handoff a busy queue (GLB loads, many queued setters) re-takes the
 // lock between tasks and starves the caller's thread for seconds. Before
@@ -92,28 +99,25 @@ std::atomic<int>& engineApiWaiters();
 // Dart VM until the isolate's own thread makes progress; if that thread is
 // waiting for this lock in a direct export, both stop (seen on Windows: the
 // job thread parked in flutter_windows, the platform thread in
-// LightManager_setPosition). Inside a job task this queues fn and
-// NativeJobThread::run calls it right after the task releases the lock, in
-// order. Anywhere else (direct exports on the Dart thread, Filament driver
-// threads) it runs fn immediately.
+// LightManager_setPosition). Inside any EngineApiGuard this queues fn until
+// the outermost guard releases the lock, in order on the same thread. Without
+// a guard on the calling thread it runs fn immediately, even if another thread
+// is in a guarded task. Captures must own their data, and callback registrations
+// must remain alive until delivery; copying a raw pointer does not retain it.
 void deferDartCallback(std::function<void()> fn);
 
 class EngineApiGuard {
 public:
-    EngineApiGuard() {
-        auto& waiters = engineApiWaiters();
-        waiters.fetch_add(1, std::memory_order_acq_rel);
-        try {
-            engineApiMutex().lock();
-        } catch (...) {
-            waiters.fetch_sub(1, std::memory_order_acq_rel);
-            throw;
-        }
-        waiters.fetch_sub(1, std::memory_order_acq_rel);
-    }
-    ~EngineApiGuard() { engineApiMutex().unlock(); }
+    EngineApiGuard();
+    ~EngineApiGuard();
     EngineApiGuard(const EngineApiGuard&) = delete;
     EngineApiGuard& operator=(const EngineApiGuard&) = delete;
+
+private:
+    // Only the outermost guard publishes its queue in thread-local storage.
+    // Nested exports append there and cannot deliver while an outer lock lives.
+    std::vector<std::function<void()>> mDartCallbacks;
+    std::vector<std::function<void()>>* mPreviousDartCallbacks = nullptr;
 };
 
 } // namespace thermion
