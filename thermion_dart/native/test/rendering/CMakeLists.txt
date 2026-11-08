@@ -37,6 +37,20 @@ target_link_libraries(worker_queue_test PRIVATE Threads::Threads)
 add_test(NAME worker_queue COMMAND worker_queue_test)
 set_tests_properties(worker_queue PROPERTIES TIMEOUT 30)
 
+# Production stays exception-free. Also exercise stack unwinding for consumers
+# that compile NativeJobThread with exceptions enabled.
+if(NOT MSVC)
+    add_executable(worker_queue_exceptions_test
+        worker_queue_test.cpp
+        ../../src/rendering/NativeJobThread.cpp)
+    target_compile_features(worker_queue_exceptions_test PRIVATE cxx_std_17)
+    target_compile_options(worker_queue_exceptions_test PRIVATE -fexceptions)
+    target_include_directories(worker_queue_exceptions_test PRIVATE ../../include)
+    target_link_libraries(worker_queue_exceptions_test PRIVATE Threads::Threads)
+    add_test(NAME worker_queue_exceptions COMMAND worker_queue_exceptions_test)
+    set_tests_properties(worker_queue_exceptions PROPERTIES TIMEOUT 30)
+endif()
+
 # Engine API lock regression: loads a built thermion_dart library at runtime
 # (path passed as the first argument), so it needs no Filament headers.
 add_executable(engine_api_lock_test engine_api_lock_test.cpp)

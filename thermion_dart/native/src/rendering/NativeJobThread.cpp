@@ -21,8 +21,37 @@ std::atomic<int>& engineApiWaiters() {
     return *w;
 }
 
-// Dart completions queued by the task currently running on this job thread.
+// The outermost guard owns this thread's completion queue. Never publish this
+// pointer to another thread: a callback there uses its own thread-local scope.
 static thread_local std::vector<std::function<void()>>* tDeferredDartCallbacks = nullptr;
+
+EngineApiGuard::EngineApiGuard() {
+    // RAII balances the waiter count even when lock() throws in an
+    // exception-enabled consumer. Production also builds with -fno-exceptions.
+    struct Waiter {
+        Waiter() { engineApiWaiters().fetch_add(1, std::memory_order_acq_rel); }
+        ~Waiter() { engineApiWaiters().fetch_sub(1, std::memory_order_acq_rel); }
+    } waiter;
+    engineApiMutex().lock();
+    mPreviousDartCallbacks = tDeferredDartCallbacks;
+    if (!mPreviousDartCallbacks) {
+        tDeferredDartCallbacks = &mDartCallbacks;
+    }
+}
+
+EngineApiGuard::~EngineApiGuard() {
+    if (!mPreviousDartCallbacks) {
+        // Clear before delivery so a callback cannot append to the vector being
+        // iterated. Destruction also restores the scope during stack unwinding.
+        tDeferredDartCallbacks = nullptr;
+    }
+    engineApiMutex().unlock();
+    if (!mPreviousDartCallbacks) {
+        for (auto& callback : mDartCallbacks) {
+            callback();
+        }
+    }
+}
 
 void deferDartCallback(std::function<void()> fn) {
     if (tDeferredDartCallbacks) {
@@ -32,7 +61,7 @@ void deferDartCallback(std::function<void()> fn) {
     }
 }
 
-// Let direct callers that are already waiting take the lock before the next
+// Let callers that are already waiting take the lock before the next
 // task. Yield first; back off to short sleeps if a caller holds it for long.
 static void yieldToDirectCallers() {
     for (int spins = 0; engineApiWaiters().load(std::memory_order_acquire) > 0; ++spins) {
@@ -91,19 +120,13 @@ void NativeJobThread::run() {
         auto task = std::move(_tasks.front());
         _tasks.pop_front();
         taskLock.unlock();
-        std::vector<std::function<void()>> dartCallbacks;
         {
             // Serialise with the direct (non-JobThread) C exports called from
             // other threads (see EngineApiLock.hpp). Held per task, never
             // while waiting for work, and never while calling into Dart.
             yieldToDirectCallers();
-            std::lock_guard<std::recursive_mutex> engineLock(engineApiMutex());
-            tDeferredDartCallbacks = &dartCallbacks;
+            EngineApiGuard engineLock;
             task();
-            tDeferredDartCallbacks = nullptr;
-        }
-        for (auto& callback : dartCallbacks) {
-            callback();
         }
         taskLock.lock();
     }
