@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 02c889f..a83f99c 100644
+index a95a747..0f36c0d 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -139,7 +139,18 @@ set(FILAMENT_OSMESA_PATH "" CACHE STRING
+@@ -135,7 +135,18 @@ set(FILAMENT_OSMESA_PATH "" CACHE STRING
  set(SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS OFF)
  
  if (NOT FILAMENT_ENABLE_EXCEPTIONS)
@@ -22,7 +22,7 @@ index 02c889f..a83f99c 100644
      set(SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS ON)
  endif()
  
-@@ -213,6 +224,11 @@ if (NOT FILAMENT_OSMESA_PATH STREQUAL "")
+@@ -209,6 +220,11 @@ if (NOT FILAMENT_OSMESA_PATH STREQUAL "")
      set(FILAMENT_SUPPORTS_OSMESA TRUE CACHE BOOL "Enable OSMesa (headless GL context) for Filament" FORCE)
  endif()
  
@@ -34,33 +34,17 @@ index 02c889f..a83f99c 100644
  if (LINUX)
      if (FILAMENT_SUPPORTS_WAYLAND)
          add_definitions(-DFILAMENT_SUPPORTS_WAYLAND)
-@@ -997,14 +1013,14 @@ add_subdirectory(${FILAMENT}/filament)
- set(FILAMENT_SAMPLES_BINARY_DIR ${PROJECT_BINARY_DIR}/samples)
+@@ -997,24 +1013,27 @@ if (WASM)
+     add_subdirectory(web/examples)
+ endif()
  
- # assimp is only used by filamentapp's MeshAssimp, which is not built for WASM.
 -if (IS_HOST_PLATFORM OR ANDROID)
--   add_subdirectory(${EXTERNAL}/libassimp/tnt)
-+if ((IS_HOST_PLATFORM OR ANDROID) AND FILAMENT_ENABLE_EXCEPTIONS)
-+    add_subdirectory(${EXTERNAL}/libassimp/tnt)
- endif()
- 
- # filamentapp must come before the web/ subdirectories so that its target is
- # already defined when the WASM samples link against it.
--if (IS_HOST_PLATFORM OR ANDROID OR WASM)
 -   add_subdirectory(${LIBRARIES}/filamentapp)
-+if ((IS_HOST_PLATFORM OR ANDROID OR WASM) AND FILAMENT_ENABLE_EXCEPTIONS)
+-   add_subdirectory(${EXTERNAL}/libassimp/tnt)
++# filamentapp and assimp need C++ exceptions; runtime builds skip them.
++if ((IS_HOST_PLATFORM OR ANDROID) AND FILAMENT_ENABLE_EXCEPTIONS)
 +    add_subdirectory(${LIBRARIES}/filamentapp)
- endif()
- 
- if (WASM)
-@@ -1013,22 +1029,26 @@ if (WASM)
-     # Excluded from the default build so that building filament.js does not also build the
-     # samples, their resources, and the IBL cmgen produces for them. Build the samples through
-     # the filament-samples target, or name one, e.g. gltf_viewer.
--    add_subdirectory(${FILAMENT}/samples EXCLUDE_FROM_ALL)
-+    if (FILAMENT_ENABLE_EXCEPTIONS)
-+        add_subdirectory(${FILAMENT}/samples EXCLUDE_FROM_ALL)
-+    endif()
++    add_subdirectory(${EXTERNAL}/libassimp/tnt)
  endif()
  
  if (IS_HOST_PLATFORM)
@@ -84,7 +68,7 @@ index 02c889f..a83f99c 100644
  
      add_subdirectory(${TOOLS}/cmgen)
      add_subdirectory(${TOOLS}/cso-lut)
-@@ -1050,6 +1070,12 @@ if (IS_HOST_PLATFORM)
+@@ -1036,6 +1055,12 @@ if (IS_HOST_PLATFORM)
      add_subdirectory(${TOOLS}/specgen)
  endif()
  
@@ -98,7 +82,7 @@ index 02c889f..a83f99c 100644
  if ((NOT CMAKE_CROSSCOMPILING AND NOT FILAMENT_IMPORT_PREBUILT_EXECUTABLES) OR FILAMENT_EXPORT_PREBUILT_EXECUTABLES)
      export(TARGETS matc cmgen filamesh mipgen resgen uberz glslminifier FILE ${IMPORT_EXECUTABLES})
 diff --git a/build.sh b/build.sh
-index 05a2c8d..074e794 100755
+index 05a2c8d..074e794 100644
 --- a/build.sh
 +++ b/build.sh
 @@ -286,6 +286,7 @@ function build_tools_for_split_build {
