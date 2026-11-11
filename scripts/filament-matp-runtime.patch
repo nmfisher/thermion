@@ -1,0 +1,40 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index a83f99c..0171534 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1040,11 +1040,16 @@ if (IS_HOST_PLATFORM)
+     endif()
+ endif()
+ 
++# matp (the material parser behind matc) is exception-free and is also built
++# for the Android and WASM runtimes, which compile materials on device.
++if (IS_HOST_PLATFORM OR ANDROID OR WASM)
++    add_subdirectory(${LIBRARIES}/filament-matp)
++endif()
++
+ # Desktop tools have their own host build. Runtime builds import those tools
+ # so their image encoders and command-line parsers do not enter this build.
+ if (IS_HOST_PLATFORM AND FILAMENT_ENABLE_EXCEPTIONS)
+     add_subdirectory(${LIBRARIES}/imageio)
+-    add_subdirectory(${LIBRARIES}/filament-matp)
+ 
+     add_subdirectory(${FILAMENT}/samples)
+ 
+diff --git a/libs/filament-matp/CMakeLists.txt b/libs/filament-matp/CMakeLists.txt
+index b3797b5..b006be2 100644
+--- a/libs/filament-matp/CMakeLists.txt
++++ b/libs/filament-matp/CMakeLists.txt
+@@ -51,6 +51,13 @@ target_link_libraries(${TARGET}  filamat filabridge utils)
+ # ==================================================================================================
+ install(TARGETS ${TARGET} ARCHIVE DESTINATION lib/${DIST_DIR})
+ install(DIRECTORY ${PUBLIC_HDR_DIR}/ DESTINATION include)
++# The include-resolution API used by runtime material compilation lives in
++# src/; ship those headers too so consumers can resolve #include directives
++# without a filesystem.
++install(FILES
++        src/Includes.h
++        src/IncludeCallback.h
++        DESTINATION include/filament-matp)
+ 
+ # ==================================================================================================
+ # Tests

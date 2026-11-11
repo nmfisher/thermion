@@ -108,6 +108,9 @@ REM FILAMAT_DEPS despite the filamat target linking it) - without it every
 REM consumer of the combined archive hits undefined _ZN5smolv... symbols.
 REM See the same comment in build_web.sh.
 call git apply "%SCRIPT_DIR%filament-smolv-combined.patch" || exit /b 1
+REM Build matp (the material parser behind matc) into the runtime archives and
+REM install its include-resolution headers, for runtime material compilation.
+call git apply "%SCRIPT_DIR%filament-matp-runtime.patch" || exit /b 1
 cmake -S . -B out/host-tools -DCMAKE_CONFIGURATION_TYPES=Release -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=ON -DFILAMENT_EXPORT_PREBUILT_EXECUTABLES_DIR=out/host-tools || exit /b 1
 cmake --build out/host-tools --config Release --target matc cmgen filamesh mipgen resgen uberz glslminifier || exit /b 1
 

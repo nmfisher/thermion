@@ -20,6 +20,13 @@ exceptions. The existing `build-filament.yml` workflow runs these scripts.
 - The debug frame-graph viewer parses numbers without C++ exception handling.
 - Runtime builds exclude the image decoder test that requires C++ exceptions.
 
+`filament-matp-runtime.patch` builds `matp` (the material parser behind `matc`)
+for the runtime archives on desktop, Android and WASM, and installs its
+include-resolution headers (`Includes.h`, `IncludeCallback.h`) alongside the
+public `filament-matp` headers. Thermion links `matp` when the
+`runtime_materials` build option is enabled, to compile full `.mat` packages
+with `#include` support at runtime. `matp` itself is exception-free.
+
 Linux archives also include the matching `matc` and `resgen` in `bin/`. The
 separate host-tool build enables WGSL compilation for the committed WebGPU
 materials; this does not enable a new runtime backend.

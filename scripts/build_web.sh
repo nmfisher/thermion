@@ -149,6 +149,10 @@ git apply "$SCRIPT_DIR/filament-no-exceptions.patch" || exit 1
 # a combined archive; smol-v has no deps among the bundled libs.
 git apply "$SCRIPT_DIR/filament-smolv-combined.patch" || exit 1
 
+# Build matp (the material parser behind matc) into the runtime archives and
+# install its include-resolution headers, for runtime material compilation.
+git apply "$SCRIPT_DIR/filament-matp-runtime.patch" || exit 1
+
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
 sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF \\|g' build.sh
