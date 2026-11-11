@@ -7,6 +7,7 @@ import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import '../lib/filament_version.dart';
+import '../lib/src/hooks/filament_artifacts.dart';
 import '../lib/src/hooks/material_backend_resolution.dart';
 import '../lib/src/hooks/web_artifacts.dart';
 import '../lib/src/logging/log.dart';
@@ -631,8 +632,21 @@ outputDirectory : ${outputDirectory.path}
   });
 }
 
-String _getLibraryUrl(String version, String platform, String mode) {
-  return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${version}-${platform}-${mode}.zip";
+/// Loads the shipped artifact pin (filament.libs.json at the package root).
+/// Missing/malformed pins degrade to legacy artifact keys with a warning —
+/// see lib/src/hooks/filament_artifacts.dart.
+FilamentPin _loadFilamentPin(Uri packageRoot, Logger logger) {
+  final file = File(path.join(
+      packageRoot.toFilePath(windows: Platform.isWindows),
+      filamentPinFileName));
+  final warnings = <String>[];
+  final pin = parseFilamentPin(
+      file.existsSync() ? file.readAsStringSync() : null,
+      warnings: warnings);
+  for (final warning in warnings) {
+    logger.warning(warning);
+  }
+  return pin;
 }
 
 const _maxRetries = 3;
@@ -710,6 +724,14 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
 
   var mode = buildMode == BuildMode.debug ? "debug" : "release";
 
+  // Content-addressed artifact resolution: a pinned entry in
+  // filament.libs.json selects an immutable hash-suffixed zip (and its
+  // full SHA-256 for download verification); unpinned entries fall back
+  // to the legacy mutable key. See lib/src/hooks/filament_artifacts.dart.
+  // Resolved AFTER the platform splits below so ios-simulator/linux-arm64
+  // use their own pin entries.
+  final pin = _loadFilamentPin(packageRoot, logger);
+
   var libDir = Directory(
     path.join(
       packageRoot.toFilePath(windows: Platform.isWindows),
@@ -746,11 +768,21 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
     }
   }
 
+  // Resolve the artifact for the FINAL platform slug (post ios-simulator /
+  // linux-arm64 split). Pinned artifacts get a hash-scoped cache directory:
+  // flipping the pin lands in a fresh dir, so the old `success` token can
+  // never mask new contents (and reverting the pin reuses the old cache).
+  // Unpinned artifacts keep the exact legacy path — existing caches stay valid.
+  final artifact = resolveFilamentArtifact(version, platform, mode, pin);
+  if (artifact.cacheSuffix.isNotEmpty) {
+    libDir = Directory('${libDir.path}${artifact.cacheSuffix}');
+  }
+
   logger.info("Searching for Filament libraries under ${libDir.path}");
 
-  var url = _getLibraryUrl(version, platform, mode);
+  final url = artifact.url;
 
-  final filename = url.split("/").last;
+  final filename = artifact.zipName;
 
   // We will write an empty file called success to the unzip directory after successfully downloading/extracting the prebuilt libraries.
   // If this file already exists, we assume everything has been successfully extracted and skip
@@ -785,6 +817,24 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
       "Downloaded library zip hash: $downloadedHash, size: ${downloadedBytes.length} bytes (${libraryZip.path})",
     );
 
+    // Content-addressed artifacts are verified against the pin's full
+    // SHA-256 before extraction: a corrupt/truncated download (or a proxy
+    // serving an error page with HTTP 200) must never be cached under the
+    // success token. Legacy (unpinned) artifacts have no digest to check.
+    final expectedSha = artifact.sha256;
+    if (expectedSha != null) {
+      final actualSha = sha256.convert(downloadedBytes).toString();
+      if (actualSha != expectedSha) {
+        libraryZip.deleteSync();
+        throw Exception(
+          "SHA-256 mismatch for $filename: pin expects $expectedSha, "
+          "downloaded $actualSha. The artifact on R2 does not match "
+          "$filamentPinFileName — re-publish it or fix the pin.",
+        );
+      }
+      logger.info("SHA-256 verified against $filamentPinFileName");
+    }
+
     final archive = ZipDecoder().decodeBytes(downloadedBytes);
 
     for (final file in archive) {
@@ -817,9 +867,10 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
       "include/bluevk/BlueVK.h is missing from the $platform/$mode artifact; "
       "fetching bluevk headers from the release artifact to repair the cache",
     );
-    final releaseUrl = _getLibraryUrl(version, platform, "release");
+    final releaseArtifact = resolveFilamentArtifact(version, platform, "release", pin);
+    final releaseUrl = releaseArtifact.url;
     final releaseZip = File(
-      path.join(Directory.systemTemp.path, 'thermion_bluevk_repair_${path.basename(releaseUrl)}'),
+      path.join(Directory.systemTemp.path, 'thermion_bluevk_repair_${releaseArtifact.zipName}'),
     );
     final releaseRequest = await HttpClient().getUrl(Uri.parse(releaseUrl));
     final releaseResponse = await releaseRequest.close();
@@ -827,7 +878,16 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
       throw Exception("Release libraries not found at $releaseUrl (needed for missing bluevk headers)");
     }
     await releaseResponse.pipe(releaseZip.openWrite());
-    final releaseArchive = ZipDecoder().decodeBytes(await releaseZip.readAsBytes());
+    final releaseBytes = await releaseZip.readAsBytes();
+    // Same pin verification as the main download when the release artifact
+    // is content-addressed.
+    if (releaseArtifact.sha256 != null &&
+        sha256.convert(releaseBytes).toString() != releaseArtifact.sha256) {
+      await releaseZip.delete();
+      throw Exception("SHA-256 mismatch for ${releaseArtifact.zipName} "
+          "(bluevk repair download) — see $filamentPinFileName.");
+    }
+    final releaseArchive = ZipDecoder().decodeBytes(releaseBytes);
     for (final file in releaseArchive) {
       if (!file.isFile) continue;
       final name = file.name;

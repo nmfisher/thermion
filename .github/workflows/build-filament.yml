@@ -30,7 +30,7 @@ on:
         default: true
         type: boolean
       upload_to_r2:
-        description: 'Upload artifacts to R2 (OVERWRITES canonical filament-<version>-* keys). Prefer false, then publish via publish-filament-to-r2.yml (staging prefix + backup).'
+        description: 'Upload artifacts to R2 under immutable content-addressed keys (never overwrites). Record them into the pin via publish-filament-to-r2.yml. Prefer false + publish workflow for verified rollout.'
         required: false
         default: true
         type: boolean
@@ -131,10 +131,8 @@ jobs:
         run: |
           pip3 install --break-system-packages awscli
           for variant in release debug; do
-            aws s3 cp \
-              "output/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}.zip" \
-              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}.zip" \
-              --endpoint-url "${{ env.R2_ENDPOINT }}"
+            bash scripts/upload_filament_hashed.sh \
+              "output/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}.zip"
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -204,10 +202,8 @@ jobs:
           pip3 install --break-system-packages awscli
           for platform in ios ios-simulator; do
             for variant in release debug; do
-              aws s3 cp \
-                "output/filament-${{ env.FILAMENT_VERSION }}-${platform}-${variant}.zip" \
-                "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-${platform}-${variant}.zip" \
-                --endpoint-url "${{ env.R2_ENDPOINT }}"
+              bash scripts/upload_filament_hashed.sh \
+                "output/filament-${{ env.FILAMENT_VERSION }}-${platform}-${variant}.zip"
             done
           done
         env:
@@ -271,10 +267,8 @@ jobs:
         if: inputs.upload_to_r2
         run: |
           for variant in release debug; do
-            aws s3 cp \
-              "output/filament-${{ env.FILAMENT_VERSION }}-android-${variant}.zip" \
-              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-android-${variant}.zip" \
-              --endpoint-url "${{ env.R2_ENDPOINT }}"
+            bash scripts/upload_filament_hashed.sh \
+              "output/filament-${{ env.FILAMENT_VERSION }}-android-${variant}.zip"
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -410,10 +404,8 @@ jobs:
         if: inputs.upload_to_r2
         run: |
           for variant in release debug; do
-            aws s3 cp \
-              "output/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}.zip" \
-              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}.zip" \
-              --endpoint-url "${{ env.R2_ENDPOINT }}"
+            bash scripts/upload_filament_hashed.sh \
+              "output/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}.zip"
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -541,10 +533,8 @@ jobs:
         if: inputs.upload_to_r2
         run: |
           for variant in release debug; do
-            aws s3 cp \
-              "output/filament-${{ env.FILAMENT_VERSION }}-linux-arm64-${variant}.zip" \
-              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-linux-arm64-${variant}.zip" \
-              --endpoint-url "${{ env.R2_ENDPOINT }}"
+            bash scripts/upload_filament_hashed.sh \
+              "output/filament-${{ env.FILAMENT_VERSION }}-linux-arm64-${variant}.zip"
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -621,10 +611,8 @@ jobs:
         run: |
           pip install awscli
           for variant in release debug; do
-            aws s3 cp \
-              "output/filament-${{ env.FILAMENT_VERSION }}-windows-${variant}.zip" \
-              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-windows-${variant}.zip" \
-              --endpoint-url "${{ env.R2_ENDPOINT }}"
+            bash scripts/upload_filament_hashed.sh \
+              "output/filament-${{ env.FILAMENT_VERSION }}-windows-${variant}.zip"
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -680,10 +668,8 @@ jobs:
         if: inputs.upload_to_r2
         run: |
           for variant in release debug; do
-            aws s3 cp \
-              "output/filament-${{ env.FILAMENT_VERSION }}-web-${variant}.zip" \
-              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-web-${variant}.zip" \
-              --endpoint-url "${{ env.R2_ENDPOINT }}"
+            bash scripts/upload_filament_hashed.sh \
+              "output/filament-${{ env.FILAMENT_VERSION }}-web-${variant}.zip"
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}

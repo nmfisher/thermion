@@ -1,16 +1,20 @@
 FILAMENT_VERSION := $(word 2,$(shell cat filament.version))
+# Pin-aware artifact resolution (thermion_dart/filament.libs.json): uses the
+# immutable hash-suffixed key when pinned, else the legacy key.
+FILAMENT_WEB_ZIP := $(shell python3 scripts/filament-artifact-url.py web release --name-only)
+FILAMENT_WEB_URL := $(shell python3 scripts/filament-artifact-url.py web release)
 
 wasm:
-	@if [ ! -f thermion_dart/native/web/lib/release/filament-$(FILAMENT_VERSION)-web-release.zip ]; then \
-		echo "Downloading filament-$(FILAMENT_VERSION)-web-release.zip..."; \
+	@if [ ! -f thermion_dart/native/web/lib/release/$(FILAMENT_WEB_ZIP) ]; then \
+		echo "Downloading $(FILAMENT_WEB_ZIP)..."; \
 		mkdir -p thermion_dart/native/web/lib/release; \
-		curl -L -o thermion_dart/native/web/lib/release/filament-$(FILAMENT_VERSION)-web-release.zip \
-			https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-$(FILAMENT_VERSION)-web-release.zip; \
+		curl -fL -o thermion_dart/native/web/lib/release/$(FILAMENT_WEB_ZIP) \
+			$(FILAMENT_WEB_URL); \
 	fi
-	@echo "Extracting filament-$(FILAMENT_VERSION)-web-release.zip..."; \
+	@echo "Extracting $(FILAMENT_WEB_ZIP)..."; \
 	cd thermion_dart/native/web/lib/release && \
 	rm -rf include lib && \
-	unzip -o filament-$(FILAMENT_VERSION)-web-release.zip
+	unzip -o $(FILAMENT_WEB_ZIP)
 	cd thermion_dart/native/web && \
 	mkdir -p build && \
 	cd build && \

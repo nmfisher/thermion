@@ -336,7 +336,9 @@ jobs:
           # artifact zip must contain libfilamat.a (FILAMENT_BUILD_FILAMAT=ON
           # in scripts/build_web.sh) and libmatp.a + the filament-matp headers
           # (scripts/filament-matp-runtime.patch); older caches predate them.
-          key: filament-web-${{ hashFiles('filament.version') }}-filamat-matp
+          # The pin file participates in the key: a pin flip (new content-
+          # addressed artifact) rotates the cache automatically.
+          key: filament-web-${{ hashFiles('filament.version', 'thermion_dart/filament.libs.json') }}-filamat-matp
 
       - name: Compile web
         if: steps.changes.outputs.native-changed == 'true'
@@ -371,15 +373,18 @@ jobs:
              [ ! -f thermion_dart/native/web/lib/release/include/filament-matp/Includes.h ]; then
             echo "filamat/matp missing from cached artifact; re-fetching from R2..."
             rm -f thermion_dart/native/web/lib/release/filament-*.zip
-            FILAMENT_VERSION="$(cut -d' ' -f2 filament.version)"
-            if ! curl -fL -o "thermion_dart/native/web/lib/release/filament-${FILAMENT_VERSION}-web-release.zip" \
-                "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${FILAMENT_VERSION}-web-release.zip"; then
+            # Pin-aware URL (thermion_dart/filament.libs.json): hash-suffixed
+            # immutable key when pinned, legacy key otherwise.
+            FILAMENT_WEB_URL="$(python3 scripts/filament-artifact-url.py web release)"
+            FILAMENT_WEB_ZIP="$(basename "$FILAMENT_WEB_URL")"
+            if ! curl -fL -o "thermion_dart/native/web/lib/release/${FILAMENT_WEB_ZIP}" \
+                "$FILAMENT_WEB_URL"; then
               echo "::warning::failed to fetch the Filament web zip from R2; skipping the runtime-materials engine build."
               exit 0
             fi
             cd thermion_dart/native/web/lib/release
             rm -rf include lib
-            unzip -o "filament-${FILAMENT_VERSION}-web-release.zip"
+            unzip -o "$FILAMENT_WEB_ZIP"
             cd "$GITHUB_WORKSPACE"
             if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ] || \
                [ ! -f thermion_dart/native/web/lib/release/libmatp.a ] || \

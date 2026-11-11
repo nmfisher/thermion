@@ -1,36 +1,40 @@
 name: Publish Filament to R2 (from artifacts)
 
 # Copy already-built Filament zips from the GitHub artifacts of VERIFIED
-# 'Build Filament' runs into R2, without rebuilding. This is the safe path
-# for refreshing artifacts that production consumers may already be using:
+# 'Build Filament' runs into R2 under IMMUTABLE content-addressed keys, and
+# record their digests into the pin file thermion_dart/filament.libs.json.
+# Nothing is ever overwritten; the pin flip is the rollout gate.
 #
-#   1. Dispatch 'Build Filament' with upload_to_r2: false. Every platform
-#      still uploads its zips as workflow artifacts (7-day retention).
-#      Nothing on R2 changes.
+#   1. Dispatch 'Build Filament' (upload_to_r2 either way — its uploads are
+#      content-addressed too). Zips also land as workflow artifacts
+#      (7-day retention: publish promptly).
 #   2. Verify the zips (contents; a runtime_materials test run against them).
-#   3. Dispatch THIS workflow with the build run's ID. The default
-#      key_prefix ('staging') uploads beside the canonical keys, so the
-#      objects production downloads are never touched:
-#        s3://thermion/staging/filament-<version>-<platform>-<variant>.zip
-#   4. Verify the staged objects, then dispatch again with key_prefix ''
-#      and confirm_overwrite 'OVERWRITE'. The current canonical objects
-#      are first copied (server-side) to backups/<UTC timestamp>/, and
-#      only then overwritten. Rollback = copy the backup objects back.
+#   3. Dispatch THIS workflow with the build run's IDs. It downloads each
+#      artifact, computes its SHA-256, uploads
+#        s3://thermion/filament-<v>-<platform>-<variant>-<hash16>.zip
+#      (skipping keys that already exist) and merges the digests into
+#      filament.libs.json. The merged pin is uploaded as the
+#      'filament-libs-pin' workflow artifact.
+#   4. Roll out by committing the pin: set commit_pin true to push the pin
+#      update to the branch this workflow is dispatched from, or download
+#      the pin artifact and commit it yourself. Consumers on that revision
+#      then fetch the hash-keyed zips (verified against the full digest).
+#      Rollback = revert the pin commit; the old artifacts remain on R2.
 #
 # Safety properties:
-# - Canonical keys are only written when key_prefix is empty AND
-#   confirm_overwrite is exactly 'OVERWRITE'; anything else fails closed.
-# - The backup step aborts the publish if any copy fails (only a missing
-#   source object is tolerated) and never overwrites an existing backup.
-# - Platforms whose run input is empty are skipped entirely; a missing
-#   artifact inside a provided run warns and skips (iOS simulator zips may
-#   legitimately be absent from older runs).
-# - Artifacts expire after 7 days: publish promptly after the build run.
+# - Only hash-suffixed keys are written. Identical content re-uploads are
+#   no-ops; different content gets a different key. The legacy mutable
+#   filament-<v>-<p>-<m>.zip keys are never touched (frozen compat surface
+#   for already-published thermion versions).
+# - Run IDs are validated before any upload; a typo fails the run.
+# - A missing artifact inside a provided run warns and skips (e.g. iOS
+#   simulator zips in older runs); zero published artifacts fails the run.
+# - The pin merge is additive per platform/variant: platforms not provided
+#   keep their existing entries.
 #
-# Note: the hook caches extracted libs under a 'success' token and never
-# re-downloads, so replacing canonical objects only affects fresh caches.
-#
-# Safe to delete once publishing is done.
+# The hook (thermion_dart/hook/build.dart) reads the shipped pin; entries
+# absent from it fall back to the legacy keys, so this workflow can be
+# adopted platform-by-platform. See lib/src/hooks/filament_artifacts.dart.
 
 on:
   workflow_dispatch:
@@ -63,14 +67,11 @@ on:
         description: 'Web Build Filament run ID (empty = skip platform)'
         required: false
         default: ''
-      key_prefix:
-        description: "R2 key prefix. Default 'staging' keeps canonical keys untouched; '' = canonical (needs confirm_overwrite)"
+      commit_pin:
+        description: 'Commit the merged filament.libs.json to the branch this workflow runs on (the rollout). false = pin artifact only.'
         required: false
-        default: 'staging'
-      confirm_overwrite:
-        description: "Type OVERWRITE to allow canonical uploads (key_prefix ''). Canonical objects are backed up to backups/<UTC>/ first."
-        required: false
-        default: ''
+        default: false
+        type: boolean
 
 env:
   R2_BUCKET_NAME: thermion
@@ -82,108 +83,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Back up canonical objects (canonical publishes only)
-        if: inputs.key_prefix == ''
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: auto
-          CONFIRM_OVERWRITE: ${{ inputs.confirm_overwrite }}
-          MACOS_RUN: ${{ inputs.macos_run }}
-          IOS_RUN: ${{ inputs.ios_run }}
-          ANDROID_RUN: ${{ inputs.android_run }}
-          LINUX_RUN: ${{ inputs.linux_run }}
-          LINUX_ARM64_RUN: ${{ inputs.linux_arm64_run }}
-          WINDOWS_RUN: ${{ inputs.windows_run }}
-          WEB_RUN: ${{ inputs.web_run }}
-        run: |
-          set -euo pipefail
-          if [ "$CONFIRM_OVERWRITE" != "OVERWRITE" ]; then
-            echo "ERROR: key_prefix '' targets the canonical keys production downloads."
-            echo "Set confirm_overwrite to 'OVERWRITE' to proceed, or use a key_prefix (e.g. 'staging')."
-            exit 1
-          fi
-          # GitHub runners ship AWS CLI v2; only install if missing (plain
-          # 'pip install' fails on PEP 668 externally-managed environments).
-          command -v aws >/dev/null 2>&1 || pip install --quiet --break-system-packages awscli
-
-          # Fail fast if no platform was requested (the upload step also
-          # enforces this after downloading; checking here avoids the noise).
-          if [ -z "$MACOS_RUN$IOS_RUN$ANDROID_RUN$LINUX_RUN$LINUX_ARM64_RUN$WINDOWS_RUN$WEB_RUN" ]; then
-            echo "ERROR: no run IDs provided; nothing to publish."
-            exit 1
-          fi
-
-          # One timestamp for the whole backup set so rollback is a single
-          # prefix copy. Server-side copies: no download/re-upload.
-          STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-          echo "Backing up canonical objects to backups/$STAMP/"
-
-          backup_one() {
-            local key="$1"
-            local dest="backups/$STAMP/$key"
-            # Never clobber an existing backup (timestamps collide only if
-            # two publishes start in the same second; fail closed instead).
-            if aws s3api head-object --bucket "$R2_BUCKET_NAME" --key "$dest" \
-                --endpoint-url "$R2_ENDPOINT" >/dev/null 2>&1; then
-              echo "ERROR: backup object already exists: $dest"
-              exit 1
-            fi
-            local err
-            if err="$(aws s3 cp "s3://$R2_BUCKET_NAME/$key" "s3://$R2_BUCKET_NAME/$dest" \
-                --endpoint-url "$R2_ENDPOINT" 2>&1)"; then
-              echo "backed up: $key -> $dest"
-            elif echo "$err" | grep -qE '\(404\)|Not Found|NoSuchKey'; then
-              # Nothing published for this key yet; nothing to back up.
-              echo "no existing object (skipped): $key"
-            else
-              # Any other failure (credentials, network, permissions) must
-              # abort BEFORE anything is overwritten.
-              echo "ERROR: backup failed for $key:"
-              echo "$err"
-              exit 1
-            fi
-          }
-
-          # Back up exactly the canonical keys this publish may overwrite:
-          # the same platform/variant set the upload step below will write.
-          # A platform whose run input is empty is skipped there too, so its
-          # keys are neither backed up nor touched. Keys are constructed from
-          # this checkout's filament.version pin; if the run built a different
-          # version the copy 404s and is skipped (the upload then writes the
-          # new version's keys, which never existed before).
-          read -r _repo version < filament.version
-          any=0
-          for pair in "macos:$MACOS_RUN" "ios:$IOS_RUN" "android:$ANDROID_RUN" \
-                      "linux:$LINUX_RUN" "linux-arm64:$LINUX_ARM64_RUN" \
-                      "windows:$WINDOWS_RUN" "web:$WEB_RUN"; do
-            platform="${pair%%:*}"
-            run_id="${pair#*:}"
-            [ -n "$run_id" ] || continue
-            # The iOS job uploads device and simulator zips from one run.
-            platforms="$platform"
-            [ "$platform" = "ios" ] && platforms="ios ios-simulator"
-            for p in $platforms; do
-              for variant in release debug; do
-                backup_one "filament-${version}-${p}-${variant}.zip"
-                any=1
-              done
-            done
-          done
-          if [ "$any" -eq 0 ]; then
-            echo "No run IDs provided; nothing to back up (the upload step will fail)."
-          else
-            echo "Backup complete: backups/$STAMP/"
-          fi
-
-      - name: Download artifacts and copy to R2
+      - name: Download artifacts, upload hash keys, merge pin
+        id: publish
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          KEY_PREFIX: ${{ inputs.key_prefix }}
-          CONFIRM_OVERWRITE: ${{ inputs.confirm_overwrite }}
           MACOS_RUN: ${{ inputs.macos_run }}
           IOS_RUN: ${{ inputs.ios_run }}
           ANDROID_RUN: ${{ inputs.android_run }}
@@ -194,33 +100,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Fail closed on canonical publishes without explicit confirmation
-          # (the backup step enforces this too; re-check here so the upload
-          # can never run unconfirmed even if steps are reordered).
-          if [ -z "$KEY_PREFIX" ] && [ "$CONFIRM_OVERWRITE" != "OVERWRITE" ]; then
-            echo "ERROR: canonical publish requires confirm_overwrite 'OVERWRITE'."
+          if [ -z "$MACOS_RUN$IOS_RUN$ANDROID_RUN$LINUX_RUN$LINUX_ARM64_RUN$WINDOWS_RUN$WEB_RUN" ]; then
+            echo "ERROR: no run IDs provided; nothing to publish."
             exit 1
           fi
-
-          # Normalize the prefix: no leading slash, at most one trailing
-          # slash, no '..' segments (keys must stay inside the bucket root).
-          PREFIX="$KEY_PREFIX"
-          PREFIX="${PREFIX#/}"
-          case "$PREFIX" in
-            *..*) echo "ERROR: key_prefix must not contain '..'"; exit 1 ;;
-          esac
-          if [ -n "$PREFIX" ]; then
-            PREFIX="${PREFIX%/}/"
-          fi
-          # A prefix that normalizes to empty (e.g. '/') targets the canonical
-          # keys, but the backup step only runs for a literally empty
-          # key_prefix input. Refuse rather than overwrite without a backup.
-          if [ -z "$PREFIX" ] && [ -n "$KEY_PREFIX" ]; then
-            echo "ERROR: key_prefix '$KEY_PREFIX' normalizes to the canonical keys."
-            echo "Use key_prefix '' (with confirm_overwrite 'OVERWRITE') for a canonical publish."
-            exit 1
-          fi
-          echo "Publishing under prefix: '${PREFIX:-<canonical>}'"
 
           # GitHub runners ship AWS CLI v2; only install if missing (plain
           # 'pip install' fails on PEP 668 externally-managed environments).
@@ -240,6 +123,10 @@ jobs:
           done
 
           published=0
+          skipped=0
+          # pin-entries.json accumulates "<platform>/<variant>": "<sha256>"
+          # fragments; merged into filament.libs.json by the python step.
+          : > pin-entries.jsonl
           publish_platform() {
             local platform="$1" run_id="$2"
             if [ -z "$run_id" ]; then
@@ -259,11 +146,30 @@ jobs:
                 echo "ERROR: no zip found inside artifact $name"
                 exit 1
               fi
-              local base
-              base="$(basename "$zip")"
-              echo "=== $name: uploading $base to s3://$R2_BUCKET_NAME/${PREFIX}${base} ==="
-              aws s3 cp "$zip" "s3://${R2_BUCKET_NAME}/${PREFIX}${base}" --endpoint-url "${R2_ENDPOINT}"
-              published=$((published + 1))
+              local base sha hash16 key
+              base="$(basename "$zip" .zip)"
+              sha="$(sha256sum "$zip" | cut -d' ' -f1)"
+              # Cross-check against the sidecar the build uploaded (if present).
+              if [ -f "${zip}.sha256" ]; then
+                local recorded
+                recorded="$(cut -d' ' -f1 "${zip}.sha256")"
+                if [ "$recorded" != "$sha" ]; then
+                  echo "ERROR: $base digest mismatch vs build sidecar ($recorded != $sha); artifact corrupted in transit?"
+                  exit 1
+                fi
+              fi
+              hash16="${sha:0:16}"
+              key="${base}-${hash16}.zip"
+              if aws s3api head-object --bucket "$R2_BUCKET_NAME" --key "$key" \
+                  --endpoint-url "$R2_ENDPOINT" >/dev/null 2>&1; then
+                echo "=== $key already on R2 (identical content) -- skipping upload ==="
+                skipped=$((skipped + 1))
+              else
+                echo "=== uploading $key (sha256 $sha) ==="
+                aws s3 cp "$zip" "s3://${R2_BUCKET_NAME}/${key}" --endpoint-url "$R2_ENDPOINT"
+                published=$((published + 1))
+              fi
+              printf '"%s/%s" "%s"\n' "$platform" "$variant" "$sha" >> pin-entries.jsonl
             done
           }
 
@@ -277,8 +183,65 @@ jobs:
           publish_platform windows      "$WINDOWS_RUN"
           publish_platform web          "$WEB_RUN"
 
-          if [ "$published" -eq 0 ]; then
+          if [ ! -s pin-entries.jsonl ]; then
             echo "ERROR: nothing was published. Provide at least one run ID with artifacts."
             exit 1
           fi
-          echo "=== published $published zip(s) under prefix '${PREFIX:-<canonical>}' ==="
+          echo "=== uploaded $published new zip(s), $skipped already present ==="
+
+      - name: Merge digests into filament.libs.json
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, pathlib, sys
+
+          pin_path = pathlib.Path("thermion_dart/filament.libs.json")
+          pin = json.loads(pin_path.read_text()) if pin_path.exists() else {}
+          if not isinstance(pin, dict):
+              sys.exit("filament.libs.json is not a JSON object")
+
+          changed = []
+          for line in pathlib.Path("pin-entries.jsonl").read_text().splitlines():
+              key, sha = line.split()
+              key, sha = key.strip('"'), sha.strip('"')
+              if pin.get(key) != sha:
+                  changed.append(f"{key}: {pin.get(key, '<absent>')} -> {sha}")
+              pin[key] = sha
+
+          # Sorted keys + trailing newline: same format as encodeFilamentPin
+          # in lib/src/hooks/filament_artifacts.dart (stable diffs).
+          pin_path.write_text(json.dumps(pin, indent=2, sort_keys=True) + "\n")
+          print("Pin changes:" if changed else "Pin unchanged (all digests already recorded).")
+          for c in changed:
+              print("  " + c)
+          PY
+          cat thermion_dart/filament.libs.json
+
+      - name: Upload merged pin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-libs-pin
+          path: thermion_dart/filament.libs.json
+          retention-days: 30
+
+      - name: Commit pin (rollout)
+        if: inputs.commit_pin
+        env:
+          PUSH_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Commit BEFORE rebasing (same pattern as the web.version commit in
+          # regenerate-bindings-and-materials.yml): --autostash absorbs any
+          # other stray dirt; a rebase cannot run over a dirty tree.
+          git add thermion_dart/filament.libs.json
+          if git diff --cached --quiet; then
+            echo "Pin unchanged; nothing to commit."
+            exit 0
+          fi
+          git commit -m "chore: pin Filament artifacts (content-addressed R2 keys)"
+          git pull --rebase --autostash origin "$PUSH_BRANCH"
+          # GITHUB_TOKEN push on purpose: suppresses workflow re-triggers
+          # (same rationale as regenerate-bindings-and-materials.yml).
+          git push origin "HEAD:$PUSH_BRANCH"
