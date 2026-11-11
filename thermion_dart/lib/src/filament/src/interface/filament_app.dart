@@ -144,13 +144,13 @@ abstract class FilamentApp<T> {
   Future<Material> createMaterial(Uint8List data);
 
   /// Whether the loaded native build supports compiling materials from
-  /// GLSL source at runtime (the `runtime_materials` build flag).
+  /// source at runtime (the `runtime_materials` build flag).
   ///
   /// False when the app was built without the flag — including the default
   /// web engine (the filamat-enabled web variant reports true) and iOS
-  /// (unsupported). When false, [compileMaterialSource] throws
-  /// [UnsupportedError]; use `matc`-compiled `.filamat` packages with
-  /// [createMaterial] instead.
+  /// (unsupported). When false, [compileMaterialSource] and
+  /// [compileMaterialPackage] throw [UnsupportedError]; use `matc`-compiled
+  /// `.filamat` packages with [createMaterial] instead.
   bool get runtimeMaterialsSupported;
 
   /// Compiles GLSL material [source] to a `.filamat` package at runtime and
@@ -177,6 +177,46 @@ abstract class FilamentApp<T> {
   /// This is a synchronous, CPU-intensive native call (hundreds of ms).
   /// Prefer calling before startup or from a background isolate.
   Future<Material> compileMaterialSource(String name, String source, {MaterialShading shading = MaterialShading.lit});
+
+  /// Compiles a full `.mat` material package [source] at runtime — the same
+  /// format the `matc` tool accepts — and creates a [Material] from it.
+  ///
+  /// Unlike [compileMaterialSource] (bare `material()` GLSL), [source] is a
+  /// complete `.mat` file with a `material { ... }` configuration block
+  /// (name, shading model, parameters, variants, ...), optional
+  /// `vertex { ... }` code and a `fragment { ... }` block:
+  ///
+  /// ```
+  /// material {
+  ///     name : "MyMaterial",
+  ///     shadingModel : unlit,
+  ///     parameters : [ { type : float4, name : baseColor } ]
+  /// }
+  /// fragment {
+  ///     void material(inout MaterialInputs material) {
+  ///         prepareMaterial(material);
+  ///         material.baseColor = materialParams.baseColor;
+  ///     }
+  /// }
+  /// ```
+  ///
+  /// [includes] optionally maps include names to file contents. Every
+  /// `#include "name"` directive in [source] (and in included files) is
+  /// resolved against this map by exact name; there is no filesystem
+  /// access. Unresolvable includes fail the compile.
+  ///
+  /// [name] labels the material in diagnostics. All other compilation
+  /// settings (shading model, parameters, blending, ...) come from the
+  /// `.mat` source itself.
+  ///
+  /// Throws [UnsupportedError] when [runtimeMaterialsSupported] is false,
+  /// and [ArgumentError] for an empty [source]. Include-resolution, parse
+  /// and compile failures are logged through the Filament logger and
+  /// rethrown as a [StateError].
+  ///
+  /// This is a synchronous, CPU-intensive native call (hundreds of ms).
+  /// Prefer calling before startup or from a background isolate.
+  Future<Material> compileMaterialPackage(String name, String source, {Map<String, String>? includes});
 
   //
   Future<MaterialInstance> createUbershaderMaterialInstance({

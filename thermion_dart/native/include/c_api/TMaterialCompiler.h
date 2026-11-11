@@ -66,6 +66,49 @@ extern "C"
         const char *materialSource,
         TShading shading);
 
+    /// Compiles a full .mat material package source at runtime, using the same
+    /// parser (matp) that backs the matc tool. Unlike
+    /// MaterialCompiler_compileMaterialSource, `matSource` is a complete .mat
+    /// file: `material { ... }` configuration blocks (name, shading model,
+    /// parameters, variants, ...), optional `vertex { ... }` code and the
+    /// `fragment { ... }` block, e.g.:
+    ///
+    ///   material {
+    ///       name : "MyMaterial",
+    ///       shadingModel : unlit,
+    ///       parameters : [ { type : float4, name : baseColor } ]
+    ///   }
+    ///   fragment {
+    ///       void material(inout MaterialInputs material) {
+    ///           prepareMaterial(material);
+    ///           material.baseColor = materialParams.baseColor;
+    ///       }
+    ///   }
+    ///
+    /// `includesJson` is either null or a JSON object mapping include names to
+    /// file contents, e.g. {"common.glsl": "..."}. `#include "name"` directives
+    /// in the source (and in included files) are resolved against this map by
+    /// exact name before parsing; there is no filesystem access. The JSON must
+    /// be a flat object of string keys to string values (what Dart's
+    /// json.encode emits for a Map<String, String>); all standard JSON string
+    /// escapes, including \u and surrogate pairs, are supported.
+    ///
+    /// The platform/target API/optimization are derived the same way as
+    /// MaterialCompiler_compileMaterialSource; all other compilation settings
+    /// come from the .mat source itself.
+    ///
+    /// Returns null when include resolution, parsing or compilation fails, or
+    /// when this build lacks runtime material support. Failure diagnostics are
+    /// logged through the Filament logger. Blocking/threading semantics and
+    /// ownership of the returned package match
+    /// MaterialCompiler_compileMaterialSource.
+    EMSCRIPTEN_KEEPALIVE TMaterialCompilerPackage *MaterialCompiler_compileMaterialPackage(
+        TJobThread *tJobThread,
+        TEngine *tEngine,
+        const char *name,
+        const char *matSource,
+        const char *includesJson);
+
     /// Copies the compiled package bytes into `out`, which must hold at least
     /// MaterialCompiler_getPackageSize bytes. Returns the number of bytes copied.
     EMSCRIPTEN_KEEPALIVE size_t MaterialCompiler_getPackageBytes(
@@ -83,8 +126,8 @@ extern "C"
     /// Returns the byte size of the compiled package.
     EMSCRIPTEN_KEEPALIVE size_t MaterialCompiler_getPackageSize(TMaterialCompilerPackage *package);
 
-    /// Frees a package returned by MaterialCompiler_compileMaterialSource.
-    /// Null is ignored.
+    /// Frees a package returned by MaterialCompiler_compileMaterialSource or
+    /// MaterialCompiler_compileMaterialPackage. Null is ignored.
     EMSCRIPTEN_KEEPALIVE void MaterialCompiler_destroyPackage(TMaterialCompilerPackage *package);
 
 #ifdef __cplusplus

@@ -382,16 +382,21 @@ target_link_libraries(${MODULE_NAME}
 
 # Runtime material compilation. filamat's combined archive already bundles
 # glslang/SPIRV/spirv-cross/zstd; shaders provides the SHADERS_PACKAGE chunks
-# CodeGenerator bakes into every material. smol_v comes AFTER filamat (it is
-# a leaf library filamat references).
+# CodeGenerator bakes into every material. matp (the .mat parser behind matc,
+# for compileMaterialPackage) references filamat, so it comes BEFORE it;
+# smol_v comes AFTER filamat (it is a leaf library filamat references).
 if(THERMION_ENABLE_RUNTIME_MATERIALS)
   add_library(shaders STATIC IMPORTED)
   set_property(TARGET shaders PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libshaders.a")
   set_property(TARGET shaders PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libshaders.a")
   set_property(TARGET shaders PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libshaders.a")
+  add_library(matp STATIC IMPORTED)
+  set_property(TARGET matp PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libmatp.a")
+  set_property(TARGET matp PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libmatp.a")
+  set_property(TARGET matp PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libmatp.a")
   target_compile_definitions(${MODULE_NAME} PRIVATE THERMION_ENABLE_RUNTIME_MATERIALS=1)
-  target_link_libraries(${MODULE_NAME} filamat shaders smol_v)
-  message(STATUS "Runtime material compilation enabled (filamat + smol-v linked)")
+  target_link_libraries(${MODULE_NAME} matp filamat shaders smol_v)
+  message(STATUS "Runtime material compilation enabled (matp + filamat + smol-v linked)")
 endif()
 
 # Force linker to include all symbols from external libraries (prevents dead code elimination)

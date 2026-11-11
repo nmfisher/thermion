@@ -265,6 +265,12 @@ outputDirectory : ${outputDirectory.path}
     var libs = [
       "filament",
       "backend",
+      // matp: the .mat parser behind matc, used by
+      // MaterialCompiler_compileMaterialPackage. Opt-in with the same
+      // runtime_materials flag (never needed by debug/Linux's filamat-only
+      // uses). Must come BEFORE filamat: matp references
+      // filamat::MaterialBuilder, and GNU ld resolves archives left to right.
+      if (runtimeMaterials && targetOS != OS.iOS) "matp",
       // Runtime material compilation (filamat::MaterialBuilder). Opt-in via
       // the `runtime_materials` user define; see the block that parses it
       // above. Release builds link it only when enabled (it would otherwise

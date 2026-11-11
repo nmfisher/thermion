@@ -1121,6 +1121,50 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _Mat4_destroy(Pointer<TMat4> matrix);
   external Pointer<Float64> _Mat4_getData(Pointer<TMat4> matrix);
 
+  /// Compiles a full .mat material package source at runtime, using the same
+  /// parser (matp) that backs the matc tool. Unlike
+  /// MaterialCompiler_compileMaterialSource, `matSource` is a complete .mat
+  /// file: `material { ... }` configuration blocks (name, shading model,
+  /// parameters, variants, ...), optional `vertex { ... }` code and the
+  /// `fragment { ... }` block, e.g.:
+  ///
+  /// material {
+  /// name : "MyMaterial",
+  /// shadingModel : unlit,
+  /// parameters : [ { type : float4, name : baseColor } ]
+  /// }
+  /// fragment {
+  /// void material(inout MaterialInputs material) {
+  /// prepareMaterial(material);
+  /// material.baseColor = materialParams.baseColor;
+  /// }
+  /// }
+  ///
+  /// `includesJson` is either null or a JSON object mapping include names to
+  /// file contents, e.g. {"common.glsl": "..."}. `#include "name"` directives
+  /// in the source (and in included files) are resolved against this map by
+  /// exact name before parsing; there is no filesystem access. The JSON must
+  /// be a flat object of string keys to string values (what Dart's
+  /// json.encode emits for a Map<String, String>); all standard JSON string
+  /// escapes, including \u and surrogate pairs, are supported.
+  ///
+  /// The platform/target API/optimization are derived the same way as
+  /// MaterialCompiler_compileMaterialSource; all other compilation settings
+  /// come from the .mat source itself.
+  ///
+  /// Returns null when include resolution, parsing or compilation fails, or
+  /// when this build lacks runtime material support. Failure diagnostics are
+  /// logged through the Filament logger. Blocking/threading semantics and
+  /// ownership of the returned package match
+  /// MaterialCompiler_compileMaterialSource.
+  external Pointer<TMaterialCompilerPackage> _MaterialCompiler_compileMaterialPackage(
+    Pointer<TJobThread> tJobThread,
+    Pointer<TEngine> tEngine,
+    Pointer<Char> name,
+    Pointer<Char> matSource,
+    Pointer<Char> includesJson,
+  );
+
   /// Compiles a material source string to a .filamat package at runtime.
   ///
   /// `tJobThread` is the render job thread that owns `tEngine`; the compile
@@ -1159,8 +1203,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int shading,
   );
 
-  /// Frees a package returned by MaterialCompiler_compileMaterialSource.
-  /// Null is ignored.
+  /// Frees a package returned by MaterialCompiler_compileMaterialSource or
+  /// MaterialCompiler_compileMaterialPackage. Null is ignored.
   external void _MaterialCompiler_destroyPackage(Pointer<TMaterialCompilerPackage> package);
 
   /// Copies the compiled package bytes into `out`, which must hold at least
@@ -5782,6 +5826,59 @@ Pointer<Float64> Mat4_getData(Pointer<TMat4> matrix) {
   return Pointer<Float64>(result);
 }
 
+/// Compiles a full .mat material package source at runtime, using the same
+/// parser (matp) that backs the matc tool. Unlike
+/// MaterialCompiler_compileMaterialSource, `matSource` is a complete .mat
+/// file: `material { ... }` configuration blocks (name, shading model,
+/// parameters, variants, ...), optional `vertex { ... }` code and the
+/// `fragment { ... }` block, e.g.:
+///
+/// material {
+/// name : "MyMaterial",
+/// shadingModel : unlit,
+/// parameters : [ { type : float4, name : baseColor } ]
+/// }
+/// fragment {
+/// void material(inout MaterialInputs material) {
+/// prepareMaterial(material);
+/// material.baseColor = materialParams.baseColor;
+/// }
+/// }
+///
+/// `includesJson` is either null or a JSON object mapping include names to
+/// file contents, e.g. {"common.glsl": "..."}. `#include "name"` directives
+/// in the source (and in included files) are resolved against this map by
+/// exact name before parsing; there is no filesystem access. The JSON must
+/// be a flat object of string keys to string values (what Dart's
+/// json.encode emits for a Map<String, String>); all standard JSON string
+/// escapes, including \u and surrogate pairs, are supported.
+///
+/// The platform/target API/optimization are derived the same way as
+/// MaterialCompiler_compileMaterialSource; all other compilation settings
+/// come from the .mat source itself.
+///
+/// Returns null when include resolution, parsing or compilation fails, or
+/// when this build lacks runtime material support. Failure diagnostics are
+/// logged through the Filament logger. Blocking/threading semantics and
+/// ownership of the returned package match
+/// MaterialCompiler_compileMaterialSource.
+Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialPackage(
+  Pointer<TJobThread> tJobThread,
+  Pointer<TEngine> tEngine,
+  Pointer<Char> name,
+  Pointer<Char> matSource,
+  Pointer<Char> includesJson,
+) {
+  final result = GeneratedBindings.instance._MaterialCompiler_compileMaterialPackage(
+    tJobThread.cast(),
+    tEngine.cast(),
+    name,
+    matSource,
+    includesJson,
+  );
+  return Pointer<TMaterialCompilerPackage>(result);
+}
+
 /// Compiles a material source string to a .filamat package at runtime.
 ///
 /// `tJobThread` is the render job thread that owns `tEngine`; the compile
@@ -5829,8 +5926,8 @@ Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialSource(
   return Pointer<TMaterialCompilerPackage>(result);
 }
 
-/// Frees a package returned by MaterialCompiler_compileMaterialSource.
-/// Null is ignored.
+/// Frees a package returned by MaterialCompiler_compileMaterialSource or
+/// MaterialCompiler_compileMaterialPackage. Null is ignored.
 void MaterialCompiler_destroyPackage(Pointer<TMaterialCompilerPackage> package) {
   final result = GeneratedBindings.instance._MaterialCompiler_destroyPackage(package.cast());
   return result;

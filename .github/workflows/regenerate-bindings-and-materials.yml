@@ -332,10 +332,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: thermion_dart/native/web/lib/release
-          # -filamat: key rotation for the runtime-materials engine. The
+          # -filamat-matp: key rotation for the runtime-materials engine. The
           # artifact zip must contain libfilamat.a (FILAMENT_BUILD_FILAMAT=ON
-          # in scripts/build_web.sh); older caches predate it.
-          key: filament-web-${{ hashFiles('filament.version') }}-filamat
+          # in scripts/build_web.sh) and libmatp.a + the filament-matp headers
+          # (scripts/filament-matp-runtime.patch); older caches predate them.
+          key: filament-web-${{ hashFiles('filament.version') }}-filamat-matp
 
       - name: Compile web
         if: steps.changes.outputs.native-changed == 'true'
@@ -353,20 +354,22 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release -DTHERMION_WEB_MAIN_THREAD=ON
           cmake --build thermion_dart/native/web/build-main-thread --parallel 2
 
-      # Runtime-materials engine (filamat linked; fetched by apps that set
-      # runtime_materials: true). Same separate-build-dir pattern as
+      # Runtime-materials engine (filamat + matp linked; fetched by apps that
+      # set runtime_materials: true). Same separate-build-dir pattern as
       # main-thread above. Self-heals a stale cache: actions/cache may have
-      # saved lib/release under this key from a pre-filamat artifact before
-      # the filament web zip was rebuilt — when the combined filamat archive
-      # is missing after `make wasm`, re-download the zip straight from R2
-      # (cache bypass) and re-extract, then build. (The web artifact keeps
-      # the build-tree name libfilamat_combined.a; native zips rename it to
-      # libfilamat.a.)
+      # saved lib/release under this key from a pre-filamat/pre-matp artifact
+      # before the filament web zip was rebuilt — when the combined filamat
+      # archive or libmatp.a is missing after `make wasm`, re-download the zip
+      # straight from R2 (cache bypass) and re-extract, then build. (The web
+      # artifact keeps the build-tree name libfilamat_combined.a; native zips
+      # rename it to libfilamat.a.)
       - name: Compile web (runtime-materials)
         if: steps.changes.outputs.native-changed == 'true'
         run: |
-          if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ]; then
-            echo "libfilamat_combined.a missing from cached artifact; re-fetching from R2..."
+          if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ] || \
+             [ ! -f thermion_dart/native/web/lib/release/libmatp.a ] || \
+             [ ! -f thermion_dart/native/web/lib/release/include/filament-matp/Includes.h ]; then
+            echo "filamat/matp missing from cached artifact; re-fetching from R2..."
             rm -f thermion_dart/native/web/lib/release/filament-*.zip
             FILAMENT_VERSION="$(cut -d' ' -f2 filament.version)"
             if ! curl -fL -o "thermion_dart/native/web/lib/release/filament-${FILAMENT_VERSION}-web-release.zip" \
@@ -378,8 +381,10 @@ jobs:
             rm -rf include lib
             unzip -o "filament-${FILAMENT_VERSION}-web-release.zip"
             cd "$GITHUB_WORKSPACE"
-            if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ]; then
-              echo "::warning::the Filament web artifact on R2 predates FILAMENT_BUILD_FILAMAT=ON; skipping the runtime-materials engine build. Dispatch build-filament.yml (platform: web) to publish the filamat-enabled artifact."
+            if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ] || \
+               [ ! -f thermion_dart/native/web/lib/release/libmatp.a ] || \
+               [ ! -f thermion_dart/native/web/lib/release/include/filament-matp/Includes.h ]; then
+              echo "::warning::the Filament web artifact on R2 predates FILAMENT_BUILD_FILAMAT=ON / filament-matp-runtime.patch; skipping the runtime-materials engine build. Dispatch build-filament.yml (platform: web) to publish the filamat+matp-enabled artifact."
               exit 0
             fi
           fi
@@ -390,15 +395,17 @@ jobs:
 
       # Combined main-thread + runtime-materials engine (web_variant:
       # main_thread AND runtime_materials: true in the consuming app's
-      # pubspec.yaml). Same filamat prerequisite and skip logic as the
+      # pubspec.yaml). Same filamat/matp prerequisite and skip logic as the
       # runtime-materials build above (which also self-healed the cache, so
-      # by this point the combined archive is either present or definitively
+      # by this point the archives are either present or definitively
       # unavailable); separate build dir for the combined CMake options.
       - name: Compile web (main-thread runtime-materials)
         if: steps.changes.outputs.native-changed == 'true'
         run: |
-          if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ]; then
-            echo "::warning::libfilamat_combined.a unavailable; skipping the main-thread runtime-materials engine build."
+          if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ] || \
+             [ ! -f thermion_dart/native/web/lib/release/libmatp.a ] || \
+             [ ! -f thermion_dart/native/web/lib/release/include/filament-matp/Includes.h ]; then
+            echo "::warning::filamat/matp unavailable; skipping the main-thread runtime-materials engine build."
             exit 0
           fi
           emcmake cmake -S thermion_dart/native/web \

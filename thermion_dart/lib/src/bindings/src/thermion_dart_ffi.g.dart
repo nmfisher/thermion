@@ -2293,6 +2293,59 @@ external void Mat4_destroy(ffi.Pointer<TMat4> matrix);
 @ffi.Native<ffi.Pointer<ffi.Double> Function(ffi.Pointer<TMat4>)>(isLeaf: true)
 external ffi.Pointer<ffi.Double> Mat4_getData(ffi.Pointer<TMat4> matrix);
 
+/// Compiles a full .mat material package source at runtime, using the same
+/// parser (matp) that backs the matc tool. Unlike
+/// MaterialCompiler_compileMaterialSource, `matSource` is a complete .mat
+/// file: `material { ... }` configuration blocks (name, shading model,
+/// parameters, variants, ...), optional `vertex { ... }` code and the
+/// `fragment { ... }` block, e.g.:
+///
+/// material {
+/// name : "MyMaterial",
+/// shadingModel : unlit,
+/// parameters : [ { type : float4, name : baseColor } ]
+/// }
+/// fragment {
+/// void material(inout MaterialInputs material) {
+/// prepareMaterial(material);
+/// material.baseColor = materialParams.baseColor;
+/// }
+/// }
+///
+/// `includesJson` is either null or a JSON object mapping include names to
+/// file contents, e.g. {"common.glsl": "..."}. `#include "name"` directives
+/// in the source (and in included files) are resolved against this map by
+/// exact name before parsing; there is no filesystem access. The JSON must
+/// be a flat object of string keys to string values (what Dart's
+/// json.encode emits for a Map<String, String>); all standard JSON string
+/// escapes, including \u and surrogate pairs, are supported.
+///
+/// The platform/target API/optimization are derived the same way as
+/// MaterialCompiler_compileMaterialSource; all other compilation settings
+/// come from the .mat source itself.
+///
+/// Returns null when include resolution, parsing or compilation fails, or
+/// when this build lacks runtime material support. Failure diagnostics are
+/// logged through the Filament logger. Blocking/threading semantics and
+/// ownership of the returned package match
+/// MaterialCompiler_compileMaterialSource.
+@ffi.Native<
+  ffi.Pointer<TMaterialCompilerPackage> Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+  )
+>(isLeaf: true)
+external ffi.Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialPackage(
+  ffi.Pointer<TJobThread> tJobThread,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Char> name,
+  ffi.Pointer<ffi.Char> matSource,
+  ffi.Pointer<ffi.Char> includesJson,
+);
+
 /// Compiles a material source string to a .filamat package at runtime.
 ///
 /// `tJobThread` is the render job thread that owns `tEngine`; the compile
@@ -2340,8 +2393,8 @@ external ffi.Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialS
   int shading,
 );
 
-/// Frees a package returned by MaterialCompiler_compileMaterialSource.
-/// Null is ignored.
+/// Frees a package returned by MaterialCompiler_compileMaterialSource or
+/// MaterialCompiler_compileMaterialPackage. Null is ignored.
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialCompilerPackage>)>(isLeaf: true)
 external void MaterialCompiler_destroyPackage(ffi.Pointer<TMaterialCompilerPackage> package);
 

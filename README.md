@@ -70,9 +70,38 @@ final material = await FilamentApp.instance!.compileMaterialSource(
 );
 ```
 
-This requires linking `libfilamat` — Filament's offline material compiler,
-which bakes in glslang and SPIRV-Tools — so it is opt-in. Add the flag to your
-app's `pubspec.yaml`:
+For full `.mat` sources — the same format the `matc` tool accepts, with a
+`material { ... }` configuration block (parameters, shading model, variants,
+...) and `#include` directives — use `compileMaterialPackage`. Includes are
+resolved from an in-memory map (exact-name match, no filesystem access):
+
+```dart
+final material = await FilamentApp.instance!.compileMaterialPackage(
+  'my_material',
+  '''
+  material {
+      name : "MyMaterial",
+      shadingModel : unlit,
+      parameters : [ { type : float4, name : baseColor } ]
+  }
+  fragment {
+      #include "common.glsl"
+      void material(inout MaterialInputs material) {
+          prepareMaterial(material);
+          material.baseColor = tint(materialParams.baseColor);
+      }
+  }
+  ''',
+  includes: {
+    'common.glsl': 'vec4 tint(vec4 c) { return c * vec4(1.0, 0.9, 0.8, 1.0); }',
+  },
+);
+```
+
+Both APIs require linking `libfilamat` — Filament's offline material compiler,
+which bakes in glslang and SPIRV-Tools — plus `libmatp` (the `.mat` parser
+behind `matc`) for `compileMaterialPackage`, so they are opt-in. Add the flag
+to your app's `pubspec.yaml`:
 
 ```yaml
 hooks:
@@ -84,8 +113,8 @@ hooks:
 The flag adds roughly 8–45 MB to the native library depending on platform and
 build mode (release `libfilamat.a` is ~45 MB; less is carried into the final
 binary). `FilamentApp.instance!.runtimeMaterialsSupported` reports whether the
-loaded build has it; `compileMaterialSource` throws `UnsupportedError`
-otherwise. On web, the flag additionally selects a **filamat-enabled engine
+loaded build has it; `compileMaterialSource` and `compileMaterialPackage`
+throw `UnsupportedError` otherwise. On web, the flag additionally selects a **filamat-enabled engine
 variant** — the build hook fetches `thermion_dart-<sha>-web-runtime-materials.zip`
 instead of the default wasm (~20 MB larger; it links `libfilamat`, the default
 build dead-code-eliminates it). iOS is unsupported (Filament's iOS archives do

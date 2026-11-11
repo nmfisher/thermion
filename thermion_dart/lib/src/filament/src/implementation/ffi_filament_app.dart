@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert' show json;
 import 'dart:math' as math;
 
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_manager.dart';
@@ -681,15 +682,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     String source, {
     MaterialShading shading = MaterialShading.lit,
   }) async {
-    if (!runtimeMaterialsSupported) {
-      throw UnsupportedError(
-        'Runtime material compilation is not available in this build. Rebuild '
-        'with the runtime_materials user define (hooks.user_defines.thermion_dart '
-        'in your pubspec.yaml; on web this selects the filamat-enabled engine '
-        'variant, on iOS it is unsupported) or precompile a '
-        '.filamat package with matc and load it with createMaterial.',
-      );
-    }
+    _checkRuntimeMaterialsSupported();
     if (source.isEmpty) {
       throw ArgumentError.value(source, 'source', 'Material source must not be empty.');
     }
@@ -715,6 +708,55 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     );
     free(namePtr);
     free(sourcePtr);
+    return _materialFromCompiledPackage(package, name);
+  }
+
+  @override
+  Future<Material> compileMaterialPackage(String name, String source, {Map<String, String>? includes}) async {
+    _checkRuntimeMaterialsSupported();
+    if (source.isEmpty) {
+      throw ArgumentError.value(source, 'source', 'Material source must not be empty.');
+    }
+    final namePtr = name.toNativeUtf8().cast<Char>();
+    final sourcePtr = source.toNativeUtf8().cast<Char>();
+    // The native side resolves #include directives against this flat map
+    // (exact-name match, no filesystem). json.encode emits exactly the
+    // string-to-string JSON object the native parser accepts.
+    final includesJson = includes == null || includes.isEmpty ? null : json.encode(includes);
+    final includesPtr = includesJson == null ? nullptr.cast<Char>() : includesJson.toNativeUtf8().cast<Char>();
+    // Same job-thread dispatch as compileMaterialSource above.
+    final package = bindings.MaterialCompiler_compileMaterialPackage(
+      jobThreadHandle,
+      engine,
+      namePtr,
+      sourcePtr,
+      includesPtr,
+    );
+    free(namePtr);
+    free(sourcePtr);
+    if (includesJson != null) {
+      free(includesPtr);
+    }
+    return _materialFromCompiledPackage(package, name);
+  }
+
+  void _checkRuntimeMaterialsSupported() {
+    if (!runtimeMaterialsSupported) {
+      throw UnsupportedError(
+        'Runtime material compilation is not available in this build. Rebuild '
+        'with the runtime_materials user define (hooks.user_defines.thermion_dart '
+        'in your pubspec.yaml; on web this selects the filamat-enabled engine '
+        'variant, on iOS it is unsupported) or precompile a '
+        '.filamat package with matc and load it with createMaterial.',
+      );
+    }
+  }
+
+  /// Validates a package returned by MaterialCompiler_compileMaterial*,
+  /// copies its bytes out of native/wasm memory, creates a [Material] from
+  /// them and destroys the native payload. Throws [StateError] when the
+  /// compile failed (null package) or produced no bytes.
+  Future<Material> _materialFromCompiledPackage(Pointer<TMaterialCompilerPackage> package, String name) async {
     if (package == nullptr) {
       throw StateError(
         'Runtime material compilation failed for material "$name". Check the '
