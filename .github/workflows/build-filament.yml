@@ -30,7 +30,7 @@ on:
         default: true
         type: boolean
       upload_to_r2:
-        description: 'Upload artifacts to R2'
+        description: 'Upload artifacts to R2 (OVERWRITES canonical filament-<version>-* keys). Prefer false, then publish via publish-filament-to-r2.yml (staging prefix + backup).'
         required: false
         default: true
         type: boolean

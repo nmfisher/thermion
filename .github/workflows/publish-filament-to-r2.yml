@@ -1,24 +1,76 @@
 name: Publish Filament to R2 (from artifacts)
 
-# One-off helper: copy already-built Filament zips (from the GitHub artifacts of
-# verified 'Build Filament' runs) into R2 without rebuilding. The zips are
-# uploaded with their existing names. Safe to delete once publishing is done.
+# Copy already-built Filament zips from the GitHub artifacts of VERIFIED
+# 'Build Filament' runs into R2, without rebuilding. This is the safe path
+# for refreshing artifacts that production consumers may already be using:
+#
+#   1. Dispatch 'Build Filament' with upload_to_r2: false. Every platform
+#      still uploads its zips as workflow artifacts (7-day retention).
+#      Nothing on R2 changes.
+#   2. Verify the zips (contents; a runtime_materials test run against them).
+#   3. Dispatch THIS workflow with the build run's ID. The default
+#      key_prefix ('staging') uploads beside the canonical keys, so the
+#      objects production downloads are never touched:
+#        s3://thermion/staging/filament-<version>-<platform>-<variant>.zip
+#   4. Verify the staged objects, then dispatch again with key_prefix ''
+#      and confirm_overwrite 'OVERWRITE'. The current canonical objects
+#      are first copied (server-side) to backups/<UTC timestamp>/, and
+#      only then overwritten. Rollback = copy the backup objects back.
+#
+# Safety properties:
+# - Canonical keys are only written when key_prefix is empty AND
+#   confirm_overwrite is exactly 'OVERWRITE'; anything else fails closed.
+# - The backup step aborts the publish if any copy fails (only a missing
+#   source object is tolerated) and never overwrites an existing backup.
+# - Platforms whose run input is empty are skipped entirely; a missing
+#   artifact inside a provided run warns and skips (iOS simulator zips may
+#   legitimately be absent from older runs).
+# - Artifacts expire after 7 days: publish promptly after the build run.
+#
+# Note: the hook caches extracted libs under a 'success' token and never
+# re-downloads, so replacing canonical objects only affects fresh caches.
+#
+# Safe to delete once publishing is done.
 
 on:
   workflow_dispatch:
     inputs:
+      macos_run:
+        description: 'macOS Build Filament run ID (empty = skip platform)'
+        required: false
+        default: ''
+      ios_run:
+        description: 'iOS Build Filament run ID (publishes ios + ios-simulator; empty = skip)'
+        required: false
+        default: ''
       android_run:
-        description: 'Android Build Filament run ID (verify run with artifacts)'
-        required: true
-        default: '30462653269'
+        description: 'Android Build Filament run ID (empty = skip platform)'
+        required: false
+        default: ''
       linux_run:
-        description: 'Linux Build Filament run ID'
-        required: true
-        default: '30462656359'
+        description: 'Linux x64 Build Filament run ID (empty = skip platform)'
+        required: false
+        default: ''
+      linux_arm64_run:
+        description: 'Linux arm64 Build Filament run ID (empty = skip platform)'
+        required: false
+        default: ''
       windows_run:
-        description: 'Windows Build Filament run ID'
-        required: true
-        default: '30506886883'
+        description: 'Windows Build Filament run ID (empty = skip platform)'
+        required: false
+        default: ''
+      web_run:
+        description: 'Web Build Filament run ID (empty = skip platform)'
+        required: false
+        default: ''
+      key_prefix:
+        description: "R2 key prefix. Default 'staging' keeps canonical keys untouched; '' = canonical (needs confirm_overwrite)"
+        required: false
+        default: 'staging'
+      confirm_overwrite:
+        description: "Type OVERWRITE to allow canonical uploads (key_prefix ''). Canonical objects are backed up to backups/<UTC>/ first."
+        required: false
+        default: ''
 
 env:
   R2_BUCKET_NAME: thermion
@@ -28,18 +80,172 @@ jobs:
   publish:
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Back up canonical objects (canonical publishes only)
+        if: inputs.key_prefix == ''
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          CONFIRM_OVERWRITE: ${{ inputs.confirm_overwrite }}
+          MACOS_RUN: ${{ inputs.macos_run }}
+          IOS_RUN: ${{ inputs.ios_run }}
+          ANDROID_RUN: ${{ inputs.android_run }}
+          LINUX_RUN: ${{ inputs.linux_run }}
+          LINUX_ARM64_RUN: ${{ inputs.linux_arm64_run }}
+          WINDOWS_RUN: ${{ inputs.windows_run }}
+          WEB_RUN: ${{ inputs.web_run }}
+        run: |
+          set -euo pipefail
+          if [ "$CONFIRM_OVERWRITE" != "OVERWRITE" ]; then
+            echo "ERROR: key_prefix '' targets the canonical keys production downloads."
+            echo "Set confirm_overwrite to 'OVERWRITE' to proceed, or use a key_prefix (e.g. 'staging')."
+            exit 1
+          fi
+          # GitHub runners ship AWS CLI v2; only install if missing (plain
+          # 'pip install' fails on PEP 668 externally-managed environments).
+          command -v aws >/dev/null 2>&1 || pip install --quiet --break-system-packages awscli
+
+          # Fail fast if no platform was requested (the upload step also
+          # enforces this after downloading; checking here avoids the noise).
+          if [ -z "$MACOS_RUN$IOS_RUN$ANDROID_RUN$LINUX_RUN$LINUX_ARM64_RUN$WINDOWS_RUN$WEB_RUN" ]; then
+            echo "ERROR: no run IDs provided; nothing to publish."
+            exit 1
+          fi
+
+          # One timestamp for the whole backup set so rollback is a single
+          # prefix copy. Server-side copies: no download/re-upload.
+          STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+          echo "Backing up canonical objects to backups/$STAMP/"
+
+          backup_one() {
+            local key="$1"
+            local dest="backups/$STAMP/$key"
+            # Never clobber an existing backup (timestamps collide only if
+            # two publishes start in the same second; fail closed instead).
+            if aws s3api head-object --bucket "$R2_BUCKET_NAME" --key "$dest" \
+                --endpoint-url "$R2_ENDPOINT" >/dev/null 2>&1; then
+              echo "ERROR: backup object already exists: $dest"
+              exit 1
+            fi
+            local err
+            if err="$(aws s3 cp "s3://$R2_BUCKET_NAME/$key" "s3://$R2_BUCKET_NAME/$dest" \
+                --endpoint-url "$R2_ENDPOINT" 2>&1)"; then
+              echo "backed up: $key -> $dest"
+            elif echo "$err" | grep -qE '\(404\)|Not Found|NoSuchKey'; then
+              # Nothing published for this key yet; nothing to back up.
+              echo "no existing object (skipped): $key"
+            else
+              # Any other failure (credentials, network, permissions) must
+              # abort BEFORE anything is overwritten.
+              echo "ERROR: backup failed for $key:"
+              echo "$err"
+              exit 1
+            fi
+          }
+
+          # Back up exactly the canonical keys this publish may overwrite:
+          # the same platform/variant set the upload step below will write.
+          # A platform whose run input is empty is skipped there too, so its
+          # keys are neither backed up nor touched. Keys are constructed from
+          # this checkout's filament.version pin; if the run built a different
+          # version the copy 404s and is skipped (the upload then writes the
+          # new version's keys, which never existed before).
+          read -r _repo version < filament.version
+          any=0
+          for pair in "macos:$MACOS_RUN" "ios:$IOS_RUN" "android:$ANDROID_RUN" \
+                      "linux:$LINUX_RUN" "linux-arm64:$LINUX_ARM64_RUN" \
+                      "windows:$WINDOWS_RUN" "web:$WEB_RUN"; do
+            platform="${pair%%:*}"
+            run_id="${pair#*:}"
+            [ -n "$run_id" ] || continue
+            # The iOS job uploads device and simulator zips from one run.
+            platforms="$platform"
+            [ "$platform" = "ios" ] && platforms="ios ios-simulator"
+            for p in $platforms; do
+              for variant in release debug; do
+                backup_one "filament-${version}-${p}-${variant}.zip"
+                any=1
+              done
+            done
+          done
+          if [ "$any" -eq 0 ]; then
+            echo "No run IDs provided; nothing to back up (the upload step will fail)."
+          else
+            echo "Backup complete: backups/$STAMP/"
+          fi
+
       - name: Download artifacts and copy to R2
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KEY_PREFIX: ${{ inputs.key_prefix }}
+          CONFIRM_OVERWRITE: ${{ inputs.confirm_overwrite }}
+          MACOS_RUN: ${{ inputs.macos_run }}
+          IOS_RUN: ${{ inputs.ios_run }}
+          ANDROID_RUN: ${{ inputs.android_run }}
+          LINUX_RUN: ${{ inputs.linux_run }}
+          LINUX_ARM64_RUN: ${{ inputs.linux_arm64_run }}
+          WINDOWS_RUN: ${{ inputs.windows_run }}
+          WEB_RUN: ${{ inputs.web_run }}
         run: |
           set -euo pipefail
-          pip install --quiet awscli
 
+          # Fail closed on canonical publishes without explicit confirmation
+          # (the backup step enforces this too; re-check here so the upload
+          # can never run unconfirmed even if steps are reordered).
+          if [ -z "$KEY_PREFIX" ] && [ "$CONFIRM_OVERWRITE" != "OVERWRITE" ]; then
+            echo "ERROR: canonical publish requires confirm_overwrite 'OVERWRITE'."
+            exit 1
+          fi
+
+          # Normalize the prefix: no leading slash, at most one trailing
+          # slash, no '..' segments (keys must stay inside the bucket root).
+          PREFIX="$KEY_PREFIX"
+          PREFIX="${PREFIX#/}"
+          case "$PREFIX" in
+            *..*) echo "ERROR: key_prefix must not contain '..'"; exit 1 ;;
+          esac
+          if [ -n "$PREFIX" ]; then
+            PREFIX="${PREFIX%/}/"
+          fi
+          # A prefix that normalizes to empty (e.g. '/') targets the canonical
+          # keys, but the backup step only runs for a literally empty
+          # key_prefix input. Refuse rather than overwrite without a backup.
+          if [ -z "$PREFIX" ] && [ -n "$KEY_PREFIX" ]; then
+            echo "ERROR: key_prefix '$KEY_PREFIX' normalizes to the canonical keys."
+            echo "Use key_prefix '' (with confirm_overwrite 'OVERWRITE') for a canonical publish."
+            exit 1
+          fi
+          echo "Publishing under prefix: '${PREFIX:-<canonical>}'"
+
+          # GitHub runners ship AWS CLI v2; only install if missing (plain
+          # 'pip install' fails on PEP 668 externally-managed environments).
+          command -v aws >/dev/null 2>&1 || pip install --quiet --break-system-packages awscli
+
+          # Validate every provided run ID up front: a typo must fail the
+          # publish before anything is uploaded, not warn-and-skip halfway.
+          for pair in "macos:$MACOS_RUN" "ios:$IOS_RUN" "android:$ANDROID_RUN" \
+                      "linux:$LINUX_RUN" "linux-arm64:$LINUX_ARM64_RUN" \
+                      "windows:$WINDOWS_RUN" "web:$WEB_RUN"; do
+            run_id="${pair#*:}"
+            [ -n "$run_id" ] || continue
+            if ! gh run view "$run_id" -R "$GITHUB_REPOSITORY" --json databaseId >/dev/null; then
+              echo "ERROR: cannot access run $run_id (${pair%%:*}); check the ID and that its artifacts have not expired."
+              exit 1
+            fi
+          done
+
+          published=0
           publish_platform() {
             local platform="$1" run_id="$2"
+            if [ -z "$run_id" ]; then
+              echo "=== $platform: no run ID provided -- skipping ==="
+              return 0
+            fi
             for variant in release debug; do
               local name="filament-${platform}-${variant}"
               echo "=== $name: downloading from run $run_id ==="
@@ -55,13 +261,24 @@ jobs:
               fi
               local base
               base="$(basename "$zip")"
-              echo "=== $name: uploading $base to R2 ==="
-              aws s3 cp "$zip" "s3://${R2_BUCKET_NAME}/${base}" --endpoint-url "${R2_ENDPOINT}"
-              echo "=== $name: published s3://${R2_BUCKET_NAME}/${base} ==="
+              echo "=== $name: uploading $base to s3://$R2_BUCKET_NAME/${PREFIX}${base} ==="
+              aws s3 cp "$zip" "s3://${R2_BUCKET_NAME}/${PREFIX}${base}" --endpoint-url "${R2_ENDPOINT}"
+              published=$((published + 1))
             done
           }
 
-          publish_platform android  "${{ inputs.android_run }}"
-          publish_platform linux    "${{ inputs.linux_run }}"
-          publish_platform windows  "${{ inputs.windows_run }}"
-          echo "=== all published ==="
+          publish_platform macos        "$MACOS_RUN"
+          # The iOS job uploads device and simulator zips from one run.
+          publish_platform ios          "$IOS_RUN"
+          publish_platform ios-simulator "$IOS_RUN"
+          publish_platform android      "$ANDROID_RUN"
+          publish_platform linux        "$LINUX_RUN"
+          publish_platform linux-arm64  "$LINUX_ARM64_RUN"
+          publish_platform windows      "$WINDOWS_RUN"
+          publish_platform web          "$WEB_RUN"
+
+          if [ "$published" -eq 0 ]; then
+            echo "ERROR: nothing was published. Provide at least one run ID with artifacts."
+            exit 1
+          fi
+          echo "=== published $published zip(s) under prefix '${PREFIX:-<canonical>}' ==="
