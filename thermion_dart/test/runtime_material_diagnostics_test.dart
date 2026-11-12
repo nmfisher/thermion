@@ -6,6 +6,7 @@ import 'src/test_io.dart';
 void main() {
   late FFIFilamentApp app;
   setUpAll(() async {
+    await initTestBindings();
     await FFIFilamentApp.create(
       config: FFIFilamentConfig(loadResource: loadResourceBytes, backend: defaultTestBackend),
     );
