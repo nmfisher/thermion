@@ -19,7 +19,6 @@
 #include <filament-matp/Includes.h>
 #include <filament-matp/MaterialParser.h>
 #include <filament/Engine.h>
-#include <utils/JobSystem.h>
 
 #ifdef __APPLE__
 // TARGET_OS_IPHONE for the iOS platform selection below.
@@ -136,13 +135,14 @@ namespace thermion
         {
 #if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_MAIN_THREAD)
             // The browser caller is not the worker that created the engine.
-            // Give CPU compilation a job system adopted by this calling thread,
-            // matching matc, rather than borrowing the render worker's state.
+            // A temporary NOOP engine supplies a caller-adopted job system
+            // through Filament's public API; JobSystem's private headers are
+            // deliberately absent from the installed artifacts.
             (void)engine;
-            utils::JobSystem jobs;
-            jobs.adopt();
-            auto package = builder.build(jobs);
-            jobs.emancipate();
+            auto *compilerEngine = filament::Engine::create(filament::Engine::Backend::NOOP);
+            if (compilerEngine == nullptr) return {};
+            auto package = builder.build(compilerEngine->getJobSystem());
+            filament::Engine::destroy(&compilerEngine);
             return package;
 #else
             return builder.build(engine->getJobSystem());
