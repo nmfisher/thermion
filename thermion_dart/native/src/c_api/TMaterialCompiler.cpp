@@ -32,6 +32,7 @@
 #include <mutex>
 #include <new>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -77,6 +78,10 @@ namespace thermion
 #if defined(__APPLE__)
             // iOS/macOS are Metal-only.
             return filamat::MaterialBuilder::TargetApi::METAL;
+#elif defined(__EMSCRIPTEN__)
+            // Runtime Web materials target the WebGL engine. WebGPU engine
+            // variants require their own separately compiled materials.
+            return filamat::MaterialBuilder::TargetApi::OPENGL;
 #elif defined(__ANDROID__) || defined(__linux__) || defined(_WIN32)
             // Matches the precompiled Thermion materials: Vulkan + OpenGL.
             return static_cast<filamat::MaterialBuilder::TargetApi>(
@@ -85,6 +90,18 @@ namespace thermion
 #else
             return filamat::MaterialBuilder::TargetApi::ALL;
 #endif
+        }
+
+        std::string compilationParametersForThisBuild()
+        {
+            const char *platform = platformForThisBuild() == filamat::MaterialBuilder::Platform::MOBILE
+                ? "mobile" : "desktop";
+            const auto api = targetApiForThisBuild();
+            const char *targets = api == filamat::MaterialBuilder::TargetApi::METAL
+                ? "-a metal" : api == filamat::MaterialBuilder::TargetApi::OPENGL
+                ? "-a opengl" : "-a vulkan -a opengl";
+            // Keep PERFORMANCE deliberately, matching matc's default / -O.
+            return std::string("-O -p ") + platform + " " + targets;
         }
 
         filamat::MaterialBuilder::Shading toFilamatShading(TShading shading)
@@ -162,7 +179,9 @@ namespace thermion
                         .shading(toFilamatShading(shading))
                         .platform(platformForThisBuild())
                         .targetApi(targetApiForThisBuild())
-                        .optimization(filamat::MaterialBuilder::Optimization::PERFORMANCE);
+                        .optimization(filamat::MaterialBuilder::Optimization::PERFORMANCE)
+                        .compilationParameters(compilationParametersForThisBuild().c_str())
+                        .materialSource(std::string_view(materialSource));
                     return buildMaterial(builder, engine);
                 });
         }
@@ -182,8 +201,8 @@ namespace thermion
 
             Output *getOutput() const noexcept override { return nullptr; }
             Input *getInput() const noexcept override { return nullptr; }
-            std::string toString() const noexcept override { return "thermion runtime material package"; }
-            std::string toPIISafeString() const noexcept override { return toString(); }
+            std::string toString() const noexcept override { return toPIISafeString(); }
+            std::string toPIISafeString() const noexcept override { return compilationParametersForThisBuild(); }
         };
 
         using IncludeMap = std::unordered_map<std::string, std::string>;
@@ -471,6 +490,8 @@ namespace thermion
                     {
                         return {};
                     }
+                    builder.compilationParameters(config.toPIISafeString().c_str())
+                        .materialSource(std::string_view(source.get(), size));
                     return buildMaterial(builder, engine);
                 });
         }
