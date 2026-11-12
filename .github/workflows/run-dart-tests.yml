@@ -49,6 +49,8 @@ jobs:
           EOF
           dart pub get
           dart test -p node test/js_pointer_callback_test.dart test/js_view_picking_test.dart test/js_geometry_memory_test.dart test/geometry_ctor_tests.dart -r expanded
+          dart test test/filament_artifacts_test.dart test/web_artifacts_test.dart \
+            test/filament_version_test.dart test/material_backend_resolution_test.dart -r expanded
 
   dart-tests:
     name: Dart Tests (${{ matrix.name }})
@@ -288,13 +290,21 @@ jobs:
             ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5
 
-  # Tests runtime compilation with runtime_materials enabled on macOS/Metal:
-  # compiler linkage and compile/validate/instantiate round trips.
-  # Web and iOS also support runtime compilation. This workflow currently has
-  # no web/iOS runtime leg or disabled-build runtime_material_test.dart leg.
+  # Explicit enabled/disabled entry points prevent a missing build flag from
+  # silently passing the fallback branches. Exercise debug/release linkage and
+  # the parser on Metal, Vulkan and OpenGL; stub builds preserve UnsupportedError.
   dart-tests-runtime-materials:
-    name: Dart Tests Runtime Materials (macOS)
-    runs-on: macos-15
+    name: Runtime Materials (${{ matrix.name }}, ${{ matrix.mode }}, enabled=${{ matrix.enabled }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS, os: macos-15, mode: debug, enabled: true }
+          - { name: macOS, os: macos-15, mode: release, enabled: true }
+          - { name: macOS, os: macos-15, mode: release, enabled: false }
+          - { name: Windows, os: windows-2022, mode: release, enabled: true }
+          - { name: Linux, os: ubuntu-22.04, mode: release, enabled: true }
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -303,15 +313,31 @@ jobs:
       - name: Cache pub dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.pub-cache
-          key: pub-macOS-${{ hashFiles('thermion_dart/pubspec.lock', 'thermion_dart/pubspec.yaml') }}
+          path: |
+            ~/.pub-cache
+            ~\AppData\Local\Pub\Cache
+          key: pub-${{ runner.os }}-${{ hashFiles('thermion_dart/pubspec.lock', 'thermion_dart/pubspec.yaml') }}
           restore-keys: |
-            pub-macOS-
+            pub-${{ runner.os }}-
+
+      - name: Setup Linux build environment
+        if: matrix.name == 'Linux'
+        uses: ./.github/actions/setup-build-env
+
+      - name: Install Linux EGL headers
+        if: matrix.name == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libegl1 libegl1-mesa-dev libc++-dev libc++abi-dev
+
+      - name: Setup Windows build environment
+        if: matrix.name == 'Windows'
+        uses: ./.github/actions/setup-windows-env
 
       - name: Set up Dart
         uses: dart-lang/setup-dart@v1
 
-      - name: Enable runtime materials for tests
+      - name: Select runtime materials build for tests
         shell: bash
         run: |
           # See the equivalent step in dart-tests: strip the local-only
@@ -327,28 +353,144 @@ jobs:
           hooks:
             user_defines:
               thermion_dart:
-                mode: debug
-                runtime_materials: true
+                mode: ${{ matrix.mode }}
+                runtime_materials: ${{ matrix.enabled }}
           EOF
 
       - name: Clean cached Filament libraries
         shell: bash
         run: rm -rf thermion_dart/.dart_tool/thermion_dart/lib
 
-      - name: Run runtime material tests (macOS)
+      - name: Run runtime material and package regression tests
         working-directory: thermion_dart
+        shell: bash
+        env:
+          VK_ICD_FILENAMES: ${{ matrix.name == 'Windows' && 'C:\swiftshader\vk_swiftshader_icd.json' || '' }}
         run: |
           dart pub get
-          dart test -j1 test/runtime_material_test.dart --concurrency=1
+          ${{ matrix.name == 'Linux' && 'xvfb-run' || '' }} dart test -j1 \
+            test/runtime_material_${{ matrix.enabled && 'enabled' || 'disabled' }}_test.dart \
+            test/material_package_test.dart --concurrency=1
 
       - name: Upload logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: build-logs-dart-runtime-materials
+          name: build-logs-runtime-materials-${{ matrix.name }}-${{ matrix.mode }}-${{ matrix.enabled }}
           path: |
             ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5
+
+  runtime-materials-web:
+    timeout-minutes: 15
+    name: Runtime Materials (web, ${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: worker, enabled: true, variant: '', suffix: '-runtime-materials' }
+          - { name: main-thread, enabled: true, variant: main_thread, suffix: '-main-thread-runtime-materials' }
+          - { name: disabled, enabled: false, variant: '', suffix: '' }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Select web engine and disable unused native build
+        run: |
+          cat >> thermion_dart/pubspec.yaml <<'EOF'
+          hooks:
+            user_defines:
+              thermion_dart:
+                skip_native_build: true
+                runtime_materials: ${{ matrix.enabled }}
+                web_variant: '${{ matrix.variant }}'
+          EOF
+
+      - name: Download the committed web engine
+        working-directory: thermion_dart
+        env:
+          ENGINE_SUFFIX: ${{ matrix.suffix }}
+        run: |
+          version="$(cat native/web/web.version)"
+          curl -fL "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/thermion_dart-${version}-web${ENGINE_SUFFIX}.zip" \
+            -o "$RUNNER_TEMP/runtime-materials-web.zip"
+          unzip -o "$RUNNER_TEMP/runtime-materials-web.zip" -d test
+
+      - name: Configure Chrome software rendering
+        run: |
+          chrome="$(command -v google-chrome)"
+          printf '#!/bin/sh\nexec "%s" --no-sandbox --use-angle=swiftshader --enable-unsafe-swiftshader "$@"\n' \
+            "$chrome" > "$RUNNER_TEMP/thermion-test-chrome"
+          chmod +x "$RUNNER_TEMP/thermion-test-chrome"
+          echo "CHROME_EXECUTABLE=$RUNNER_TEMP/thermion-test-chrome" >> "$GITHUB_ENV"
+
+      - name: Run web runtime material tests
+        working-directory: thermion_dart
+        run: |
+          dart pub get
+          xvfb-run dart run tool/web_test_runner.dart --assets=../examples/assets --clean \
+            test/runtime_material_${{ matrix.enabled && 'enabled' || 'disabled' }}_test.dart \
+            test/material_package_test.dart
+
+  runtime-materials-ios:
+    timeout-minutes: 30
+    name: Runtime Materials (iOS simulator)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+      - name: Generate integration harness
+        run: python3 scripts/create-runtime-materials-test-app.py --platform ios --destination "$RUNNER_TEMP/runtime-materials-app"
+      - name: Boot an available iPhone simulator
+        run: |
+          device_id="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; print(next(d["udid"] for devices in json.load(sys.stdin)["devices"].values() for d in devices if "iPhone" in d["name"]))')"
+          xcrun simctl boot "$device_id" || xcrun simctl list devices booted | grep -F "$device_id"
+          xcrun simctl bootstatus "$device_id" -b
+          echo "THERMION_SIMULATOR=$device_id" >> "$GITHUB_ENV"
+      - name: Run the runtime material suite on iOS
+        working-directory: ${{ runner.temp }}/runtime-materials-app
+        run: flutter test integration_test/runtime_materials_test.dart -d "$THERMION_SIMULATOR"
+
+  runtime-materials-android:
+    timeout-minutes: 30
+    name: Runtime Materials (Android emulator)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+      - name: Generate integration harness
+        run: python3 scripts/create-runtime-materials-test-app.py --platform android --destination "$RUNNER_TEMP/runtime-materials-app"
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_7_pro
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          working-directory: ${{ runner.temp }}/runtime-materials-app
+          script: flutter test integration_test/runtime_materials_test.dart -d emulator-5554
 
   # Exercises the single-backend material variants (_opengl/_vulkan) that
   # materials.backends opts into. Each runner gets the backend it can
