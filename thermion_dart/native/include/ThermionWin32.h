@@ -13,6 +13,20 @@
 #pragma comment(lib, "backend.lib")
 #pragma comment(lib, "matp.lib")
 #pragma comment(lib, "filamat.lib")
+#if defined(THERMION_ENABLE_RUNTIME_MATERIALS)
+// Windows artifacts contain the individual filamat dependencies rather than
+// the combined archive installed on other platforms. Runtime compilation
+// reaches these shader compiler and generated shader-package symbols.
+#pragma comment(lib, "shaders.lib")
+#pragma comment(lib, "OSDependent.lib")
+#pragma comment(lib, "glslang.lib")
+#pragma comment(lib, "SPIRV.lib")
+#pragma comment(lib, "SPIRV-Tools.lib")
+#pragma comment(lib, "SPIRV-Tools-opt.lib")
+#pragma comment(lib, "spirv-cross-core.lib")
+#pragma comment(lib, "spirv-cross-glsl.lib")
+#pragma comment(lib, "spirv-cross-msl.lib")
+#endif
 #pragma comment(lib, "geometry.lib")
 #pragma comment(lib, "utils.lib")
 #pragma comment(lib, "filabridge.lib")
