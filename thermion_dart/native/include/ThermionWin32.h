@@ -11,6 +11,7 @@
 #pragma comment(lib, "bluevk.lib")
 #pragma comment(lib, "bluegl.lib")
 #pragma comment(lib, "backend.lib")
+#pragma comment(lib, "matp.lib")
 #pragma comment(lib, "filamat.lib")
 #pragma comment(lib, "geometry.lib")
 #pragma comment(lib, "utils.lib")

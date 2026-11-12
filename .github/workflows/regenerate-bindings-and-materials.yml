@@ -11,6 +11,12 @@ on:
       - '**'
   pull_request:
   workflow_dispatch:
+    inputs:
+      force_full:
+        description: 'Force the full regeneration path (bindings + materials + web build/R2 upload) even on feature branches. Default triage still applies on develop.'
+        required: false
+        type: boolean
+        default: false
   # Called by publish-pub-dev.yml on a v* tag push, with verify: true, so the
   # release can gate publish on freshly-regenerated bindings WITHOUT this
   # workflow self-triggering on tags (which previously tried to move the tag).
@@ -76,11 +82,13 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       mode: ${{ steps.mode.outputs.mode }}
+      web_publish: ${{ steps.mode.outputs.web_publish }}
     steps:
       - name: Select mode
         id: mode
         env:
           VERIFY: ${{ inputs.verify }}
+          FORCE_FULL: ${{ inputs.force_full }}
           EVENT: ${{ github.event_name }}
           REF_NAME: ${{ github.ref_name }}
           PR_BASE: ${{ github.event.pull_request.base.ref }}
@@ -90,13 +98,23 @@ jobs:
           # therefore a push outside develop, but verification must be full.
           if [ "$VERIFY" = "true" ]; then
             echo "mode=full" >> "$GITHUB_OUTPUT"
+            echo "web_publish=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           case "$EVENT" in
             workflow_dispatch)
               # Manual run: full regen on develop, materials-only elsewhere
-              # (matches the old split-workflow behavior for dispatches).
-              if [ "$REF_NAME" = "develop" ]; then mode=full; else mode=materials; fi ;;
+              # (matches the old split-workflow behavior for dispatches) —
+              # unless force_full was checked, which upgrades any branch to
+              # the full path (bindings + materials + format/analyze + web
+              # build with R2 upload and the web.version bump) so maintainers
+              # can regenerate-and-publish engine variants from a feature
+              # branch without merging first.
+              if [ "$FORCE_FULL" = "true" ] || [ "$REF_NAME" = "develop" ]; then
+                mode=full
+              else
+                mode=materials
+              fi ;;
             pull_request)
               if [ "$PR_BASE" = "develop" ]; then
                 mode=full
@@ -111,6 +129,15 @@ jobs:
               mode=skip ;;
           esac
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          # web_publish gates the R2 upload + web.version commit steps: true
+          # on develop/tag pushes (the original gate) and on a forced-full
+          # dispatch (this workflow's own GITHUB_TOKEN push of the web.version
+          # commit never re-fires workflows, so no loop risk).
+          if [ "$mode" = "full" ] && { [ "$EVENT" = "push" ] || [ "$EVENT" = "workflow_dispatch" ]; }; then
+            echo "web_publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "web_publish=false" >> "$GITHUB_OUTPUT"
+          fi
 
   regenerate-bindings-and-materials:
     name: Regenerate bindings and materials
@@ -276,6 +303,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Commit BEFORE rebasing: earlier steps (ffigen regeneration,
+          # dart format) leave these files modified, and `git pull
+          # --rebase` refuses to run over a dirty tree/index. Committing is
+          # local and always safe; the rebase then replays this commit onto
+          # the remote head. --autostash absorbs any remaining stray dirt
+          # (stashed for the rebase, restored after; the runner is
+          # discarded anyway).
           git add -f thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart || true
           git add -f thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart || true
           git add -f thermion_dart/native/include/material/*.h || true
@@ -286,12 +320,11 @@ jobs:
           git add -f examples/assets/*.filamat || true
           # formatting fixes (same paths as the Format step)
           git add thermion_dart/lib thermion_dart/bin thermion_dart/hook thermion_dart/tool thermion_dart/test thermion_flutter/thermion_flutter/lib
-          # Rebase before pushing in case a concurrent push landed (single
-          # pusher now, but humans can still push to develop between steps).
-          git pull --rebase origin "$PUSH_BRANCH" || true
-          git commit -m "chore: update generated artifacts + format (CI)
+          git diff --cached --quiet ||
+            git commit -m "chore: update generated artifacts + format (CI)
 
           🤖 Generated with GitHub Actions"
+          git pull --rebase --autostash origin "$PUSH_BRANCH"
           git push origin "HEAD:$PUSH_BRANCH"
 
       - name: Cache Filament web binaries
@@ -299,7 +332,13 @@ jobs:
         uses: actions/cache@v4
         with:
           path: thermion_dart/native/web/lib/release
-          key: filament-web-${{ hashFiles('filament.version') }}
+          # -filamat-matp: key rotation for the runtime-materials engine. The
+          # artifact zip must contain libfilamat.a (FILAMENT_BUILD_FILAMAT=ON
+          # in scripts/build_web.sh) and libmatp.a + the filament-matp headers
+          # (scripts/filament-matp-runtime.patch); older caches predate them.
+          # The pin file participates in the key: a pin flip (new content-
+          # addressed artifact) rotates the cache automatically.
+          key: filament-web-${{ hashFiles('filament.version', 'thermion_dart/filament.libs.json') }}-filamat-matp
 
       - name: Compile web
         if: steps.changes.outputs.native-changed == 'true'
@@ -317,6 +356,70 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release -DTHERMION_WEB_MAIN_THREAD=ON
           cmake --build thermion_dart/native/web/build-main-thread --parallel 2
 
+      # Runtime-materials engine (filamat + matp linked; fetched by apps that
+      # set runtime_materials: true). Same separate-build-dir pattern as
+      # main-thread above. Self-heals a stale cache: actions/cache may have
+      # saved lib/release under this key from a pre-filamat/pre-matp artifact
+      # before the filament web zip was rebuilt — when the combined filamat
+      # archive or libmatp.a is missing after `make wasm`, re-download the zip
+      # straight from R2 (cache bypass) and re-extract, then build. (The web
+      # artifact keeps the build-tree name libfilamat_combined.a; native zips
+      # rename it to libfilamat.a.)
+      - name: Compile web (runtime-materials)
+        if: steps.changes.outputs.native-changed == 'true'
+        run: |
+          if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ] || \
+             [ ! -f thermion_dart/native/web/lib/release/libmatp.a ] || \
+             [ ! -f thermion_dart/native/web/lib/release/include/filament-matp/Includes.h ]; then
+            echo "filamat/matp missing from cached artifact; re-fetching from R2..."
+            rm -f thermion_dart/native/web/lib/release/filament-*.zip
+            # Pin-aware URL (thermion_dart/filament.libs.json): hash-suffixed
+            # immutable key when pinned, legacy key otherwise.
+            FILAMENT_WEB_URL="$(python3 scripts/filament-artifact-url.py web release)"
+            FILAMENT_WEB_ZIP="$(basename "$FILAMENT_WEB_URL")"
+            if ! curl -fL -o "thermion_dart/native/web/lib/release/${FILAMENT_WEB_ZIP}" \
+                "$FILAMENT_WEB_URL"; then
+              echo "::warning::failed to fetch the Filament web zip from R2; skipping the runtime-materials engine build."
+              exit 0
+            fi
+            cd thermion_dart/native/web/lib/release
+            rm -rf include lib
+            unzip -o "$FILAMENT_WEB_ZIP"
+            cd "$GITHUB_WORKSPACE"
+            if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ] || \
+               [ ! -f thermion_dart/native/web/lib/release/libmatp.a ] || \
+               [ ! -f thermion_dart/native/web/lib/release/include/filament-matp/Includes.h ]; then
+              echo "::warning::the Filament web artifact on R2 predates FILAMENT_BUILD_FILAMAT=ON / filament-matp-runtime.patch; skipping the runtime-materials engine build. Dispatch build-filament.yml (platform: web) to publish the filamat+matp-enabled artifact."
+              exit 0
+            fi
+          fi
+          emcmake cmake -S thermion_dart/native/web \
+            -B thermion_dart/native/web/build-runtime-materials \
+            -DCMAKE_BUILD_TYPE=Release -DTHERMION_ENABLE_RUNTIME_MATERIALS=ON
+          cmake --build thermion_dart/native/web/build-runtime-materials --parallel 2
+
+      # Combined main-thread + runtime-materials engine (web_variant:
+      # main_thread AND runtime_materials: true in the consuming app's
+      # pubspec.yaml). Same filamat/matp prerequisite and skip logic as the
+      # runtime-materials build above (which also self-healed the cache, so
+      # by this point the archives are either present or definitively
+      # unavailable); separate build dir for the combined CMake options.
+      - name: Compile web (main-thread runtime-materials)
+        if: steps.changes.outputs.native-changed == 'true'
+        run: |
+          if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ] || \
+             [ ! -f thermion_dart/native/web/lib/release/libmatp.a ] || \
+             [ ! -f thermion_dart/native/web/lib/release/include/filament-matp/Includes.h ]; then
+            echo "::warning::filamat/matp unavailable; skipping the main-thread runtime-materials engine build."
+            exit 0
+          fi
+          emcmake cmake -S thermion_dart/native/web \
+            -B thermion_dart/native/web/build-main-thread-runtime-materials \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DTHERMION_WEB_MAIN_THREAD=ON \
+            -DTHERMION_ENABLE_RUNTIME_MATERIALS=ON
+          cmake --build thermion_dart/native/web/build-main-thread-runtime-materials --parallel 2
+
       - name: Test web uploads without visible frames
         if: steps.changes.outputs.native-changed == 'true'
         run: |
@@ -327,9 +430,11 @@ jobs:
           node "$RUNNER_TEMP/thermion-web-tests/web_upload_drain_test.js"
 
       - name: Package and upload web artifacts to R2
-        if: ${{ !inputs.verify && steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/')) }}
-        # R2 is a cache, not a release gate: an R2 outage must not block a
-        # release (deploy.yml failing later is the softer signal).
+        # web_publish is set by the triage job: develop/tag pushes (the
+        # original gate) or a force_full dispatch from any branch. R2 is a
+        # cache, not a release gate: an R2 outage must not block a release
+        # (deploy.yml failing later is the softer signal).
+        if: ${{ !inputs.verify && steps.changes.outputs.native-changed == 'true' && needs.triage.outputs.web_publish == 'true' }}
         continue-on-error: true
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -351,19 +456,50 @@ jobs:
             "s3://thermion/thermion_dart-${SHORT_SHA}-web-main-thread.zip" \
             --endpoint-url "$R2_ENDPOINT" \
             --region auto
+          # Runtime-materials variant (runtime_materials: true in the consuming
+          # app's pubspec.yaml fetches this): filamat linked, tens of MB larger,
+          # compileMaterialSource works on web. Skipped (with the build above)
+          # when the Filament web artifact predates FILAMENT_BUILD_FILAMAT=ON.
+          if [ -d "$GITHUB_WORKSPACE/thermion_dart/native/web/build-runtime-materials/build/out" ]; then
+            cd "$GITHUB_WORKSPACE/thermion_dart/native/web/build-runtime-materials/build/out"
+            zip "thermion_dart-${SHORT_SHA}-web-runtime-materials.zip" thermion_dart.js thermion_dart.wasm
+            aws s3 cp "thermion_dart-${SHORT_SHA}-web-runtime-materials.zip" \
+              "s3://thermion/thermion_dart-${SHORT_SHA}-web-runtime-materials.zip" \
+              --endpoint-url "$R2_ENDPOINT" \
+              --region auto
+          else
+            echo "::warning::runtime-materials web engine was not built; skipping its upload."
+          fi
+          # Combined main-thread + runtime-materials variant (web_variant:
+          # main_thread AND runtime_materials: true). Same skip logic as the
+          # runtime-materials build/upload above.
+          if [ -d "$GITHUB_WORKSPACE/thermion_dart/native/web/build-main-thread-runtime-materials/build/out" ]; then
+            cd "$GITHUB_WORKSPACE/thermion_dart/native/web/build-main-thread-runtime-materials/build/out"
+            zip "thermion_dart-${SHORT_SHA}-web-main-thread-runtime-materials.zip" thermion_dart.js thermion_dart.wasm
+            aws s3 cp "thermion_dart-${SHORT_SHA}-web-main-thread-runtime-materials.zip" \
+              "s3://thermion/thermion_dart-${SHORT_SHA}-web-main-thread-runtime-materials.zip" \
+              --endpoint-url "$R2_ENDPOINT" \
+              --region auto
+          else
+            echo "::warning::main-thread runtime-materials web engine was not built; skipping its upload."
+          fi
           # Write the SHA so the download script knows which artifact to fetch
           echo "$SHORT_SHA" > "${{ github.workspace }}/thermion_dart/native/web/web.version"
 
       - name: Commit web.version
-        if: ${{ !inputs.verify && steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/')) }}
+        if: ${{ !inputs.verify && steps.changes.outputs.native-changed == 'true' && needs.triage.outputs.web_publish == 'true' }}
         env:
           PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Commit BEFORE rebasing: the R2 upload step has already rewritten
+          # web.version (it is dirty when this step starts), and a rebase
+          # cannot run over a dirty tree. Local commit first, then rebase
+          # onto the remote head; --autostash absorbs any other stray dirt.
           git add -f thermion_dart/native/web/web.version
-          git pull --rebase origin "$PUSH_BRANCH" || true
           git diff --cached --quiet || git commit -m "chore: update web.version"
+          git pull --rebase --autostash origin "$PUSH_BRANCH"
           git push origin "HEAD:$PUSH_BRANCH"
 
       - name: Upload artifacts
@@ -437,6 +573,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Commit BEFORE rebasing (a rebase cannot run over a dirty tree;
+          # the material regeneration leaves the outputs modified). Local
+          # commit first, then rebase onto the remote head.
           git add -A thermion_dart/native/include/material examples/assets
           git commit -m "chore: regenerate materials for filament.version (CI)
 
@@ -445,7 +584,7 @@ jobs:
           version in filament.version.
 
           🤖 Generated with GitHub Actions"
-          git pull --rebase origin "$PUSH_BRANCH"
+          git pull --rebase --autostash origin "$PUSH_BRANCH"
           git push origin "HEAD:$PUSH_BRANCH"
 
       # Nothing changed: normal for WIP pushes that didn't touch

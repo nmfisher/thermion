@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:convert' show json;
 import 'dart:math' as math;
 
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
+
+import '../../../bindings/heap_buffer.dart';
 
 import '../../../bindings/bindings.dart' as bindings;
 
@@ -667,6 +670,133 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       return FFIMaterial(ptr, this);
     } finally {
       if (FILAMENT_WASM) data.free();
+    }
+  }
+
+  @override
+  bool get runtimeMaterialsSupported => bindings.MaterialCompiler_isSupported() != 0;
+
+  @override
+  Future<Material> compileMaterialSource(
+    String name,
+    String source, {
+    MaterialShading shading = MaterialShading.lit,
+  }) async {
+    _checkRuntimeMaterialsSupported();
+    if (source.isEmpty) {
+      throw ArgumentError.value(source, 'source', 'Material source must not be empty.');
+    }
+    final nativeShading = switch (shading) {
+      MaterialShading.unlit => bindings.TShading.SHADING_UNLIT,
+      MaterialShading.lit => bindings.TShading.SHADING_LIT,
+      MaterialShading.subsurface => bindings.TShading.SHADING_SUBSURFACE,
+      MaterialShading.cloth => bindings.TShading.SHADING_CLOTH,
+      MaterialShading.specularGlossiness => bindings.TShading.SHADING_SPECULAR_GLOSSINESS,
+    };
+    final namePtr = name.toNativeUtf8().cast<Char>();
+    final sourcePtr = source.toNativeUtf8().cast<Char>();
+    // Dispatches the compile to the job thread that created the engine (the
+    // native entry point blocks on a packaged-task future). Required because
+    // MaterialBuilder::build drives the engine JobSystem, whose calling
+    // thread must have been adopted.
+    final package = bindings.MaterialCompiler_compileMaterialSource(
+      jobThreadHandle,
+      engine,
+      namePtr,
+      sourcePtr,
+      nativeShading,
+    );
+    free(namePtr);
+    free(sourcePtr);
+    return _materialFromCompiledPackage(package, name);
+  }
+
+  @override
+  Future<Material> compileMaterialPackage(String name, String source, {Map<String, String>? includes}) async {
+    _checkRuntimeMaterialsSupported();
+    if (source.isEmpty) {
+      throw ArgumentError.value(source, 'source', 'Material source must not be empty.');
+    }
+    final namePtr = name.toNativeUtf8().cast<Char>();
+    final sourcePtr = source.toNativeUtf8().cast<Char>();
+    // The native side resolves #include directives against this flat map
+    // (exact-name match, no filesystem). json.encode emits exactly the
+    // string-to-string JSON object the native parser accepts.
+    final includesJson = includes == null || includes.isEmpty ? null : json.encode(includes);
+    final includesPtr = includesJson == null ? nullptr.cast<Char>() : includesJson.toNativeUtf8().cast<Char>();
+    // Same job-thread dispatch as compileMaterialSource above.
+    final package = bindings.MaterialCompiler_compileMaterialPackage(
+      jobThreadHandle,
+      engine,
+      namePtr,
+      sourcePtr,
+      includesPtr,
+    );
+    free(namePtr);
+    free(sourcePtr);
+    if (includesJson != null) {
+      free(includesPtr);
+    }
+    return _materialFromCompiledPackage(package, name);
+  }
+
+  void _checkRuntimeMaterialsSupported() {
+    if (!runtimeMaterialsSupported) {
+      throw UnsupportedError(
+        'Runtime material compilation is not available in this build. Rebuild '
+        'with the runtime_materials user define (hooks.user_defines.thermion_dart '
+        'in your pubspec.yaml; on web this selects the filamat-enabled engine '
+        'variant) or precompile a '
+        '.filamat package with matc and load it with createMaterial.',
+      );
+    }
+  }
+
+  /// Validates a package returned by MaterialCompiler_compileMaterial*,
+  /// copies its bytes out of native/wasm memory, creates a [Material] from
+  /// them and destroys the native payload. Throws [StateError] when the
+  /// compile failed (null package) or produced no bytes.
+  Future<Material> _materialFromCompiledPackage(Pointer<TMaterialCompilerPackage> package, String name) async {
+    if (package == nullptr) {
+      throw StateError(
+        'Runtime material compilation failed for material "$name". Check the '
+        'Filament logs for shader compile diagnostics.',
+      );
+    }
+    try {
+      final size = bindings.MaterialCompiler_getPackageSize(package);
+      if (size == 0) {
+        throw StateError('Runtime material compilation produced an empty package for "$name".');
+      }
+      // The package bytes are an OUTPUT buffer. On web, no typed-data
+      // borrow ffigen_js provides can act as one: `buffer.address` copies
+      // the (still-empty) Dart bytes INTO a fresh wasm allocation and never
+      // copies back, so passOutput delivered zeros (the FormatException this
+      // branch used to throw). Read the compiled bytes straight out of the
+      // wasm heap through the payload pointer instead — the same typed-array
+      // view mechanism the readPixels/readString paths use — then hand the
+      // copy to createMaterial. Native keeps the zero-copy borrow: a Dart
+      // Uint8List's `.address` pins its own storage, so the memcpy lands
+      // directly in `bytes`.
+      final Uint8List bytes;
+      if (FILAMENT_WASM) {
+        final packagePtr = bindings.MaterialCompiler_getPackagePtr(package);
+        if (packagePtr == nullptr) {
+          throw StateError('Runtime material compilation returned no package buffer for "$name".');
+        }
+        bytes = Uint8List.fromList(packagePtr.asTypedList(size));
+      } else {
+        bytes = Uint8List(size);
+        await bytes.passOutput((buffer) {
+          final copied = bindings.MaterialCompiler_getPackageBytes(package, buffer.address, size);
+          if (copied != size) {
+            throw StateError('Material package read truncated: $copied of $size bytes.');
+          }
+        });
+      }
+      return await createMaterial(bytes);
+    } finally {
+      bindings.MaterialCompiler_destroyPackage(package);
     }
   }
 

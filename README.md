@@ -51,6 +51,79 @@ layouts with a Dart `FormatException` before calling Filament's material
 builder. It does not validate every payload or backend requirement; other
 invalid packages can still cause a native panic.
 
+#### Runtime material compilation (optional)
+
+Instead of precompiling `.filamat` packages with `matc`, apps that need to
+generate materials at runtime (e.g. user-authored or procedurally generated
+shaders) can compile GLSL material source directly on the device:
+
+```dart
+final material = await FilamentApp.instance!.compileMaterialSource(
+  'my_material',
+  '''
+  void material(inout MaterialInputs material) {
+    prepareMaterial(material);
+    material.baseColor.rgb = float3(1.0, 0.0, 0.0);
+  }
+  ''',
+  shading: MaterialShading.lit,
+);
+```
+
+For full `.mat` sources — the same format the `matc` tool accepts, with a
+`material { ... }` configuration block (parameters, shading model, variants,
+...) and `#include` directives — use `compileMaterialPackage`. Includes are
+resolved from an in-memory map (exact-name match, no filesystem access):
+
+```dart
+final material = await FilamentApp.instance!.compileMaterialPackage(
+  'my_material',
+  '''
+  material {
+      name : "MyMaterial",
+      shadingModel : unlit,
+      parameters : [ { type : float4, name : baseColor } ]
+  }
+  fragment {
+      #include "common.glsl"
+      void material(inout MaterialInputs material) {
+          prepareMaterial(material);
+          material.baseColor = tint(materialParams.baseColor);
+      }
+  }
+  ''',
+  includes: {
+    'common.glsl': 'vec4 tint(vec4 c) { return c * vec4(1.0, 0.9, 0.8, 1.0); }',
+  },
+);
+```
+
+Both APIs require linking `libfilamat` — Filament's offline material compiler,
+which bakes in glslang and SPIRV-Tools — plus `libmatp` (the `.mat` parser
+behind `matc`) for `compileMaterialPackage`, so they are opt-in. Add the flag
+to your app's `pubspec.yaml`:
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      runtime_materials: true
+```
+
+The flag adds roughly 8–45 MB to the native library depending on platform and
+build mode (release `libfilamat.a` is ~45 MB; less is carried into the final
+binary). `FilamentApp.instance!.runtimeMaterialsSupported` reports whether the
+loaded build has it; `compileMaterialSource` and `compileMaterialPackage`
+throw `UnsupportedError` otherwise. On web, the flag additionally selects a **filamat-enabled engine
+variant** — the build hook fetches `thermion_dart-<sha>-web-runtime-materials.zip`
+instead of the default wasm (~20 MB larger; it links `libfilamat`, the default
+build dead-code-eliminates it). Compilation
+is synchronous and CPU-intensive (hundreds of milliseconds) — run it before
+startup or from a background isolate.
+
+A live web demo — a GLSL editor that compiles and applies materials in the
+browser — is in `examples/dart/material_editor`.
+
 ### Quickstart (Flutter)
 
 From the command line:
@@ -168,6 +241,16 @@ Unknown values log a warning and fall back to the default engine.
 `web_local: true` composes with this: it then copies from
 `native/web/build-main-thread/build/out/` (build that variant locally with
 `emcmake cmake .. -DTHERMION_WEB_MAIN_THREAD=ON` into a separate directory).
+
+#### Runtime-materials web engine
+
+`runtime_materials: true` (the same user define that enables runtime material
+compilation on native) also selects a web engine variant with `libfilamat`
+linked — `compileMaterialSource` then works in the browser. The build hook
+fetches `thermion_dart-<sha>-web-runtime-materials.zip` (~20 MB larger than
+the default engine; the default dead-code-eliminates filamat). It composes
+with `web_variant` and `web_local` like any other variant. See the live
+editor demo in `examples/dart/material_editor`.
 Once this lands, a matching `thermion_dart-<sha>-web-main-thread.zip` appears
 on R2 only after the next native-changed push to `develop` bumps
 `web.version` — until then main-thread consumers must keep building locally.

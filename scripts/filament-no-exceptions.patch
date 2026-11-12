@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index a95a747..f524967 100644
+index a95a747..0f36c0d 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -135,7 +135,18 @@ set(FILAMENT_OSMESA_PATH "" CACHE STRING
@@ -34,13 +34,14 @@ index a95a747..f524967 100644
  if (LINUX)
      if (FILAMENT_SUPPORTS_WAYLAND)
          add_definitions(-DFILAMENT_SUPPORTS_WAYLAND)
-@@ -997,24 +1013,26 @@ if (WASM)
+@@ -997,24 +1013,27 @@ if (WASM)
      add_subdirectory(web/examples)
  endif()
  
 -if (IS_HOST_PLATFORM OR ANDROID)
 -   add_subdirectory(${LIBRARIES}/filamentapp)
 -   add_subdirectory(${EXTERNAL}/libassimp/tnt)
++# filamentapp and assimp need C++ exceptions; runtime builds skip them.
 +if ((IS_HOST_PLATFORM OR ANDROID) AND FILAMENT_ENABLE_EXCEPTIONS)
 +    add_subdirectory(${LIBRARIES}/filamentapp)
 +    add_subdirectory(${EXTERNAL}/libassimp/tnt)
@@ -67,7 +68,7 @@ index a95a747..f524967 100644
  
      add_subdirectory(${TOOLS}/cmgen)
      add_subdirectory(${TOOLS}/cso-lut)
-@@ -1036,6 +1054,12 @@ if (IS_HOST_PLATFORM)
+@@ -1036,6 +1055,12 @@ if (IS_HOST_PLATFORM)
      add_subdirectory(${TOOLS}/specgen)
  endif()
  
