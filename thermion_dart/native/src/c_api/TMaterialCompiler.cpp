@@ -56,15 +56,16 @@ namespace thermion
 
         filamat::MaterialBuilder::Platform platformForThisBuild()
         {
-#if defined(__APPLE__) && (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE || defined(__ARM_ARCH_7A__))
-            // iOS device/simulator: mobile shader model, matching the
-            // precompiled Thermion materials for iOS.
+#if defined(__ANDROID__) || defined(__EMSCRIPTEN__) || \
+        (defined(__APPLE__) && defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+            // Android also defines __linux__, so mobile targets must be
+            // selected before the desktop platform checks below.
             return filamat::MaterialBuilder::Platform::MOBILE;
 #elif defined(__APPLE__) || defined(__linux__) || defined(_WIN32)
             // Desktop shader models, matching the precompiled Thermion
             // materials for these targets.
             return filamat::MaterialBuilder::Platform::DESKTOP;
-#elif defined(__EMSCRIPTEN__) || defined(__ANDROID__) || defined(__arm__) || defined(__aarch64__)
+#elif defined(__arm__) || defined(__aarch64__)
             return filamat::MaterialBuilder::Platform::MOBILE;
 #else
             return filamat::MaterialBuilder::Platform::DESKTOP;
