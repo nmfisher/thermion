@@ -1004,8 +1004,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   //
   @override
   Future render({int? frameTimeInNanos}) async {
-    final resolvedFrameTimeNanos = frameTimeInNanos ??
-        bindings.FrameScheduler_steadyClockUs().toInt() * 1000;
+    final resolvedFrameTimeNanos = frameTimeInNanos ?? bindings.FrameScheduler_steadyClockUs().toInt() * 1000;
 
     var deltaNanos = resolvedFrameTimeNanos - _lastHookFrameTimeNanos;
     if (_lastHookFrameTimeNanos == 0 || deltaNanos < 0) {

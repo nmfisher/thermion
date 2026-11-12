@@ -77,9 +77,7 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
     _accumulatedRotation = Vector2.zero();
     _accumulatedTranslation = Vector3.zero();
 
-    if (rotation.length2 + pointerTranslation.length2 + translation.length2 ==
-            0.0 &&
-        _accumulatedScaleDelta == 0) {
+    if (rotation.length2 + pointerTranslation.length2 + translation.length2 == 0.0 && _accumulatedScaleDelta == 0) {
       return;
     }
 
@@ -88,18 +86,14 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
       final current = await camera.getModelMatrix();
       var zoomTranslation = Vector3.zero();
       if (_accumulatedScaleDelta != 0) {
-        zoomTranslation = Vector3(
-          0,
-          0,
-          _accumulatedScaleDelta * current.getTranslation().length.abs(),
-        );
+        zoomTranslation = Vector3(0, 0, _accumulatedScaleDelta * current.getTranslation().length.abs());
       }
       _accumulatedScaleDelta = 0;
-      final updated = current *
+      final updated =
+          current *
           Matrix4.compose(
             translation + pointerTranslation + zoomTranslation,
-            Quaternion.axisAngle(Vector3(0, 1, 0), rotation.x) *
-                Quaternion.axisAngle(Vector3(1, 0, 0), rotation.y),
+            Quaternion.axisAngle(Vector3(0, 1, 0), rotation.x) * Quaternion.axisAngle(Vector3(1, 0, 0), rotation.y),
             Vector3.all(1),
           );
       await camera.setModelMatrix(updated);
@@ -117,14 +111,8 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
     for (final event in events) {
       switch (event) {
         case ScrollEvent(delta: final delta):
-          _accumulatedTranslation.z +=
-              sensitivity.scrollWheelSensitivity * delta;
-        case MouseEvent(
-            type: final type,
-            button: _,
-            localPosition: _,
-            delta: final delta,
-          ):
+          _accumulatedTranslation.z += sensitivity.scrollWheelSensitivity * delta;
+        case MouseEvent(type: final type, button: _, localPosition: _, delta: final delta):
           switch (type) {
             case MouseEventType.hover:
               if (!moveOnHover) {
@@ -145,11 +133,11 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
         case ScaleStartEvent(numPointers: _):
           _scaleDelta = 1;
         case ScaleUpdateEvent(
-            numPointers: final numPointers,
-            localFocalPoint: _,
-            localFocalPointDelta: final localFocalPointDelta,
-            scale: final scale,
-          ):
+          numPointers: final numPointers,
+          localFocalPoint: _,
+          localFocalPointDelta: final localFocalPointDelta,
+          scale: final scale,
+        ):
           if (numPointers == 1) {
             _accumulatedTranslation += Vector3(
               localFocalPointDelta!.$1 * sensitivity.touchSensitivity,
@@ -157,17 +145,12 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
               0,
             );
           } else {
-            _accumulatedScaleDelta +=
-                (_scaleDelta! - scale) * sensitivity.touchScaleSensitivity;
+            _accumulatedScaleDelta += (_scaleDelta! - scale) * sensitivity.touchScaleSensitivity;
             _scaleDelta = scale;
           }
         case ScaleEndEvent(numPointers: _):
           break;
-        case KeyEvent(
-            type: final type,
-            logicalKey: _,
-            physicalKey: var physicalKey,
-          ):
+        case KeyEvent(type: final type, logicalKey: _, physicalKey: var physicalKey):
           switch (type) {
             case KeyEventType.down:
               _heldKeys.add(physicalKey);

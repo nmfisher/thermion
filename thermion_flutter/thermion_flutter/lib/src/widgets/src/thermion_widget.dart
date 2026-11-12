@@ -327,19 +327,16 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
   }
 
   void _allocateTexture(int width, int height) {
-    _enqueueTextureOperation(
-      () async {
-        try {
-          await _performTextureAllocation(width, height);
-        } finally {
-          // A failed initial allocation should be retried on a later build.
-          if (_texture == null) {
-            _initialAllocationInFlight = false;
-          }
+    _enqueueTextureOperation(() async {
+      try {
+        await _performTextureAllocation(width, height);
+      } finally {
+        // A failed initial allocation should be retried on a later build.
+        if (_texture == null) {
+          _initialAllocationInFlight = false;
         }
-      },
-      'allocating a Thermion widget texture',
-    );
+      }
+    }, 'allocating a Thermion widget texture');
   }
 
   Future<void> _performTextureAllocation(int width, int height) async {
