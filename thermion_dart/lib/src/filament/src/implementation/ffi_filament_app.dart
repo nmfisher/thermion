@@ -699,7 +699,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // native entry point blocks on a packaged-task future). Required because
     // MaterialBuilder::build drives the engine JobSystem, whose calling
     // thread must have been adopted.
-    final package = bindings.MaterialCompiler_compileMaterialSource(
+    final package = bindings.MaterialCompiler_compileMaterialSourceWithDiagnostics(
       jobThreadHandle,
       engine,
       namePtr,
@@ -725,7 +725,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final includesJson = includes == null || includes.isEmpty ? null : json.encode(includes);
     final includesPtr = includesJson == null ? nullptr.cast<Char>() : includesJson.toNativeUtf8().cast<Char>();
     // Same job-thread dispatch as compileMaterialSource above.
-    final package = bindings.MaterialCompiler_compileMaterialPackage(
+    final package = bindings.MaterialCompiler_compileMaterialPackageWithDiagnostics(
       jobThreadHandle,
       engine,
       namePtr,
@@ -764,6 +764,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       );
     }
     try {
+      final diagnostic = bindings.MaterialCompiler_getPackageError(package);
+      if (diagnostic != nullptr) {
+        throw StateError(
+          'Runtime material compilation failed for material "$name": '
+          '${diagnostic.cast<Utf8>().toDartString()}',
+        );
+      }
       final size = bindings.MaterialCompiler_getPackageSize(package);
       if (size == 0) {
         throw StateError('Runtime material compilation produced an empty package for "$name".');

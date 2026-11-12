@@ -109,6 +109,21 @@ extern "C"
         const char *matSource,
         const char *includesJson);
 
+    /// Diagnostic variants return an owned result on parser/include failure as
+    /// well as success. Check MaterialCompiler_getPackageError before reading
+    /// bytes, and always release the result with MaterialCompiler_destroyPackage.
+    /// The original compile functions retain their null-on-failure contract.
+    EMSCRIPTEN_KEEPALIVE TMaterialCompilerPackage *MaterialCompiler_compileMaterialSourceWithDiagnostics(
+        TJobThread *tJobThread, TEngine *tEngine, const char *name,
+        const char *materialSource, TShading shading);
+    EMSCRIPTEN_KEEPALIVE TMaterialCompilerPackage *MaterialCompiler_compileMaterialPackageWithDiagnostics(
+        TJobThread *tJobThread, TEngine *tEngine, const char *name,
+        const char *matSource, const char *includesJson);
+
+    /// Borrowed UTF-8 error text, valid until the result is destroyed. Null for
+    /// successful results, null results, and builds without runtime compilation.
+    EMSCRIPTEN_KEEPALIVE const char *MaterialCompiler_getPackageError(TMaterialCompilerPackage *package);
+
     /// Copies the compiled package bytes into `out`, which must hold at least
     /// MaterialCompiler_getPackageSize bytes. Returns the number of bytes copied.
     EMSCRIPTEN_KEEPALIVE size_t MaterialCompiler_getPackageBytes(

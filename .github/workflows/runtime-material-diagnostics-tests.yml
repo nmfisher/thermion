@@ -1,0 +1,40 @@
+name: Runtime material diagnostic tests
+
+on:
+  pull_request:
+    paths:
+      - 'thermion_dart/native/**/TMaterialCompiler.*'
+      - 'thermion_dart/lib/src/filament/src/implementation/ffi_filament_app.dart'
+      - 'thermion_dart/test/runtime_material_diagnostics_test.dart'
+      - '.github/workflows/runtime-material-diagnostics-tests.yml'
+  push:
+    branches: [develop]
+    paths:
+      - 'thermion_dart/native/**/TMaterialCompiler.*'
+      - 'thermion_dart/lib/src/filament/src/implementation/ffi_filament_app.dart'
+      - 'thermion_dart/test/runtime_material_diagnostics_test.dart'
+      - '.github/workflows/runtime-material-diagnostics-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Enable runtime compiler
+        run: |
+          cat >> thermion_dart/pubspec.yaml <<'EOF'
+          hooks:
+            user_defines:
+              thermion_dart:
+                mode: release
+                runtime_materials: true
+          EOF
+      - name: Check runtime compilation and returned diagnostics
+        working-directory: thermion_dart
+        run: |
+          dart pub get
+          dart test -j1 test/runtime_material_test.dart test/runtime_material_diagnostics_test.dart --reporter expanded

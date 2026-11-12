@@ -1164,6 +1164,13 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Char> matSource,
     Pointer<Char> includesJson,
   );
+  external Pointer<TMaterialCompilerPackage> _MaterialCompiler_compileMaterialPackageWithDiagnostics(
+    Pointer<TJobThread> tJobThread,
+    Pointer<TEngine> tEngine,
+    Pointer<Char> name,
+    Pointer<Char> matSource,
+    Pointer<Char> includesJson,
+  );
 
   /// Compiles a material source string to a .filamat package at runtime.
   ///
@@ -1203,6 +1210,18 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int shading,
   );
 
+  /// Diagnostic variants return an owned result on parser/include failure as
+  /// well as success. Check MaterialCompiler_getPackageError before reading
+  /// bytes, and always release the result with MaterialCompiler_destroyPackage.
+  /// The original compile functions retain their null-on-failure contract.
+  external Pointer<TMaterialCompilerPackage> _MaterialCompiler_compileMaterialSourceWithDiagnostics(
+    Pointer<TJobThread> tJobThread,
+    Pointer<TEngine> tEngine,
+    Pointer<Char> name,
+    Pointer<Char> materialSource,
+    int shading,
+  );
+
   /// Frees a package returned by MaterialCompiler_compileMaterialSource or
   /// MaterialCompiler_compileMaterialPackage. Null is ignored.
   external void _MaterialCompiler_destroyPackage(Pointer<TMaterialCompilerPackage> package);
@@ -1214,6 +1233,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Uint8> out,
     size_t capacity,
   );
+
+  /// Borrowed UTF-8 error text, valid until the result is destroyed. Null for
+  /// successful results, null results, and builds without runtime compilation.
+  external Pointer<Char> _MaterialCompiler_getPackageError(Pointer<TMaterialCompilerPackage> package);
 
   /// Returns a pointer to the compiled package bytes living in native/Wasm
   /// heap memory, or null. Valid until MaterialCompiler_destroyPackage; pair
@@ -5879,6 +5902,23 @@ Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialPackage(
   return Pointer<TMaterialCompilerPackage>(result);
 }
 
+Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialPackageWithDiagnostics(
+  Pointer<TJobThread> tJobThread,
+  Pointer<TEngine> tEngine,
+  Pointer<Char> name,
+  Pointer<Char> matSource,
+  Pointer<Char> includesJson,
+) {
+  final result = GeneratedBindings.instance._MaterialCompiler_compileMaterialPackageWithDiagnostics(
+    tJobThread.cast(),
+    tEngine.cast(),
+    name,
+    matSource,
+    includesJson,
+  );
+  return Pointer<TMaterialCompilerPackage>(result);
+}
+
 /// Compiles a material source string to a .filamat package at runtime.
 ///
 /// `tJobThread` is the render job thread that owns `tEngine`; the compile
@@ -5926,6 +5966,27 @@ Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialSource(
   return Pointer<TMaterialCompilerPackage>(result);
 }
 
+/// Diagnostic variants return an owned result on parser/include failure as
+/// well as success. Check MaterialCompiler_getPackageError before reading
+/// bytes, and always release the result with MaterialCompiler_destroyPackage.
+/// The original compile functions retain their null-on-failure contract.
+Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialSourceWithDiagnostics(
+  Pointer<TJobThread> tJobThread,
+  Pointer<TEngine> tEngine,
+  Pointer<Char> name,
+  Pointer<Char> materialSource,
+  int shading,
+) {
+  final result = GeneratedBindings.instance._MaterialCompiler_compileMaterialSourceWithDiagnostics(
+    tJobThread.cast(),
+    tEngine.cast(),
+    name,
+    materialSource,
+    shading,
+  );
+  return Pointer<TMaterialCompilerPackage>(result);
+}
+
 /// Frees a package returned by MaterialCompiler_compileMaterialSource or
 /// MaterialCompiler_compileMaterialPackage. Null is ignored.
 void MaterialCompiler_destroyPackage(Pointer<TMaterialCompilerPackage> package) {
@@ -5942,6 +6003,13 @@ Dartsize_t MaterialCompiler_getPackageBytes(
 ) {
   final result = GeneratedBindings.instance._MaterialCompiler_getPackageBytes(package.cast(), out, capacity);
   return result;
+}
+
+/// Borrowed UTF-8 error text, valid until the result is destroyed. Null for
+/// successful results, null results, and builds without runtime compilation.
+Pointer<Char> MaterialCompiler_getPackageError(Pointer<TMaterialCompilerPackage> package) {
+  final result = GeneratedBindings.instance._MaterialCompiler_getPackageError(package.cast());
+  return Pointer<Char>(result);
 }
 
 /// Returns a pointer to the compiled package bytes living in native/Wasm
@@ -13588,8 +13656,6 @@ typedef VoidCallback = Pointer<NativeFunction<VoidCallbackFunction>>;
 typedef DartVoidCallback = Pointer<NativeFunction<VoidCallbackFunction>>;
 typedef VoidCallbackFunction = void Function(int requestId);
 typedef DartVoidCallbackFunction = void Function(int requestId);
-
-const int __bool_true_false_are_defined = 1;
 
 extension double3Ext on Pointer<double3> {
   double3 toDart() {
