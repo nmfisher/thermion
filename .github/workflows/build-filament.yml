@@ -141,7 +141,10 @@ jobs:
 
   build-ios:
     name: Build iOS
-    runs-on: macos-14
+    # macos-14 is retired ('macos-14-arm64-us-default is not supported' —
+    # job cancelled at allocation). macos-15 = same arm64 pool the macOS job
+    # builds on successfully.
+    runs-on: macos-15
     needs: setup
     if: contains(needs.setup.outputs.matrix, 'ios')
     env:
@@ -228,8 +231,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang libc++-dev libc++abi-dev ninja-build libxcb1-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
+          set -euo pipefail
+          # apt can stall for hours on runner-network DNS blackholes
+          # (azure.archive.ubuntu.com); cap each command and retry the batch.
+          retry() { for i in 1 2 3; do "$@" && return 0; echo "retry $i/3 failed: $*" >&2; sleep 20; done; return 1; }
+          retry sudo apt-get update -o Acquire::http::Timeout=30 -o Acquire::Retries=3
+          retry sudo apt-get install -y -o Acquire::http::Timeout=30 clang libc++-dev libc++abi-dev ninja-build libxcb1-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
 
       - name: Setup NDK
         uses: nttld/setup-ndk@v1
@@ -311,17 +318,22 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ca-certificates wget ninja-build \
+          set -euo pipefail
+          # apt can stall for hours on runner-network DNS blackholes
+          # (azure.archive.ubuntu.com); cap each command and retry the batch.
+          retry() { for i in 1 2 3; do "$@" && return 0; echo "retry $i/3 failed: $*" >&2; sleep 20; done; return 1; }
+          retry sudo apt-get update -o Acquire::http::Timeout=30 -o Acquire::Retries=3
+          retry sudo apt-get install -y -o Acquire::http::Timeout=30 \
+            ca-certificates wget ninja-build \
             libx11-dev libx11-xcb-dev libxcursor-dev libxrandr-dev libxinerama-dev \
             libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev \
             libgbm-dev
           # clang-18 + libc++ 18 from apt.llvm.org (jammy's distro clang is
           # 14, too old for Filament). See the runs-on comment above.
-          wget -q https://apt.llvm.org/llvm.sh
+          retry wget -q --tries=3 --timeout=30 https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           sudo ./llvm.sh 18
-          sudo apt-get install -y libc++-18-dev libc++abi-18-dev
+          retry sudo apt-get install -y -o Acquire::http::Timeout=30 libc++-18-dev libc++abi-18-dev
           # build_linux.sh hardcodes CC=clang/CXX=clang++ and apt.llvm.org
           # only installs versioned binaries, so point the unversioned names
           # at clang-18.
@@ -440,17 +452,22 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ca-certificates wget ninja-build \
+          set -euo pipefail
+          # apt can stall for hours on runner-network DNS blackholes
+          # (azure.archive.ubuntu.com); cap each command and retry the batch.
+          retry() { for i in 1 2 3; do "$@" && return 0; echo "retry $i/3 failed: $*" >&2; sleep 20; done; return 1; }
+          retry sudo apt-get update -o Acquire::http::Timeout=30 -o Acquire::Retries=3
+          retry sudo apt-get install -y -o Acquire::http::Timeout=30 \
+            ca-certificates wget ninja-build \
             libx11-dev libx11-xcb-dev libxcursor-dev libxrandr-dev libxinerama-dev \
             libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev \
             libgbm-dev
           # clang-18 + libc++ 18 from apt.llvm.org (jammy's distro clang is
           # 14, too old for Filament). See the runs-on comment above.
-          wget -q https://apt.llvm.org/llvm.sh
+          retry wget -q --tries=3 --timeout=30 https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           sudo ./llvm.sh 18
-          sudo apt-get install -y libc++-18-dev libc++abi-18-dev
+          retry sudo apt-get install -y -o Acquire::http::Timeout=30 libc++-18-dev libc++abi-18-dev
           # build_linux.sh hardcodes CC=clang/CXX=clang++ and apt.llvm.org
           # only installs versioned binaries, so point the unversioned names
           # at clang-18.
@@ -636,8 +653,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang libc++-dev libc++abi-dev ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
+          set -euo pipefail
+          # apt can stall for hours on runner-network DNS blackholes
+          # (azure.archive.ubuntu.com); cap each command and retry the batch.
+          retry() { for i in 1 2 3; do "$@" && return 0; echo "retry $i/3 failed: $*" >&2; sleep 20; done; return 1; }
+          retry sudo apt-get update -o Acquire::http::Timeout=30 -o Acquire::Retries=3
+          retry sudo apt-get install -y -o Acquire::http::Timeout=30 clang libc++-dev libc++abi-dev ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
 
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14
