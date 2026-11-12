@@ -1,6 +1,3 @@
-@TestOn('vm')
-library;
-
 import 'dart:convert';
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -10,6 +7,7 @@ import 'src/test_io.dart';
 void main() {
   late FFIFilamentApp app;
   setUpAll(() async {
+    await initTestBindings();
     await FFIFilamentApp.create(
       config: FFIFilamentConfig(loadResource: loadResourceBytes, backend: defaultTestBackend),
     );
@@ -28,8 +26,9 @@ void main() {
     expect(package, isNot(nullptr));
     try {
       final size = MaterialCompiler_getPackageSize(package);
-      final bytes = Uint8List(size);
-      expect(MaterialCompiler_getPackageBytes(package, bytes.address, size), size);
+      final data = MaterialCompiler_getPackagePtr(package);
+      expect(data, isNot(nullptr));
+      final bytes = Uint8List.fromList(data.asTypedList(size));
       final view = ByteData.sublistView(bytes);
       final chunks = <String, Uint8List>{};
       for (var offset = 0; offset < size;) {

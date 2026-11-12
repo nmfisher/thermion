@@ -1,6 +1,7 @@
 name: Runtime material metadata tests
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - 'thermion_dart/native/src/c_api/TMaterialCompiler.cpp'
@@ -36,3 +37,49 @@ jobs:
         run: |
           dart pub get
           dart test -j1 test/runtime_material_test.dart test/runtime_material_metadata_test.dart --reporter expanded
+
+  web:
+    name: Compiler metadata (web, ${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: worker, variant: '', suffix: '-runtime-materials' }
+          - { name: main-thread, variant: main_thread, suffix: '-main-thread-runtime-materials' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Select compiler-enabled web engine
+        run: |
+          cat >> thermion_dart/pubspec.yaml <<'EOF'
+          hooks:
+            user_defines:
+              thermion_dart:
+                skip_native_build: true
+                runtime_materials: true
+                web_variant: '${{ matrix.variant }}'
+          EOF
+      - name: Download matching published engine
+        working-directory: thermion_dart
+        env:
+          ENGINE_SUFFIX: ${{ matrix.suffix }}
+        run: |
+          version="$(cat native/web/web.version)"
+          curl -fL "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/thermion_dart-${version}-web${ENGINE_SUFFIX}.zip" \
+            -o "$RUNNER_TEMP/runtime-material-metadata-web.zip"
+          unzip -o "$RUNNER_TEMP/runtime-material-metadata-web.zip" -d test
+      - name: Configure Chrome software rendering
+        run: |
+          chrome="$(command -v google-chrome)"
+          printf '#!/bin/sh\nexec "%s" --no-sandbox --use-angle=swiftshader --enable-unsafe-swiftshader "$@"\n' \
+            "$chrome" > "$RUNNER_TEMP/thermion-test-chrome"
+          chmod +x "$RUNNER_TEMP/thermion-test-chrome"
+          echo "CHROME_EXECUTABLE=$RUNNER_TEMP/thermion-test-chrome" >> "$GITHUB_ENV"
+      - name: Check embedded flags and source in browser packages
+        working-directory: thermion_dart
+        run: |
+          dart pub get
+          xvfb-run dart run tool/web_test_runner.dart --assets=../examples/assets --clean \
+            test/runtime_material_metadata_test.dart
