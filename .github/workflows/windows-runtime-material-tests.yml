@@ -1,0 +1,48 @@
+name: Windows runtime material linkage tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'thermion_dart/native/include/ThermionWin32.h'
+      - '.github/workflows/windows-runtime-material-tests.yml'
+  push:
+    branches: [develop]
+    paths:
+      - 'thermion_dart/native/include/ThermionWin32.h'
+      - '.github/workflows/windows-runtime-material-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-materials:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-windows-env
+      - name: Enable release runtime compilation
+        shell: bash
+        run: |
+          cat >> thermion_dart/pubspec.yaml <<'EOF'
+          hooks:
+            user_defines:
+              thermion_dart:
+                mode: release
+                runtime_materials: true
+          EOF
+      - name: Build and exercise the runtime compiler
+        working-directory: thermion_dart
+        shell: bash
+        env:
+          VK_ICD_FILENAMES: 'C:\swiftshader\vk_swiftshader_icd.json'
+        run: |
+          dart pub get
+          dart test -j1 test/runtime_material_test.dart --reporter expanded
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-runtime-material-linkage-build-log
+          path: thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
