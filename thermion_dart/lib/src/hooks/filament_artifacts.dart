@@ -37,8 +37,7 @@ import 'dart:convert';
 
 /// R2 base for all prebuilt artifacts (Filament libs and web engine zips).
 /// Same bucket as web_artifacts.dart's webR2BaseUrl.
-const String filamentR2BaseUrl =
-    'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
+const String filamentR2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
 
 /// Name of the shipped pin file at the thermion_dart package root.
 const String filamentPinFileName = 'filament.libs.json';
@@ -101,27 +100,35 @@ FilamentPin parseFilamentPin(String? contents, {List<String>? warnings}) {
   try {
     decoded = jsonDecode(contents);
   } catch (e) {
-    sink.add('$filamentPinFileName is not valid JSON ($e); '
-        'using legacy artifact keys.');
+    sink.add(
+      '$filamentPinFileName is not valid JSON ($e); '
+      'using legacy artifact keys.',
+    );
     return pin;
   }
   if (decoded is! Map) {
-    sink.add('$filamentPinFileName must be a JSON object; '
-        'using legacy artifact keys.');
+    sink.add(
+      '$filamentPinFileName must be a JSON object; '
+      'using legacy artifact keys.',
+    );
     return pin;
   }
   for (final entry in decoded.entries) {
     final key = entry.key;
     final value = entry.value;
     if (key is! String || !_validPinKey(key)) {
-      sink.add("Ignoring pin entry '$key': expected '<platform>/<variant>' "
-          'with platform in ${filamentPlatforms.toList()..sort()} '
-          'and variant release|debug.');
+      sink.add(
+        "Ignoring pin entry '$key': expected '<platform>/<variant>' "
+        'with platform in ${filamentPlatforms.toList()..sort()} '
+        'and variant release|debug.',
+      );
       continue;
     }
     if (value is! String || !_isSha256Hex(value)) {
-      sink.add("Ignoring pin entry '$key': value must be a 64-char hex "
-          'SHA-256 digest.');
+      sink.add(
+        "Ignoring pin entry '$key': value must be a 64-char hex "
+        'SHA-256 digest.',
+      );
       continue;
     }
     pin[key] = value.toLowerCase();
@@ -132,8 +139,7 @@ FilamentPin parseFilamentPin(String? contents, {List<String>? warnings}) {
 bool _validPinKey(String key) {
   final parts = key.split('/');
   if (parts.length != 2) return false;
-  return filamentPlatforms.contains(parts[0]) &&
-      (parts[1] == 'release' || parts[1] == 'debug');
+  return filamentPlatforms.contains(parts[0]) && (parts[1] == 'release' || parts[1] == 'debug');
 }
 
 bool _isSha256Hex(String value) {
@@ -153,8 +159,7 @@ String legacyFilamentZipName(String version, String platform, String variant) =>
     'filament-$version-$platform-$variant.zip';
 
 /// Content-addressed zip name for a full SHA-256 digest.
-String hashedFilamentZipName(
-        String version, String platform, String variant, String sha256) =>
+String hashedFilamentZipName(String version, String platform, String variant, String sha256) =>
     'filament-$version-$platform-$variant-${sha256.substring(0, filamentHashPrefixLength)}.zip';
 
 /// Resolves the artifact for [version]/[platform]/[variant] against [pin].
@@ -162,22 +167,11 @@ String hashedFilamentZipName(
 /// Pinned → hash-suffixed URL + full digest + `-<hash16>` cache suffix.
 /// Unpinned → legacy URL, no digest, no cache suffix (byte-compatible with
 /// the pre-pin hook, including existing caches).
-FilamentArtifactResolution resolveFilamentArtifact(
-  String version,
-  String platform,
-  String variant,
-  FilamentPin pin,
-) {
+FilamentArtifactResolution resolveFilamentArtifact(String version, String platform, String variant, FilamentPin pin) {
   final sha = pin['$platform/$variant'];
   if (sha == null) {
     final name = legacyFilamentZipName(version, platform, variant);
-    return (
-      url: '$filamentR2BaseUrl/$name',
-      zipName: name,
-      sha256: null,
-      cacheSuffix: '',
-      warnings: const [],
-    );
+    return (url: '$filamentR2BaseUrl/$name', zipName: name, sha256: null, cacheSuffix: '', warnings: const []);
   }
   final name = hashedFilamentZipName(version, platform, variant, sha);
   return (

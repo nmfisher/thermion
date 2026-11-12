@@ -628,13 +628,9 @@ outputDirectory : ${outputDirectory.path}
 /// Missing/malformed pins degrade to legacy artifact keys with a warning —
 /// see lib/src/hooks/filament_artifacts.dart.
 FilamentPin _loadFilamentPin(Uri packageRoot, Logger logger) {
-  final file = File(path.join(
-      packageRoot.toFilePath(windows: Platform.isWindows),
-      filamentPinFileName));
+  final file = File(path.join(packageRoot.toFilePath(windows: Platform.isWindows), filamentPinFileName));
   final warnings = <String>[];
-  final pin = parseFilamentPin(
-      file.existsSync() ? file.readAsStringSync() : null,
-      warnings: warnings);
+  final pin = parseFilamentPin(file.existsSync() ? file.readAsStringSync() : null, warnings: warnings);
   for (final warning in warnings) {
     logger.warning(warning);
   }
@@ -861,9 +857,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
     );
     final releaseArtifact = resolveFilamentArtifact(version, platform, "release", pin);
     final releaseUrl = releaseArtifact.url;
-    final releaseZip = File(
-      path.join(Directory.systemTemp.path, 'thermion_bluevk_repair_${releaseArtifact.zipName}'),
-    );
+    final releaseZip = File(path.join(Directory.systemTemp.path, 'thermion_bluevk_repair_${releaseArtifact.zipName}'));
     final releaseRequest = await HttpClient().getUrl(Uri.parse(releaseUrl));
     final releaseResponse = await releaseRequest.close();
     if (releaseResponse.statusCode != 200) {
@@ -873,11 +867,12 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
     final releaseBytes = await releaseZip.readAsBytes();
     // Same pin verification as the main download when the release artifact
     // is content-addressed.
-    if (releaseArtifact.sha256 != null &&
-        sha256.convert(releaseBytes).toString() != releaseArtifact.sha256) {
+    if (releaseArtifact.sha256 != null && sha256.convert(releaseBytes).toString() != releaseArtifact.sha256) {
       await releaseZip.delete();
-      throw Exception("SHA-256 mismatch for ${releaseArtifact.zipName} "
-          "(bluevk repair download) — see $filamentPinFileName.");
+      throw Exception(
+        "SHA-256 mismatch for ${releaseArtifact.zipName} "
+        "(bluevk repair download) — see $filamentPinFileName.",
+      );
     }
     final releaseArchive = ZipDecoder().decodeBytes(releaseBytes);
     for (final file in releaseArchive) {
