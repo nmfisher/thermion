@@ -40,6 +40,14 @@ public:
     }
     static std::atomic<int32_t> mLiveWorkerCount;
 
+    /// Synchronously applies every non-lifecycle task queued so far. Called on
+    /// this worker's thread at the start of an animation frame so a multi-call
+    /// scene update posted from the main thread is never split across rendered
+    /// frames. Lifecycle tasks (destruction/detachment) stay queued for the
+    /// normal pump: running them here could free the very objects the
+    /// animation callback still touches.
+    void drainPendingTasks();
+
 private:
     class CurrentThreadScope;
     static thread_local WebJobThread* _current;
@@ -49,6 +57,8 @@ private:
     bool isWorkerThread() const;
     void runAfterBatchCallback();
     void enqueue(std::function<void()> task) override;
+    // Destruction/detachment work, kept out of the pre-render drain.
+    void enqueueLifecycle(std::function<void()> task) override;
     void scheduleWakeLocked();
     void pumpTasks();
     static void* startHelper(void* arg);
@@ -67,6 +77,10 @@ private:
     pthread_t _caller{};
     bool _wakePending = false; // protected by _taskMutex
     bool _workerFinished = false;
+    // Destruction/detachment tasks, drained only by pumpTasks (never by the
+    // pre-render drain). Protected by _taskMutex. Always empty in
+    // THERMION_WEB_MAIN_THREAD mode.
+    std::deque<std::function<void()>> _lifecycleTasks;
     std::function<void()> _afterBatch;
 };
 

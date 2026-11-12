@@ -1,6 +1,5 @@
 #include "rendering/RenderManager.hpp"
 #include <algorithm>
-#include <chrono>
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 #include <emscripten/eventloop.h>
@@ -61,6 +60,13 @@ bool RenderManager::onAnimationFrame(double timeMs, void* manager) {
     // which paces against emscripten_get_now(); both share the
     // DOMHighResTimeStamp epoch of this worker context.
     const double timeMsOrNow = timeMs > 0.0 ? timeMs : emscripten_get_now();
+    // Apply every task queued so far before rendering, so a multi-call scene
+    // update posted from the main thread (camera + several transforms, etc.)
+    // is never split across two rendered frames. The drain skips lifecycle
+    // tasks, so objects this callback touches cannot be freed underneath it.
+    if (self->mPreRenderDrain) {
+        self->mPreRenderDrain();
+    }
     self->tick(static_cast<uint64_t>(timeMsOrNow * 1e6));
     if (self->mFrameLoopRunning) {
         self->requestNextFrame();

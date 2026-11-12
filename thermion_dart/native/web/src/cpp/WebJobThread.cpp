@@ -9,6 +9,12 @@
 
 namespace thermion {
 
+// Per-pump drain budget in milliseconds. Long enough to keep a whole
+// single-frame scene update (a camera plus a handful of transforms) atomic
+// with respect to rendering, short enough to keep yielding to browser events
+// (Filament driver callbacks, proxy deliveries) under sustained load.
+constexpr double kDrainBudgetMs = 2.0;
+
 std::atomic<int32_t> WebJobThread::mLiveWorkerCount{0};
 thread_local WebJobThread* WebJobThread::_current = nullptr;
 
@@ -104,6 +110,25 @@ void WebJobThread::enqueue(std::function<void()> work) {
 #endif
 }
 
+void WebJobThread::enqueueLifecycle(std::function<void()> work) {
+#ifdef THERMION_WEB_MAIN_THREAD
+    CurrentThreadScope current(*this);
+    work();
+    runAfterBatchCallback();
+#else
+    std::unique_lock<std::mutex> lock(_taskMutex);
+    if (isStopping() && !isWorkerThread()) {
+        lock.unlock();
+        Log("Cannot submit work after JobThread shutdown");
+        std::abort();
+    }
+    // Lifecycle tasks run only from pumpTasks. The pre-render drain skips
+    // them so it can never free objects an animation callback is using.
+    _lifecycleTasks.push_back(std::move(work));
+    scheduleWakeLocked();
+#endif
+}
+
 #if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_MAIN_THREAD)
 void WebJobThread::startWorker() {
     pthread_attr_t attr;
@@ -146,23 +171,38 @@ void WebJobThread::pumpCallback(void* arg) {
 
 void WebJobThread::pumpTasks() {
     CurrentThreadScope current(*this);
-    // Keep the existing batch limit. Yield to browser events between batches,
-    // and flush Filament commands even if no animation frame arrives.
+    // Drain under a time budget instead of the old fixed 8-task cap, then
+    // yield to browser events with a zero-timeout continuation. The fixed cap
+    // could split a multi-call scene update across animation frames; the
+    // budget keeps long streams from starving the worker event loop instead.
+    // Lifecycle tasks always follow ordinary ones: destruction work delayed
+    // past later state updates is safe (everything it touches is still
+    // alive), while the reverse order is not.
     std::unique_lock<std::mutex> lock(_taskMutex);
-    unsigned taskCount = 0;
-    while (!_tasks.empty() && taskCount++ < 8) {
+    const double drainStartMs = emscripten_get_now();
+    while (!_tasks.empty()) {
         auto task = std::move(_tasks.front());
         _tasks.pop_front();
         lock.unlock();
         task();
         task = {};
         lock.lock();
+        if (emscripten_get_now() - drainStartMs > kDrainBudgetMs) break;
+    }
+    while (!_lifecycleTasks.empty()) {
+        auto task = std::move(_lifecycleTasks.front());
+        _lifecycleTasks.pop_front();
+        lock.unlock();
+        task();
+        task = {};
+        lock.lock();
+        if (emscripten_get_now() - drainStartMs > kDrainBudgetMs) break;
     }
     // Run the installed backend flush even when no drawing callback arrives.
     lock.unlock();
     runAfterBatchCallback();
     lock.lock();
-    if (!_tasks.empty()) {
+    if (!_tasks.empty() || !_lifecycleTasks.empty()) {
         // A timer continuation yields the worker event loop; re-proxying onto
         // the currently executing queue could otherwise drain without yielding.
         emscripten_set_timeout(pumpCallback, 0, this);
@@ -184,6 +224,30 @@ void WebJobThread::finishShutdown(void* arg) {
 }
 
 #endif
+
+void WebJobThread::drainPendingTasks() {
+    // Pre-render drain: apply every ordinary task queued so far so a frame
+    // never renders a partially-updated scene. Runs on this worker's thread
+    // from RenderManager::onAnimationFrame; pumps and animation callbacks
+    // never nest on one thread, so this cannot re-enter itself. A wakeup that
+    // was already scheduled still fires afterwards and no-ops on the drained
+    // queue. Lifecycle tasks deliberately stay queued for pumpTasks. In
+    // THERMION_WEB_MAIN_THREAD mode commands execute inline, so this is a
+    // no-op there.
+    CurrentThreadScope current(*this);
+    std::unique_lock<std::mutex> lock(_taskMutex);
+    while (!_tasks.empty()) {
+        auto task = std::move(_tasks.front());
+        _tasks.pop_front();
+        lock.unlock();
+        task();
+        task = {};
+        lock.lock();
+    }
+    if (!isStopping()) {
+        _wakePending = false;
+    }
+}
 
 void WebJobThread::runAfterBatchCallback() {
     // A callback may clear the installed hook through a nested command.
