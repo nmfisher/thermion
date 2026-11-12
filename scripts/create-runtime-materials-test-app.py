@@ -16,6 +16,7 @@ def main():
                     '--project-name', 'runtime_materials_ci', str(app)], check=True)
     (app / 'pubspec.yaml').write_text(f'''name: runtime_materials_ci
 publish_to: none
+version: 0.0.1+1
 environment:
   sdk: '>=3.10.0 <4.0.0'
 dependencies:
@@ -39,13 +40,21 @@ flutter:
 ''')
     tests = app / 'integration_test'
     tests.mkdir()
-    suite = (root / 'thermion_dart/test/runtime_material_enabled_test.dart').as_uri()
+    suite = (root / 'thermion_dart/test/runtime_material_test.dart').as_uri()
     (tests / 'runtime_materials_test.dart').write_text(f'''import 'package:integration_test/integration_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import '{suite}' as runtime;
 
 Future<void> main() async {{
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  await runtime.main();
+  await runtime.runRuntimeMaterialTests(
+    expectedSupport: true,
+    registerTest: (name, body) {{
+      testWidgets(name, (tester) async {{
+        await tester.runAsync(body);
+      }});
+    }},
+  );
 }}
 ''')
 

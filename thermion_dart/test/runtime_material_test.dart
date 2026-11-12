@@ -10,7 +10,18 @@ import 'src/test_io.dart';
 /// feature is reported unsupported and the API throws UnsupportedError.
 Future<void> main() => runRuntimeMaterialTests();
 
-Future<void> runRuntimeMaterialTests({bool? expectedSupport}) async {
+Future<void> runRuntimeMaterialTests({
+  bool? expectedSupport,
+  void Function(String, Future<void> Function())? registerTest,
+}) async {
+  void register(String name, Future<void> Function() body) {
+    if (registerTest != null) {
+      registerTest(name, body);
+    } else {
+      test(name, body);
+    }
+  }
+
   await initTestBindings();
   await FFIFilamentApp.create(
     config: FFIFilamentConfig(loadResource: loadResourceBytes, backend: defaultTestBackend),
@@ -28,7 +39,7 @@ void material(inout MaterialInputs material) {
 }
 ''';
 
-  test('runtimeMaterialsSupported matches the requested build', () async {
+  register('runtimeMaterialsSupported matches the requested build', () async {
     if (expectedSupport == null) {
       expect(app.runtimeMaterialsSupported, isA<bool>());
     } else {
@@ -36,7 +47,7 @@ void material(inout MaterialInputs material) {
     }
   });
 
-  test('compileMaterialSource compiles, validates, and instantiates', () async {
+  register('compileMaterialSource compiles, validates, and instantiates', () async {
     if (!app.runtimeMaterialsSupported) {
       // Default build (no runtime_materials flag): must throw, not crash.
       expect(() => app.compileMaterialSource('runtime_test', source), throwsUnsupportedError);
@@ -55,7 +66,7 @@ void material(inout MaterialInputs material) {
     await instance.setDepthWriteEnabled(true);
   });
 
-  test('empty source is rejected before any native work', () async {
+  register('empty source is rejected before any native work', () async {
     if (!app.runtimeMaterialsSupported) {
       expect(() => app.compileMaterialSource('runtime_test', ''), throwsUnsupportedError);
       return;
@@ -94,7 +105,7 @@ vec3 tintBaseColor(vec3 color) {
 ''',
   };
 
-  test('compileMaterialPackage compiles a .mat with parameters and includes', () async {
+  register('compileMaterialPackage compiles a .mat with parameters and includes', () async {
     if (!app.runtimeMaterialsSupported) {
       // Default build (no runtime_materials flag): must throw, not crash.
       expect(
@@ -116,7 +127,7 @@ vec3 tintBaseColor(vec3 color) {
     await instance.setDepthWriteEnabled(true);
   });
 
-  test('compileMaterialPackage resolves nested includes from the same map', () async {
+  register('compileMaterialPackage resolves nested includes from the same map', () async {
     if (!app.runtimeMaterialsSupported) {
       expect(() => app.compileMaterialPackage('runtime_package_nested', packageSource), throwsUnsupportedError);
       return;
@@ -155,7 +166,7 @@ vec4 outerTint(vec4 color) {
     expect(await material.hasParameter('baseColor'), isTrue);
   });
 
-  test('compileMaterialPackage works without includes', () async {
+  register('compileMaterialPackage works without includes', () async {
     if (!app.runtimeMaterialsSupported) {
       expect(() => app.compileMaterialPackage('runtime_package_plain', packageSource), throwsUnsupportedError);
       return;
@@ -167,7 +178,7 @@ vec4 outerTint(vec4 color) {
     expect(await material.hasParameter('baseColor'), isTrue);
   });
 
-  test('compileMaterialPackage fails on an unresolvable include', () async {
+  register('compileMaterialPackage fails on an unresolvable include', () async {
     if (!app.runtimeMaterialsSupported) {
       expect(() => app.compileMaterialPackage('runtime_package_missing', packageSource), throwsUnsupportedError);
       return;
@@ -179,7 +190,7 @@ vec4 outerTint(vec4 color) {
     );
   });
 
-  test('compileMaterialPackage fails on malformed .mat source', () async {
+  register('compileMaterialPackage fails on malformed .mat source', () async {
     if (!app.runtimeMaterialsSupported) {
       expect(() => app.compileMaterialPackage('runtime_package_malformed', 'not a material'), throwsUnsupportedError);
       return;
@@ -187,7 +198,7 @@ vec4 outerTint(vec4 color) {
     expect(() => app.compileMaterialPackage('runtime_package_malformed', 'this is not a .mat file'), throwsStateError);
   });
 
-  test('compileMaterialPackage rejects empty source before any native work', () async {
+  register('compileMaterialPackage rejects empty source before any native work', () async {
     if (!app.runtimeMaterialsSupported) {
       expect(() => app.compileMaterialPackage('runtime_package_test', ''), throwsUnsupportedError);
       return;
@@ -216,7 +227,7 @@ fragment {
 }
 ''';
 
-  test('compileMaterialPackage supports custom surface shading on lit materials', () async {
+  register('compileMaterialPackage supports custom surface shading on lit materials', () async {
     if (!app.runtimeMaterialsSupported) {
       await expectLater(app.compileMaterialPackage('custom_lit', customLitSource), throwsUnsupportedError);
       return;
@@ -229,7 +240,7 @@ fragment {
     await instance.setParameterFloat3('tint', 0.5, 0.3, 0.1);
   });
 
-  test('custom surface shading rejects non-lit materials', () async {
+  register('custom surface shading rejects non-lit materials', () async {
     final unlit = customLitSource.replaceFirst('shadingModel : lit', 'shadingModel : unlit');
     await expectLater(
       app.compileMaterialPackage('custom_unlit', unlit),
@@ -264,7 +275,7 @@ fragment {
 }
 ''';
 
-  test('vertex variables, required UVs, variant filters and blending survive parsing', () async {
+  register('vertex variables, required UVs, variant filters and blending survive parsing', () async {
     if (!app.runtimeMaterialsSupported) {
       await expectLater(app.compileMaterialPackage('vertex_variables', vertexSource), throwsUnsupportedError);
       return;
@@ -280,7 +291,7 @@ fragment {
     await instance.setParameterFloat('opacity', 0.4);
   });
 
-  test('variantFilter rejects unknown variants', () async {
+  register('variantFilter rejects unknown variants', () async {
     final invalid = vertexSource.replaceFirst('skinning, shadowReceiver, vsm', 'notARealVariant');
     await expectLater(
       app.compileMaterialPackage('invalid_variant_filter', invalid),
@@ -288,7 +299,7 @@ fragment {
     );
   });
 
-  test('include cycles are rejected and leave the compiler usable', () async {
+  register('include cycles are rejected and leave the compiler usable', () async {
     await expectLater(
       app.compileMaterialPackage(
         'include_cycle',

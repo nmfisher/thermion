@@ -382,6 +382,7 @@ jobs:
           retention-days: 5
 
   runtime-materials-web:
+    timeout-minutes: 15
     name: Runtime Materials (web, ${{ matrix.name }})
     runs-on: ubuntu-24.04
     strategy:
@@ -436,6 +437,7 @@ jobs:
             test/material_package_test.dart
 
   runtime-materials-ios:
+    timeout-minutes: 30
     name: Runtime Materials (iOS simulator)
     runs-on: macos-15
     steps:
@@ -459,6 +461,7 @@ jobs:
         run: flutter test integration_test/runtime_materials_test.dart -d "$THERMION_SIMULATOR"
 
   runtime-materials-android:
+    timeout-minutes: 30
     name: Runtime Materials (Android emulator)
     runs-on: ubuntu-24.04
     steps:
