@@ -66,6 +66,10 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.head_ref || github.ref }}
 
+      - name: Check runtime material platform selection
+        if: matrix.name == 'Linux'
+        run: python3 -m unittest discover -s scripts -p 'test_runtime_material_platform.py' -v
+
       - name: Cache pub dependencies
         uses: actions/cache@v4
         with:
