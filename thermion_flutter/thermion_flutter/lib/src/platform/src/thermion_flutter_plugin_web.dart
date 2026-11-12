@@ -244,6 +244,10 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     return asset.buffer.asUint8List(asset.offsetInBytes, asset.lengthInBytes);
   }
 
+  /// Cached JS trampoline: building `_tick.toJS` on every rAF allocates a new
+  /// closure per frame.
+  static late final JSFunction _tickJS = _tick.toJS;
+
   static void _tick(JSNumber timestamp) {
     if (_stackPtr != null) {
       js.NativeLibrary.instance.stackRestore(_stackPtr!);
@@ -266,7 +270,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
         _textureDescriptorRegistry.markFrameAvailable();
       }
     }
-    _frameRequestId = window.requestAnimationFrame(_tick.toJS);
+    _frameRequestId = window.requestAnimationFrame(_tickJS);
   }
 
   static bool _shouldRender(double timestampMs, int targetFps) {
@@ -300,7 +304,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
   }
 
   static void _ensureFrameLoopRunning() {
-    _frameRequestId ??= window.requestAnimationFrame(_tick.toJS);
+    _frameRequestId ??= window.requestAnimationFrame(_tickJS);
   }
 
   static void _resetWebState() {

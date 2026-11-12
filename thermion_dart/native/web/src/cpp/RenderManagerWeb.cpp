@@ -49,13 +49,19 @@ void RenderManager::onFrameTimeout(void* manager) {
     onAnimationFrame(0, manager);
 }
 
-bool RenderManager::onAnimationFrame(double, void* manager) {
+bool RenderManager::onAnimationFrame(double timeMs, void* manager) {
     auto* self = static_cast<RenderManager*>(manager);
     self->mAnimationFrameRequest = -1;
-    // Use the same native steady clock as the other frame schedulers.
-    const auto now = std::chrono::steady_clock::now();
-    self->tick(std::chrono::duration_cast<std::chrono::nanoseconds>(
-        now.time_since_epoch()).count());
+    // The rAF argument is the browser compositor's vsync timestamp for this
+    // frame. Sampling steady_clock::now() instead bakes worker wake-up jitter
+    // (1-6 ms of scheduling variance) into frameTimeNanos, which both
+    // AnimationManager::update (visible micro-jitter in motion) and
+    // FrameRateGate::admit (a late rAF pushes the deadline forward so the
+    // next on-time rAF is dropped) consume. Zero means the timer fallback,
+    // which paces against emscripten_get_now(); both share the
+    // DOMHighResTimeStamp epoch of this worker context.
+    const double timeMsOrNow = timeMs > 0.0 ? timeMs : emscripten_get_now();
+    self->tick(static_cast<uint64_t>(timeMsOrNow * 1e6));
     if (self->mFrameLoopRunning) {
         self->requestNextFrame();
     }
