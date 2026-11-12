@@ -26,15 +26,23 @@ std::atomic<int>& engineApiWaiters() {
 static thread_local std::vector<std::function<void()>>* tDeferredDartCallbacks = nullptr;
 
 EngineApiGuard::EngineApiGuard() {
+    const bool outer = (tDeferredDartCallbacks == nullptr);
     // RAII balances the waiter count even when lock() throws in an
     // exception-enabled consumer. Production also builds with -fno-exceptions.
+    // Recursive re-entry on a thread that already holds an outer guard cannot
+    // contend for the mutex and must not inflate the waiter count.
     struct Waiter {
-        Waiter() { engineApiWaiters().fetch_add(1, std::memory_order_acq_rel); }
-        ~Waiter() { engineApiWaiters().fetch_sub(1, std::memory_order_acq_rel); }
-    } waiter;
+        bool active;
+        explicit Waiter(bool a) : active(a) {
+            if (active) engineApiWaiters().fetch_add(1, std::memory_order_acq_rel);
+        }
+        ~Waiter() {
+            if (active) engineApiWaiters().fetch_sub(1, std::memory_order_acq_rel);
+        }
+    } waiter(outer);
     engineApiMutex().lock();
     mPreviousDartCallbacks = tDeferredDartCallbacks;
-    if (!mPreviousDartCallbacks) {
+    if (outer) {
         tDeferredDartCallbacks = &mDartCallbacks;
     }
 }

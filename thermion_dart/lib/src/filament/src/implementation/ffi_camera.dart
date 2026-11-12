@@ -238,7 +238,7 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   ///
   Future<Frustum> getFrustum() async {
     var out = Float64List(24);
-    withNativeBuffer(out, (ptr) => Camera_getFrustum(camera, ptr.cast()), copyBack: true);
+    withNativeBuffer(out, (ptr) => Camera_getFrustum(camera, ptr.cast()), copyIn: false, copyBack: true);
 
     var frustum = Frustum();
 
@@ -286,10 +286,6 @@ class FFICamera extends Camera<Pointer<TCamera>> {
       }
     }
 
-    if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
-      out.free();
-    }
     return frustum;
   }
 

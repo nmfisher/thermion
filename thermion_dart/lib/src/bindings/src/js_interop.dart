@@ -38,6 +38,8 @@ class CallbackHolder<T extends Function> {
 
   CallbackHolder(this.pointer);
 
+  void releaseIsolate() {}
+
   void dispose() {
     pointer.dispose();
   }

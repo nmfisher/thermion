@@ -55,11 +55,12 @@ class FFIDebugRegistry extends DebugRegistry<Pointer<TDebugRegistry>> {
   bool? getPropertyBool(String name) {
     final ptr = name.toNativeUtf8();
     try {
-      final outValue = makeInt32List(1);
+      final outValue = Int32List(1);
 
       final success = withNativeBuffer(
         outValue,
         (out) => DebugRegistry_getProperty_bool(debugRegistry, ptr.cast(), out.cast()),
+        copyIn: false,
         copyBack: true,
       );
       if (!success) {
@@ -80,6 +81,7 @@ class FFIDebugRegistry extends DebugRegistry<Pointer<TDebugRegistry>> {
       final success = withNativeBuffer(
         outValue,
         (out) => DebugRegistry_getProperty_int(debugRegistry, ptr.cast(), out.cast()),
+        copyIn: false,
         copyBack: true,
       );
       if (!success) {
@@ -100,6 +102,7 @@ class FFIDebugRegistry extends DebugRegistry<Pointer<TDebugRegistry>> {
       final success = withNativeBuffer(
         outValue,
         (out) => DebugRegistry_getProperty_float(debugRegistry, ptr.cast(), out.cast()),
+        copyIn: false,
         copyBack: true,
       );
       if (!success) {

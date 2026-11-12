@@ -119,10 +119,6 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
         (buffer) => MaterialInstance_setParameterFloat3Array(pointer, ptr, buffer.cast(), array.length * 3),
       ),
     );
-
-    if (FILAMENT_WASM) {
-      data.free();
-    }
   }
 
   @override

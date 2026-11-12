@@ -217,15 +217,14 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
       return [];
     }
 
-    final children = makeInt32List(count);
-    if (count > 0) {
-      withNativeBuffer(
-        children,
-        (ptr) => bindings.TransformManager_getChildren(transformManager, parent, ptr.cast(), count),
-        copyBack: true,
-      );
-    }
+    final children = Int32List(count);
+    withNativeBuffer(
+      children,
+      (ptr) => bindings.TransformManager_getChildren(transformManager, parent, ptr.cast(), count),
+      copyIn: false,
+      copyBack: true,
+    );
 
-    return Int32List.fromList(children).cast<ThermionEntity>();
+    return children.cast<ThermionEntity>();
   }
 }

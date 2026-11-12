@@ -11,6 +11,7 @@ void main() {
     final delivered = Completer<void>();
     var notifications = 0;
     var handlerCalls = 0;
+    var disposeHooks = 0;
     var closes = 0;
     late PendingCallback lifetime;
     final listener = NativeCallable<Void Function(Int32)>.listener((int result) {
@@ -18,15 +19,24 @@ void main() {
       if (!lifetime.isDisposed) handlerCalls++;
       if (++notifications == 2) delivered.complete();
     });
-    lifetime = PendingCallback(() {
-      closes++;
-      listener.close();
-    });
+    expect(listener.keepIsolateAlive, isTrue);
+    lifetime = PendingCallback(
+      () {
+        closes++;
+        listener.close();
+      },
+      onDispose: () {
+        disposeHooks++;
+        listener.keepIsolateAlive = false;
+      },
+    );
     lifetime.begin();
     lifetime.begin();
     final invoke = listener.nativeFunction.asFunction<void Function(int)>();
     lifetime.dispose();
     lifetime.dispose();
+    expect(disposeHooks, 1);
+    expect(listener.keepIsolateAlive, isFalse);
     expect(closes, 0);
     expect(lifetime.begin, throwsStateError);
 
@@ -36,8 +46,10 @@ void main() {
     await delivered.future.timeout(const Duration(seconds: 2));
     expect(notifications, 2);
     expect(handlerCalls, 0);
+    expect(disposeHooks, 1);
     expect(closes, 1);
     lifetime.dispose();
+    expect(disposeHooks, 1);
     expect(closes, 1);
   });
 

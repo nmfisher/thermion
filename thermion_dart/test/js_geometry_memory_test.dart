@@ -221,6 +221,23 @@ void main() {
     expect(source, [7, 2, 3]);
   });
 
+  test('synchronous pure-output native buffer skips input copy and copies back across heap growth', () {
+    final target = Uint8List.fromList([99, 5, 6, 7, 99]);
+    heap.fillRange(16, 32, 0xaa);
+    withNativeBuffer(
+      Uint8List.sublistView(target, 1, 4),
+      (pointer) {
+        // Pre-existing Wasm heap bytes are untouched because copyIn is false.
+        expect(heap.sublist(pointer.address, pointer.address + 3), [0xaa, 0xaa, 0xaa]);
+        growHeap();
+        heap.setRange(pointer.address, pointer.address + 3, [11, 22, 33]);
+      },
+      copyIn: false,
+      copyBack: true,
+    );
+    expect(target, [99, 11, 22, 33, 99]);
+  });
+
   test('large persistent dummy attributes do not borrow the Wasm stack', () async {
     const count = 450000; // Dummy attributes together exceed a 10 MiB stack.
     final geometry = Geometry(Float32List(count * 3), [0, 1, 2]);

@@ -634,16 +634,16 @@ class FFIRenderableBuilder implements RenderableBuilder {
     _checkNotBuilt();
 
     final totalPairs = indicesAndWeights.length;
-    final dataPtr = makeFloat32List(totalPairs * 2);
+    final dataBuffer = Float32List(totalPairs * 2);
 
     int offset = 0;
     for (final pair in indicesAndWeights) {
-      dataPtr[offset++] = pair[0]; // bone index
-      dataPtr[offset++] = pair[1]; // weight
+      dataBuffer[offset++] = pair[0]; // bone index
+      dataBuffer[offset++] = pair[1]; // weight
     }
 
     withNativeBuffer(
-      dataPtr,
+      dataBuffer,
       (data) => bindings.RenderableBuilder_boneIndicesAndWeights(
         _builderPtr!,
         primitiveIndex,
@@ -652,10 +652,6 @@ class FFIRenderableBuilder implements RenderableBuilder {
         bonesPerVertex,
       ),
     );
-
-    if (FILAMENT_WASM) {
-      dataPtr.free();
-    }
   }
 
   @override

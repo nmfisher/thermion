@@ -2,9 +2,10 @@
 /// All methods run on the owning Dart isolate. Native delivery must complete
 /// exactly one request, even when application-level handlers are suppressed.
 class PendingCallback {
-  PendingCallback(this._close);
+  PendingCallback(this._close, {void Function()? onDispose}) : _onDispose = onDispose;
 
   final void Function() _close;
+  final void Function()? _onDispose;
   int _pending = 0;
   bool _disposed = false;
   bool _closed = false;
@@ -23,7 +24,10 @@ class PendingCallback {
   }
 
   void dispose() {
-    _disposed = true;
+    if (!_disposed) {
+      _disposed = true;
+      _onDispose?.call();
+    }
     _closeIfFinished();
   }
 

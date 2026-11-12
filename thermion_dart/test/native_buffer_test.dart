@@ -31,6 +31,22 @@ void main() {
     expect(backing, [99, 1, 7, 3, 99]);
   });
 
+  test('pure output skips input copy while copying native output back to view', () {
+    final backing = Uint8List.fromList([99, 5, 6, 7, 99]);
+    final output = Uint8List.sublistView(backing, 1, 4);
+    withNativeBuffer(
+      output,
+      (pointer) {
+        final native = pointer.asTypedList(3);
+        expect(native, [0, 0, 0]);
+        native.setAll(0, [10, 20, 30]);
+      },
+      copyIn: false,
+      copyBack: true,
+    );
+    expect(backing, [99, 10, 20, 30, 99]);
+  });
+
   test('empty buffers have a valid address without exposing bytes', () {
     withNativeBuffer(Uint8List(0), (pointer) => expect(pointer.address, isNonZero));
   });

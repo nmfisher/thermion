@@ -19,7 +19,7 @@ class FFIGizmo extends GizmoAsset {
 
   FFIGizmo({required this.handle, required this.view, required this.entities, required FFIFilamentApp app}) {
     _callbackHolder = _onPickResult.asCallback();
-    _pickCallback = PendingCallback(_callbackHolder.dispose);
+    _pickCallback = PendingCallback(_callbackHolder.dispose, onDispose: _callbackHolder.releaseIsolate);
   }
 
   Future dispose() async {
@@ -65,6 +65,7 @@ class FFIGizmo extends GizmoAsset {
     withNativeBuffer(
       gizmoEntities,
       (ptr) => SceneAsset_getChildEntities(gizmo.cast<TSceneAsset>(), ptr.cast()),
+      copyIn: false,
       copyBack: true,
     );
 
@@ -74,10 +75,6 @@ class FFIGizmo extends GizmoAsset {
       app: app,
       entities: gizmoEntities.toSet()..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())),
     );
-    if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
-      gizmoEntities.free();
-    }
 
     return gizmoAsset;
   }
@@ -106,9 +103,9 @@ class FFIGizmo extends GizmoAsset {
   @override
   Future pick(int x, int y, {Future Function(GizmoPickResultType result, Vector3 coords)? handler}) async {
     if (_pickCallback.isDisposed) throw StateError('Gizmo disposal has started');
-    _callback = handler;
     final viewport = await view.getViewport();
     if (_pickCallback.isDisposed) return;
+    _callback = handler;
     y = viewport.height - y;
 
     _pickCallback.begin();
