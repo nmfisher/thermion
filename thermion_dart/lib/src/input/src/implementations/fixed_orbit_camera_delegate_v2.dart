@@ -6,6 +6,12 @@ import '../../input.dart';
 
 class OrbitInputHandlerDelegate extends InputHandlerDelegate {
   final View view;
+
+  /// When provided, camera updates are coalesced and applied once per
+  /// rendered frame from a request-frame hook instead of once per input
+  /// event. When null (legacy direct construction), every event batch
+  /// applies immediately as before.
+  final FilamentApp? app;
   final InputSensitivityOptions sensitivity;
   final Vector3 targetPoint;
   final double minZoomDistance;
@@ -24,8 +30,23 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
 
   final bool moveOnHover;
 
+  // Deltas accumulated from input events since the last applied update.
+  // Drained by [_applyPending] once per frame when [app] is set, or per
+  // event batch otherwise. High-rate pointers (240-1000 Hz) would otherwise
+  // trigger a camera read-modify-write per event.
+  double _pendingDeltaAzimuth = 0;
+  double _pendingDeltaElevation = 0;
+  double _pendingDeltaRadius = 0;
+
+  RequestFrameHook? _onFrame;
+
+  /// Cached camera handle; [View.getCamera] returns the same underlying
+  /// camera for the view's lifetime.
+  Camera? _camera;
+
   OrbitInputHandlerDelegate(
     this.view, {
+    this.app,
     this.sensitivity = const InputSensitivityOptions(),
     Vector3? targetPoint,
     this.minZoomDistance = 1.0,
@@ -34,7 +55,12 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
   }) : targetPoint = targetPoint ?? Vector3.zero(),
        _radius = (minZoomDistance + maxZoomDistance) / 2, // Initial default radius
        _azimuth = 0.0,
-       _elevation = math.pi / 4;
+       _elevation = math.pi / 4 {
+    if (app != null) {
+      _onFrame = (int frameTimeNanos, Duration delta) => _applyPending();
+      app!.registerRequestFrameHook(_onFrame!);
+    }
+  }
 
   Future<void> _initializeFromCamera(Camera activeCamera) async {
     final currentModelMatrix = await activeCamera.getModelMatrix();
@@ -84,22 +110,74 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
     _isInitialized = true;
   }
 
-  @override
-  Future<void> handle(List<InputEvent> events) async {
-    final activeCamera = await view.getCamera();
-
-    if (!_isInitialized) {
-      await _initializeFromCamera(activeCamera);
+  /// Applies the accumulated pointer deltas to the camera in one update.
+  /// With [app] set this runs once per rendered frame; otherwise it runs at
+  /// the end of every event batch (legacy behavior).
+  Future<void> _applyPending() async {
+    if (_pendingDeltaAzimuth == 0 &&
+        _pendingDeltaElevation == 0 &&
+        _pendingDeltaRadius == 0 &&
+        _radiusScaleFactor == 1.0) {
+      return;
     }
 
-    double deltaAzimuth = 0;
-    double deltaElevation = 0;
-    double deltaRadius = 0;
+    try {
+      final camera = _camera ??= await view.getCamera();
+      if (!_isInitialized) {
+        await _initializeFromCamera(camera);
+      }
 
+      _azimuth += _pendingDeltaAzimuth;
+      _elevation += _pendingDeltaElevation;
+      _radius += _pendingDeltaRadius;
+      _pendingDeltaAzimuth = 0;
+      _pendingDeltaElevation = 0;
+      _pendingDeltaRadius = 0;
+
+      var radius = _radius * _radiusScaleFactor;
+
+      // Clamp parameters
+      _elevation = _elevation.clamp(-math.pi / 2 + 0.01, math.pi / 2 - 0.01); // Prevent gimbal lock at poles
+      radius = radius.clamp(minZoomDistance, maxZoomDistance);
+      _azimuth = _azimuth % (2 * math.pi); // Keep azimuth within 0-2PI range (optional)
+
+      final double xOffset = radius * math.cos(_elevation) * math.sin(_azimuth);
+      final double yOffset = radius * math.sin(_elevation);
+      final double zOffset = radius * math.cos(_elevation) * math.cos(_azimuth);
+
+      Vector3 cameraPosition;
+      if (worldUp.dot(Vector3(0, 1, 0)).abs() > 0.99) {
+        // Standard Y-up
+        cameraPosition = targetPoint + Vector3(xOffset, yOffset, zOffset);
+      } else if (worldUp.dot(Vector3(0, 0, 1)).abs() > 0.99) {
+        cameraPosition =
+            targetPoint +
+            Vector3(
+              radius * math.cos(_elevation) * math.cos(_azimuth), // x
+              radius * math.cos(_elevation) * math.sin(_azimuth), // y
+              radius * math.sin(_elevation), // z
+            );
+      } else {
+        cameraPosition = targetPoint + Vector3(xOffset, yOffset, zOffset);
+      }
+
+      final modelMatrix = makeViewMatrix(cameraPosition, targetPoint, worldUp)..invert();
+
+      await camera.setModelMatrix(modelMatrix);
+    } catch (_) {
+      // Camera may have been disposed.
+      _camera = null;
+    }
+  }
+
+  @override
+  Future<void> handle(List<InputEvent> events) async {
+    // Synchronous accumulation only; the combined update is applied once per
+    // frame (or at the end of this batch when no app was provided).
     for (final event in events) {
       switch (event) {
         case ScrollEvent(delta: final scrollDelta):
-          deltaRadius += sensitivity.scrollWheelSensitivity * scrollDelta;
+          _pendingDeltaRadius += sensitivity.scrollWheelSensitivity * scrollDelta;
           break;
 
         case MouseEvent(
@@ -130,8 +208,8 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
               if (_isMouseDown && _lastPointerPosition != null) {
                 final dragDelta = localPosition - _lastPointerPosition!;
                 // X-drag affects azimuth, Y-drag affects elevation
-                deltaAzimuth -= dragDelta.x * sensitivity.mouseSensitivity; // Invert X for natural feel
-                deltaElevation -= dragDelta.y * sensitivity.mouseSensitivity; // Invert Y for natural feel
+                _pendingDeltaAzimuth -= dragDelta.x * sensitivity.mouseSensitivity; // Invert X for natural feel
+                _pendingDeltaElevation -= dragDelta.y * sensitivity.mouseSensitivity; // Invert Y for natural feel
                 _lastPointerPosition = localPosition;
               } else if (type == MouseEventType.hover) {
                 // Allow hover to set initial if not dragging
@@ -156,8 +234,8 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
           localFocalPointDelta: final localFocalPointDelta,
         ):
           if (numPointers == 1) {
-            deltaAzimuth -= localFocalPointDelta!.$1 * sensitivity.touchSensitivity;
-            deltaElevation -= localFocalPointDelta.$2 * sensitivity.touchSensitivity;
+            _pendingDeltaAzimuth -= localFocalPointDelta!.$1 * sensitivity.touchSensitivity;
+            _pendingDeltaElevation -= localFocalPointDelta.$2 * sensitivity.touchSensitivity;
           } else {
             _radiusScaleFactor = scaleFactor;
           }
@@ -169,43 +247,18 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
       }
     }
 
-    if (deltaAzimuth == 0 && deltaElevation == 0 && deltaRadius == 0 && _radiusScaleFactor == 1.0) {
-      return;
+    if (app == null) {
+      await _applyPending();
     }
+  }
 
-    _azimuth += deltaAzimuth;
-    _elevation += deltaElevation;
-    _radius += deltaRadius;
-
-    var radius = _radius * _radiusScaleFactor;
-
-    // Clamp parameters
-    _elevation = _elevation.clamp(-math.pi / 2 + 0.01, math.pi / 2 - 0.01); // Prevent gimbal lock at poles
-    radius = radius.clamp(minZoomDistance, maxZoomDistance);
-    _azimuth = _azimuth % (2 * math.pi); // Keep azimuth within 0-2PI range (optional)
-
-    final double xOffset = radius * math.cos(_elevation) * math.sin(_azimuth);
-    final double yOffset = radius * math.sin(_elevation);
-    final double zOffset = radius * math.cos(_elevation) * math.cos(_azimuth);
-
-    Vector3 cameraPosition;
-    if (worldUp.dot(Vector3(0, 1, 0)).abs() > 0.99) {
-      // Standard Y-up
-      cameraPosition = targetPoint + Vector3(xOffset, yOffset, zOffset);
-    } else if (worldUp.dot(Vector3(0, 0, 1)).abs() > 0.99) {
-      cameraPosition =
-          targetPoint +
-          Vector3(
-            radius * math.cos(_elevation) * math.cos(_azimuth), // x
-            radius * math.cos(_elevation) * math.sin(_azimuth), // y
-            radius * math.sin(_elevation), // z
-          );
-    } else {
-      cameraPosition = targetPoint + Vector3(xOffset, yOffset, zOffset);
+  @override
+  Future dispose() async {
+    final onFrame = _onFrame;
+    if (onFrame != null) {
+      await app?.unregisterRequestFrameHook(onFrame);
+      _onFrame = null;
     }
-
-    final modelMatrix = makeViewMatrix(cameraPosition, targetPoint, worldUp)..invert();
-
-    await activeCamera.setModelMatrix(modelMatrix);
+    _camera = null;
   }
 }
