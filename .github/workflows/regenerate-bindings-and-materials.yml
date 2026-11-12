@@ -379,8 +379,8 @@ jobs:
             FILAMENT_WEB_ZIP="$(basename "$FILAMENT_WEB_URL")"
             if ! curl -fL -o "thermion_dart/native/web/lib/release/${FILAMENT_WEB_ZIP}" \
                 "$FILAMENT_WEB_URL"; then
-              echo "::warning::failed to fetch the Filament web zip from R2; skipping the runtime-materials engine build."
-              exit 0
+              echo "::error::failed to fetch the Filament web zip required by the runtime-materials engine."
+              exit 1
             fi
             cd thermion_dart/native/web/lib/release
             rm -rf include lib
@@ -389,8 +389,8 @@ jobs:
             if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ] || \
                [ ! -f thermion_dart/native/web/lib/release/libmatp.a ] || \
                [ ! -f thermion_dart/native/web/lib/release/include/filament-matp/Includes.h ]; then
-              echo "::warning::the Filament web artifact on R2 predates FILAMENT_BUILD_FILAMAT=ON / filament-matp-runtime.patch; skipping the runtime-materials engine build. Dispatch build-filament.yml (platform: web) to publish the filamat+matp-enabled artifact."
-              exit 0
+              echo "::error::the Filament web artifact lacks filamat/matp. Rebuild it with build-filament.yml before publishing engines."
+              exit 1
             fi
           fi
           emcmake cmake -S thermion_dart/native/web \
@@ -400,7 +400,7 @@ jobs:
 
       # Combined main-thread + runtime-materials engine (web_variant:
       # main_thread AND runtime_materials: true in the consuming app's
-      # pubspec.yaml). Same filamat/matp prerequisite and skip logic as the
+      # pubspec.yaml). Same required filamat/matp checks as the
       # runtime-materials build above (which also self-healed the cache, so
       # by this point the archives are either present or definitively
       # unavailable); separate build dir for the combined CMake options.
@@ -410,8 +410,8 @@ jobs:
           if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ] || \
              [ ! -f thermion_dart/native/web/lib/release/libmatp.a ] || \
              [ ! -f thermion_dart/native/web/lib/release/include/filament-matp/Includes.h ]; then
-            echo "::warning::filamat/matp unavailable; skipping the main-thread runtime-materials engine build."
-            exit 0
+            echo "::error::filamat/matp unavailable for the main-thread runtime-materials engine."
+            exit 1
           fi
           emcmake cmake -S thermion_dart/native/web \
             -B thermion_dart/native/web/build-main-thread-runtime-materials \
@@ -430,64 +430,45 @@ jobs:
           node "$RUNNER_TEMP/thermion-web-tests/web_upload_drain_test.js"
 
       - name: Package and upload web artifacts to R2
+        id: publish_web
         # web_publish is set by the triage job: develop/tag pushes (the
-        # original gate) or a force_full dispatch from any branch. R2 is a
-        # cache, not a release gate: an R2 outage must not block a release
-        # (deploy.yml failing later is the softer signal).
+        # original gate) or a force_full dispatch from any branch. The
+        # version may advance only after every engine variant is uploaded.
         if: ${{ !inputs.verify && steps.changes.outputs.native-changed == 'true' && needs.triage.outputs.web_publish == 'true' }}
-        continue-on-error: true
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_ENDPOINT: https://260d4efc65af500536ea376de6452ece.r2.cloudflarestorage.com
         run: |
+          set -euo pipefail
           SHORT_SHA=$(git rev-parse --short HEAD)
-          cd thermion_dart/native/web/build/build/out
-          zip "thermion_dart-${SHORT_SHA}-web.zip" thermion_dart.js thermion_dart.wasm
-          aws s3 cp "thermion_dart-${SHORT_SHA}-web.zip" \
-            "s3://thermion/thermion_dart-${SHORT_SHA}-web.zip" \
-            --endpoint-url "$R2_ENDPOINT" \
-            --region auto
-          # Main-thread variant (web_variant: main_thread in the consuming
-          # app's pubspec.yaml fetches this). Same two files, separate build.
-          cd "$GITHUB_WORKSPACE/thermion_dart/native/web/build-main-thread/build/out"
-          zip "thermion_dart-${SHORT_SHA}-web-main-thread.zip" thermion_dart.js thermion_dart.wasm
-          aws s3 cp "thermion_dart-${SHORT_SHA}-web-main-thread.zip" \
-            "s3://thermion/thermion_dart-${SHORT_SHA}-web-main-thread.zip" \
-            --endpoint-url "$R2_ENDPOINT" \
-            --region auto
-          # Runtime-materials variant (runtime_materials: true in the consuming
-          # app's pubspec.yaml fetches this): filamat linked, tens of MB larger,
-          # compileMaterialSource works on web. Skipped (with the build above)
-          # when the Filament web artifact predates FILAMENT_BUILD_FILAMAT=ON.
-          if [ -d "$GITHUB_WORKSPACE/thermion_dart/native/web/build-runtime-materials/build/out" ]; then
-            cd "$GITHUB_WORKSPACE/thermion_dart/native/web/build-runtime-materials/build/out"
-            zip "thermion_dart-${SHORT_SHA}-web-runtime-materials.zip" thermion_dart.js thermion_dart.wasm
-            aws s3 cp "thermion_dart-${SHORT_SHA}-web-runtime-materials.zip" \
-              "s3://thermion/thermion_dart-${SHORT_SHA}-web-runtime-materials.zip" \
-              --endpoint-url "$R2_ENDPOINT" \
-              --region auto
-          else
-            echo "::warning::runtime-materials web engine was not built; skipping its upload."
-          fi
-          # Combined main-thread + runtime-materials variant (web_variant:
-          # main_thread AND runtime_materials: true). Same skip logic as the
-          # runtime-materials build/upload above.
-          if [ -d "$GITHUB_WORKSPACE/thermion_dart/native/web/build-main-thread-runtime-materials/build/out" ]; then
-            cd "$GITHUB_WORKSPACE/thermion_dart/native/web/build-main-thread-runtime-materials/build/out"
-            zip "thermion_dart-${SHORT_SHA}-web-main-thread-runtime-materials.zip" thermion_dart.js thermion_dart.wasm
-            aws s3 cp "thermion_dart-${SHORT_SHA}-web-main-thread-runtime-materials.zip" \
-              "s3://thermion/thermion_dart-${SHORT_SHA}-web-main-thread-runtime-materials.zip" \
-              --endpoint-url "$R2_ENDPOINT" \
-              --region auto
-          else
-            echo "::warning::main-thread runtime-materials web engine was not built; skipping its upload."
-          fi
-          # Write the SHA so the download script knows which artifact to fetch
-          echo "$SHORT_SHA" > "${{ github.workspace }}/thermion_dart/native/web/web.version"
+          WEB_ROOT="$GITHUB_WORKSPACE/thermion_dart/native/web"
+          variants=("" "-main-thread" "-runtime-materials" "-main-thread-runtime-materials")
+          build_dirs=("build" "build-main-thread" "build-runtime-materials" "build-main-thread-runtime-materials")
+          # Check the complete set before uploading or changing web.version.
+          for build_dir in "${build_dirs[@]}"; do
+            for file in thermion_dart.js thermion_dart.wasm; do
+              test -s "$WEB_ROOT/$build_dir/build/out/$file" || {
+                echo "::error::Missing web engine output: $build_dir/$file"
+                exit 1
+              }
+            done
+          done
+          for i in "${!variants[@]}"; do
+            output_dir="$WEB_ROOT/${build_dirs[$i]}/build/out"
+            artifact="thermion_dart-${SHORT_SHA}-web${variants[$i]}.zip"
+            (
+              cd "$output_dir"
+              zip "$artifact" thermion_dart.js thermion_dart.wasm
+              aws s3 cp "$artifact" "s3://thermion/$artifact" \
+                --endpoint-url "$R2_ENDPOINT" --region auto
+            )
+          done
+          # Publish the pointer only after all four uploads succeeded.
+          echo "$SHORT_SHA" > "$WEB_ROOT/web.version"
 
       - name: Commit web.version
-        if: ${{ !inputs.verify && steps.changes.outputs.native-changed == 'true' && needs.triage.outputs.web_publish == 'true' }}
+        if: ${{ !inputs.verify && steps.publish_web.outcome == 'success' }}
         env:
           PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
