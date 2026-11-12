@@ -10,7 +10,7 @@ index 0f36c0d0..73f0b0ef 100644
 +# every runtime that compiles materials on device: Android, iOS, WASM, and
 +# desktop. iOS compiles without exceptions, which matp satisfies.
 +if (IS_HOST_PLATFORM OR ANDROID OR IOS OR WASM)
-+    add_subdirectory(${LIBRARIES}/filamat-matp)
++    add_subdirectory(${LIBRARIES}/filament-matp)
 +endif()
 +
  if (IS_HOST_PLATFORM)
