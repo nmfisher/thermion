@@ -117,8 +117,7 @@ loaded build has it; `compileMaterialSource` and `compileMaterialPackage`
 throw `UnsupportedError` otherwise. On web, the flag additionally selects a **filamat-enabled engine
 variant** — the build hook fetches `thermion_dart-<sha>-web-runtime-materials.zip`
 instead of the default wasm (~20 MB larger; it links `libfilamat`, the default
-build dead-code-eliminates it). iOS is unsupported (Filament's iOS archives do
-not ship `libfilamat`); precompile with `matc` there. Compilation
+build dead-code-eliminates it). Compilation
 is synchronous and CPU-intensive (hundreds of milliseconds) — run it before
 startup or from a background isolate.
 

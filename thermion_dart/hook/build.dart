@@ -133,15 +133,7 @@ outputDirectory : ${outputDirectory.path}
     }
     final defines = <String, String?>{};
     if (runtimeMaterials) {
-      if (targetOS == OS.iOS) {
-        throw Exception(
-          "runtime_materials is not supported on iOS: Filament's iOS archives "
-          "do not include libfilamat.a. Remove runtime_materials from your "
-          "pubspec.yaml user defines and precompile .filamat packages with "
-          "matc instead.",
-        );
-      }
-      logger.info("runtime_materials enabled; linking filamat for runtime shader compilation");
+      logger.info("runtime_materials enabled; linking matp + filamat for runtime material compilation");
       defines["THERMION_ENABLE_RUNTIME_MATERIALS"] = "1";
     }
 
@@ -271,19 +263,19 @@ outputDirectory : ${outputDirectory.path}
       // runtime_materials flag (never needed by debug/Linux's filamat-only
       // uses). Must come BEFORE filamat: matp references
       // filamat::MaterialBuilder, and GNU ld resolves archives left to right.
-      if (runtimeMaterials && targetOS != OS.iOS) "matp",
+      if (runtimeMaterials) "matp",
       // Runtime material compilation (filamat::MaterialBuilder). Opt-in via
       // the `runtime_materials` user define; see the block that parses it
       // above. Release builds link it only when enabled (it would otherwise
       // be dead weight — tens of MB of glslang/SPIRV-Tools), with two
-      // exceptions that must ALWAYS link it on non-iOS:
+      // exceptions that must ALWAYS link it:
       // - debug: filament's debug archives ship libmatdbg.a, whose
       //   ShaderReplacer references filamat::Chunk.
       // - Linux: the Linux archives deliberately exclude libzstd.a
       //   (scripts/build_linux.sh — "bundled in Filament already"), so the
       //   combined filamat archive is the only zstd provider for
       //   basis_transcoder/MaterialParser/gltfio (ZSTD_* symbols).
-      if (targetOS != OS.iOS && (runtimeMaterials || buildMode == BuildMode.debug || targetOS == OS.linux)) "filamat",
+      if (runtimeMaterials || buildMode == BuildMode.debug || targetOS == OS.linux) "filamat",
       // libfilamat.a references SHADERS_PACKAGE etc. from libshaders.a
       // (the generated shader-common chunks CodeGenerator emits into every
       // material). On Linux, "shaders" was already linked for gltfio; other

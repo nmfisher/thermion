@@ -20,6 +20,11 @@
 #include <filament-matp/MaterialParser.h>
 #include <filament/Engine.h>
 
+#ifdef __APPLE__
+// TARGET_OS_IPHONE for the iOS platform selection below.
+#include <TargetConditionals.h>
+#endif
+
 #include <cstring>
 #include <functional>
 #include <future>
@@ -51,7 +56,11 @@ namespace thermion
 
         filamat::MaterialBuilder::Platform platformForThisBuild()
         {
-#if defined(__APPLE__) || defined(__linux__) || defined(_WIN32)
+#if defined(__APPLE__) && (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE || defined(__ARM_ARCH_7A__))
+            // iOS device/simulator: mobile shader model, matching the
+            // precompiled Thermion materials for iOS.
+            return filamat::MaterialBuilder::Platform::MOBILE;
+#elif defined(__APPLE__) || defined(__linux__) || defined(_WIN32)
             // Desktop shader models, matching the precompiled Thermion
             // materials for these targets.
             return filamat::MaterialBuilder::Platform::DESKTOP;

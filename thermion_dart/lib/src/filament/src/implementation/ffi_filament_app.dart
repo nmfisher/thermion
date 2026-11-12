@@ -746,7 +746,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         'Runtime material compilation is not available in this build. Rebuild '
         'with the runtime_materials user define (hooks.user_defines.thermion_dart '
         'in your pubspec.yaml; on web this selects the filamat-enabled engine '
-        'variant, on iOS it is unsupported) or precompile a '
+        'variant) or precompile a '
         '.filamat package with matc and load it with createMaterial.',
       );
     }
