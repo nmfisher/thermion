@@ -13657,6 +13657,8 @@ typedef DartVoidCallback = Pointer<NativeFunction<VoidCallbackFunction>>;
 typedef VoidCallbackFunction = void Function(int requestId);
 typedef DartVoidCallbackFunction = void Function(int requestId);
 
+const int __bool_true_false_are_defined = 1;
+
 extension double3Ext on Pointer<double3> {
   double3 toDart() {
     return double3(this);
