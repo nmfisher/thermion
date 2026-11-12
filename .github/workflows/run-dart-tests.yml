@@ -284,12 +284,10 @@ jobs:
             ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5
 
-  # Exercises runtime material compilation (filamat::MaterialBuilder behind the
-  # `runtime_materials` user define). macOS/Metal only: the flag is unsupported
-  # on web/iOS, and one leg is enough to cover the link path and the
-  # compile-validate-instantiate round trip in test/runtime_material_test.dart.
-  # The rest of that test file exercises the "unsupported" branch in the main
-  # macOS job above, which builds without the flag.
+  # Tests runtime compilation with runtime_materials enabled on macOS/Metal:
+  # compiler linkage and compile/validate/instantiate round trips.
+  # Web and iOS also support runtime compilation. This workflow currently has
+  # no web/iOS runtime leg or disabled-build runtime_material_test.dart leg.
   dart-tests-runtime-materials:
     name: Dart Tests Runtime Materials (macOS)
     runs-on: macos-15
