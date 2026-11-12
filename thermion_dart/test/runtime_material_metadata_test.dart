@@ -21,8 +21,8 @@ void main() {
     final package = fullPackage
         ? MaterialCompiler_compileMaterialPackage(app.jobThreadHandle, app.engine, name, text, nullptr)
         : MaterialCompiler_compileMaterialSource(app.jobThreadHandle, app.engine, name, text, TShading.SHADING_UNLIT);
-    calloc.free(name);
-    calloc.free(text);
+    free(name);
+    free(text);
     expect(package, isNot(nullptr));
     try {
       final size = MaterialCompiler_getPackageSize(package);
