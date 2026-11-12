@@ -1,5 +1,13 @@
 > Shared changelog for `thermion_dart` and `thermion_flutter` (released in lockstep).
 
+## Unreleased
+
+- Add opt-in runtime material compilation on native platforms, including iOS,
+  and web. `compileMaterialSource` accepts shader source;
+  `compileMaterialPackage` accepts complete `.mat` packages with parameters,
+  vertex/fragment blocks and in-memory `#include` resolution. Enable
+  `hooks.user_defines.thermion_dart.runtime_materials` to link the compiler.
+
 ## 0.6.1 - 2026-11-02
 
 - Fix Vulkan initialization on drivers that provide external-memory capabilities
