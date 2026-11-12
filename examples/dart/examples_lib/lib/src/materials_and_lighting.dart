@@ -59,7 +59,7 @@ Future<void> setupMaterialsAndLighting(
   }
 
   final lightClock = Stopwatch()..start();
-  await viewer.app.registerRequestFrameHook(() async {
+  await viewer.app.registerRequestFrameHook((frameTimeNanos, delta) async {
     final rotation = lightClock.elapsedMicroseconds / 1000000 * 0.45;
     for (var i = 0; i < lights.length; i++) {
       final angle = rotation + i * 2 * math.pi / lights.length;
