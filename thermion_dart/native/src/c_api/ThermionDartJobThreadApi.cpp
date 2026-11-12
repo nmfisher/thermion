@@ -1661,10 +1661,16 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE void Image_decodeJobThread(TJobThread *jobThread, uint8_t *data, size_t length, const char *name, bool alpha, void (*onComplete)(TLinearImage *))
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
+    // Snapshot the borrowed FFI storage before returning to Dart: the .address
+    // borrows backing [data] and [name] are only valid for this synchronous
+    // call, but the decode runs later on the worker. The task owns the copies.
+    std::vector<uint8_t> owned;
+    if (length != 0) owned.assign(data, data + length);
+    const std::string nameOwned = name ? name : "";
     std::packaged_task<void()> lambda(
-        [=]() mutable
+        [=, owned = std::move(owned)]() mutable
         {
-          auto image = Image_decode(data, length, name, alpha);
+          auto image = Image_decode(owned.data(), owned.size(), nameOwned.c_str(), alpha);
 
           PROXY(onComplete(image));
         });

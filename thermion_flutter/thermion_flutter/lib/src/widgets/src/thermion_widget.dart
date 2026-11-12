@@ -225,6 +225,12 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
   Future<void> _textureOperations = Future<void>.value();
   bool _disposing = false;
 
+  /// Guards the immediate first allocation: build() can run several times
+  /// before the async allocation completes, and each must not enqueue another
+  /// create. Cleared when an allocation finishes without producing a texture
+  /// so a later build can retry.
+  bool _initialAllocationInFlight = false;
+
   // The current texture size (what's actually allocated)
   int _currentWidth = 0;
   int _currentHeight = 0;
@@ -299,6 +305,19 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
     _pendingWidth = width;
     _pendingHeight = height;
 
+    // First mount: allocate immediately. Waiting out the 100 ms debounce
+    // before the very first surface just adds a 6-12 frame blank delay to
+    // every ThermionWidget mount; the debounce only matters for interactive
+    // resizes. build() may fire again before the async allocation completes,
+    // so start it only once (and retry if it fails).
+    if (_texture == null && !_initialAllocationInFlight) {
+      _initialAllocationInFlight = true;
+      _debounceTimer?.cancel();
+      _debounceTimer = null;
+      _allocateTexture(width, height);
+      return;
+    }
+
     _debounceTimer?.cancel();
     _debounceTimer = Timer(_debounceDuration, () {
       if (!_disposing && _pendingWidth != null && _pendingHeight != null) {
@@ -309,7 +328,16 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
 
   void _allocateTexture(int width, int height) {
     _enqueueTextureOperation(
-      () => _performTextureAllocation(width, height),
+      () async {
+        try {
+          await _performTextureAllocation(width, height);
+        } finally {
+          // A failed initial allocation should be retried on a later build.
+          if (_texture == null) {
+            _initialAllocationInFlight = false;
+          }
+        }
+      },
       'allocating a Thermion widget texture',
     );
   }

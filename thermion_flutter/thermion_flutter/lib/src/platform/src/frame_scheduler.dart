@@ -101,6 +101,28 @@ class FrameScheduler {
   bool get isPaused => _paused;
   bool get isRendering => _rendering;
 
+  /// Resolves once no dispatched frame handler is running (immediately when
+  /// none is). Replaces polling [isRendering] with 1 ms timer delays: callers
+  /// are woken exactly when the in-flight handler finishes instead of waking
+  /// the event loop on a timer.
+  Future<void> whenIdle() {
+    if (!_rendering) return Future<void>.value();
+    final completer = Completer<void>();
+    _idleWaiters.add(completer);
+    return completer.future;
+  }
+
+  final _idleWaiters = <Completer<void>>[];
+
+  void _completeIdleWaiters() {
+    if (_idleWaiters.isEmpty) return;
+    final waiters = List.of(_idleWaiters);
+    _idleWaiters.clear();
+    for (final waiter in waiters) {
+      waiter.complete();
+    }
+  }
+
   // Monotonic count of handlers dispatched past both the framerate throttle
   // and in-flight guard. A dispatched handler is not necessarily a completed
   // render, so this counts started work rather than completions. Never resets,
@@ -199,6 +221,7 @@ class FrameScheduler {
     _paused = false;
     ++_handlerGeneration;
     _rendering = false;
+    _completeIdleWaiters();
     _frameHandler = null;
   }
 
@@ -331,6 +354,7 @@ class FrameScheduler {
       if (generation == _handlerGeneration) {
         _diagStopwatch.stop();
         _rendering = false;
+        _completeIdleWaiters();
       }
     }
   }

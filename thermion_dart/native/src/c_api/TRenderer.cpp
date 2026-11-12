@@ -72,7 +72,7 @@ EMSCRIPTEN_KEEPALIVE void Renderer_setFrameRateOptions(
     filament::Renderer::FrameRateOptions fro;
     fro.headRoomRatio = headRoomRatio;
     fro.scaleRate = scaleRate;
-    fro.interval = interval;
+    fro.history = history;
     fro.interval = interval;
     renderer->setFrameRateOptions(fro);
 }

@@ -585,23 +585,25 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   // alpha channel (even if the original image did not contain one).
   //
   Future<LinearImage> decodeImage(Uint8List data, {String name = "image", bool requireAlpha = false}) async {
-    var now = DateTime.now();
     final namePtr = name.toNativeUtf8().cast<Char>();
-    var ptr = Image_decode(data.address, data.length, namePtr, requireAlpha);
-    free(namePtr);
-
-    var finished = DateTime.now();
-    final elapsed = finished.millisecondsSinceEpoch - now.millisecondsSinceEpoch;
-    print("Image_decode (render thread) finished in $elapsed ms");
-
-    if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
-      data.free();
+    try {
+      // Decoding runs on the job thread: Image_decode can take tens of
+      // milliseconds on realistic textures, which previously blocked this
+      // isolate (and frame scheduling). The native entry point copies [data]
+      // and [name] before returning, so the borrows below end with the call.
+      final ptr = await withPointerCallback<TLinearImage>((cb) {
+        Image_decodeJobThread(jobThreadHandle, data.address, data.length, namePtr, requireAlpha, cb);
+      });
+      if (ptr == nullptr) {
+        throw Exception("Failed to decode image");
+      }
+      return FFILinearImage(ptr, jobThreadHandle);
+    } finally {
+      free(namePtr);
+      if (FILAMENT_WASM) {
+        data.free();
+      }
     }
-    if (ptr == nullptr) {
-      throw Exception("Failed to decode image");
-    }
-    return FFILinearImage(ptr, jobThreadHandle);
   }
 
   //
