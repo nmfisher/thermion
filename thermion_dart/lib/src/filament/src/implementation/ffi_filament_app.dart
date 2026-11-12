@@ -958,14 +958,27 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return List<SwapChain>.unmodifiable(_swapChains);
   }
 
-  final _hooks = <Future Function()>[];
+  final _hooks = <RequestFrameHook>[];
+
+  /// Completes when the in-flight render() hook pass (if any) has finished.
+  /// Null while no pass is running. Replaces the former 1 ms polling loop:
+  /// awaiters are woken exactly when the pass ends instead of waking the
+  /// event loop on a timer.
+  Completer<void>? _renderHooksInFlight;
+
+  /// Waits for any request-frame hook pass that is already running.
+  Future<void> drainRequestFrameHooks() async {
+    final inFlight = _renderHooksInFlight;
+    if (inFlight != null) {
+      await inFlight.future;
+    }
+  }
 
   //
   @override
-  Future registerRequestFrameHook(Future Function() hook) async {
-    while (_processingRenderHooks) {
-      await Future.delayed(Duration(milliseconds: 1));
-    }
+  Future registerRequestFrameHook(RequestFrameHook hook) async {
+    // Never mutate the hook list mid-iteration.
+    await drainRequestFrameHooks();
     if (!_hooks.contains(hook)) {
       _hooks.add(hook);
     }
@@ -973,36 +986,50 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   //
   @override
-  Future unregisterRequestFrameHook(Future Function() hook) async {
-    while (_processingRenderHooks) {
-      await Future.delayed(Duration(milliseconds: 1));
-    }
-    if (_hooks.contains(hook)) {
-      _hooks.remove(hook);
-    }
+  Future unregisterRequestFrameHook(RequestFrameHook hook) async {
+    await drainRequestFrameHooks();
+    _hooks.remove(hook);
   }
 
-  bool _processingRenderHooks = false;
+  /// Timestamp of the last frame dispatched to hooks, on the scheduler's
+  /// steady clock. Zero until the first dispatched frame.
+  int _lastHookFrameTimeNanos = 0;
 
-  /// Waits for any request-frame hook that is already running.
-  Future<void> drainRequestFrameHooks() async {
-    while (_processingRenderHooks) {
-      await Future<void>.delayed(const Duration(milliseconds: 1));
-    }
-  }
+  /// Upper bound for the delta handed to request-frame hooks, so a pause, a
+  /// stalled frame, or a clock change cannot spike per-frame motion.
+  static const _maxHookDeltaNanos = 100 * 1000 * 1000;
 
   //
   @override
   Future render({int? frameTimeInNanos}) async {
-    _processingRenderHooks = true;
+    final resolvedFrameTimeNanos = frameTimeInNanos ??
+        bindings.FrameScheduler_steadyClockUs().toInt() * 1000;
+
+    var deltaNanos = resolvedFrameTimeNanos - _lastHookFrameTimeNanos;
+    if (_lastHookFrameTimeNanos == 0 || deltaNanos < 0) {
+      // First dispatched frame, or a non-monotonic timestamp (clock change):
+      // no elapsed time to integrate against.
+      deltaNanos = 0;
+    } else if (deltaNanos > _maxHookDeltaNanos) {
+      deltaNanos = _maxHookDeltaNanos;
+    }
+    _lastHookFrameTimeNanos = resolvedFrameTimeNanos;
+    final delta = Duration(microseconds: deltaNanos ~/ 1000);
+
+    final inFlight = Completer<void>();
+    _renderHooksInFlight = inFlight;
     try {
       for (final hook in _hooks) {
-        await hook.call();
+        await hook.call(resolvedFrameTimeNanos, delta);
       }
     } catch (err) {
       _logger.severe(err);
+    } finally {
+      if (identical(_renderHooksInFlight, inFlight)) {
+        _renderHooksInFlight = null;
+      }
+      inFlight.complete();
     }
-    _processingRenderHooks = false;
 
     await renderManager.render(frameTimeInNanos: frameTimeInNanos);
   }

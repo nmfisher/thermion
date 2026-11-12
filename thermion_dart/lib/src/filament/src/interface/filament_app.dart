@@ -3,6 +3,16 @@ import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
+/// Signature for hooks invoked once per rendered frame, before the frame is
+/// submitted (see [FilamentApp.registerRequestFrameHook]).
+///
+/// [frameTimeNanos] is the frame's timestamp on the scheduler's steady clock —
+/// the same value passed to [FilamentApp.render]. [delta] is the elapsed time
+/// since the previously dispatched frame, clamped so pauses, stalls, and
+/// clock changes do not spike per-frame motion; it is zero on the first
+/// dispatched frame.
+typedef RequestFrameHook = Future<void> Function(int frameTimeNanos, Duration delta);
+
 class FilamentConfig<T, U> {
   final Backend backend;
   Future<Uint8List> Function(String)? loadResource;
@@ -389,11 +399,16 @@ abstract class FilamentApp<T> {
   /// (last writer wins). Values <= 0 remove the cap.
   void setTargetFramerate(int fps);
 
-  //
-  Future registerRequestFrameHook(Future Function() hook);
+  /// Registers [hook] to run once per rendered frame, before the frame is
+  /// submitted. Hooks receive the frame timestamp and the clamped delta since
+  /// the previous dispatched frame, so per-frame motion can be scaled by real
+  /// elapsed time instead of assuming a fixed frame rate.
+  Future registerRequestFrameHook(RequestFrameHook hook);
 
-  //
-  Future unregisterRequestFrameHook(Future Function() hook);
+  /// Removes a hook previously registered with
+  /// [registerRequestFrameHook]. Waits for any in-flight hook pass to finish
+  /// first so the hook list is never mutated mid-iteration.
+  Future unregisterRequestFrameHook(RequestFrameHook hook);
 
   // Retrieves the name assigned to the given entity (usually corresponds to the
   // glTF mesh name).

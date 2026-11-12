@@ -259,9 +259,12 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     final targetFps = apps.isEmpty ? 0 : apps.first.targetFramerate;
     final rendered = _shouldRender(timestamp.toDartDouble, targetFps);
     if (rendered) {
-      // One rAF loop drives every engine.
+      // One rAF loop drives every engine. Forward the rAF (vsync) timestamp
+      // so request-frame hooks receive the compositor's frame time and a
+      // jitter-free delta instead of a steady-clock fallback sampled late.
+      final frameTimeNanos = (timestamp.toDartDouble * 1e6).toInt();
       for (final app in apps) {
-        app.render();
+        app.render(frameTimeInNanos: frameTimeNanos);
       }
 
       // RenderManager still executes its backend task queue while paused, but
