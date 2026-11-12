@@ -151,6 +151,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Test web publication failure handling
+        run: python3 -m unittest discover -s scripts -p 'test_web_publication.py' -v
+
       # A fork PR's head branch exists only in the contributor's fork, so no
       # step below may git push (or fetch that branch from origin).
       - name: Detect fork PR
