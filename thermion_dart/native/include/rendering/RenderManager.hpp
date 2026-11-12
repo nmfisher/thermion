@@ -84,6 +84,7 @@ namespace thermion
             mPreRenderDrain = std::move(drain);
         }
 #endif
+#endif
 
         /// Web worker mode: called by this manager's browser animation callback.
         /// Renders all attached swapchains synchronously (in practice there
