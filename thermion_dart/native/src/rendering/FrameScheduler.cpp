@@ -18,6 +18,7 @@
 #ifdef __ANDROID__
 #include <android/choreographer.h>
 #include <android/looper.h>
+#include <dlfcn.h>
 #endif
 
 namespace thermion {
@@ -333,15 +334,45 @@ void DXGIFrameScheduler::stop() {
 
 #ifdef __ANDROID__
 
-void AChoreographerFrameScheduler::frameCallback(long frameTimeNanos, void* data) {
+// AChoreographer_postFrameCallback delivers its timestamp as `long`, which is
+// 32-bit on armeabi-v7a/x86: the vsync timestamp wraps every ~2.14 s,
+// breaking rate admission and animation elapsed-time math. API 29 adds the
+// 64-bit variant; resolve it dynamically so builds targeting a lower API
+// still run (falling back to the wrapping 32-bit callback).
+using AChoreographerFrameCallback64 = void (*)(int64_t frameTimeNanos, void* data);
+using AChoreographerPostFrameCallback64 = void (*)(
+    AChoreographer*, AChoreographerFrameCallback64, void*);
+
+static AChoreographerPostFrameCallback64 postFrameCallback64() {
+    static AChoreographerPostFrameCallback64 resolved = [] {
+        // The handle is kept for the process lifetime; the scheduler uses it
+        // on every frame, so releasing it buys nothing.
+        void* libandroid = dlopen("libandroid.so", RTLD_NOW | RTLD_LOCAL);
+        if (!libandroid) {
+            return static_cast<AChoreographerPostFrameCallback64>(nullptr);
+        }
+        return reinterpret_cast<AChoreographerPostFrameCallback64>(
+            dlsym(libandroid, "AChoreographer_postFrameCallback64"));
+    }();
+    return resolved;
+}
+
+void AChoreographerFrameScheduler::handleFrame(uint64_t nanos, void* data) {
     auto* self = static_cast<AChoreographerFrameScheduler*>(data);
     if (!self->_running) return;
 
-    uint64_t nanos = static_cast<uint64_t>(frameTimeNanos);
     self->handleSourceTick(nanos);
 
     // Re-schedule for next frame (Choreographer callbacks are one-shot)
     self->scheduleNextFrame();
+}
+
+void AChoreographerFrameScheduler::frameCallback(long frameTimeNanos, void* data) {
+    handleFrame(static_cast<uint64_t>(frameTimeNanos), data);
+}
+
+void AChoreographerFrameScheduler::frameCallback64(int64_t frameTimeNanos, void* data) {
+    handleFrame(static_cast<uint64_t>(frameTimeNanos), data);
 }
 
 void AChoreographerFrameScheduler::scheduleNextFrame() {
@@ -349,8 +380,13 @@ void AChoreographerFrameScheduler::scheduleNextFrame() {
     // Register immediately. Delaying registration until the target deadline
     // can miss that vsync when the looper wakes late. handleSourceTick() owns
     // all rate admission, including non-divisor and changing refresh rates.
-    AChoreographer_postFrameCallback(
-        static_cast<AChoreographer*>(_choreographer), frameCallback, this);
+    if (auto post64 = postFrameCallback64()) {
+        post64(static_cast<AChoreographer*>(_choreographer),
+               &AChoreographerFrameScheduler::frameCallback64, this);
+    } else {
+        AChoreographer_postFrameCallback(
+            static_cast<AChoreographer*>(_choreographer), frameCallback, this);
+    }
 }
 
 void AChoreographerFrameScheduler::start(TickCallback tickCallback, void* userData) {
