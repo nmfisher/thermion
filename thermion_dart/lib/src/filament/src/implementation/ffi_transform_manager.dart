@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import 'dart:async';
 import '../../../bindings/matrix_buffers.dart' as matrixBuffers;
 
@@ -216,11 +217,14 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
       return [];
     }
 
-    final children = makeInt32List(count);
-    if (count > 0) {
-      bindings.TransformManager_getChildren(transformManager, parent, children.address, count);
-    }
+    final children = Int32List(count);
+    withNativeBuffer(
+      children,
+      (ptr) => bindings.TransformManager_getChildren(transformManager, parent, ptr.cast(), count),
+      copyIn: false,
+      copyBack: true,
+    );
 
-    return Int32List.fromList(children).cast<ThermionEntity>();
+    return children.cast<ThermionEntity>();
   }
 }

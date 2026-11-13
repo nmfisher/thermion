@@ -1,3 +1,4 @@
+import 'heap_buffer_ffi.dart' show NativeScratchBuffer;
 export 'thermion_dart_ffi.g.dart';
 
 export 'dart:typed_data';
@@ -52,6 +53,51 @@ typedef Float64 = Double;
 typedef PointerClass<T extends NativeType> = Pointer<T>;
 typedef VoidPointerClass = Pointer<Void>;
 typedef StructAllocator = Struct;
+
+final _movementIntentScratch = NativeScratchBuffer<TMovementIntent>(sizeOf<TMovementIntent>());
+bool _movementIntentScratchInUse = false;
+
+void _writeMovementIntent(Pointer<TMovementIntent> pointer, TMovementIntent value) {
+  final target = pointer.ref;
+  target.movementDirectionX = value.movementDirectionX;
+  target.movementDirectionY = value.movementDirectionY;
+  target.movementDirectionZ = value.movementDirectionZ;
+  target.movementSpeed = value.movementSpeed;
+  target.mouseDeltaX = value.mouseDeltaX;
+  target.mouseDeltaY = value.mouseDeltaY;
+  target.intentStates = value.intentStates;
+  target.customIntentCount = value.customIntentCount;
+  for (var i = 0; i < MAX_CUSTOM_INTENTS; i++) {
+    target.customIntentActions[i] = value.customIntentActions[i];
+    target.customIntentValues[i] = value.customIntentValues[i];
+  }
+}
+
+// Struct.create may use GC-managed storage. Copy into native memory before a
+// guarded executor call, just as typed-data arguments use withNativeBuffer.
+void MovementIntentExecutor_processValue(
+  Pointer<TMovementIntentExecutor> executor,
+  TMovementIntent value,
+  int deltaTime,
+) {
+  if (_movementIntentScratchInUse) {
+    final pointer = calloc<TMovementIntent>();
+    try {
+      _writeMovementIntent(pointer, value);
+      MovementIntentExecutor_process(executor, pointer, deltaTime);
+    } finally {
+      calloc.free(pointer);
+    }
+    return;
+  }
+  _movementIntentScratchInUse = true;
+  try {
+    _writeMovementIntent(_movementIntentScratch.pointer, value);
+    MovementIntentExecutor_process(executor, _movementIntentScratch.pointer, deltaTime);
+  } finally {
+    _movementIntentScratchInUse = false;
+  }
+}
 
 class CallbackHolder<T extends Function> {
   final NativeCallable<T> nativeCallable;

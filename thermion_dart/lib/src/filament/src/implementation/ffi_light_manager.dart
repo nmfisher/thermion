@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -300,12 +301,14 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
 
     final requiredSplits = cascades - 1;
 
-    // Allocate native memory for the float array
-    final pointer = makeFloat32List(requiredSplits);
-
-    // Call the native method
-    LightManager_computeUniformSplits(pointer.address, cascades);
-    return pointer;
+    final splits = Float32List(requiredSplits);
+    withNativeBuffer(
+      splits,
+      (ptr) => LightManager_computeUniformSplits(ptr.cast(), cascades),
+      copyIn: false,
+      copyBack: true,
+    );
+    return splits;
   }
 
   @override
@@ -316,12 +319,14 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
 
     final requiredSplits = cascades - 1;
 
-    // Allocate native memory for the float array
-    final pointer = makeFloat32List(requiredSplits);
-
-    // Call the native method
-    LightManager_computeLogSplits(pointer.address, cascades, near, far);
-    return pointer;
+    final splits = Float32List(requiredSplits);
+    withNativeBuffer(
+      splits,
+      (ptr) => LightManager_computeLogSplits(ptr.cast(), cascades, near, far),
+      copyIn: false,
+      copyBack: true,
+    );
+    return splits;
   }
 
   @override
@@ -336,12 +341,14 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
 
     final requiredSplits = cascades - 1;
 
-    // Allocate native memory for the float array
-    final pointer = makeFloat32List(requiredSplits);
-
-    // Call the native method
-    LightManager_computePracticalSplits(pointer.address, cascades, near, far, lambda);
-    return pointer;
+    final splits = Float32List(requiredSplits);
+    withNativeBuffer(
+      splits,
+      (ptr) => LightManager_computePracticalSplits(ptr.cast(), cascades, near, far, lambda),
+      copyIn: false,
+      copyBack: true,
+    );
+    return splits;
   }
 
   @override

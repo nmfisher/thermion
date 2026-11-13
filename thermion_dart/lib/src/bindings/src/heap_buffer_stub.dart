@@ -1,5 +1,13 @@
 import 'dart:async';
+import 'dart:ffi';
 import 'dart:typed_data';
+
+T withNativeBuffer<T>(
+  TypedData data,
+  T Function(Pointer<Uint8>) operation, {
+  bool copyIn = true,
+  bool copyBack = false,
+}) => throw UnsupportedError('Native buffers require FFI or JavaScript interop.');
 
 /// Heap storage is unavailable on this platform.
 extension TypedDataPass on TypedData {

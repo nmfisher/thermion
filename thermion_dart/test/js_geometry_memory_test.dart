@@ -198,6 +198,46 @@ void main() {
   });
   tearDown(() => expect(allocations, isEmpty));
 
+  test('synchronous native buffer copies external subviews across heap growth', () {
+    final source = Uint8List.fromList([99, 1, 2, 3, 99]);
+    growOnAllocation = 1;
+    withNativeBuffer(Uint8List.sublistView(source, 1, 4), (pointer) {
+      expect(heap.sublist(pointer.address, pointer.address + 3), [1, 2, 3]);
+      growHeap();
+      heap[pointer.address + 1] = 7;
+    }, copyBack: true);
+    expect(source, [99, 1, 7, 3, 99]);
+  });
+
+  test('synchronous native buffer borrows existing Wasm storage without reallocating', () {
+    heap.setRange(1024, 1027, [1, 2, 3]);
+    final source = Uint8List.sublistView(heap, 1024, 1027);
+    growOnAllocation = 1;
+    withNativeBuffer(source, (pointer) {
+      expect(pointer.address, 1024);
+      heap[pointer.address] = 7;
+    }, copyBack: true);
+    expect(allocationCount, 0);
+    expect(source, [7, 2, 3]);
+  });
+
+  test('synchronous pure-output native buffer skips input copy and copies back across heap growth', () {
+    final target = Uint8List.fromList([99, 5, 6, 7, 99]);
+    heap.fillRange(16, 32, 0xaa);
+    withNativeBuffer(
+      Uint8List.sublistView(target, 1, 4),
+      (pointer) {
+        // Pre-existing Wasm heap bytes are untouched because copyIn is false.
+        expect(heap.sublist(pointer.address, pointer.address + 3), [0xaa, 0xaa, 0xaa]);
+        growHeap();
+        heap.setRange(pointer.address, pointer.address + 3, [11, 22, 33]);
+      },
+      copyIn: false,
+      copyBack: true,
+    );
+    expect(target, [99, 11, 22, 33, 99]);
+  });
+
   test('large persistent dummy attributes do not borrow the Wasm stack', () async {
     const count = 450000; // Dummy attributes together exceed a 10 MiB stack.
     final geometry = Geometry(Float32List(count * 3), [0, 1, 2]);

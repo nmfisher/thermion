@@ -15,16 +15,20 @@ functions:
     include:
       - '.*'
     exclude:
-      # FrameScheduler_stop joins the scheduler callback thread. Blocking
-      # functions must not be Dart FFI leaf calls. This excludes it only from
-      # isLeaf:true, not from the bindings.
+      # Engine exports may wait for native work or an engine API mutex.
+      # Keep queue submissions and pure CPU helpers leaf, but never a guarded
+      # export. The engine-lock PR verifies this list against its C++ guards.
+      - '^(?!.*JobThread$)(?!Material_get.*Version$)(?!RenderManager_(setPaused|setTargetFps)$)(AnimationManager|BufferObject|BufferObjectBuilder|Camera|ColorGrading|ColorGradingBuilder|DebugRegistry|Engine|EntityManager|Fence|FilamentAsset|Gizmo|GltfAssetLoader|GltfResourceLoader|IndexBuffer|IndexBufferBuilder|IndirectLight|Ktx1Reader|Ktx2Reader|LightManager|Material|MaterialInstance|MaterialProvider|MovementIntentExecutor|NameComponentManager|Pipeline|RenderManager|RenderTarget|RenderableBuilder|RenderableManager|Renderer|Scene|SceneAsset|Skybox|Texture|ToneMapper|TransformManager|TransformPipeline|VertexBuffer|VertexBufferBuilder|View)_.*'
+      # These wait for native threads or queued work rather than the API lock.
       - 'FrameScheduler_stop'
+      - 'JobThread_destroy'
       # Compilation waits for a job-thread future and must let the Dart VM
       # coordinate GC and other isolates while the native call is blocked.
       - 'MaterialCompiler_compileMaterialSource'
       - 'MaterialCompiler_compileMaterialPackage'
       - 'MaterialCompiler_compileMaterialSourceWithDiagnostics'
       - 'MaterialCompiler_compileMaterialPackageWithDiagnostics'
+
 enums:
   as-int:
     include:

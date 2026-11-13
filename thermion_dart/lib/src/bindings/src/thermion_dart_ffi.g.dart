@@ -21,7 +21,7 @@ import 'dart:ffi' as ffi;
     ffi.Float,
     ffi.Bool,
   )
->(isLeaf: true)
+>()
 external bool AnimationManager_addBoneAnimation(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
@@ -36,28 +36,28 @@ external bool AnimationManager_addBoneAnimation(
   bool loop,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>()
 external bool AnimationManager_addBoneAnimationComponent(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>()
 external bool AnimationManager_addGltfAnimationComponent(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, EntityId)>()
 external void AnimationManager_addMorphAnimationComponent(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   int entityId,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, EntityId)>()
 external bool AnimationManager_clearMorphAnimation(ffi.Pointer<TAnimationManager> tAnimationManager, int entityId);
 
-@ffi.Native<ffi.Pointer<TAnimationManager> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TAnimationManager> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TAnimationManager> AnimationManager_create(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -73,7 +73,7 @@ external void AnimationManager_createJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TAnimationManager>)>> onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>)>()
 external void AnimationManager_destroy(ffi.Pointer<TAnimationManager> tAnimationManager);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TAnimationManager>, ffi.Uint32, VoidCallback)>(
@@ -86,13 +86,13 @@ external void AnimationManager_destroyJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Int Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>()
 external int AnimationManager_getGltfAnimationCount(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
 );
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Int)>()
 external double AnimationManager_getGltfAnimationDuration(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
@@ -101,7 +101,7 @@ external double AnimationManager_getGltfAnimationDuration(
 
 @ffi.Native<
   ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Pointer<ffi.Char>, ffi.Int)
->(isLeaf: true)
+>()
 external void AnimationManager_getGltfAnimationName(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
@@ -111,7 +111,7 @@ external void AnimationManager_getGltfAnimationName(
 
 @ffi.Native<
   ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Int, ffi.Int, ffi.Pointer<ffi.Float>)
->(isLeaf: true)
+>()
 external void AnimationManager_getInverseBindMatrix(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
@@ -122,7 +122,7 @@ external void AnimationManager_getInverseBindMatrix(
 
 @ffi.Native<
   ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, EntityId, ffi.Pointer<ffi.Char>, ffi.Int)
->(isLeaf: true)
+>()
 external void AnimationManager_getMorphTargetName(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
@@ -131,7 +131,7 @@ external void AnimationManager_getMorphTargetName(
   int index,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Int Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, EntityId)>()
 external int AnimationManager_getMorphTargetNameCount(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
@@ -140,7 +140,7 @@ external int AnimationManager_getMorphTargetNameCount(
 
 @ffi.Native<
   ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Int, ffi.Pointer<ffi.Float>, ffi.Int)
->(isLeaf: true)
+>()
 external void AnimationManager_getRestLocalTransforms(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
@@ -161,7 +161,7 @@ external void AnimationManager_getRestLocalTransforms(
     ffi.Float,
     ffi.Float,
   )
->(isLeaf: true)
+>()
 external bool AnimationManager_playGltfAnimation(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
@@ -174,25 +174,25 @@ external bool AnimationManager_playGltfAnimation(
   double speed,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>()
 external bool AnimationManager_removeBoneAnimationComponent(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>()
 external bool AnimationManager_removeGltfAnimationComponent(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, EntityId)>()
 external void AnimationManager_removeMorphAnimationComponent(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   int entityId,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>()
 external void AnimationManager_resetToRestPose(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
@@ -215,9 +215,7 @@ external void AnimationManager_resetToRestPoseJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Int, ffi.Float)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Int, ffi.Float)>()
 external bool AnimationManager_setGltfAnimationTime(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
@@ -256,7 +254,7 @@ external void AnimationManager_setGltfAnimationTimeJobThread(
     ffi.Int,
     ffi.Float,
   )
->(isLeaf: true)
+>()
 external bool AnimationManager_setMorphAnimation(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   int entityId,
@@ -267,7 +265,7 @@ external bool AnimationManager_setMorphAnimation(
   double frameLengthInMs,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, EntityId, ffi.Pointer<ffi.Float>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, EntityId, ffi.Pointer<ffi.Float>, ffi.Int)>()
 external bool AnimationManager_setMorphTargetWeights(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   int entityId,
@@ -294,17 +292,17 @@ external void AnimationManager_setMorphTargetWeightsJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Int)>()
 external bool AnimationManager_stopGltfAnimation(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
   int index,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Uint64)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Uint64)>()
 external void AnimationManager_update(ffi.Pointer<TAnimationManager> tAnimationManager, int frameTimeInNanos);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>()
 external bool AnimationManager_updateBoneMatrices(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
@@ -336,7 +334,7 @@ external void AnimationManager_updateJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TBufferObject> Function(ffi.Pointer<TBufferObjectBuilder>, ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TBufferObject> Function(ffi.Pointer<TBufferObjectBuilder>, ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TBufferObject> BufferObjectBuilder_build(
   ffi.Pointer<TBufferObjectBuilder> builder,
   ffi.Pointer<TEngine> engine,
@@ -357,16 +355,16 @@ external void BufferObjectBuilder_buildJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TBufferObject>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TBufferObjectBuilder> Function()>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TBufferObjectBuilder> Function()>()
 external ffi.Pointer<TBufferObjectBuilder> BufferObjectBuilder_create();
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TBufferObjectBuilder>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TBufferObjectBuilder>)>()
 external void BufferObjectBuilder_destroy(ffi.Pointer<TBufferObjectBuilder> builder);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TBufferObjectBuilder>, ffi.Uint32)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TBufferObjectBuilder>, ffi.Uint32)>()
 external void BufferObjectBuilder_size(ffi.Pointer<TBufferObjectBuilder> builder, int sizeInBytes);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TBufferObject>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TBufferObject>)>()
 external void BufferObject_destroy(ffi.Pointer<TEngine> engine, ffi.Pointer<TBufferObject> buffer);
 
 @ffi.Native<
@@ -382,7 +380,7 @@ external void BufferObject_destroyJobThread(
 
 @ffi.Native<
   ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TBufferObject>, ffi.Pointer<ffi.Void>, ffi.Size, ffi.Uint32)
->(isLeaf: true)
+>()
 external void BufferObject_setBuffer(
   ffi.Pointer<TEngine> engine,
   ffi.Pointer<TBufferObject> buffer,
@@ -414,64 +412,64 @@ external void BufferObject_setBufferJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TCamera>)>()
 external double Camera_getAperture(ffi.Pointer<TCamera> camera);
 
-@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>()
 external double Camera_getCullingFar(ffi.Pointer<TCamera> camera);
 
-@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>()
 external double4x4 Camera_getCullingProjectionMatrix(ffi.Pointer<TCamera> camera);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>()
 external void Camera_getCullingProjectionMatrixInto(ffi.Pointer<TCamera> camera, ffi.Pointer<ffi.Double> out16);
 
-@ffi.Native<EntityId Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+@ffi.Native<EntityId Function(ffi.Pointer<TCamera>)>()
 external int Camera_getEntity(ffi.Pointer<TCamera> camera);
 
-@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>()
 external double Camera_getFocalLength(ffi.Pointer<TCamera> camera);
 
-@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>()
 external double Camera_getFocusDistance(ffi.Pointer<TCamera> camera);
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<TCamera>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TCamera>, ffi.Bool)>()
 external double Camera_getFov(ffi.Pointer<TCamera> camera, bool horizontal);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>()
 external void Camera_getFrustum(ffi.Pointer<TCamera> camera, ffi.Pointer<ffi.Double> out);
 
-@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>()
 external double4x4 Camera_getModelMatrix(ffi.Pointer<TCamera> camera);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>()
 external void Camera_getModelMatrixInto(ffi.Pointer<TCamera> camera, ffi.Pointer<ffi.Double> out16);
 
-@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>()
 external double Camera_getNear(ffi.Pointer<TCamera> camera);
 
-@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>()
 external double4x4 Camera_getProjectionMatrix(ffi.Pointer<TCamera> camera);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>()
 external void Camera_getProjectionMatrixInto(ffi.Pointer<TCamera> camera, ffi.Pointer<ffi.Double> out16);
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TCamera>)>()
 external double Camera_getSensitivity(ffi.Pointer<TCamera> camera);
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TCamera>)>()
 external double Camera_getShutterSpeed(ffi.Pointer<TCamera> camera);
 
-@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>()
 external double4x4 Camera_getViewMatrix(ffi.Pointer<TCamera> camera);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>()
 external void Camera_getViewMatrixInto(ffi.Pointer<TCamera> camera, ffi.Pointer<ffi.Double> out16);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, double3, double3, double3)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, double3, double3, double3)>()
 external void Camera_lookAt(ffi.Pointer<TCamera> camera, double3 eye, double3 focus, double3 up);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, double4x4, ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, double4x4, ffi.Double, ffi.Double)>()
 external void Camera_setCustomProjectionWithCulling(
   ffi.Pointer<TCamera> camera,
   double4x4 projectionMatrix,
@@ -479,7 +477,7 @@ external void Camera_setCustomProjectionWithCulling(
   double far,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>, ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>, ffi.Double, ffi.Double)>()
 external void Camera_setCustomProjectionWithCullingFromBuffer(
   ffi.Pointer<TCamera> camera,
   ffi.Pointer<ffi.Double> matrix16,
@@ -487,7 +485,7 @@ external void Camera_setCustomProjectionWithCullingFromBuffer(
   double far,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TMat4>, ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TMat4>, ffi.Double, ffi.Double)>()
 external void Camera_setCustomProjectionWithCullingNative(
   ffi.Pointer<TCamera> camera,
   ffi.Pointer<TMat4> matrix,
@@ -495,13 +493,13 @@ external void Camera_setCustomProjectionWithCullingNative(
   double far,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Float, ffi.Float, ffi.Float)>()
 external void Camera_setExposure(ffi.Pointer<TCamera> camera, double aperture, double shutterSpeed, double sensitivity);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Float)>()
 external void Camera_setFocusDistance(ffi.Pointer<TCamera> camera, double focusDistance);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Double, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Double, ffi.Double, ffi.Double, ffi.Double)>()
 external void Camera_setLensProjection(
   ffi.Pointer<TCamera> camera,
   double near,
@@ -510,13 +508,13 @@ external void Camera_setLensProjection(
   double focalLength,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>()
 external void Camera_setModelMatrix(ffi.Pointer<TCamera> camera, ffi.Pointer<ffi.Double> tModelMatrix);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>()
 external void Camera_setModelMatrixFromBuffer(ffi.Pointer<TCamera> camera, ffi.Pointer<ffi.Double> matrix16);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TMat4>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TMat4>)>()
 external void Camera_setModelMatrixNative(ffi.Pointer<TCamera> camera, ffi.Pointer<TMat4> matrix);
 
 @ffi.Native<
@@ -530,7 +528,7 @@ external void Camera_setModelMatrixNative(ffi.Pointer<TCamera> camera, ffi.Point
     ffi.Double,
     ffi.Double,
   )
->(isLeaf: true)
+>()
 external void Camera_setProjection(
   ffi.Pointer<TCamera> tCamera,
   int projection,
@@ -542,9 +540,7 @@ external void Camera_setProjection(
   double far,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Double, ffi.Double, ffi.Double, ffi.Double, ffi.Bool)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Double, ffi.Double, ffi.Double, ffi.Double, ffi.Bool)>()
 external void Camera_setProjectionFromFov(
   ffi.Pointer<TCamera> camera,
   double fovInDegrees,
@@ -554,7 +550,7 @@ external void Camera_setProjectionFromFov(
   bool horizontal,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>, ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>, ffi.Double, ffi.Double)>()
 external void Camera_setProjectionMatrix(
   ffi.Pointer<TCamera> camera,
   ffi.Pointer<ffi.Double> matrix,
@@ -562,7 +558,7 @@ external void Camera_setProjectionMatrix(
   double far,
 );
 
-@ffi.Native<ffi.Pointer<TColorGrading> Function(ffi.Pointer<TColorGradingBuilder>, ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TColorGrading> Function(ffi.Pointer<TColorGradingBuilder>, ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TColorGrading> ColorGradingBuilder_build(
   ffi.Pointer<TColorGradingBuilder> builder,
   ffi.Pointer<TEngine> engine,
@@ -596,7 +592,7 @@ external void ColorGradingBuilder_buildJobThread(
     ffi.Float,
     ffi.Float,
   )
->(isLeaf: true)
+>()
 external void ColorGradingBuilder_channelMixer(
   ffi.Pointer<TColorGradingBuilder> builder,
   double outRedR,
@@ -610,10 +606,10 @@ external void ColorGradingBuilder_channelMixer(
   double outBlueB,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float)>()
 external void ColorGradingBuilder_contrast(ffi.Pointer<TColorGradingBuilder> builder, double contrast);
 
-@ffi.Native<ffi.Pointer<TColorGradingBuilder> Function()>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TColorGradingBuilder> Function()>()
 external ffi.Pointer<TColorGradingBuilder> ColorGradingBuilder_create();
 
 @ffi.Native<
@@ -640,7 +636,7 @@ external void ColorGradingBuilder_createJobThread(
     ffi.Float,
     ffi.Float,
   )
->(isLeaf: true)
+>()
 external void ColorGradingBuilder_curves(
   ffi.Pointer<TColorGradingBuilder> builder,
   double shadowGammaR,
@@ -654,7 +650,7 @@ external void ColorGradingBuilder_curves(
   double highlightScaleB,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>)>()
 external void ColorGradingBuilder_destroy(ffi.Pointer<TColorGradingBuilder> builder);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TColorGradingBuilder>, ffi.Uint32, VoidCallback)>(
@@ -667,28 +663,28 @@ external void ColorGradingBuilder_destroyJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Uint8)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Uint8)>()
 external void ColorGradingBuilder_dimensions(ffi.Pointer<TColorGradingBuilder> builder, int dim);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float)>()
 external void ColorGradingBuilder_exposure(ffi.Pointer<TColorGradingBuilder> builder, double exposure);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.UnsignedInt)>()
 external void ColorGradingBuilder_format(ffi.Pointer<TColorGradingBuilder> builder, int format);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Bool)>()
 external void ColorGradingBuilder_gamutMapping(ffi.Pointer<TColorGradingBuilder> builder, bool enabled);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Bool)>()
 external void ColorGradingBuilder_luminanceScaling(ffi.Pointer<TColorGradingBuilder> builder, bool enabled);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float)>()
 external void ColorGradingBuilder_nightAdaptation(ffi.Pointer<TColorGradingBuilder> builder, double adaptation);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.UnsignedInt)>()
 external void ColorGradingBuilder_quality(ffi.Pointer<TColorGradingBuilder> builder, int level);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float)>()
 external void ColorGradingBuilder_saturation(ffi.Pointer<TColorGradingBuilder> builder, double saturation);
 
 @ffi.Native<
@@ -711,7 +707,7 @@ external void ColorGradingBuilder_saturation(ffi.Pointer<TColorGradingBuilder> b
     ffi.Float,
     ffi.Float,
   )
->(isLeaf: true)
+>()
 external void ColorGradingBuilder_shadowsMidtonesHighlights(
   ffi.Pointer<TColorGradingBuilder> builder,
   double shadowsR,
@@ -745,7 +741,7 @@ external void ColorGradingBuilder_shadowsMidtonesHighlights(
     ffi.Float,
     ffi.Float,
   )
->(isLeaf: true)
+>()
 external void ColorGradingBuilder_slopeOffsetPower(
   ffi.Pointer<TColorGradingBuilder> builder,
   double slopeR,
@@ -759,64 +755,64 @@ external void ColorGradingBuilder_slopeOffsetPower(
   double powerB,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Pointer<TToneMapper>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Pointer<TToneMapper>)>()
 external void ColorGradingBuilder_toneMapper(
   ffi.Pointer<TColorGradingBuilder> builder,
   ffi.Pointer<TToneMapper> toneMapper,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float)>()
 external void ColorGradingBuilder_vibrance(ffi.Pointer<TColorGradingBuilder> builder, double vibrance);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float, ffi.Float)>()
 external void ColorGradingBuilder_whiteBalance(
   ffi.Pointer<TColorGradingBuilder> builder,
   double temperature,
   double tint,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TColorGrading>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TColorGrading>)>()
 external void ColorGrading_destroy(ffi.Pointer<TEngine> engine, ffi.Pointer<TColorGrading> colorGrading);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Bool>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Bool>)>()
 external bool DebugRegistry_getProperty_bool(
   ffi.Pointer<TDebugRegistry> tDebugRegistry,
   ffi.Pointer<ffi.Char> name,
   ffi.Pointer<ffi.Bool> outValue,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Float>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Float>)>()
 external bool DebugRegistry_getProperty_float(
   ffi.Pointer<TDebugRegistry> tDebugRegistry,
   ffi.Pointer<ffi.Char> name,
   ffi.Pointer<ffi.Float> outValue,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Int>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Int>)>()
 external bool DebugRegistry_getProperty_int(
   ffi.Pointer<TDebugRegistry> tDebugRegistry,
   ffi.Pointer<ffi.Char> name,
   ffi.Pointer<ffi.Int> outValue,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>)>()
 external bool DebugRegistry_hasProperty(ffi.Pointer<TDebugRegistry> tDebugRegistry, ffi.Pointer<ffi.Char> name);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>, ffi.Bool)>()
 external bool DebugRegistry_setProperty_bool(
   ffi.Pointer<TDebugRegistry> tDebugRegistry,
   ffi.Pointer<ffi.Char> name,
   bool value,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>, ffi.Float)>()
 external bool DebugRegistry_setProperty_float(
   ffi.Pointer<TDebugRegistry> tDebugRegistry,
   ffi.Pointer<ffi.Char> name,
   double value,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>, ffi.Int)>()
 external bool DebugRegistry_setProperty_int(
   ffi.Pointer<TDebugRegistry> tDebugRegistry,
   ffi.Pointer<ffi.Char> name,
@@ -834,7 +830,7 @@ external bool DebugRegistry_setProperty_int(
     ffi.Float,
     ffi.Uint8,
   )
->(isLeaf: true)
+>()
 external ffi.Pointer<TSkybox> Engine_buildColoredSkybox(
   ffi.Pointer<TEngine> tEngine,
   double r,
@@ -875,7 +871,7 @@ external void Engine_buildColoredSkyboxJobThread(
 
 @ffi.Native<
   ffi.Pointer<TIndirectLight> Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>, ffi.Pointer<ffi.Float>, ffi.Float)
->(isLeaf: true)
+>()
 external ffi.Pointer<TIndirectLight> Engine_buildIndirectLightFromIrradianceHarmonics(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TTexture> tReflectionsTexture,
@@ -904,7 +900,7 @@ external void Engine_buildIndirectLightFromIrradianceHarmonicsJobThread(
 
 @ffi.Native<
   ffi.Pointer<TIndirectLight> Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>, ffi.Pointer<TTexture>, ffi.Float)
->(isLeaf: true)
+>()
 external ffi.Pointer<TIndirectLight> Engine_buildIndirectLightFromIrradianceTexture(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TTexture> tReflectionsTexture,
@@ -933,7 +929,7 @@ external void Engine_buildIndirectLightFromIrradianceTextureJobThread(
 
 /// Returns null for an invalid chunk layout or incompatible material version.
 /// Matching versions do not guarantee valid payloads or backend compatibility.
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>, ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>, ffi.Pointer<ffi.Uint8>, ffi.Size)>()
 external ffi.Pointer<TMaterial> Engine_buildMaterial(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<ffi.Uint8> materialData,
@@ -957,9 +953,9 @@ external void Engine_buildMaterialJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TSkybox> Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>, ffi.Bool, ffi.Float, ffi.Uint8)>(
-  isLeaf: true,
-)
+@ffi.Native<
+  ffi.Pointer<TSkybox> Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>, ffi.Bool, ffi.Float, ffi.Uint8)
+>()
 external ffi.Pointer<TSkybox> Engine_buildSkybox(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TTexture> tTexture,
@@ -991,7 +987,7 @@ external void Engine_buildSkyboxJobThread(
 
 @ffi.Native<
   ffi.Pointer<TEngine> Function(ffi.UnsignedInt, ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Uint8, ffi.Bool)
->(isLeaf: true)
+>()
 external ffi.Pointer<TEngine> Engine_create(
   int backend,
   ffi.Pointer<ffi.Void> platform,
@@ -1000,7 +996,7 @@ external ffi.Pointer<TEngine> Engine_create(
   bool disableHandleUseAfterFreeCheck,
 );
 
-@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TEngine>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TEngine>, EntityId)>()
 external ffi.Pointer<TCamera> Engine_createCamera(ffi.Pointer<TEngine> tEngine, int entityId);
 
 @ffi.Native<
@@ -1018,7 +1014,7 @@ external void Engine_createCameraJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TCamera>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TFence> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TFence> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TFence> Engine_createFence(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -1034,7 +1030,7 @@ external void Engine_createFenceJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TFence>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TSwapChain> Function(ffi.Pointer<TEngine>, ffi.Uint32, ffi.Uint32, ffi.Uint64)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TSwapChain> Function(ffi.Pointer<TEngine>, ffi.Uint32, ffi.Uint32, ffi.Uint64)>()
 external ffi.Pointer<TSwapChain> Engine_createHeadlessSwapChain(
   ffi.Pointer<TEngine> tEngine,
   int width,
@@ -1082,7 +1078,7 @@ external void Engine_createJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TEngine>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TRenderer> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TRenderer> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TRenderer> Engine_createRenderer(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -1098,10 +1094,10 @@ external void Engine_createRendererJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TRenderer>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TScene> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TScene> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TScene> Engine_createScene(ffi.Pointer<TEngine> tEngine);
 
-@ffi.Native<ffi.Pointer<TSwapChain> Function(ffi.Pointer<TEngine>, ffi.Pointer<ffi.Void>, ffi.Uint64)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TSwapChain> Function(ffi.Pointer<TEngine>, ffi.Pointer<ffi.Void>, ffi.Uint64)>()
 external ffi.Pointer<TSwapChain> Engine_createSwapChain(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<ffi.Void> window,
@@ -1125,7 +1121,7 @@ external void Engine_createSwapChainJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSwapChain>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TView> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TView> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TView> Engine_createView(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -1141,10 +1137,10 @@ external void Engine_createViewJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TView>)>> onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>)>()
 external void Engine_destroy(ffi.Pointer<TEngine> tEngine);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TCamera>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TCamera>)>()
 external void Engine_destroyCamera(ffi.Pointer<TEngine> tEngine, ffi.Pointer<TCamera> tCamera);
 
 @ffi.Native<
@@ -1158,7 +1154,7 @@ external void Engine_destroyCameraJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TColorGrading>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TColorGrading>)>()
 external void Engine_destroyColorGrading(ffi.Pointer<TEngine> tEngine, ffi.Pointer<TColorGrading> tColorGrading);
 
 @ffi.Native<
@@ -1172,7 +1168,7 @@ external void Engine_destroyColorGradingJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TFence>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TFence>)>()
 external void Engine_destroyFence(ffi.Pointer<TEngine> tEngine, ffi.Pointer<TFence> tFence);
 
 @ffi.Native<
@@ -1186,7 +1182,7 @@ external void Engine_destroyFenceJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TIndirectLight>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TIndirectLight>)>()
 external void Engine_destroyIndirectLight(ffi.Pointer<TEngine> tEngine, ffi.Pointer<TIndirectLight> tIndirectLight);
 
 @ffi.Native<
@@ -1214,10 +1210,10 @@ external void Engine_destroyJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TMaterial>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TMaterial>)>()
 external void Engine_destroyMaterial(ffi.Pointer<TEngine> tEngine, ffi.Pointer<TMaterial> tMaterial);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TMaterialInstance>)>()
 external void Engine_destroyMaterialInstance(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TMaterialInstance> tMaterialInstance,
@@ -1251,7 +1247,7 @@ external void Engine_destroyMaterialJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TRenderer>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TRenderer>)>()
 external void Engine_destroyRenderer(ffi.Pointer<TEngine> tEngine, ffi.Pointer<TRenderer> tRenderer);
 
 @ffi.Native<
@@ -1265,7 +1261,7 @@ external void Engine_destroyRendererJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TScene>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TScene>)>()
 external void Engine_destroyScene(ffi.Pointer<TEngine> tEngine, ffi.Pointer<TScene> tScene);
 
 @ffi.Native<
@@ -1279,7 +1275,7 @@ external void Engine_destroySceneJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TSkybox>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TSkybox>)>()
 external void Engine_destroySkybox(ffi.Pointer<TEngine> tEngine, ffi.Pointer<TSkybox> tSkybox);
 
 @ffi.Native<
@@ -1293,7 +1289,7 @@ external void Engine_destroySkyboxJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TSwapChain>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TSwapChain>)>()
 external void Engine_destroySwapChain(ffi.Pointer<TEngine> tEngine, ffi.Pointer<TSwapChain> tSwapChain);
 
 @ffi.Native<
@@ -1307,7 +1303,7 @@ external void Engine_destroySwapChainJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>)>()
 external void Engine_destroyTexture(ffi.Pointer<TEngine> tEngine, ffi.Pointer<TTexture> tTexture);
 
 @ffi.Native<
@@ -1321,7 +1317,7 @@ external void Engine_destroyTextureJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TView>)>()
 external void Engine_destroyView(ffi.Pointer<TEngine> tEngine, ffi.Pointer<TView> tView);
 
 @ffi.Native<
@@ -1335,7 +1331,7 @@ external void Engine_destroyViewJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>)>()
 external void Engine_execute(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TEngine>, ffi.Uint32, VoidCallback)>(isLeaf: true)
@@ -1346,7 +1342,7 @@ external void Engine_executeJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>)>()
 external void Engine_flushAndWait(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TEngine>, ffi.Uint32, VoidCallback)>(isLeaf: true)
@@ -1357,34 +1353,34 @@ external void Engine_flushAndWaitJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TEngine>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TEngine>, EntityId)>()
 external ffi.Pointer<TCamera> Engine_getCameraComponent(ffi.Pointer<TEngine> tEngine, int entityId);
 
-@ffi.Native<ffi.Pointer<TDebugRegistry> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TDebugRegistry> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TDebugRegistry> Engine_getDebugRegistry(ffi.Pointer<TEngine> tEngine);
 
-@ffi.Native<ffi.Pointer<TEntityManager> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TEntityManager> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TEntityManager> Engine_getEntityManager(ffi.Pointer<TEngine> engine);
 
-@ffi.Native<ffi.Pointer<TLightManager> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TLightManager> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TLightManager> Engine_getLightManager(ffi.Pointer<TEngine> engine);
 
-@ffi.Native<ffi.Size Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Size Function(ffi.Pointer<TEngine>)>()
 external int Engine_getMaxAutomaticInstances(ffi.Pointer<TEngine> tEngine);
 
-@ffi.Native<ffi.Pointer<TRenderableManager> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TRenderableManager> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TRenderableManager> Engine_getRenderableManager(ffi.Pointer<TEngine> engine);
 
-@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TEngine>)>()
 external int Engine_getSupportedFeatureLevel(ffi.Pointer<TEngine> tEngine);
 
-@ffi.Native<ffi.Pointer<TTransformManager> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TTransformManager> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TTransformManager> Engine_getTransformManager(ffi.Pointer<TEngine> engine);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Bool)>()
 external void Engine_setAutomaticInstancingEnabled(ffi.Pointer<TEngine> tEngine, bool enabled);
 
-@ffi.Native<EntityId Function(ffi.Pointer<TEntityManager>)>(isLeaf: true)
+@ffi.Native<EntityId Function(ffi.Pointer<TEntityManager>)>()
 external int EntityManager_createEntity(ffi.Pointer<TEntityManager> tEntityManager);
 
 @ffi.Native<
@@ -1400,7 +1396,7 @@ external void EntityManager_createEntityJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEntityManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEntityManager>, EntityId)>()
 external void EntityManager_destroyEntity(ffi.Pointer<TEntityManager> tEntityManager, int entityId);
 
 @ffi.Native<
@@ -1414,7 +1410,7 @@ external void EntityManager_destroyEntityJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TFence>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TFence>)>()
 external void Fence_waitAndDestroy(ffi.Pointer<TFence> tFence);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TFence>, ffi.Uint32, VoidCallback)>(isLeaf: true)
@@ -1425,22 +1421,22 @@ external void Fence_waitAndDestroyJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TFilamentAsset>, ffi.Pointer<EntityId>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TFilamentAsset>, ffi.Pointer<EntityId>)>()
 external void FilamentAsset_getEntities(ffi.Pointer<TFilamentAsset> filamentAsset, ffi.Pointer<EntityId> out);
 
-@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TFilamentAsset>)>()
 external int FilamentAsset_getEntityCount(ffi.Pointer<TFilamentAsset> filamentAsset);
 
-@ffi.Native<ffi.Int32 Function(ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Int32 Function(ffi.Pointer<TFilamentAsset>)>()
 external int FilamentAsset_getResourceUriCount(ffi.Pointer<TFilamentAsset> tFilamentAsset);
 
-@ffi.Native<ffi.Pointer<ffi.Pointer<ffi.Char>> Function(ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<ffi.Pointer<ffi.Char>> Function(ffi.Pointer<TFilamentAsset>)>()
 external ffi.Pointer<ffi.Pointer<ffi.Char>> FilamentAsset_getResourceUris(ffi.Pointer<TFilamentAsset> tFilamentAsset);
 
-@ffi.Native<ffi.Pointer<ffi.Void> Function(ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<ffi.Void> Function(ffi.Pointer<TFilamentAsset>)>()
 external ffi.Pointer<ffi.Void> FilamentAsset_getSourceAsset(ffi.Pointer<TFilamentAsset> filamentAsset);
 
-@ffi.Native<EntityId Function(ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+@ffi.Native<EntityId Function(ffi.Pointer<TFilamentAsset>)>()
 external int FilamentAsset_getWireframe(ffi.Pointer<TFilamentAsset> filamentAsset);
 
 @ffi.Native<
@@ -1484,7 +1480,7 @@ external void FrameScheduler_stop();
     ffi.Pointer<TMaterial>,
     ffi.UnsignedInt,
   )
->(isLeaf: true)
+>()
 external ffi.Pointer<TGizmo> Gizmo_create(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TGltfAssetLoader> assetLoader,
@@ -1520,16 +1516,16 @@ external void Gizmo_createJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGizmo>)>> callback,
 );
 
-@ffi.Native<ffi.Void Function(ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.UnsignedInt)>()
 external void Gizmo_dummy(int t);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TGizmo>, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TGizmo>, ffi.UnsignedInt)>()
 external void Gizmo_highlight(ffi.Pointer<TGizmo> tGizmo, int axis);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TGizmo>, ffi.Uint32, ffi.Uint32, GizmoPickCallback)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TGizmo>, ffi.Uint32, ffi.Uint32, GizmoPickCallback)>()
 external void Gizmo_pick(ffi.Pointer<TGizmo> tGizmo, int x, int y, GizmoPickCallback callback);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TGizmo>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TGizmo>)>()
 external void Gizmo_unhighlight(ffi.Pointer<TGizmo> tGizmo);
 
 @ffi.Native<
@@ -1538,7 +1534,7 @@ external void Gizmo_unhighlight(ffi.Pointer<TGizmo> tGizmo);
     ffi.Pointer<TMaterialProvider>,
     ffi.Pointer<TNameComponentManager>,
   )
->(isLeaf: true)
+>()
 external ffi.Pointer<TGltfAssetLoader> GltfAssetLoader_create(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TMaterialProvider> tMaterialProvider,
@@ -1562,7 +1558,7 @@ external void GltfAssetLoader_createJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGltfAssetLoader>)>> callback,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TGltfAssetLoader>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TGltfAssetLoader>)>()
 external void GltfAssetLoader_destroy(ffi.Pointer<TGltfAssetLoader> tAssetLoader);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TGltfAssetLoader>, ffi.Uint32, VoidCallback)>(
@@ -1575,15 +1571,13 @@ external void GltfAssetLoader_destroyJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TMaterialInstance> Function(ffi.Pointer<TRenderableManager>, ffi.Pointer<TFilamentAsset>)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Pointer<TMaterialInstance> Function(ffi.Pointer<TRenderableManager>, ffi.Pointer<TFilamentAsset>)>()
 external ffi.Pointer<TMaterialInstance> GltfAssetLoader_getMaterialInstance(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   ffi.Pointer<TFilamentAsset> tAsset,
 );
 
-@ffi.Native<ffi.Pointer<TMaterialProvider> Function(ffi.Pointer<TGltfAssetLoader>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TMaterialProvider> Function(ffi.Pointer<TGltfAssetLoader>)>()
 external ffi.Pointer<TMaterialProvider> GltfAssetLoader_getMaterialProvider(ffi.Pointer<TGltfAssetLoader> tAssetLoader);
 
 @ffi.Native<
@@ -1594,7 +1588,7 @@ external ffi.Pointer<TMaterialProvider> GltfAssetLoader_getMaterialProvider(ffi.
     ffi.Size,
     ffi.Uint32,
   )
->(isLeaf: true)
+>()
 external ffi.Pointer<TFilamentAsset> GltfAssetLoader_load(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
@@ -1647,7 +1641,7 @@ external int GltfParser_parseBuffer(
     >,
     ffi.Pointer<ffi.Void>,
   )
->(isLeaf: true)
+>()
 external void GltfResourceLoader_addResourceData(
   ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
   ffi.Pointer<ffi.Char> uri,
@@ -1681,7 +1675,7 @@ external void GltfResourceLoader_addResourceDataJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TGltfResourceLoader>, ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TGltfResourceLoader>, ffi.Pointer<TFilamentAsset>)>()
 external bool GltfResourceLoader_asyncBeginLoad(
   ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
@@ -1702,7 +1696,7 @@ external void GltfResourceLoader_asyncBeginLoadJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
 );
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<TGltfResourceLoader>)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TGltfResourceLoader>)>()
 external double GltfResourceLoader_asyncGetLoadProgress(ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader);
 
 @ffi.Native<
@@ -1718,7 +1712,7 @@ external void GltfResourceLoader_asyncGetLoadProgressJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Float)>> callback,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TGltfResourceLoader>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TGltfResourceLoader>)>()
 external void GltfResourceLoader_asyncUpdateLoad(ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TGltfResourceLoader>)>(isLeaf: true)
@@ -1727,7 +1721,7 @@ external void GltfResourceLoader_asyncUpdateLoadJobThread(
   ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
 );
 
-@ffi.Native<ffi.Pointer<TGltfResourceLoader> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TGltfResourceLoader> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TGltfResourceLoader> GltfResourceLoader_create(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -1743,7 +1737,7 @@ external void GltfResourceLoader_createJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGltfResourceLoader>)>> callback,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TGltfResourceLoader>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TGltfResourceLoader>)>()
 external void GltfResourceLoader_destroy(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
@@ -1766,7 +1760,7 @@ external void GltfResourceLoader_destroyJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TGltfResourceLoader>, ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TGltfResourceLoader>, ffi.Pointer<TFilamentAsset>)>()
 external bool GltfResourceLoader_loadResources(
   ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
@@ -1913,10 +1907,10 @@ external void Image_getWidthJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint32)>> onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TIndexBufferBuilder>, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TIndexBufferBuilder>, ffi.UnsignedInt)>()
 external void IndexBufferBuilder_bufferType(ffi.Pointer<TIndexBufferBuilder> builder, int indexType);
 
-@ffi.Native<ffi.Pointer<TIndexBuffer> Function(ffi.Pointer<TIndexBufferBuilder>, ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TIndexBuffer> Function(ffi.Pointer<TIndexBufferBuilder>, ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TIndexBuffer> IndexBufferBuilder_build(
   ffi.Pointer<TIndexBufferBuilder> builder,
   ffi.Pointer<TEngine> engine,
@@ -1937,16 +1931,16 @@ external void IndexBufferBuilder_buildJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TIndexBuffer>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TIndexBufferBuilder> Function()>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TIndexBufferBuilder> Function()>()
 external ffi.Pointer<TIndexBufferBuilder> IndexBufferBuilder_create();
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TIndexBufferBuilder>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TIndexBufferBuilder>)>()
 external void IndexBufferBuilder_destroy(ffi.Pointer<TIndexBufferBuilder> builder);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TIndexBufferBuilder>, ffi.Uint32)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TIndexBufferBuilder>, ffi.Uint32)>()
 external void IndexBufferBuilder_indexCount(ffi.Pointer<TIndexBufferBuilder> builder, int count);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TIndexBuffer>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TIndexBuffer>)>()
 external void IndexBuffer_destroy(ffi.Pointer<TEngine> engine, ffi.Pointer<TIndexBuffer> buffer);
 
 @ffi.Native<
@@ -1960,12 +1954,12 @@ external void IndexBuffer_destroyJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Size Function(ffi.Pointer<TIndexBuffer>)>(isLeaf: true)
+@ffi.Native<ffi.Size Function(ffi.Pointer<TIndexBuffer>)>()
 external int IndexBuffer_getIndexCount(ffi.Pointer<TIndexBuffer> buffer);
 
 @ffi.Native<
   ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TIndexBuffer>, ffi.Pointer<ffi.Void>, ffi.Size, ffi.Uint32)
->(isLeaf: true)
+>()
 external void IndexBuffer_setBuffer(
   ffi.Pointer<TEngine> engine,
   ffi.Pointer<TIndexBuffer> buffer,
@@ -1997,7 +1991,7 @@ external void IndexBuffer_setBufferJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TIndirectLight>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TIndirectLight>, ffi.Pointer<ffi.Double>)>()
 external void IndirectLight_setRotation(ffi.Pointer<TIndirectLight> tIndirectLight, ffi.Pointer<ffi.Double> rotation);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
@@ -2014,7 +2008,7 @@ external ffi.Pointer<TJobThread> JobThread_create();
 @ffi.Native<ffi.Pointer<TJobThread> Function(ffi.Pointer<ffi.Char>)>(isLeaf: true)
 external ffi.Pointer<TJobThread> JobThread_createForCanvas(ffi.Pointer<ffi.Char> canvasSelector);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>)>()
 external void JobThread_destroy(ffi.Pointer<TJobThread> jobThread);
 
 @ffi.Native<ffi.Pointer<TKtx1Bundle> Function(ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
@@ -2029,9 +2023,7 @@ external void Ktx1Bundle_getSphericalHarmonics(ffi.Pointer<TKtx1Bundle> tBundle,
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TKtx1Bundle>)>(isLeaf: true)
 external bool Ktx1Bundle_isCubemap(ffi.Pointer<TKtx1Bundle> tBundle);
 
-@ffi.Native<ffi.Pointer<TTexture> Function(ffi.Pointer<TEngine>, ffi.Pointer<TKtx1Bundle>, ffi.Uint32, VoidCallback)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Pointer<TTexture> Function(ffi.Pointer<TEngine>, ffi.Pointer<TKtx1Bundle>, ffi.Uint32, VoidCallback)>()
 external ffi.Pointer<TTexture> Ktx1Reader_createTexture(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TKtx1Bundle> tBundle,
@@ -2058,7 +2050,7 @@ external void Ktx1Reader_createTextureJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TTexture> Function(ffi.Pointer<TEngine>, ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TTexture> Function(ffi.Pointer<TEngine>, ffi.Pointer<ffi.Uint8>, ffi.Size)>()
 external ffi.Pointer<TTexture> Ktx2Reader_createTexture(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<ffi.Uint8> data,
@@ -2082,7 +2074,7 @@ external void Ktx2Reader_createTextureJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>> onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Float>, ffi.Uint8, ffi.Float, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Float>, ffi.Uint8, ffi.Float, ffi.Float)>()
 external void LightManager_computeLogSplits(
   ffi.Pointer<ffi.Float> splitPositions,
   int cascades,
@@ -2090,7 +2082,7 @@ external void LightManager_computeLogSplits(
   double far,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Float>, ffi.Uint8, ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Float>, ffi.Uint8, ffi.Float, ffi.Float, ffi.Float)>()
 external void LightManager_computePracticalSplits(
   ffi.Pointer<ffi.Float> splitPositions,
   int cascades,
@@ -2099,87 +2091,87 @@ external void LightManager_computePracticalSplits(
   double lambda,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Float>, ffi.Uint8)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Float>, ffi.Uint8)>()
 external void LightManager_computeUniformSplits(ffi.Pointer<ffi.Float> splitPositions, int cascades);
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<TEngine>, ffi.Pointer<TLightManager>, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Int Function(ffi.Pointer<TEngine>, ffi.Pointer<TLightManager>, ffi.UnsignedInt)>()
 external int LightManager_createLight(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TLightManager> tLightManager,
   int tLightTtype,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId)>()
 external void LightManager_destroyLight(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<double3 Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<double3 Function(ffi.Pointer<TLightManager>, EntityId)>()
 external double3 LightManager_getColor(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<double3 Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<double3 Function(ffi.Pointer<TLightManager>, EntityId)>()
 external double3 LightManager_getDirection(ffi.Pointer<TLightManager> tLightManager, int light);
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>()
 external double LightManager_getFalloff(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>()
 external double LightManager_getIntensity(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId, ffi.UnsignedInt)>()
 external bool LightManager_getLightChannel(ffi.Pointer<TLightManager> tLightManager, int entity, int channel);
 
-@ffi.Native<double3 Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<double3 Function(ffi.Pointer<TLightManager>, EntityId)>()
 external double3 LightManager_getPosition(ffi.Pointer<TLightManager> tLightManager, int light);
 
-@ffi.Native<TShadowOptions Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<TShadowOptions Function(ffi.Pointer<TLightManager>, EntityId)>()
 external TShadowOptions LightManager_getShadowOptions(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>()
 external double LightManager_getSpotLightInnerCone(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>()
 external double LightManager_getSpotLightOuterCone(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>()
 external double LightManager_getSunAngularRadius(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>()
 external double LightManager_getSunHaloFalloff(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>()
 external double LightManager_getSunHaloSize(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Int Function(ffi.Pointer<TLightManager>, EntityId)>()
 external int LightManager_getType(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>()
 external bool LightManager_hasComponent(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>()
 external bool LightManager_isDirectional(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>()
 external bool LightManager_isPointLight(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>()
 external bool LightManager_isShadowCaster(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>()
 external bool LightManager_isSpotLight(ffi.Pointer<TLightManager> tLightManager, int entity);
 
-@ffi.Native<ffi.Double Function(ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Double Function(ffi.Double, ffi.Double, ffi.Double)>()
 external double LightManager_rgbToColorTemperature(double r, double g, double b);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double, ffi.Double)>()
 external void LightManager_setColor(ffi.Pointer<TLightManager> tLightManager, int entity, double r, double g, double b);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>()
 external void LightManager_setColorTemperature(
   ffi.Pointer<TLightManager> tLightManager,
   int entity,
   double colorTemperature,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double, ffi.Double)>()
 external void LightManager_setDirection(
   ffi.Pointer<TLightManager> tLightManager,
   int light,
@@ -2188,16 +2180,16 @@ external void LightManager_setDirection(
   double z,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>()
 external void LightManager_setFalloff(ffi.Pointer<TLightManager> tLightManager, int entity, double falloff);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>()
 external void LightManager_setIntensity(ffi.Pointer<TLightManager> tLightManager, int entity, double intensity);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>()
 external void LightManager_setIntensityCandela(ffi.Pointer<TLightManager> tLightManager, int entity, double intensity);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double)>()
 external void LightManager_setIntensityWatts(
   ffi.Pointer<TLightManager> tLightManager,
   int entity,
@@ -2205,7 +2197,7 @@ external void LightManager_setIntensityWatts(
   double efficiency,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.UnsignedInt, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.UnsignedInt, ffi.Bool)>()
 external void LightManager_setLightChannel(
   ffi.Pointer<TLightManager> tLightManager,
   int entity,
@@ -2213,7 +2205,7 @@ external void LightManager_setLightChannel(
   bool enable,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double, ffi.Double)>()
 external void LightManager_setPosition(
   ffi.Pointer<TLightManager> tLightManager,
   int light,
@@ -2222,7 +2214,7 @@ external void LightManager_setPosition(
   double z,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Bool)>()
 external void LightManager_setShadowCaster(ffi.Pointer<TLightManager> tLightManager, int entity, bool enabled);
 
 @ffi.Native<
@@ -2237,7 +2229,7 @@ external void LightManager_setShadowCasterJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, TShadowOptions)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, TShadowOptions)>()
 external void LightManager_setShadowOptions(
   ffi.Pointer<TLightManager> tLightManager,
   int entity,
@@ -2263,7 +2255,7 @@ external void LightManager_setShadowOptionsJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double)>()
 external void LightManager_setSpotLightCone(
   ffi.Pointer<TLightManager> tLightManager,
   int entity,
@@ -2271,17 +2263,17 @@ external void LightManager_setSpotLightCone(
   double outer,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>()
 external void LightManager_setSunAngularRadius(
   ffi.Pointer<TLightManager> tLightManager,
   int entity,
   double angularRadius,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>()
 external void LightManager_setSunHaloFalloff(ffi.Pointer<TLightManager> tLightManager, int entity, double haloFalloff);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>()
 external void LightManager_setSunHaloSize(ffi.Pointer<TLightManager> tLightManager, int entity, double haloSize);
 
 @ffi.Native<ffi.Pointer<TMat4> Function()>(isLeaf: true)
@@ -2470,44 +2462,42 @@ external int MaterialCompiler_getPackageSize(ffi.Pointer<TMaterialCompilerPackag
 @ffi.Native<ffi.Uint8 Function()>(isLeaf: true)
 external int MaterialCompiler_isSupported();
 
-@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TMaterialInstance>)>()
 external int MaterialInstance_getTransparencyMode(ffi.Pointer<TMaterialInstance> materialInstance);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TMaterialInstance>)>()
 external bool MaterialInstance_isStencilWriteEnabled(ffi.Pointer<TMaterialInstance> materialInstance);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt)>()
 external void MaterialInstance_setCullingMode(ffi.Pointer<TMaterialInstance> materialInstance, int culling);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>()
 external void MaterialInstance_setDepthCulling(ffi.Pointer<TMaterialInstance> materialInstance, bool enabled);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt)>()
 external void MaterialInstance_setDepthFunc(ffi.Pointer<TMaterialInstance> materialInstance, int depthFunc);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>()
 external void MaterialInstance_setDepthWrite(ffi.Pointer<TMaterialInstance> materialInstance, bool enabled);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>()
 external void MaterialInstance_setDoubleSided(ffi.Pointer<TMaterialInstance> materialInstance, bool doubleSided);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>, ffi.Bool)>()
 external void MaterialInstance_setParameterBool(
   ffi.Pointer<TMaterialInstance> materialInstance,
   ffi.Pointer<ffi.Char> propertyName,
   bool value,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>, ffi.Double)>()
 external void MaterialInstance_setParameterFloat(
   ffi.Pointer<TMaterialInstance> materialInstance,
   ffi.Pointer<ffi.Char> propertyName,
   double value,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>, ffi.Double, ffi.Double)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>, ffi.Double, ffi.Double)>()
 external void MaterialInstance_setParameterFloat2(
   ffi.Pointer<TMaterialInstance> materialInstance,
   ffi.Pointer<ffi.Char> propertyName,
@@ -2517,7 +2507,7 @@ external void MaterialInstance_setParameterFloat2(
 
 @ffi.Native<
   ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>, ffi.Double, ffi.Double, ffi.Double)
->(isLeaf: true)
+>()
 external void MaterialInstance_setParameterFloat3(
   ffi.Pointer<TMaterialInstance> materialInstance,
   ffi.Pointer<ffi.Char> propertyName,
@@ -2528,7 +2518,7 @@ external void MaterialInstance_setParameterFloat3(
 
 @ffi.Native<
   ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Double>, ffi.Uint32)
->(isLeaf: true)
+>()
 external void MaterialInstance_setParameterFloat3Array(
   ffi.Pointer<TMaterialInstance> tMaterialInstance,
   ffi.Pointer<ffi.Char> propertyName,
@@ -2545,7 +2535,7 @@ external void MaterialInstance_setParameterFloat3Array(
     ffi.Double,
     ffi.Double,
   )
->(isLeaf: true)
+>()
 external void MaterialInstance_setParameterFloat4(
   ffi.Pointer<TMaterialInstance> materialInstance,
   ffi.Pointer<ffi.Char> propertyName,
@@ -2555,25 +2545,21 @@ external void MaterialInstance_setParameterFloat4(
   double z,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>, ffi.Int)>()
 external void MaterialInstance_setParameterInt(
   ffi.Pointer<TMaterialInstance> materialInstance,
   ffi.Pointer<ffi.Char> propertyName,
   int value,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Double>)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Double>)>()
 external void MaterialInstance_setParameterMat3(
   ffi.Pointer<TMaterialInstance> materialInstance,
   ffi.Pointer<ffi.Char> propertyName,
   ffi.Pointer<ffi.Double> matrix,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Double>)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Double>)>()
 external void MaterialInstance_setParameterMat4(
   ffi.Pointer<TMaterialInstance> materialInstance,
   ffi.Pointer<ffi.Char> propertyName,
@@ -2587,7 +2573,7 @@ external void MaterialInstance_setParameterMat4(
     ffi.Pointer<TTexture>,
     ffi.Pointer<TTextureSampler>,
   )
->(isLeaf: true)
+>()
 external void MaterialInstance_setParameterTexture(
   ffi.Pointer<TMaterialInstance> materialInstance,
   ffi.Pointer<ffi.Char> propertyName,
@@ -2616,47 +2602,47 @@ external void MaterialInstance_setParameterTextureJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt, ffi.UnsignedInt)>()
 external void MaterialInstance_setStencilCompareFunction(
   ffi.Pointer<TMaterialInstance> materialInstance,
   int func,
   int face,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt, ffi.UnsignedInt)>()
 external void MaterialInstance_setStencilOpDepthFail(ffi.Pointer<TMaterialInstance> materialInstance, int op, int face);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt, ffi.UnsignedInt)>()
 external void MaterialInstance_setStencilOpDepthStencilPass(
   ffi.Pointer<TMaterialInstance> materialInstance,
   int op,
   int face,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt, ffi.UnsignedInt)>()
 external void MaterialInstance_setStencilOpStencilFail(
   ffi.Pointer<TMaterialInstance> materialInstance,
   int op,
   int face,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Uint8)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Uint8)>()
 external void MaterialInstance_setStencilReadMask(ffi.Pointer<TMaterialInstance> materialInstance, int mask);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Uint8, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Uint8, ffi.UnsignedInt)>()
 external void MaterialInstance_setStencilReferenceValue(
   ffi.Pointer<TMaterialInstance> materialInstance,
   int value,
   int face,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>()
 external void MaterialInstance_setStencilWrite(ffi.Pointer<TMaterialInstance> materialInstance, bool enabled);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Uint8)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Uint8)>()
 external void MaterialInstance_setStencilWriteMask(ffi.Pointer<TMaterialInstance> materialInstance, int mask);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt)>()
 external void MaterialInstance_setTransparencyMode(
   ffi.Pointer<TMaterialInstance> materialInstance,
   int transparencyMode,
@@ -2704,7 +2690,7 @@ external void MaterialInstance_setTransparencyMode(
     ffi.Bool,
     ffi.Bool,
   )
->(isLeaf: true)
+>()
 external ffi.Pointer<TMaterialInstance> MaterialProvider_createMaterialInstance(
   ffi.Pointer<TMaterialProvider> provider,
   bool doubleSided,
@@ -2836,7 +2822,7 @@ external void MaterialProvider_createMaterialInstanceJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>> callback,
 );
 
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TMaterial> Material_createBoneOverlayMaterial(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -2852,7 +2838,7 @@ external void Material_createBoneOverlayMaterialJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TMaterial> Material_createEdgeOutlineMaterial(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -2868,7 +2854,7 @@ external void Material_createEdgeOutlineMaterialJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TMaterial> Material_createGizmoMaterial(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -2884,10 +2870,10 @@ external void Material_createGizmoMaterialJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TMaterial> Material_createGridMaterial(ffi.Pointer<TEngine> tEngine);
 
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TMaterial> Material_createImageMaterial(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -2903,7 +2889,7 @@ external void Material_createImageMaterialJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TMaterialInstance> Function(ffi.Pointer<TMaterial>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TMaterialInstance> Function(ffi.Pointer<TMaterial>)>()
 external ffi.Pointer<TMaterialInstance> Material_createInstance(ffi.Pointer<TMaterial> tMaterial);
 
 @ffi.Native<
@@ -2919,7 +2905,7 @@ external void Material_createInstanceJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TMaterial> Material_createSilhouetteMaterial(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -2935,7 +2921,7 @@ external void Material_createSilhouetteMaterialJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TMaterial> Material_createTranslationAxisMaterial(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -2951,7 +2937,7 @@ external void Material_createTranslationAxisMaterialJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TMaterial> Material_createWireframeMaterial(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -2967,10 +2953,10 @@ external void Material_createWireframeMaterialJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
 );
 
-@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TMaterial>)>(isLeaf: true)
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TMaterial>)>()
 external int Material_getBlendingMode(ffi.Pointer<TMaterial> material);
 
-@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TMaterial>)>(isLeaf: true)
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TMaterial>)>()
 external int Material_getFeatureLevel(ffi.Pointer<TMaterial> tMaterial);
 
 /// Reads the material format version, or returns -1 for an invalid chunk layout
@@ -2986,40 +2972,38 @@ external int Material_getPackageVersion(ffi.Pointer<ffi.Uint8> data, int length)
 @ffi.Native<ffi.Uint32 Function()>(isLeaf: true)
 external int Material_getSupportedVersion();
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TMaterial>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TMaterial>, ffi.Pointer<ffi.Char>)>()
 external bool Material_hasParameter(ffi.Pointer<TMaterial> tMaterial, ffi.Pointer<ffi.Char> propertyName);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMeshData>)>(isLeaf: true)
 external void MeshData_dispose(ffi.Pointer<TMeshData> meshData);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>)>()
 external void MovementIntentExecutor_destroy(ffi.Pointer<TMovementIntentExecutor> executor);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>, ffi.Pointer<TMovementIntent>, ffi.Uint64)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>, ffi.Pointer<TMovementIntent>, ffi.Uint64)>()
 external void MovementIntentExecutor_process(
   ffi.Pointer<TMovementIntentExecutor> executor,
   ffi.Pointer<TMovementIntent> intent,
   int deltaTimeInNanos,
 );
 
-@ffi.Native<ffi.Pointer<TNameComponentManager> Function()>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TNameComponentManager> Function()>()
 external ffi.Pointer<TNameComponentManager> NameComponentManager_create();
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TNameComponentManager>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TNameComponentManager>)>()
 external void NameComponentManager_destroy(ffi.Pointer<TNameComponentManager> tNameComponentManager);
 
-@ffi.Native<ffi.Pointer<ffi.Char> Function(ffi.Pointer<TNameComponentManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<ffi.Char> Function(ffi.Pointer<TNameComponentManager>, EntityId)>()
 external ffi.Pointer<ffi.Char> NameComponentManager_getName(
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   int entity,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>)>()
 external void Pipeline_registerMovementIntentExecutor(ffi.Pointer<TMovementIntentExecutor> executor);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Pointer<TAnimationManager>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Pointer<TAnimationManager>)>()
 external void RenderManager_addAnimationManager(
   ffi.Pointer<TRenderManager> tRenderer,
   ffi.Pointer<TAnimationManager> tAnimationManager,
@@ -3045,13 +3029,13 @@ external void RenderManager_addAnimationManagerJobThread(
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TRenderManager>)>(isLeaf: true)
 external void RenderManager_attachToJobThread(ffi.Pointer<TJobThread> jobThread, ffi.Pointer<TRenderManager> tRenderer);
 
-@ffi.Native<ffi.Pointer<TRenderManager> Function(ffi.Pointer<TEngine>, ffi.Pointer<TRenderer>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TRenderManager> Function(ffi.Pointer<TEngine>, ffi.Pointer<TRenderer>)>()
 external ffi.Pointer<TRenderManager> RenderManager_create(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TRenderer> tRenderer,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>)>()
 external void RenderManager_destroy(ffi.Pointer<TRenderManager> tRenderer);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TRenderManager>, ffi.Uint32, VoidCallback)>(
@@ -3070,7 +3054,7 @@ external void RenderManager_detachFromJobThread(
   ffi.Pointer<TRenderManager> tRenderManager,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Pointer<TAnimationManager>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Pointer<TAnimationManager>)>()
 external void RenderManager_removeAnimationManager(
   ffi.Pointer<TRenderManager> tRenderer,
   ffi.Pointer<TAnimationManager> tAnimationManager,
@@ -3093,7 +3077,7 @@ external void RenderManager_removeAnimationManagerJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Pointer<TSwapChain>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Pointer<TSwapChain>)>()
 external void RenderManager_removeSwapChain(ffi.Pointer<TRenderManager> tRenderer, ffi.Pointer<TSwapChain> swapChain);
 
 @ffi.Native<
@@ -3113,7 +3097,7 @@ external void RenderManager_removeSwapChainJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Uint64)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Uint64)>()
 external void RenderManager_render(ffi.Pointer<TRenderManager> tRenderer, int frameTimeInNanos);
 
 @ffi.Native<
@@ -3132,7 +3116,7 @@ external void RenderManager_setPaused(ffi.Pointer<TRenderManager> tRenderer, boo
 
 @ffi.Native<
   ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Pointer<TSwapChain>, ffi.Pointer<ffi.Pointer<TView>>, ffi.Uint8)
->(isLeaf: true)
+>()
 external void RenderManager_setRenderable(
   ffi.Pointer<TRenderManager> tRenderer,
   ffi.Pointer<TSwapChain> swapChain,
@@ -3164,9 +3148,7 @@ external void RenderManager_setRenderableJobThread(
 @ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Int)>(isLeaf: true)
 external void RenderManager_setTargetFps(ffi.Pointer<TRenderManager> tRenderManager, int fps);
 
-@ffi.Native<ffi.Pointer<TRenderTarget> Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>, ffi.Pointer<TTexture>)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Pointer<TRenderTarget> Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>, ffi.Pointer<TTexture>)>()
 external ffi.Pointer<TRenderTarget> RenderTarget_create(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TTexture> color,
@@ -3190,7 +3172,7 @@ external void RenderTarget_createJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TRenderTarget>)>> onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TRenderTarget>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TRenderTarget>)>()
 external void RenderTarget_destroy(ffi.Pointer<TEngine> tEngine, ffi.Pointer<TRenderTarget> tRenderTarget);
 
 @ffi.Native<
@@ -3204,7 +3186,7 @@ external void RenderTarget_destroyJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TTexture> Function(ffi.Pointer<TRenderTarget>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TTexture> Function(ffi.Pointer<TRenderTarget>)>()
 external ffi.Pointer<TTexture> RenderTarget_getColorTexture(ffi.Pointer<TRenderTarget> tRenderTarget);
 
 @ffi.Native<
@@ -3220,15 +3202,13 @@ external void RenderTarget_getColorTextureJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TTexture> Function(ffi.Pointer<TRenderTarget>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TTexture> Function(ffi.Pointer<TRenderTarget>)>()
 external ffi.Pointer<TTexture> RenderTarget_getDepthTexture(ffi.Pointer<TRenderTarget> tRenderTarget);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size, ffi.Uint16)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size, ffi.Uint16)>()
 external void RenderableBuilder_blendOrder(ffi.Pointer<TRenderableBuilder> builder, int primitiveIndex, int order);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size, ffi.Pointer<ffi.Float>, ffi.Size, ffi.Size)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size, ffi.Pointer<ffi.Float>, ffi.Size, ffi.Size)>()
 external void RenderableBuilder_boneIndicesAndWeights(
   ffi.Pointer<TRenderableBuilder> builder,
   int primitiveIndex,
@@ -3237,10 +3217,10 @@ external void RenderableBuilder_boneIndicesAndWeights(
   int bonesPerVertex,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, Aabb3)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, Aabb3)>()
 external void RenderableBuilder_boundingBox(ffi.Pointer<TRenderableBuilder> builder, Aabb3 aabb);
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<TRenderableBuilder>, ffi.Pointer<TEngine>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Int Function(ffi.Pointer<TRenderableBuilder>, ffi.Pointer<TEngine>, EntityId)>()
 external int RenderableBuilder_build(ffi.Pointer<TRenderableBuilder> builder, ffi.Pointer<TEngine> engine, int entity);
 
 @ffi.Native<
@@ -3283,25 +3263,25 @@ external void RenderableBuilder_buildWithSkinningJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int)>> onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Bool)>()
 external void RenderableBuilder_castShadows(ffi.Pointer<TRenderableBuilder> builder, bool enabled);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Uint8)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Uint8)>()
 external void RenderableBuilder_channel(ffi.Pointer<TRenderableBuilder> builder, int channel);
 
-@ffi.Native<ffi.Pointer<TRenderableBuilder> Function(ffi.Size)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TRenderableBuilder> Function(ffi.Size)>()
 external ffi.Pointer<TRenderableBuilder> RenderableBuilder_create(int primitiveCount);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Bool)>()
 external void RenderableBuilder_culling(ffi.Pointer<TRenderableBuilder> builder, bool enabled);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>)>()
 external void RenderableBuilder_destroy(ffi.Pointer<TRenderableBuilder> builder);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Bool)>()
 external void RenderableBuilder_enableSkinningBuffers(ffi.Pointer<TRenderableBuilder> builder, bool enabled);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Bool)>()
 external void RenderableBuilder_fog(ffi.Pointer<TRenderableBuilder> builder, bool enabled);
 
 @ffi.Native<
@@ -3314,7 +3294,7 @@ external void RenderableBuilder_fog(ffi.Pointer<TRenderableBuilder> builder, boo
     ffi.Size,
     ffi.Size,
   )
->(isLeaf: true)
+>()
 external void RenderableBuilder_geometry(
   ffi.Pointer<TRenderableBuilder> builder,
   int primitiveIndex,
@@ -3334,7 +3314,7 @@ external void RenderableBuilder_geometry(
     ffi.Size,
     ffi.Size,
   )
->(isLeaf: true)
+>()
 external void RenderableBuilder_geometryNonIndexed(
   ffi.Pointer<TRenderableBuilder> builder,
   int primitiveIndex,
@@ -3344,60 +3324,60 @@ external void RenderableBuilder_geometryNonIndexed(
   int count,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size, ffi.Bool)>()
 external void RenderableBuilder_globalBlendOrderEnabled(
   ffi.Pointer<TRenderableBuilder> builder,
   int primitiveIndex,
   bool enabled,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size)>()
 external void RenderableBuilder_instances(ffi.Pointer<TRenderableBuilder> builder, int instanceCount);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Uint8, ffi.Uint8)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Uint8, ffi.Uint8)>()
 external void RenderableBuilder_layerMask(ffi.Pointer<TRenderableBuilder> builder, int select, int values);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.UnsignedInt, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.UnsignedInt, ffi.Bool)>()
 external void RenderableBuilder_lightChannel(ffi.Pointer<TRenderableBuilder> builder, int channel, bool enabled);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size, ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size, ffi.Pointer<TMaterialInstance>)>()
 external void RenderableBuilder_material(
   ffi.Pointer<TRenderableBuilder> builder,
   int primitiveIndex,
   ffi.Pointer<TMaterialInstance> materialInstance,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Uint8)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Uint8)>()
 external void RenderableBuilder_priority(ffi.Pointer<TRenderableBuilder> builder, int priority);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Bool)>()
 external void RenderableBuilder_receiveShadows(ffi.Pointer<TRenderableBuilder> builder, bool enabled);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Bool)>()
 external void RenderableBuilder_screenSpaceContactShadows(ffi.Pointer<TRenderableBuilder> builder, bool enabled);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size, ffi.Pointer<ffi.Float>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size, ffi.Pointer<ffi.Float>)>()
 external void RenderableBuilder_skinningFromBone(
   ffi.Pointer<TRenderableBuilder> builder,
   int boneCount,
   ffi.Pointer<ffi.Float> bones,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size, ffi.Pointer<ffi.Float>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size, ffi.Pointer<ffi.Float>)>()
 external void RenderableBuilder_skinningFromMat4(
   ffi.Pointer<TRenderableBuilder> builder,
   int boneCount,
   ffi.Pointer<ffi.Float> transforms,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Int)>()
 external void RenderableManager_clearMaterialInstanceAt(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
   int primitiveIndex,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId)>()
 external void RenderableManager_destroyEntity(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 
 @ffi.Native<
@@ -3411,76 +3391,76 @@ external void RenderableManager_destroyEntityJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>)>()
 external bool RenderableManager_empty(ffi.Pointer<TRenderableManager> tRenderableManager);
 
-@ffi.Native<Aabb3 Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
+@ffi.Native<Aabb3 Function(ffi.Pointer<TRenderableManager>, EntityId)>()
 external Aabb3 RenderableManager_getAabb(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 
-@ffi.Native<Aabb3 Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
+@ffi.Native<Aabb3 Function(ffi.Pointer<TRenderableManager>, EntityId)>()
 external Aabb3 RenderableManager_getAxisAlignedBoundingBox(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
 );
 
-@ffi.Native<Aabb3 Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
+@ffi.Native<Aabb3 Function(ffi.Pointer<TRenderableManager>, EntityId)>()
 external Aabb3 RenderableManager_getBoundingBox(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 
-@ffi.Native<ffi.Size Function(ffi.Pointer<TRenderableManager>)>(isLeaf: true)
+@ffi.Native<ffi.Size Function(ffi.Pointer<TRenderableManager>)>()
 external int RenderableManager_getComponentCount(ffi.Pointer<TRenderableManager> tRenderableManager);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>()
 external bool RenderableManager_getCulling(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>()
 external bool RenderableManager_getFogEnabled(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 
-@ffi.Native<ffi.Uint8 Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Uint8 Function(ffi.Pointer<TRenderableManager>, EntityId)>()
 external int RenderableManager_getLayerMask(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.UnsignedInt)>()
 external bool RenderableManager_getLightChannel(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
   int channel,
 );
 
-@ffi.Native<ffi.Pointer<TMaterialInstance> Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TMaterialInstance> Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Int)>()
 external ffi.Pointer<TMaterialInstance> RenderableManager_getMaterialInstanceAt(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
   int primitiveIndex,
 );
 
-@ffi.Native<ffi.Size Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Size Function(ffi.Pointer<TRenderableManager>, EntityId)>()
 external int RenderableManager_getMorphTargetCount(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 
-@ffi.Native<ffi.Size Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Size Function(ffi.Pointer<TRenderableManager>, EntityId)>()
 external int RenderableManager_getPrimitiveCount(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 
-@ffi.Native<ffi.Uint8 Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Uint8 Function(ffi.Pointer<TRenderableManager>, EntityId)>()
 external int RenderableManager_getPriority(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>()
 external bool RenderableManager_hasComponent(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>()
 external bool RenderableManager_isRenderable(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>()
 external bool RenderableManager_isShadowCaster(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>()
 external bool RenderableManager_isShadowReceiver(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, Aabb3)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, Aabb3)>()
 external void RenderableManager_setAxisAlignedBoundingBox(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
   Aabb3 aabb,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Size, ffi.Uint16)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Size, ffi.Uint16)>()
 external void RenderableManager_setBlendOrderAt(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
@@ -3488,9 +3468,7 @@ external void RenderableManager_setBlendOrderAt(
   int order,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Pointer<ffi.Float>, ffi.Size, ffi.Size)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Pointer<ffi.Float>, ffi.Size, ffi.Size)>()
 external void RenderableManager_setBonesFromBone(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
@@ -3522,9 +3500,7 @@ external void RenderableManager_setBonesFromBoneJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Pointer<ffi.Float>, ffi.Size, ffi.Size)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Pointer<ffi.Float>, ffi.Size, ffi.Size)>()
 external void RenderableManager_setBonesFromMat4(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
@@ -3556,7 +3532,7 @@ external void RenderableManager_setBonesFromMat4JobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>()
 external void RenderableManager_setCastShadows(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
@@ -3582,21 +3558,21 @@ external void RenderableManager_setCastShadowsJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Uint8)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Uint8)>()
 external void RenderableManager_setChannel(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
   int channel,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>()
 external void RenderableManager_setCulling(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
   bool enabled,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>()
 external void RenderableManager_setFogEnabled(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
@@ -3613,7 +3589,7 @@ external void RenderableManager_setFogEnabled(
     ffi.Size,
     ffi.Size,
   )
->(isLeaf: true)
+>()
 external bool RenderableManager_setGeometryAtNonIndexed(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
@@ -3649,7 +3625,7 @@ external void RenderableManager_setGeometryAtNonIndexedJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Size, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Size, ffi.Bool)>()
 external void RenderableManager_setGlobalBlendOrderEnabledAt(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
@@ -3657,7 +3633,7 @@ external void RenderableManager_setGlobalBlendOrderEnabledAt(
   bool enabled,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Uint8, ffi.Uint8)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Uint8, ffi.Uint8)>()
 external void RenderableManager_setLayerMask(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
@@ -3665,7 +3641,7 @@ external void RenderableManager_setLayerMask(
   int values,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.UnsignedInt, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.UnsignedInt, ffi.Bool)>()
 external void RenderableManager_setLightChannel(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
@@ -3673,9 +3649,7 @@ external void RenderableManager_setLightChannel(
   bool enable,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Int, ffi.Pointer<TMaterialInstance>)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Int, ffi.Pointer<TMaterialInstance>)>()
 external bool RenderableManager_setMaterialInstanceAt(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
@@ -3683,9 +3657,7 @@ external bool RenderableManager_setMaterialInstanceAt(
   ffi.Pointer<TMaterialInstance> tMaterialInstance,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Pointer<ffi.Float>, ffi.Size, ffi.Size)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Pointer<ffi.Float>, ffi.Size, ffi.Size)>()
 external void RenderableManager_setMorphWeights(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
@@ -3717,14 +3689,14 @@ external void RenderableManager_setMorphWeightsJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Uint8)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Uint8)>()
 external void RenderableManager_setPriority(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
   int priority,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>()
 external void RenderableManager_setReceiveShadows(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
@@ -3750,21 +3722,21 @@ external void RenderableManager_setReceiveShadowsJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>()
 external void RenderableManager_setScreenSpaceContactShadows(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
   bool enabled,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Uint8)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Uint8)>()
 external void RenderableManager_setVisibilityLayer(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
   int layer,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderer>, ffi.Pointer<TSwapChain>, ffi.Uint64)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderer>, ffi.Pointer<TSwapChain>, ffi.Uint64)>()
 external bool Renderer_beginFrame(
   ffi.Pointer<TRenderer> tRenderer,
   ffi.Pointer<TSwapChain> tSwapChain,
@@ -3788,7 +3760,7 @@ external void Renderer_beginFrameJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderer>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderer>)>()
 external void Renderer_endFrame(ffi.Pointer<TRenderer> tRenderer);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TRenderer>, ffi.Uint32, VoidCallback)>(isLeaf: true)
@@ -3812,7 +3784,7 @@ external void Renderer_endFrameJobThread(
     ffi.Pointer<ffi.Uint8>,
     ffi.Size,
   )
->(isLeaf: true)
+>()
 external void Renderer_readPixels(
   ffi.Pointer<TRenderer> tRenderer,
   int width,
@@ -3859,7 +3831,7 @@ external void Renderer_readPixelsJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderer>, ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderer>, ffi.Pointer<TView>)>()
 external void Renderer_render(ffi.Pointer<TRenderer> tRenderer, ffi.Pointer<TView> tView);
 
 @ffi.Native<
@@ -3873,7 +3845,7 @@ external void Renderer_renderJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderer>, ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderer>, ffi.Pointer<TView>)>()
 external void Renderer_renderStandaloneView(ffi.Pointer<TRenderer> tRenderer, ffi.Pointer<TView> tView);
 
 @ffi.Native<
@@ -3898,7 +3870,7 @@ external void Renderer_renderStandaloneViewJobThread(
     ffi.Bool,
     ffi.Bool,
   )
->(isLeaf: true)
+>()
 external void Renderer_setClearOptions(
   ffi.Pointer<TRenderer> tRenderer,
   double clearR,
@@ -3939,7 +3911,7 @@ external void Renderer_setClearOptionsJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderer>, ffi.Float, ffi.Float, ffi.Uint8, ffi.Uint8)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderer>, ffi.Float, ffi.Float, ffi.Uint8, ffi.Uint8)>()
 external void Renderer_setFrameInterval(
   ffi.Pointer<TRenderer> tRenderer,
   double headRoomRatio,
@@ -3948,7 +3920,7 @@ external void Renderer_setFrameInterval(
   int interval,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<TScene>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<TScene>)>()
 external void SceneAsset_addToScene(ffi.Pointer<TSceneAsset> tSceneAsset, ffi.Pointer<TScene> tScene);
 
 @ffi.Native<
@@ -3973,7 +3945,7 @@ external void SceneAsset_addToSceneJobThread(
     ffi.UnsignedInt,
     Aabb3,
   )
->(isLeaf: true)
+>()
 external ffi.Pointer<TSceneAsset> SceneAsset_createFromBuffers(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TVertexBuffer> tVertexBuffer,
@@ -4020,7 +3992,7 @@ external void SceneAsset_createFromBuffersJobThread(
     ffi.Pointer<TFilamentAsset>,
     ffi.Uint32,
   )
->(isLeaf: true)
+>()
 external ffi.Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
@@ -4052,7 +4024,7 @@ external void SceneAsset_createFromFilamentAssetJobThread(
 
 @ffi.Native<
   ffi.Pointer<TSceneAsset> Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<ffi.Pointer<TMaterialInstance>>, ffi.Int)
->(isLeaf: true)
+>()
 external ffi.Pointer<TSceneAsset> SceneAsset_createInstance(
   ffi.Pointer<TSceneAsset> asset,
   ffi.Pointer<ffi.Pointer<TMaterialInstance>> materialInstances,
@@ -4076,7 +4048,7 @@ external void SceneAsset_createInstanceJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>> callback,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>)>()
 external void SceneAsset_destroy(ffi.Pointer<TSceneAsset> tSceneAsset);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TSceneAsset>, ffi.Uint32, VoidCallback)>(
@@ -4089,74 +4061,74 @@ external void SceneAsset_destroyJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Size Function(ffi.Pointer<TSceneAsset>, ffi.Size)>(isLeaf: true)
+@ffi.Native<ffi.Size Function(ffi.Pointer<TSceneAsset>, ffi.Size)>()
 external int SceneAsset_getBoneCount(ffi.Pointer<TSceneAsset> tSceneAsset, int skinIndex);
 
-@ffi.Native<ffi.Pointer<ffi.Char> Function(ffi.Pointer<TSceneAsset>, ffi.Size, ffi.Size)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<ffi.Char> Function(ffi.Pointer<TSceneAsset>, ffi.Size, ffi.Size)>()
 external ffi.Pointer<ffi.Char> SceneAsset_getBoneName(
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int skinIndex,
   int boneIndex,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Size, ffi.Pointer<EntityId>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Size, ffi.Pointer<EntityId>)>()
 external void SceneAsset_getBones(ffi.Pointer<TSceneAsset> tSceneAsset, int skinIndex, ffi.Pointer<EntityId> out);
 
-@ffi.Native<Aabb3 Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<Aabb3 Function(ffi.Pointer<TSceneAsset>)>()
 external Aabb3 SceneAsset_getBoundingBox(ffi.Pointer<TSceneAsset> asset);
 
-@ffi.Native<ffi.Pointer<EntityId> Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<EntityId> Function(ffi.Pointer<TSceneAsset>)>()
 external ffi.Pointer<EntityId> SceneAsset_getCameraEntities(ffi.Pointer<TSceneAsset> tSceneAsset);
 
-@ffi.Native<ffi.Size Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Size Function(ffi.Pointer<TSceneAsset>)>()
 external int SceneAsset_getCameraEntityCount(ffi.Pointer<TSceneAsset> tSceneAsset);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<EntityId>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<EntityId>)>()
 external void SceneAsset_getChildEntities(ffi.Pointer<TSceneAsset> tSceneAsset, ffi.Pointer<EntityId> out);
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Int Function(ffi.Pointer<TSceneAsset>)>()
 external int SceneAsset_getChildEntityCount(ffi.Pointer<TSceneAsset> tSceneAsset);
 
-@ffi.Native<EntityId Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<EntityId Function(ffi.Pointer<TSceneAsset>)>()
 external int SceneAsset_getEntity(ffi.Pointer<TSceneAsset> tSceneAsset);
 
-@ffi.Native<ffi.Pointer<TFilamentAsset> Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TFilamentAsset> Function(ffi.Pointer<TSceneAsset>)>()
 external ffi.Pointer<TFilamentAsset> SceneAsset_getFilamentAsset(ffi.Pointer<TSceneAsset> tSceneAsset);
 
-@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TSceneAsset>)>()
 external int SceneAsset_getGeometryCapabilities(ffi.Pointer<TSceneAsset> asset);
 
-@ffi.Native<ffi.Pointer<TIndexBuffer> Function(ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TIndexBuffer> Function(ffi.Pointer<TSceneAsset>, ffi.Int)>()
 external ffi.Pointer<TIndexBuffer> SceneAsset_getIndexBuffer(ffi.Pointer<TSceneAsset> tSceneAsset, int primitiveIndex);
 
-@ffi.Native<ffi.Pointer<TSceneAsset> Function(ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TSceneAsset> Function(ffi.Pointer<TSceneAsset>, ffi.Int)>()
 external ffi.Pointer<TSceneAsset> SceneAsset_getInstance(ffi.Pointer<TSceneAsset> tSceneAsset, int index);
 
-@ffi.Native<ffi.Size Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Size Function(ffi.Pointer<TSceneAsset>)>()
 external int SceneAsset_getInstanceCount(ffi.Pointer<TSceneAsset> tSceneAsset);
 
-@ffi.Native<ffi.Pointer<EntityId> Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<EntityId> Function(ffi.Pointer<TSceneAsset>)>()
 external ffi.Pointer<EntityId> SceneAsset_getLightEntities(ffi.Pointer<TSceneAsset> tSceneAsset);
 
-@ffi.Native<ffi.Size Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Size Function(ffi.Pointer<TSceneAsset>)>()
 external int SceneAsset_getLightEntityCount(ffi.Pointer<TSceneAsset> tSceneAsset);
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<TSceneAsset>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Int Function(ffi.Pointer<TSceneAsset>, EntityId)>()
 external int SceneAsset_getPrimitiveOffsetForEntity(ffi.Pointer<TSceneAsset> tSceneAsset, int entity);
 
-@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TSceneAsset>)>()
 external int SceneAsset_getType(ffi.Pointer<TSceneAsset> tSceneAsset);
 
-@ffi.Native<ffi.Pointer<TVertexBuffer> Function(ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TVertexBuffer> Function(ffi.Pointer<TSceneAsset>, ffi.Int)>()
 external ffi.Pointer<TVertexBuffer> SceneAsset_getVertexBuffer(
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int primitiveIndex,
 );
 
-@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TSceneAsset>, ffi.Int)>()
 external int SceneAsset_getVertexBufferStorageMode(ffi.Pointer<TSceneAsset> tSceneAsset, int primitiveIndex);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>)>()
 external void SceneAsset_releaseSourceData(ffi.Pointer<TSceneAsset> tSceneAsset);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TSceneAsset>, ffi.Uint32, VoidCallback)>(
@@ -4169,7 +4141,7 @@ external void SceneAsset_releaseSourceDataJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<TScene>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<TScene>)>()
 external void SceneAsset_removeFromScene(ffi.Pointer<TSceneAsset> tSceneAsset, ffi.Pointer<TScene> tScene);
 
 @ffi.Native<
@@ -4183,7 +4155,7 @@ external void SceneAsset_removeFromSceneJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Bool)>()
 external void SceneAsset_setFlatShading(ffi.Pointer<TSceneAsset> tSceneAsset, bool flatShading);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TSceneAsset>, ffi.Bool, ffi.Uint32, VoidCallback)>(
@@ -4197,10 +4169,10 @@ external void SceneAsset_setFlatShadingJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TSceneAsset>)>()
 external bool SceneAsset_supportsFlatShading(ffi.Pointer<TSceneAsset> asset);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, EntityId)>()
 external void Scene_addEntity(ffi.Pointer<TScene> tScene, int entityId);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TScene>, EntityId, ffi.Uint32, VoidCallback)>(
@@ -4214,7 +4186,7 @@ external void Scene_addEntityJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, ffi.Pointer<TFilamentAsset>)>()
 external void Scene_addFilamentAsset(ffi.Pointer<TScene> tScene, ffi.Pointer<TFilamentAsset> asset);
 
 @ffi.Native<
@@ -4228,10 +4200,10 @@ external void Scene_addFilamentAssetJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TSkybox> Function(ffi.Pointer<TScene>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TSkybox> Function(ffi.Pointer<TScene>)>()
 external ffi.Pointer<TSkybox> Scene_getSkybox(ffi.Pointer<TScene> tScene);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, EntityId)>()
 external void Scene_removeEntity(ffi.Pointer<TScene> tScene, int entityId);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TScene>, EntityId, ffi.Uint32, VoidCallback)>(
@@ -4245,7 +4217,7 @@ external void Scene_removeEntityJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, ffi.Pointer<TIndirectLight>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, ffi.Pointer<TIndirectLight>)>()
 external void Scene_setIndirectLight(ffi.Pointer<TScene> tScene, ffi.Pointer<TIndirectLight> tIndirectLight);
 
 @ffi.Native<
@@ -4259,7 +4231,7 @@ external void Scene_setIndirectLightJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, ffi.Pointer<TSkybox>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, ffi.Pointer<TSkybox>)>()
 external void Scene_setSkybox(ffi.Pointer<TScene> tScene, ffi.Pointer<TSkybox> skybox);
 
 @ffi.Native<
@@ -4274,22 +4246,22 @@ external void Scene_setSkyboxJobThread(
 );
 
 /// Returns the skybox intensity in lux.
-@ffi.Native<ffi.Float Function(ffi.Pointer<TSkybox>)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TSkybox>)>()
 external double Skybox_getIntensity(ffi.Pointer<TSkybox> tSkybox);
 
 /// Returns the visibility mask bits.
-@ffi.Native<ffi.Uint8 Function(ffi.Pointer<TSkybox>)>(isLeaf: true)
+@ffi.Native<ffi.Uint8 Function(ffi.Pointer<TSkybox>)>()
 external int Skybox_getLayerMask(ffi.Pointer<TSkybox> tSkybox);
 
 /// Returns the environment texture, or nullptr for a color-only skybox.
-@ffi.Native<ffi.Pointer<TTexture> Function(ffi.Pointer<TSkybox>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TTexture> Function(ffi.Pointer<TSkybox>)>()
 external ffi.Pointer<TTexture> Skybox_getTexture(ffi.Pointer<TSkybox> tSkybox);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TSkybox>, ffi.Double, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSkybox>, ffi.Double, ffi.Double, ffi.Double, ffi.Double)>()
 external void Skybox_setColor(ffi.Pointer<TSkybox> tSkybox, double r, double g, double b, double a);
 
 /// Sets bits in a visibility mask (see filament::Skybox::setLayerMask).
-@ffi.Native<ffi.Void Function(ffi.Pointer<TSkybox>, ffi.Uint8, ffi.Uint8)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSkybox>, ffi.Uint8, ffi.Uint8)>()
 external void Skybox_setLayerMask(ffi.Pointer<TSkybox> tSkybox, int select, int values);
 
 @ffi.Native<ffi.Pointer<TSurfaceOrientation> Function(ffi.Pointer<TSurfaceOrientationBuilder>)>(isLeaf: true)
@@ -4641,7 +4613,7 @@ external void TextureSampler_setWrapModeTJobThread(
     ffi.UnsignedInt,
     ffi.UnsignedInt,
   )
->(isLeaf: true)
+>()
 external ffi.Pointer<TTexture> Texture_build(
   ffi.Pointer<TEngine> engine,
   int width,
@@ -4683,7 +4655,7 @@ external void Texture_buildJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>> onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTexture>, ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTexture>, ffi.Pointer<TEngine>)>()
 external void Texture_generateMipMaps(ffi.Pointer<TTexture> tTexture, ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -4697,22 +4669,22 @@ external void Texture_generateMipMapsJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TTexture>, ffi.Uint32)>(isLeaf: true)
+@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TTexture>, ffi.Uint32)>()
 external int Texture_getDepth(ffi.Pointer<TTexture> tTexture, int level);
 
-@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TTexture>)>(isLeaf: true)
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TTexture>)>()
 external int Texture_getFormat(ffi.Pointer<TTexture> tTexture);
 
-@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TTexture>, ffi.Uint32)>(isLeaf: true)
+@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TTexture>, ffi.Uint32)>()
 external int Texture_getHeight(ffi.Pointer<TTexture> tTexture, int level);
 
-@ffi.Native<ffi.Size Function(ffi.Pointer<TTexture>)>(isLeaf: true)
+@ffi.Native<ffi.Size Function(ffi.Pointer<TTexture>)>()
 external int Texture_getLevels(ffi.Pointer<TTexture> tTexture);
 
-@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TTexture>, ffi.Uint32)>(isLeaf: true)
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TTexture>, ffi.Uint32)>()
 external int Texture_getUsage(ffi.Pointer<TTexture> tTexture, int level);
 
-@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TTexture>, ffi.Uint32)>(isLeaf: true)
+@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TTexture>, ffi.Uint32)>()
 external int Texture_getWidth(ffi.Pointer<TTexture> tTexture, int level);
 
 @ffi.Native<
@@ -4724,7 +4696,7 @@ external int Texture_getWidth(ffi.Pointer<TTexture> tTexture, int level);
     ffi.UnsignedInt,
     ffi.Int,
   )
->(isLeaf: true)
+>()
 external bool Texture_loadImage(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TTexture> tTexture,
@@ -4757,7 +4729,7 @@ external void Texture_loadImageJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>, ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>, ffi.Pointer<ffi.Void>)>()
 external void Texture_setExternalImage(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TTexture> tTexture,
@@ -4803,7 +4775,7 @@ external void Texture_setExternalImageJobThread(
     >,
     ffi.Pointer<ffi.Void>,
   )
->(isLeaf: true)
+>()
 external bool Texture_setImage(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TTexture> tTexture,
@@ -4862,7 +4834,7 @@ external void Texture_setImageJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TToneMapper> ToneMapper_createACES(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -4878,7 +4850,7 @@ external void ToneMapper_createACESJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TToneMapper> ToneMapper_createACESLegacy(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -4894,7 +4866,7 @@ external void ToneMapper_createACESLegacyJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TToneMapper> ToneMapper_createAGX(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -4910,7 +4882,7 @@ external void ToneMapper_createAGXJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>, ffi.Int)>()
 external ffi.Pointer<TToneMapper> ToneMapper_createAGXWithLook(ffi.Pointer<TEngine> tEngine, int look);
 
 @ffi.Native<
@@ -4928,7 +4900,7 @@ external void ToneMapper_createAGXWithLookJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TToneMapper> ToneMapper_createDisplayRange(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -4944,7 +4916,7 @@ external void ToneMapper_createDisplayRangeJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TToneMapper> ToneMapper_createFilmic(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -4960,9 +4932,7 @@ external void ToneMapper_createFilmicJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>, ffi.Float, ffi.Float, ffi.Float, ffi.Float)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>, ffi.Float, ffi.Float, ffi.Float, ffi.Float)>()
 external ffi.Pointer<TToneMapper> ToneMapper_createGeneric(
   ffi.Pointer<TEngine> tEngine,
   double contrast,
@@ -4992,7 +4962,7 @@ external void ToneMapper_createGenericJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TToneMapper> ToneMapper_createLinear(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -5008,7 +4978,7 @@ external void ToneMapper_createLinearJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TToneMapper> ToneMapper_createPBRNeutral(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -5024,7 +4994,7 @@ external void ToneMapper_createPBRNeutralJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>> onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TToneMapper>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TToneMapper>)>()
 external void ToneMapper_destroy(ffi.Pointer<TToneMapper> toneMapper);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TToneMapper>, ffi.Uint32, VoidCallback)>(
@@ -5037,10 +5007,10 @@ external void ToneMapper_destroyJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>)>()
 external void TransformManager_commitLocalTransformTransaction(ffi.Pointer<TTransformManager> tTransformManager);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId)>()
 external void TransformManager_createComponent(ffi.Pointer<TTransformManager> tTransformManager, int entity);
 
 @ffi.Native<
@@ -5054,16 +5024,16 @@ external void TransformManager_createComponentJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TTransformManager>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TTransformManager>)>()
 external bool TransformManager_empty(ffi.Pointer<TTransformManager> tTransformManager);
 
-@ffi.Native<EntityId Function(ffi.Pointer<TTransformManager>, EntityId)>(isLeaf: true)
+@ffi.Native<EntityId Function(ffi.Pointer<TTransformManager>, EntityId)>()
 external int TransformManager_getAncestor(ffi.Pointer<TTransformManager> tTransformManager, int childEntityId);
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<TTransformManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Int Function(ffi.Pointer<TTransformManager>, EntityId)>()
 external int TransformManager_getChildCount(ffi.Pointer<TTransformManager> tTransformManager, int entityId);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<EntityId>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<EntityId>, ffi.Int)>()
 external void TransformManager_getChildren(
   ffi.Pointer<TTransformManager> tTransformManager,
   int entityId,
@@ -5071,39 +5041,39 @@ external void TransformManager_getChildren(
   int count,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<TTransformManager>)>(isLeaf: true)
+@ffi.Native<ffi.Int Function(ffi.Pointer<TTransformManager>)>()
 external int TransformManager_getComponentCount(ffi.Pointer<TTransformManager> tTransformManager);
 
-@ffi.Native<double4x4 Function(ffi.Pointer<TTransformManager>, EntityId)>(isLeaf: true)
+@ffi.Native<double4x4 Function(ffi.Pointer<TTransformManager>, EntityId)>()
 external double4x4 TransformManager_getLocalTransform(ffi.Pointer<TTransformManager> tTransformManager, int entityId);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<ffi.Double>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<ffi.Double>)>()
 external void TransformManager_getLocalTransformInto(
   ffi.Pointer<TTransformManager> manager,
   int entity,
   ffi.Pointer<ffi.Double> out16,
 );
 
-@ffi.Native<EntityId Function(ffi.Pointer<TTransformManager>, EntityId)>(isLeaf: true)
+@ffi.Native<EntityId Function(ffi.Pointer<TTransformManager>, EntityId)>()
 external int TransformManager_getParent(ffi.Pointer<TTransformManager> tTransformManager, int child);
 
-@ffi.Native<double4x4 Function(ffi.Pointer<TTransformManager>, EntityId)>(isLeaf: true)
+@ffi.Native<double4x4 Function(ffi.Pointer<TTransformManager>, EntityId)>()
 external double4x4 TransformManager_getWorldTransform(ffi.Pointer<TTransformManager> tTransformManager, int entityId);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<ffi.Double>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<ffi.Double>)>()
 external void TransformManager_getWorldTransformInto(
   ffi.Pointer<TTransformManager> manager,
   int entity,
   ffi.Pointer<ffi.Double> out16,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TTransformManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TTransformManager>, EntityId)>()
 external bool TransformManager_hasComponent(ffi.Pointer<TTransformManager> tTransformManager, int entityId);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>)>()
 external void TransformManager_openLocalTransformTransaction(ffi.Pointer<TTransformManager> tTransformManager);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId)>()
 external void TransformManager_removeComponent(ffi.Pointer<TTransformManager> tTransformManager, int entity);
 
 @ffi.Native<
@@ -5117,7 +5087,7 @@ external void TransformManager_removeComponentJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, EntityId, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, EntityId, ffi.Bool)>()
 external void TransformManager_setParent(
   ffi.Pointer<TTransformManager> tTransformManager,
   int child,
@@ -5146,14 +5116,14 @@ external void TransformManager_setParentJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, double4x4)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, double4x4)>()
 external void TransformManager_setTransform(
   ffi.Pointer<TTransformManager> tTransformManager,
   int entityId,
   double4x4 transform,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<ffi.Double>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<ffi.Double>)>()
 external void TransformManager_setTransformFromBuffer(
   ffi.Pointer<TTransformManager> manager,
   int entity,
@@ -5198,7 +5168,7 @@ external void TransformManager_setTransformJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<TMat4>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<TMat4>)>()
 external void TransformManager_setTransformNative(
   ffi.Pointer<TTransformManager> manager,
   int entity,
@@ -5224,29 +5194,29 @@ external void TransformManager_setTransformNativeJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TTransformManager>, EntityId, Aabb3)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TTransformManager>, EntityId, Aabb3)>()
 external bool TransformManager_transformToUnitCube(
   ffi.Pointer<TTransformManager> tTransformManager,
   int entityId,
   Aabb3 boundingBox,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Int, ffi.Int, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Int, ffi.Int, ffi.Float)>()
 external void TransformPipeline_addKeyBinding(int logicalKey, int intentAction, double value);
 
-@ffi.Native<ffi.Void Function(ffi.Int, ffi.Int, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Int, ffi.Int, ffi.Float)>()
 external void TransformPipeline_addMouseButtonBinding(int mouseButton, int intentAction, double value);
 
-@ffi.Native<ffi.Void Function()>(isLeaf: true)
+@ffi.Native<ffi.Void Function()>()
 external void TransformPipeline_cleanup();
 
-@ffi.Native<ffi.Void Function()>(isLeaf: true)
+@ffi.Native<ffi.Void Function()>()
 external void TransformPipeline_clearKeyBindings();
 
-@ffi.Native<ffi.Void Function(ffi.Int, ffi.Int, ffi.Int, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Int, ffi.Int, ffi.Int, ffi.Int)>()
 external void TransformPipeline_onKeyEvent(int eventType, int logicalKey, int physicalKey, int synthesized);
 
-@ffi.Native<ffi.Void Function(ffi.Int, ffi.Int, ffi.Double, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Int, ffi.Int, ffi.Double, ffi.Double, ffi.Double, ffi.Double)>()
 external void TransformPipeline_onMouseEvent(
   int eventType,
   int button,
@@ -5256,37 +5226,37 @@ external void TransformPipeline_onMouseEvent(
   double deltaY,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Double, ffi.Double, ffi.Double)>()
 external void TransformPipeline_onScrollEvent(double localX, double localY, double delta);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>)>()
 external void TransformPipeline_registerPipelineStage(
   ffi.Pointer<ffi.Void> pipelineStageHandle,
   ffi.Pointer<ffi.Char> name,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Int)>()
 external void TransformPipeline_removeKeyBindingsForAction(int intentAction);
 
-@ffi.Native<ffi.Void Function(ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Int)>()
 external void TransformPipeline_removeKeyBindingsForKey(int logicalKey);
 
-@ffi.Native<ffi.Void Function(ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Int)>()
 external void TransformPipeline_removeMouseButtonBindings(int mouseButton);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>()
 external void TransformPipeline_setEngine(ffi.Pointer<ffi.Void> enginePtr);
 
-@ffi.Native<ffi.Void Function(ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Int)>()
 external void TransformPipeline_setInvertMouseY(int invert);
 
-@ffi.Native<ffi.Void Function(ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Float)>()
 external void TransformPipeline_setMouseSensitivity(double sensitivity);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>()
 external void TransformPipeline_unregisterPipelineStage(ffi.Pointer<ffi.Void> pipelineStageHandle);
 
-@ffi.Native<ffi.Void Function(ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Float)>()
 external void TransformPipeline_update(double deltaTime);
 
 @ffi.Native<
@@ -5298,7 +5268,7 @@ external void TransformPipeline_update(double deltaTime);
     ffi.Uint32,
     ffi.Uint8,
   )
->(isLeaf: true)
+>()
 external void VertexBufferBuilder_attribute(
   ffi.Pointer<TVertexBufferBuilder> builder,
   int attribute,
@@ -5308,10 +5278,10 @@ external void VertexBufferBuilder_attribute(
   int byteStride,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.Uint8)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.Uint8)>()
 external void VertexBufferBuilder_bufferCount(ffi.Pointer<TVertexBufferBuilder> builder, int count);
 
-@ffi.Native<ffi.Pointer<TVertexBuffer> Function(ffi.Pointer<TVertexBufferBuilder>, ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TVertexBuffer> Function(ffi.Pointer<TVertexBufferBuilder>, ffi.Pointer<TEngine>)>()
 external ffi.Pointer<TVertexBuffer> VertexBufferBuilder_build(
   ffi.Pointer<TVertexBufferBuilder> builder,
   ffi.Pointer<TEngine> engine,
@@ -5332,25 +5302,25 @@ external void VertexBufferBuilder_buildJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TVertexBuffer>)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TVertexBufferBuilder> Function()>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TVertexBufferBuilder> Function()>()
 external ffi.Pointer<TVertexBufferBuilder> VertexBufferBuilder_create();
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>)>()
 external void VertexBufferBuilder_destroy(ffi.Pointer<TVertexBufferBuilder> builder);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.Bool)>()
 external void VertexBufferBuilder_enableBufferObjects(ffi.Pointer<TVertexBufferBuilder> builder, bool enabled);
 
-@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TVertexBufferBuilder>)>(isLeaf: true)
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TVertexBufferBuilder>)>()
 external int VertexBufferBuilder_getStorageMode(ffi.Pointer<TVertexBufferBuilder> builder);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.UnsignedInt, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.UnsignedInt, ffi.Bool)>()
 external void VertexBufferBuilder_normalized(ffi.Pointer<TVertexBufferBuilder> builder, int attribute, bool normalize);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.Uint32)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.Uint32)>()
 external void VertexBufferBuilder_vertexCount(ffi.Pointer<TVertexBufferBuilder> builder, int count);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TVertexBuffer>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TVertexBuffer>)>()
 external void VertexBuffer_destroy(ffi.Pointer<TEngine> engine, ffi.Pointer<TVertexBuffer> buffer);
 
 @ffi.Native<
@@ -5364,7 +5334,7 @@ external void VertexBuffer_destroyJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Size Function(ffi.Pointer<TVertexBuffer>)>(isLeaf: true)
+@ffi.Native<ffi.Size Function(ffi.Pointer<TVertexBuffer>)>()
 external int VertexBuffer_getVertexCount(ffi.Pointer<TVertexBuffer> buffer);
 
 @ffi.Native<
@@ -5376,7 +5346,7 @@ external int VertexBuffer_getVertexCount(ffi.Pointer<TVertexBuffer> buffer);
     ffi.Size,
     ffi.Uint32,
   )
->(isLeaf: true)
+>()
 external void VertexBuffer_setBufferAt(
   ffi.Pointer<TEngine> engine,
   ffi.Pointer<TVertexBuffer> buffer,
@@ -5411,9 +5381,9 @@ external void VertexBuffer_setBufferAtJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TVertexBuffer>, ffi.Uint8, ffi.Pointer<TBufferObject>)>(
-  isLeaf: true,
-)
+@ffi.Native<
+  ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TVertexBuffer>, ffi.Uint8, ffi.Pointer<TBufferObject>)
+>()
 external void VertexBuffer_setBufferObjectAt(
   ffi.Pointer<TEngine> engine,
   ffi.Pointer<TVertexBuffer> buffer,
@@ -5442,19 +5412,19 @@ external void VertexBuffer_setBufferObjectAtJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<TAmbientOcclusionOptions Function(ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<TAmbientOcclusionOptions Function(ffi.Pointer<TView>)>()
 external TAmbientOcclusionOptions View_getAmbientOcclusionOptions(ffi.Pointer<TView> tView);
 
-@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TView>)>()
 external ffi.Pointer<TCamera> View_getCamera(ffi.Pointer<TView> tView);
 
-@ffi.Native<ffi.Pointer<TColorGrading> Function(ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TColorGrading> Function(ffi.Pointer<TView>)>()
 external ffi.Pointer<TColorGrading> View_getColorGrading(ffi.Pointer<TView> tView);
 
-@ffi.Native<TFogOptions Function(ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<TFogOptions Function(ffi.Pointer<TView>)>()
 external TFogOptions View_getFogOptions(ffi.Pointer<TView> tView);
 
-@ffi.Native<ffi.Pointer<ffi.Char> Function(ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<ffi.Char> Function(ffi.Pointer<TView>)>()
 external ffi.Pointer<ffi.Char> View_getName(ffi.Pointer<TView> tView);
 
 @ffi.Native<
@@ -5474,37 +5444,37 @@ external void View_getNameJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Size)>> onComplete,
 );
 
-@ffi.Native<ffi.Pointer<TRenderTarget> Function(ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TRenderTarget> Function(ffi.Pointer<TView>)>()
 external ffi.Pointer<TRenderTarget> View_getRenderTarget(ffi.Pointer<TView> tView);
 
-@ffi.Native<ffi.Pointer<TScene> Function(ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TScene> Function(ffi.Pointer<TView>)>()
 external ffi.Pointer<TScene> View_getScene(ffi.Pointer<TView> tView);
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<ffi.Int Function(ffi.Pointer<TView>)>()
 external int View_getShadowType(ffi.Pointer<TView> tView);
 
-@ffi.Native<TSoftShadowOptions Function(ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<TSoftShadowOptions Function(ffi.Pointer<TView>)>()
 external TSoftShadowOptions View_getSoftShadowOptions(ffi.Pointer<TView> tView);
 
-@ffi.Native<TViewport Function(ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<TViewport Function(ffi.Pointer<TView>)>()
 external TViewport View_getViewport(ffi.Pointer<TView> view);
 
-@ffi.Native<ffi.Int32 Function(ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<ffi.Int32 Function(ffi.Pointer<TView>)>()
 external int View_getVisibleRenderableCount(ffi.Pointer<TView> view);
 
-@ffi.Native<TVsmShadowOptions Function(ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<TVsmShadowOptions Function(ffi.Pointer<TView>)>()
 external TVsmShadowOptions View_getVsmShadowOptions(ffi.Pointer<TView> tView);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TView>)>()
 external bool View_isDitheringEnabled(ffi.Pointer<TView> tView);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TView>)>()
 external bool View_isStencilBufferEnabled(ffi.Pointer<TView> tView);
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TView>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TView>)>()
 external bool View_isTransparentPickingEnabled(ffi.Pointer<TView> tView);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32, PickCallback)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32, PickCallback)>()
 external void View_pick(ffi.Pointer<TView> tView, int requestId, int x, int y, PickCallback callback);
 
 @ffi.Native<
@@ -5519,7 +5489,7 @@ external void View_pickJobThread(
   PickCallback callback,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TAmbientOcclusionOptions)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TAmbientOcclusionOptions)>()
 external void View_setAmbientOcclusionOptions(ffi.Pointer<TView> tView, TAmbientOcclusionOptions options);
 
 @ffi.Native<
@@ -5533,7 +5503,7 @@ external void View_setAmbientOcclusionOptionsJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool, ffi.Bool, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool, ffi.Bool, ffi.Bool)>()
 external void View_setAntiAliasing(ffi.Pointer<TView> tView, bool msaa, bool fxaa, bool taa);
 
 @ffi.Native<
@@ -5549,7 +5519,7 @@ external void View_setAntiAliasingJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.UnsignedInt)>()
 external void View_setBlendMode(ffi.Pointer<TView> view, int blendMode);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TView>, ffi.Int, ffi.Uint32, VoidCallback)>(
@@ -5563,7 +5533,7 @@ external void View_setBlendModeJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool, ffi.Float)>()
 external void View_setBloom(ffi.Pointer<TView> tView, bool enabled, double strength);
 
 @ffi.Native<
@@ -5578,7 +5548,7 @@ external void View_setBloomJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TCamera>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TCamera>)>()
 external void View_setCamera(ffi.Pointer<TView> tView, ffi.Pointer<TCamera> tCamera);
 
 @ffi.Native<
@@ -5592,7 +5562,7 @@ external void View_setCameraJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TColorGrading>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TColorGrading>)>()
 external void View_setColorGrading(ffi.Pointer<TView> tView, ffi.Pointer<TColorGrading> tColorGrading);
 
 @ffi.Native<
@@ -5606,7 +5576,7 @@ external void View_setColorGradingJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>()
 external void View_setDitheringEnabled(ffi.Pointer<TView> tView, bool enabled);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TView>, ffi.Bool, ffi.Uint32, VoidCallback)>(
@@ -5620,7 +5590,7 @@ external void View_setDitheringEnabledJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TFogOptions)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TFogOptions)>()
 external void View_setFogOptions(ffi.Pointer<TView> tView, TFogOptions tFogOptions);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TView>, TFogOptions, ffi.Uint32, VoidCallback)>(
@@ -5634,7 +5604,7 @@ external void View_setFogOptionsJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>()
 external void View_setFrontFaceWindingInverted(ffi.Pointer<TView> tView, bool inverted);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TView>, ffi.Bool, ffi.Uint32, VoidCallback)>(
@@ -5648,7 +5618,7 @@ external void View_setFrontFaceWindingInvertedJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>()
 external void View_setFrustumCullingEnabled(ffi.Pointer<TView> view, bool enabled);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TView>, ffi.Bool, ffi.Uint32, VoidCallback)>(
@@ -5662,7 +5632,7 @@ external void View_setFrustumCullingEnabledJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Int, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Int, ffi.Bool)>()
 external void View_setLayerEnabled(ffi.Pointer<TView> tView, int layer, bool visible);
 
 @ffi.Native<
@@ -5677,7 +5647,7 @@ external void View_setLayerEnabledJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<ffi.Char>)>()
 external void View_setName(ffi.Pointer<TView> tView, ffi.Pointer<ffi.Char> name);
 
 @ffi.Native<
@@ -5691,7 +5661,7 @@ external void View_setNameJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>()
 external void View_setPostProcessing(ffi.Pointer<TView> tView, bool enabled);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TView>, ffi.Bool, ffi.Uint32, VoidCallback)>(
@@ -5705,7 +5675,7 @@ external void View_setPostProcessingJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.UnsignedInt)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.UnsignedInt)>()
 external void View_setRenderQuality(ffi.Pointer<TView> tView, int qualityLevel);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TView>, ffi.Int, ffi.Uint32, VoidCallback)>(
@@ -5719,7 +5689,7 @@ external void View_setRenderQualityJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TRenderTarget>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TRenderTarget>)>()
 external void View_setRenderTarget(ffi.Pointer<TView> view, ffi.Pointer<TRenderTarget> renderTarget);
 
 @ffi.Native<
@@ -5733,7 +5703,7 @@ external void View_setRenderTargetJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TScene>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TScene>)>()
 external void View_setScene(ffi.Pointer<TView> tView, ffi.Pointer<TScene> tScene);
 
 @ffi.Native<
@@ -5747,7 +5717,7 @@ external void View_setSceneJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Int)>()
 external void View_setShadowType(ffi.Pointer<TView> tView, int shadowType);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TView>, ffi.Int, ffi.Uint32, VoidCallback)>(
@@ -5761,7 +5731,7 @@ external void View_setShadowTypeJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>()
 external void View_setShadowsEnabled(ffi.Pointer<TView> tView, bool enabled);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TView>, ffi.Bool, ffi.Uint32, VoidCallback)>(
@@ -5775,7 +5745,7 @@ external void View_setShadowsEnabledJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TSoftShadowOptions)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TSoftShadowOptions)>()
 external void View_setSoftShadowOptions(ffi.Pointer<TView> tView, TSoftShadowOptions options);
 
 @ffi.Native<
@@ -5789,7 +5759,7 @@ external void View_setSoftShadowOptionsJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>()
 external void View_setStencilBufferEnabled(ffi.Pointer<TView> tView, bool enabled);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TView>, ffi.Bool, ffi.Uint32, VoidCallback)>(
@@ -5803,7 +5773,7 @@ external void View_setStencilBufferEnabledJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>()
 external void View_setTransparentPickingEnabled(ffi.Pointer<TView> tView, bool enabled);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TView>, ffi.Bool, ffi.Uint32, VoidCallback)>(
@@ -5817,7 +5787,7 @@ external void View_setTransparentPickingEnabledJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32)>()
 external void View_setViewport(ffi.Pointer<TView> view, int width, int height);
 
 @ffi.Native<
@@ -5832,10 +5802,10 @@ external void View_setViewportJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32, ffi.Uint32)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32, ffi.Uint32)>()
 external void View_setViewportRect(ffi.Pointer<TView> view, int left, int bottom, int width, int height);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TVsmShadowOptions)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TVsmShadowOptions)>()
 external void View_setVsmShadowOptions(ffi.Pointer<TView> tView, TVsmShadowOptions options);
 
 @ffi.Native<

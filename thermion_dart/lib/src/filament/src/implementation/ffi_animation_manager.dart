@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -184,34 +185,24 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       );
     }
 
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
+    final morphDataBuffer = morphData is Float32List ? morphData : Float32List.fromList(morphData);
+    final morphIndicesBuffer = morphIndices is Int32List ? morphIndices : Int32List.fromList(morphIndices);
 
-    final morphDataPtr = makeFloat32List(morphData.length);
-    final morphIndicesPtr = makeInt32List(morphIndices.length);
-
-    morphDataPtr.setRange(0, morphData.length, morphData);
-    morphIndicesPtr.setRange(0, morphIndices.length, morphIndices);
-
-    try {
-      return AnimationManager_setMorphAnimation(
-        animationManager,
-        entityId,
-        morphDataPtr.address,
-        morphIndicesPtr.address.cast(),
-        numMorphTargets,
-        numFrames,
-        frameLengthInMs,
-      );
-    } finally {
-      morphDataPtr.free();
-      morphIndicesPtr.free();
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
-    }
+    return withNativeBuffer(
+      morphDataBuffer,
+      (data) => withNativeBuffer(
+        morphIndicesBuffer,
+        (indices) => AnimationManager_setMorphAnimation(
+          animationManager,
+          entityId,
+          data.cast(),
+          indices.cast(),
+          numMorphTargets,
+          numFrames,
+          frameLengthInMs,
+        ),
+      ),
+    );
   }
 
   @override
@@ -266,34 +257,24 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       asset = (await asset.getInstances())[0];
     }
 
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
+    final frameDataBuffer = frameData is Float32List ? frameData : Float32List.fromList(frameData);
 
-    final frameDataPtr = makeFloat32List(frameData.length);
-    frameDataPtr.setRange(0, frameData.length, frameData);
-
-    try {
-      return AnimationManager_addBoneAnimation(
+    return withNativeBuffer(
+      frameDataBuffer,
+      (data) => AnimationManager_addBoneAnimation(
         animationManager,
         asset.getNativeHandle(),
         skinIndex,
         boneIndex,
-        frameDataPtr.address,
+        data.cast(),
         numFrames,
         frameLengthInMs,
         fadeOutInSecs,
         fadeInInSecs,
         maxDelta,
         loop,
-      );
-    } finally {
-      frameDataPtr.free();
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
-    }
+      ),
+    );
   }
 
   @override
@@ -312,29 +293,22 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       return [];
     }
 
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-
     // 16 floats per bone (4x4 matrix)
-    final transformsPtr = makeFloat32List(boneCount * 16);
-    try {
-      AnimationManager_getRestLocalTransforms(
+    final transforms = Float32List(boneCount * 16);
+    withNativeBuffer(
+      transforms,
+      (data) => AnimationManager_getRestLocalTransforms(
         animationManager,
         asset.getNativeHandle(),
         skinIndex,
-        transformsPtr.address,
+        data.cast(),
         boneCount,
-      );
+      ),
+      copyIn: false,
+      copyBack: true,
+    );
 
-      return transformsPtr.toList();
-    } finally {
-      transformsPtr.free();
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
-    }
+    return transforms.toList();
   }
 
   @override
@@ -347,28 +321,21 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       asset = (await asset.getInstances())[0];
     }
 
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-
-    final matrixPtr = makeFloat32List(16); // 4x4 matrix
-    try {
-      AnimationManager_getInverseBindMatrix(
+    final matrix = Float32List(16); // 4x4 matrix
+    withNativeBuffer(
+      matrix,
+      (data) => AnimationManager_getInverseBindMatrix(
         animationManager,
         asset.getNativeHandle(),
         skinIndex,
         boneIndex,
-        matrixPtr.address,
-      );
+        data.cast(),
+      ),
+      copyIn: false,
+      copyBack: true,
+    );
 
-      return matrixPtr.toList();
-    } finally {
-      matrixPtr.free();
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
-    }
+    return matrix.toList();
   }
 
   @override

@@ -45,7 +45,7 @@ abstract class MovementIntentExecutor {
       final nativeIntent = intent.toNative();
       final deltaTimeNanos = (deltaTime * 1000000000).round();
 
-      MovementIntentExecutor_process(_pointer, nativeIntent.address, deltaTimeNanos);
+      MovementIntentExecutor_processValue(_pointer, nativeIntent, deltaTimeNanos);
     } catch (e) {
       throw Exception('Failed to process movement intent: $e');
     }
