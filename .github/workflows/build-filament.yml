@@ -112,6 +112,12 @@ jobs:
           chmod +x scripts/build_macos.sh
           scripts/build_macos.sh filament ${{ env.FILAMENT_VERSION }} output --clean
 
+      - name: Verify packaged universal matc and resgen
+        run: |
+          python3 scripts/verify-material-host-tools.py \
+            output/filament-${{ env.FILAMENT_VERSION }}-macos-release.zip \
+            output/filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
+
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
