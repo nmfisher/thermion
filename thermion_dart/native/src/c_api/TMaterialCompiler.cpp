@@ -58,10 +58,10 @@ namespace thermion
 
         TMaterialCompilerPackage *failedPackage(std::string_view error)
         {
-            auto *payload = new (std::nothrow) PackagePayload();
+            std::unique_ptr<PackagePayload> payload(new (std::nothrow) PackagePayload());
             if (payload == nullptr) return nullptr;
             payload->error.assign(error.data(), error.size());
-            return reinterpret_cast<TMaterialCompilerPackage *>(payload);
+            return reinterpret_cast<TMaterialCompilerPackage *>(payload.release());
         }
 
         TMaterialCompilerPackage *successfulPackageOnly(TMaterialCompilerPackage *package)
@@ -151,8 +151,11 @@ namespace thermion
             std::lock_guard<std::mutex> lock(compilerMutex());
 
             filamat::MaterialBuilder::init();
+            struct CompilerShutdown
+            {
+                ~CompilerShutdown() { filamat::MaterialBuilder::shutdown(); }
+            } compilerShutdown;
             filamat::Package package = compile();
-            filamat::MaterialBuilder::shutdown();
 
             if (!package.isValid() || (diagnostic != nullptr && !diagnostic->empty()))
             {
@@ -161,13 +164,13 @@ namespace thermion
                     : "Filament rejected the shader source; see Filament logs for shader diagnostics.");
             }
 
-            PackagePayload *payload = new (std::nothrow) PackagePayload();
+            std::unique_ptr<PackagePayload> payload(new (std::nothrow) PackagePayload());
             if (payload == nullptr)
             {
                 return nullptr;
             }
             payload->bytes.assign(package.getData(), package.getData() + package.getSize());
-            return reinterpret_cast<TMaterialCompilerPackage *>(payload);
+            return reinterpret_cast<TMaterialCompilerPackage *>(payload.release());
         }
 
         filamat::Package buildMaterial(filamat::MaterialBuilder &builder, filament::Engine *engine)
@@ -178,11 +181,14 @@ namespace thermion
             // through Filament's public API; JobSystem's private headers are
             // deliberately absent from the installed artifacts.
             (void)engine;
-            auto *compilerEngine = filament::Engine::create(filament::Engine::Backend::NOOP);
+            const auto destroyEngine = [](filament::Engine *engine)
+            {
+                filament::Engine::destroy(&engine);
+            };
+            std::unique_ptr<filament::Engine, decltype(destroyEngine)> compilerEngine(
+                filament::Engine::create(filament::Engine::Backend::NOOP), destroyEngine);
             if (compilerEngine == nullptr) return {};
-            auto package = builder.build(compilerEngine->getJobSystem());
-            filament::Engine::destroy(&compilerEngine);
-            return package;
+            return builder.build(compilerEngine->getJobSystem());
 #else
             return builder.build(engine->getJobSystem());
 #endif
