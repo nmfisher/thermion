@@ -129,7 +129,12 @@ NativeJobThread::NativeJobThread() {
 }
 
 NativeJobThread::~NativeJobThread() {
-    _stopping.store(true, std::memory_order_release);
+    {
+        // The stop predicate and wait registration must share the queue mutex.
+        // Otherwise notify can arrive after a false predicate but before wait.
+        std::lock_guard<std::mutex> lock(_taskMutex);
+        _stopping.store(true, std::memory_order_release);
+    }
     _cv.notify_all();
     _thread.join();
 }
