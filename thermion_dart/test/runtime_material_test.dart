@@ -1,17 +1,34 @@
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:test/test.dart';
-import 'helpers.dart';
+import 'src/test_io.dart';
 
 /// Runtime material compilation (filamat) is opt-in via the
 /// `runtime_materials` user define; the CI workflow runs this file in a leg
 /// that appends `runtime_materials: true` to the consuming package's
 /// pubspec.yaml before building. In the default leg the test asserts the
 /// feature is reported unsupported and the API throws UnsupportedError.
-void main() async {
-  final testHelper = TestHelper("runtime_material");
-  await testHelper.setup();
+Future<void> main() => runRuntimeMaterialTests();
+
+Future<void> runRuntimeMaterialTests({
+  bool? expectedSupport,
+  void Function(String, Future<void> Function())? registerTest,
+}) async {
+  void register(String name, Future<void> Function() body) {
+    if (registerTest != null) {
+      registerTest(name, body);
+    } else {
+      test(name, body);
+    }
+  }
+
+  await initTestBindings();
+  await FFIFilamentApp.create(
+    config: FFIFilamentConfig(loadResource: loadResourceBytes, backend: defaultTestBackend),
+  );
 
   final app = FilamentApp.instance!;
+  tearDownAll(app.destroy);
 
   const source = '''
 void material(inout MaterialInputs material) {
@@ -22,12 +39,15 @@ void material(inout MaterialInputs material) {
 }
 ''';
 
-  test('runtimeMaterialsSupported is a bool', () async {
-    // Trivial smoke check; the value itself depends on the build flag.
-    expect(app.runtimeMaterialsSupported, isA<bool>());
+  register('runtimeMaterialsSupported matches the requested build', () async {
+    if (expectedSupport == null) {
+      expect(app.runtimeMaterialsSupported, isA<bool>());
+    } else {
+      expect(app.runtimeMaterialsSupported, expectedSupport);
+    }
   });
 
-  test('compileMaterialSource compiles, validates, and instantiates', () async {
+  register('compileMaterialSource compiles, validates, and instantiates', () async {
     if (!app.runtimeMaterialsSupported) {
       // Default build (no runtime_materials flag): must throw, not crash.
       expect(() => app.compileMaterialSource('runtime_test', source), throwsUnsupportedError);
@@ -46,7 +66,7 @@ void material(inout MaterialInputs material) {
     await instance.setDepthWriteEnabled(true);
   });
 
-  test('empty source is rejected before any native work', () async {
+  register('empty source is rejected before any native work', () async {
     if (!app.runtimeMaterialsSupported) {
       expect(() => app.compileMaterialSource('runtime_test', ''), throwsUnsupportedError);
       return;
@@ -85,7 +105,7 @@ vec3 tintBaseColor(vec3 color) {
 ''',
   };
 
-  test('compileMaterialPackage compiles a .mat with parameters and includes', () async {
+  register('compileMaterialPackage compiles a .mat with parameters and includes', () async {
     if (!app.runtimeMaterialsSupported) {
       // Default build (no runtime_materials flag): must throw, not crash.
       expect(
@@ -107,7 +127,7 @@ vec3 tintBaseColor(vec3 color) {
     await instance.setDepthWriteEnabled(true);
   });
 
-  test('compileMaterialPackage resolves nested includes from the same map', () async {
+  register('compileMaterialPackage resolves nested includes from the same map', () async {
     if (!app.runtimeMaterialsSupported) {
       expect(() => app.compileMaterialPackage('runtime_package_nested', packageSource), throwsUnsupportedError);
       return;
@@ -146,7 +166,7 @@ vec4 outerTint(vec4 color) {
     expect(await material.hasParameter('baseColor'), isTrue);
   });
 
-  test('compileMaterialPackage works without includes', () async {
+  register('compileMaterialPackage works without includes', () async {
     if (!app.runtimeMaterialsSupported) {
       expect(() => app.compileMaterialPackage('runtime_package_plain', packageSource), throwsUnsupportedError);
       return;
@@ -158,7 +178,7 @@ vec4 outerTint(vec4 color) {
     expect(await material.hasParameter('baseColor'), isTrue);
   });
 
-  test('compileMaterialPackage fails on an unresolvable include', () async {
+  register('compileMaterialPackage fails on an unresolvable include', () async {
     if (!app.runtimeMaterialsSupported) {
       expect(() => app.compileMaterialPackage('runtime_package_missing', packageSource), throwsUnsupportedError);
       return;
@@ -170,7 +190,7 @@ vec4 outerTint(vec4 color) {
     );
   });
 
-  test('compileMaterialPackage fails on malformed .mat source', () async {
+  register('compileMaterialPackage fails on malformed .mat source', () async {
     if (!app.runtimeMaterialsSupported) {
       expect(() => app.compileMaterialPackage('runtime_package_malformed', 'not a material'), throwsUnsupportedError);
       return;
@@ -178,11 +198,119 @@ vec4 outerTint(vec4 color) {
     expect(() => app.compileMaterialPackage('runtime_package_malformed', 'this is not a .mat file'), throwsStateError);
   });
 
-  test('compileMaterialPackage rejects empty source before any native work', () async {
+  register('compileMaterialPackage rejects empty source before any native work', () async {
     if (!app.runtimeMaterialsSupported) {
       expect(() => app.compileMaterialPackage('runtime_package_test', ''), throwsUnsupportedError);
       return;
     }
     expect(() => app.compileMaterialPackage('runtime_package_test', ''), throwsArgumentError);
+  });
+
+  const customLitSource = '''
+material {
+    name : RuntimeCustomLighting,
+    shadingModel : lit,
+    customSurfaceShading : true,
+    parameters : [ { type : float3, name : tint } ]
+}
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor.rgb = materialParams.tint;
+        material.roughness = 0.7;
+    }
+    vec3 surfaceShading(const MaterialInputs materialInputs,
+            const ShadingData shadingData, const LightData lightData) {
+        return shadingData.diffuseColor * lightData.colorIntensity.rgb
+                * lightData.NdotL * lightData.visibility;
+    }
+}
+''';
+
+  register('compileMaterialPackage supports custom surface shading on lit materials', () async {
+    if (!app.runtimeMaterialsSupported) {
+      await expectLater(app.compileMaterialPackage('custom_lit', customLitSource), throwsUnsupportedError);
+      return;
+    }
+    final material = await app.compileMaterialPackage('custom_lit', customLitSource);
+    addTearDown(material.destroy);
+    expect(await material.hasParameter('tint'), isTrue);
+    final instance = await material.createInstance();
+    addTearDown(instance.destroy);
+    await instance.setParameterFloat3('tint', 0.5, 0.3, 0.1);
+  });
+
+  register('custom surface shading rejects non-lit materials', () async {
+    final unlit = customLitSource.replaceFirst('shadingModel : lit', 'shadingModel : unlit');
+    await expectLater(
+      app.compileMaterialPackage('custom_unlit', unlit),
+      app.runtimeMaterialsSupported ? throwsStateError : throwsUnsupportedError,
+    );
+  });
+
+  const vertexSource = '''
+material {
+    name : RuntimeVertexVariables,
+    shadingModel : unlit,
+    requires : [ uv0 ],
+    variables : [ runtimeUV ],
+    variantFilter : [ skinning, shadowReceiver, vsm ],
+    blending : transparent,
+    parameters : [
+        { type : float3, name : tint },
+        { type : float, name : opacity }
+    ]
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.runtimeUV = vec4(material.uv0, 0.0, 1.0);
+    }
+}
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = vec4(materialParams.tint * variable_runtimeUV.x,
+                materialParams.opacity);
+    }
+}
+''';
+
+  register('vertex variables, required UVs, variant filters and blending survive parsing', () async {
+    if (!app.runtimeMaterialsSupported) {
+      await expectLater(app.compileMaterialPackage('vertex_variables', vertexSource), throwsUnsupportedError);
+      return;
+    }
+    final material = await app.compileMaterialPackage('vertex_variables', vertexSource);
+    addTearDown(material.destroy);
+    expect(await material.getBlendingMode(), BlendingMode.TRANSPARENT);
+    expect(await material.hasParameter('tint'), isTrue);
+    expect(await material.hasParameter('opacity'), isTrue);
+    final instance = await material.createInstance();
+    addTearDown(instance.destroy);
+    await instance.setParameterFloat3('tint', 0.1, 0.2, 0.3);
+    await instance.setParameterFloat('opacity', 0.4);
+  });
+
+  register('variantFilter rejects unknown variants', () async {
+    final invalid = vertexSource.replaceFirst('skinning, shadowReceiver, vsm', 'notARealVariant');
+    await expectLater(
+      app.compileMaterialPackage('invalid_variant_filter', invalid),
+      app.runtimeMaterialsSupported ? throwsStateError : throwsUnsupportedError,
+    );
+  });
+
+  register('include cycles are rejected and leave the compiler usable', () async {
+    await expectLater(
+      app.compileMaterialPackage(
+        'include_cycle',
+        packageSource,
+        includes: {'common.glsl': '#include "second.glsl"', 'second.glsl': '#include "common.glsl"'},
+      ),
+      app.runtimeMaterialsSupported ? throwsStateError : throwsUnsupportedError,
+    );
+    if (app.runtimeMaterialsSupported) {
+      final material = await app.compileMaterialPackage('after_cycle', packageSource, includes: packageIncludes);
+      await material.destroy();
+    }
   });
 }

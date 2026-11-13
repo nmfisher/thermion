@@ -2346,6 +2346,23 @@ external ffi.Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialP
   ffi.Pointer<ffi.Char> includesJson,
 );
 
+@ffi.Native<
+  ffi.Pointer<TMaterialCompilerPackage> Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+  )
+>(isLeaf: true)
+external ffi.Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialPackageWithDiagnostics(
+  ffi.Pointer<TJobThread> tJobThread,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Char> name,
+  ffi.Pointer<ffi.Char> matSource,
+  ffi.Pointer<ffi.Char> includesJson,
+);
+
 /// Compiles a material source string to a .filamat package at runtime.
 ///
 /// `tJobThread` is the render job thread that owns `tEngine`; the compile
@@ -2393,6 +2410,27 @@ external ffi.Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialS
   int shading,
 );
 
+/// Diagnostic variants return an owned result on parser/include failure as
+/// well as success. Check MaterialCompiler_getPackageError before reading
+/// bytes, and always release the result with MaterialCompiler_destroyPackage.
+/// The original compile functions retain their null-on-failure contract.
+@ffi.Native<
+  ffi.Pointer<TMaterialCompilerPackage> Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.UnsignedInt,
+  )
+>(isLeaf: true)
+external ffi.Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialSourceWithDiagnostics(
+  ffi.Pointer<TJobThread> tJobThread,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Char> name,
+  ffi.Pointer<ffi.Char> materialSource,
+  int shading,
+);
+
 /// Frees a package returned by MaterialCompiler_compileMaterialSource or
 /// MaterialCompiler_compileMaterialPackage. Null is ignored.
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialCompilerPackage>)>(isLeaf: true)
@@ -2406,6 +2444,11 @@ external int MaterialCompiler_getPackageBytes(
   ffi.Pointer<ffi.Uint8> out,
   int capacity,
 );
+
+/// Borrowed UTF-8 error text, valid until the result is destroyed. Null for
+/// successful results, null results, and builds without runtime compilation.
+@ffi.Native<ffi.Pointer<ffi.Char> Function(ffi.Pointer<TMaterialCompilerPackage>)>(isLeaf: true)
+external ffi.Pointer<ffi.Char> MaterialCompiler_getPackageError(ffi.Pointer<TMaterialCompilerPackage> package);
 
 /// Returns a pointer to the compiled package bytes living in native/Wasm
 /// heap memory, or null. Valid until MaterialCompiler_destroyPackage; pair
