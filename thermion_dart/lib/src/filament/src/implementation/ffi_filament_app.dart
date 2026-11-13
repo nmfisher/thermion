@@ -988,25 +988,41 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   final _hooks = <RequestFrameHook>[];
 
-  /// Completes when the in-flight render() hook pass (if any) has finished.
-  /// Null while no pass is running. Replaces the former 1 ms polling loop:
-  /// awaiters are woken exactly when the pass ends instead of waking the
-  /// event loop on a timer.
-  Completer<void>? _renderHooksInFlight;
+  /// Number of render() hook passes currently iterating. Register and
+  /// unregister may mutate [_hooks] while a pass runs (each pass iterates a
+  /// snapshot), so this counter — not the list itself — is what gates
+  /// [drainRequestFrameHooks].
+  int _activeHookPasses = 0;
 
-  /// Waits for any request-frame hook pass that is already running.
-  Future<void> drainRequestFrameHooks() async {
-    final inFlight = _renderHooksInFlight;
-    if (inFlight != null) {
-      await inFlight.future;
+  final _hookIdleWaiters = <Completer<void>>[];
+
+  void _completeHookIdleWaiters() {
+    if (_hookIdleWaiters.isEmpty) return;
+    final waiters = List.of(_hookIdleWaiters);
+    _hookIdleWaiters.clear();
+    for (final waiter in waiters) {
+      waiter.complete();
     }
+  }
+
+  /// Resolves once no request-frame hook pass is running (immediately when
+  /// none is). Replaces the former 1 ms polling loop and the single
+  /// in-flight Completer, which overlapping render() calls overwrote: a
+  /// one-shot hook that unregistered itself while a pass was running
+  /// deadlocked on the completer that only its own return could fire.
+  Future<void> drainRequestFrameHooks() {
+    if (_activeHookPasses == 0) return Future<void>.value();
+    final completer = Completer<void>();
+    _hookIdleWaiters.add(completer);
+    return completer.future;
   }
 
   //
   @override
   Future registerRequestFrameHook(RequestFrameHook hook) async {
-    // Never mutate the hook list mid-iteration.
-    await drainRequestFrameHooks();
+    // Hook passes iterate a snapshot of [_hooks], so the list can be mutated
+    // immediately, even mid-pass: a new hook starts on the next pass, and a
+    // hook that unregisters itself (e.g. one-shot hooks) cannot deadlock.
     if (!_hooks.contains(hook)) {
       _hooks.add(hook);
     }
@@ -1015,7 +1031,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   //
   @override
   Future unregisterRequestFrameHook(RequestFrameHook hook) async {
-    await drainRequestFrameHooks();
     _hooks.remove(hook);
   }
 
@@ -1043,22 +1058,28 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     _lastHookFrameTimeNanos = resolvedFrameTimeNanos;
     final delta = Duration(microseconds: deltaNanos ~/ 1000);
 
-    final inFlight = Completer<void>();
-    _renderHooksInFlight = inFlight;
+    _activeHookPasses++;
     try {
-      for (final hook in _hooks) {
+      // Iterate a snapshot: hooks may register or unregister (including
+      // themselves) from inside a hook while this pass is running, without
+      // awaiting a drain and without a ConcurrentModificationError from an
+      // overlapping render().
+      for (final hook in List.of(_hooks)) {
         await hook.call(resolvedFrameTimeNanos, delta);
       }
     } catch (err) {
       _logger.severe(err);
     } finally {
-      if (identical(_renderHooksInFlight, inFlight)) {
-        _renderHooksInFlight = null;
+      _activeHookPasses--;
+      if (_activeHookPasses == 0) {
+        _completeHookIdleWaiters();
       }
-      inFlight.complete();
     }
 
-    await renderManager.render(frameTimeInNanos: frameTimeInNanos);
+    // Hooks already saw resolvedFrameTimeNanos; the render itself must use
+    // the same resolved timestamp when the caller omitted one, per the
+    // RequestFrameHook contract.
+    await renderManager.render(frameTimeInNanos: resolvedFrameTimeNanos);
   }
 
   int _targetFramerate = 0;
