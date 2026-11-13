@@ -60,6 +60,10 @@ class CallbackHolder<T extends Function> {
 
   CallbackHolder(this.nativeCallable);
 
+  void releaseIsolate() {
+    nativeCallable.keepIsolateAlive = false;
+  }
+
   void dispose() {
     nativeCallable.close();
   }
