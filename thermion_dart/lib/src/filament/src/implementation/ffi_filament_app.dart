@@ -693,21 +693,25 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       MaterialShading.cloth => bindings.TShading.SHADING_CLOTH,
       MaterialShading.specularGlossiness => bindings.TShading.SHADING_SPECULAR_GLOSSINESS,
     };
-    final namePtr = name.toNativeUtf8().cast<Char>();
-    final sourcePtr = source.toNativeUtf8().cast<Char>();
-    // Dispatches the compile to the job thread that created the engine (the
-    // native entry point blocks on a packaged-task future). Required because
-    // MaterialBuilder::build drives the engine JobSystem, whose calling
-    // thread must have been adopted.
-    final package = bindings.MaterialCompiler_compileMaterialSource(
-      jobThreadHandle,
-      engine,
-      namePtr,
-      sourcePtr,
-      nativeShading,
-    );
-    free(namePtr);
-    free(sourcePtr);
+    var namePtr = nullptr.cast<Char>();
+    var sourcePtr = nullptr.cast<Char>();
+    final Pointer<TMaterialCompilerPackage> package;
+    try {
+      namePtr = name.toNativeUtf8().cast<Char>();
+      sourcePtr = source.toNativeUtf8().cast<Char>();
+      // The synchronous native entry point dispatches to the engine's job
+      // thread and blocks until compilation finishes.
+      package = bindings.MaterialCompiler_compileMaterialSourceWithDiagnostics(
+        jobThreadHandle,
+        engine,
+        namePtr,
+        sourcePtr,
+        nativeShading,
+      );
+    } finally {
+      if (namePtr != nullptr) free(namePtr);
+      if (sourcePtr != nullptr) free(sourcePtr);
+    }
     return _materialFromCompiledPackage(package, name);
   }
 
@@ -717,25 +721,28 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (source.isEmpty) {
       throw ArgumentError.value(source, 'source', 'Material source must not be empty.');
     }
-    final namePtr = name.toNativeUtf8().cast<Char>();
-    final sourcePtr = source.toNativeUtf8().cast<Char>();
-    // The native side resolves #include directives against this flat map
-    // (exact-name match, no filesystem). json.encode emits exactly the
-    // string-to-string JSON object the native parser accepts.
+    // Encode before allocating native inputs so encoding failures need no cleanup.
     final includesJson = includes == null || includes.isEmpty ? null : json.encode(includes);
-    final includesPtr = includesJson == null ? nullptr.cast<Char>() : includesJson.toNativeUtf8().cast<Char>();
-    // Same job-thread dispatch as compileMaterialSource above.
-    final package = bindings.MaterialCompiler_compileMaterialPackage(
-      jobThreadHandle,
-      engine,
-      namePtr,
-      sourcePtr,
-      includesPtr,
-    );
-    free(namePtr);
-    free(sourcePtr);
-    if (includesJson != null) {
-      free(includesPtr);
+    var namePtr = nullptr.cast<Char>();
+    var sourcePtr = nullptr.cast<Char>();
+    var includesPtr = nullptr.cast<Char>();
+    final Pointer<TMaterialCompilerPackage> package;
+    try {
+      namePtr = name.toNativeUtf8().cast<Char>();
+      sourcePtr = source.toNativeUtf8().cast<Char>();
+      if (includesJson != null) includesPtr = includesJson.toNativeUtf8().cast<Char>();
+      // Includes are a flat name-to-source map; resolution never reads files.
+      package = bindings.MaterialCompiler_compileMaterialPackageWithDiagnostics(
+        jobThreadHandle,
+        engine,
+        namePtr,
+        sourcePtr,
+        includesPtr,
+      );
+    } finally {
+      if (namePtr != nullptr) free(namePtr);
+      if (sourcePtr != nullptr) free(sourcePtr);
+      if (includesPtr != nullptr) free(includesPtr);
     }
     return _materialFromCompiledPackage(package, name);
   }
@@ -764,6 +771,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       );
     }
     try {
+      final diagnostic = bindings.MaterialCompiler_getPackageError(package);
+      if (diagnostic != nullptr) {
+        throw StateError(
+          'Runtime material compilation failed for material "$name": '
+          '${diagnostic.cast<Utf8>().toDartString()}',
+        );
+      }
       final size = bindings.MaterialCompiler_getPackageSize(package);
       if (size == 0) {
         throw StateError('Runtime material compilation produced an empty package for "$name".');

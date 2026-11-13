@@ -372,7 +372,7 @@ jobs:
           ${{ matrix.name == 'Linux' && 'xvfb-run' || '' }} dart test -j1 \
             test/runtime_material_${{ matrix.enabled && 'enabled' || 'disabled' }}_test.dart \
             test/material_package_test.dart \
-            ${{ matrix.enabled && 'test/runtime_material_metadata_test.dart' || '' }} \
+            ${{ matrix.enabled && 'test/runtime_material_metadata_test.dart test/runtime_material_diagnostics_test.dart' || '' }} \
             --concurrency=1
 
       - name: Upload logs
@@ -438,7 +438,7 @@ jobs:
           xvfb-run dart run tool/web_test_runner.dart --assets=../examples/assets --clean \
             test/runtime_material_${{ matrix.enabled && 'enabled' || 'disabled' }}_test.dart \
             test/material_package_test.dart \
-            ${{ matrix.enabled && 'test/runtime_material_metadata_test.dart' || '' }}
+            ${{ matrix.enabled && 'test/runtime_material_metadata_test.dart test/runtime_material_diagnostics_test.dart' || '' }}
 
   runtime-materials-ios:
     timeout-minutes: 30

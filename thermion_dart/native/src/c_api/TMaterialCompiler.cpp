@@ -53,7 +53,27 @@ namespace thermion
         struct PackagePayload
         {
             std::vector<uint8_t> bytes;
+            std::string error;
         };
+
+        TMaterialCompilerPackage *failedPackage(std::string_view error)
+        {
+            std::unique_ptr<PackagePayload> payload(new (std::nothrow) PackagePayload());
+            if (payload == nullptr) return nullptr;
+            payload->error.assign(error.data(), error.size());
+            return reinterpret_cast<TMaterialCompilerPackage *>(payload.release());
+        }
+
+        TMaterialCompilerPackage *successfulPackageOnly(TMaterialCompilerPackage *package)
+        {
+            auto *payload = reinterpret_cast<PackagePayload *>(package);
+            if (payload != nullptr && !payload->error.empty())
+            {
+                delete payload;
+                return nullptr;
+            }
+            return package;
+        }
 
         filamat::MaterialBuilder::Platform platformForThisBuild()
         {
@@ -126,26 +146,31 @@ namespace thermion
         // the compiler mutex, brackets it with MaterialBuilder::
         // init/shutdown, and copies a valid package into an owned payload.
         template <typename F>
-        TMaterialCompilerPackage *buildPackageLocked(F &&compile)
+        TMaterialCompilerPackage *buildPackageLocked(F &&compile, std::string *diagnostic = nullptr)
         {
             std::lock_guard<std::mutex> lock(compilerMutex());
 
             filamat::MaterialBuilder::init();
-            filamat::Package package = compile();
-            filamat::MaterialBuilder::shutdown();
-
-            if (!package.isValid())
+            struct CompilerShutdown
             {
-                return nullptr;
+                ~CompilerShutdown() { filamat::MaterialBuilder::shutdown(); }
+            } compilerShutdown;
+            filamat::Package package = compile();
+
+            if (!package.isValid() || (diagnostic != nullptr && !diagnostic->empty()))
+            {
+                return failedPackage(diagnostic != nullptr && !diagnostic->empty()
+                    ? std::string_view(*diagnostic)
+                    : "Filament rejected the shader source; see Filament logs for shader diagnostics.");
             }
 
-            PackagePayload *payload = new (std::nothrow) PackagePayload();
+            std::unique_ptr<PackagePayload> payload(new (std::nothrow) PackagePayload());
             if (payload == nullptr)
             {
                 return nullptr;
             }
             payload->bytes.assign(package.getData(), package.getData() + package.getSize());
-            return reinterpret_cast<TMaterialCompilerPackage *>(payload);
+            return reinterpret_cast<TMaterialCompilerPackage *>(payload.release());
         }
 
         filamat::Package buildMaterial(filamat::MaterialBuilder &builder, filament::Engine *engine)
@@ -156,11 +181,14 @@ namespace thermion
             // through Filament's public API; JobSystem's private headers are
             // deliberately absent from the installed artifacts.
             (void)engine;
-            auto *compilerEngine = filament::Engine::create(filament::Engine::Backend::NOOP);
+            const auto destroyEngine = [](filament::Engine *engine)
+            {
+                filament::Engine::destroy(&engine);
+            };
+            std::unique_ptr<filament::Engine, decltype(destroyEngine)> compilerEngine(
+                filament::Engine::create(filament::Engine::Backend::NOOP), destroyEngine);
             if (compilerEngine == nullptr) return {};
-            auto package = builder.build(compilerEngine->getJobSystem());
-            filament::Engine::destroy(&compilerEngine);
-            return package;
+            return builder.build(compilerEngine->getJobSystem());
 #else
             return builder.build(engine->getJobSystem());
 #endif
@@ -439,7 +467,7 @@ namespace thermion
             if (includesJson != nullptr && includesJson[0] != '\0' &&
                 !parseIncludesJson(includesJson, includes))
             {
-                return nullptr;
+                return failedPackage("Invalid includes JSON: expected an object mapping names to source strings.");
             }
 
             const std::string materialName = name ? name : "runtime_material";
@@ -464,11 +492,13 @@ namespace thermion
             matp::ResolveOptions options;
             options.insertLineDirectives = true;
             options.insertLineDirectiveCheck = true;
-            if (!matp::resolveIncludesRecursively(root, includer, options).isOk())
+            const auto includeStatus = matp::resolveIncludesRecursively(root, includer, options);
+            if (!includeStatus.isOk())
             {
-                return nullptr;
+                return failedPackage(includeStatus.getMessage());
             }
 
+            std::string diagnostic;
             return buildPackageLocked(
                 [&]() -> filamat::Package
                 {
@@ -486,14 +516,16 @@ namespace thermion
                     filamat::MaterialBuilder builder;
                     builder.name(materialName.c_str());
                     matp::MaterialParser parser;
-                    if (!parser.parse(builder, config, size, source).isOk())
+                    const auto parseStatus = parser.parse(builder, config, size, source);
+                    if (!parseStatus.isOk())
                     {
+                        diagnostic = parseStatus.getMessage();
                         return {};
                     }
                     builder.compilationParameters(config.toPIISafeString().c_str())
                         .materialSource(std::string_view(source.get(), size));
                     return buildMaterial(builder, engine);
-                });
+                }, &diagnostic);
         }
 
         // Dispatches `compile` to the thread that owns the engine.
@@ -538,7 +570,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE uint8_t MaterialCompiler_isSupported() { return 1; }
 
-        EMSCRIPTEN_KEEPALIVE TMaterialCompilerPackage *MaterialCompiler_compileMaterialSource(
+        EMSCRIPTEN_KEEPALIVE TMaterialCompilerPackage *MaterialCompiler_compileMaterialSourceWithDiagnostics(
             TJobThread *tJobThread, TEngine *tEngine, const char *name, const char *materialSource, TShading shading)
         {
             if (tJobThread == nullptr || tEngine == nullptr || materialSource == nullptr)
@@ -553,7 +585,7 @@ namespace thermion
                 });
         }
 
-        EMSCRIPTEN_KEEPALIVE TMaterialCompilerPackage *MaterialCompiler_compileMaterialPackage(
+        EMSCRIPTEN_KEEPALIVE TMaterialCompilerPackage *MaterialCompiler_compileMaterialPackageWithDiagnostics(
             TJobThread *tJobThread, TEngine *tEngine, const char *name, const char *matSource, const char *includesJson)
         {
             if (tJobThread == nullptr || tEngine == nullptr || matSource == nullptr)
@@ -566,6 +598,26 @@ namespace thermion
                 {
                     return compilePackageLocked(engine, name, matSource, includesJson);
                 });
+        }
+
+        EMSCRIPTEN_KEEPALIVE TMaterialCompilerPackage *MaterialCompiler_compileMaterialSource(
+            TJobThread *thread, TEngine *engine, const char *name, const char *source, TShading shading)
+        {
+            return successfulPackageOnly(MaterialCompiler_compileMaterialSourceWithDiagnostics(
+                thread, engine, name, source, shading));
+        }
+
+        EMSCRIPTEN_KEEPALIVE TMaterialCompilerPackage *MaterialCompiler_compileMaterialPackage(
+            TJobThread *thread, TEngine *engine, const char *name, const char *source, const char *includes)
+        {
+            return successfulPackageOnly(MaterialCompiler_compileMaterialPackageWithDiagnostics(
+                thread, engine, name, source, includes));
+        }
+
+        EMSCRIPTEN_KEEPALIVE const char *MaterialCompiler_getPackageError(TMaterialCompilerPackage *package)
+        {
+            auto *payload = reinterpret_cast<PackagePayload *>(package);
+            return payload == nullptr || payload->error.empty() ? nullptr : payload->error.c_str();
         }
 
         EMSCRIPTEN_KEEPALIVE size_t MaterialCompiler_getPackageSize(TMaterialCompilerPackage *package)
@@ -636,6 +688,24 @@ extern "C"
         (void)name;
         (void)matSource;
         (void)includesJson;
+        return nullptr;
+    }
+
+    EMSCRIPTEN_KEEPALIVE TMaterialCompilerPackage *MaterialCompiler_compileMaterialSourceWithDiagnostics(
+        TJobThread *thread, TEngine *engine, const char *name, const char *source, TShading shading)
+    {
+        return MaterialCompiler_compileMaterialSource(thread, engine, name, source, shading);
+    }
+
+    EMSCRIPTEN_KEEPALIVE TMaterialCompilerPackage *MaterialCompiler_compileMaterialPackageWithDiagnostics(
+        TJobThread *thread, TEngine *engine, const char *name, const char *source, const char *includes)
+    {
+        return MaterialCompiler_compileMaterialPackage(thread, engine, name, source, includes);
+    }
+
+    EMSCRIPTEN_KEEPALIVE const char *MaterialCompiler_getPackageError(TMaterialCompilerPackage *package)
+    {
+        (void)package;
         return nullptr;
     }
 
