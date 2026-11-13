@@ -469,7 +469,9 @@ jobs:
           echo "THERMION_SIMULATOR=$device_id" >> "$GITHUB_ENV"
       - name: Run the runtime material suite on iOS
         working-directory: ${{ runner.temp }}/runtime-materials-app
-        run: flutter test integration_test/runtime_materials_test.dart -d "$THERMION_SIMULATOR"
+        # Include app install/launch and VM-service discovery in the log so a
+        # stall after Xcode finishes can be located without guessing.
+        run: flutter test --verbose --reporter expanded integration_test/runtime_materials_test.dart -d "$THERMION_SIMULATOR"
 
   runtime-materials-android:
     timeout-minutes: 30
