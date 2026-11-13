@@ -19,7 +19,6 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
   final worldUp = Vector3(0, 1, 0);
 
   double _radius;
-  double _radiusScaleFactor = 1.0;
   double _azimuth; // Angle around worldUp (Y-axis), in radians
   double _elevation; // Angle above the XZ plane (around local X-axis), in radians
 
@@ -37,6 +36,23 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
   double _pendingDeltaAzimuth = 0;
   double _pendingDeltaElevation = 0;
   double _pendingDeltaRadius = 0;
+
+  /// Multiplicative pinch-zoom accumulated since the last applied update.
+  /// ScaleUpdateEvent reports the gesture's *cumulative* scale, so each
+  /// update contributes the ratio to the last-seen scale of the gesture and
+  /// successive updates multiply correctly across per-frame applies.
+  double _pendingRadiusScale = 1.0;
+
+  /// Cumulative scale last seen in the current pinch gesture; 1.0 between
+  /// gestures.
+  double _lastPinchScale = 1.0;
+
+  /// True once [handle] accumulated anything that [_applyPending] has not
+  /// applied yet. Without this flag a ScaleEndEvent arriving in the same
+  /// batch as the final ScaleUpdateEvent would leave every pending delta
+  /// zero and the update would never reach the camera; it also stops
+  /// per-frame camera rewrites while a two-finger hold is stationary.
+  bool _hasPendingUpdate = false;
 
   RequestFrameHook? _onFrame;
 
@@ -114,27 +130,39 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
   /// With [app] set this runs once per rendered frame; otherwise it runs at
   /// the end of every event batch (legacy behavior).
   Future<void> _applyPending() async {
+    if (!_hasPendingUpdate) {
+      return;
+    }
+
     if (_pendingDeltaAzimuth == 0 &&
         _pendingDeltaElevation == 0 &&
         _pendingDeltaRadius == 0 &&
-        _radiusScaleFactor == 1.0) {
+        _pendingRadiusScale == 1.0) {
+      // A batch that accumulated nothing (e.g. a tap-only batch): leave the
+      // camera untouched and just release the pending flag.
+      _hasPendingUpdate = false;
       return;
     }
 
     try {
       final camera = _camera ??= await view.getCamera();
+      // Initialize from the camera first so a pinch accumulated before the
+      // first update scales the camera's real radius, not the placeholder
+      // default.
       if (!_isInitialized) {
         await _initializeFromCamera(camera);
       }
 
       _azimuth += _pendingDeltaAzimuth;
       _elevation += _pendingDeltaElevation;
-      _radius += _pendingDeltaRadius;
+      _radius = (_radius + _pendingDeltaRadius) * _pendingRadiusScale;
       _pendingDeltaAzimuth = 0;
       _pendingDeltaElevation = 0;
       _pendingDeltaRadius = 0;
+      _pendingRadiusScale = 1.0;
+      _hasPendingUpdate = false;
 
-      var radius = _radius * _radiusScaleFactor;
+      var radius = _radius;
 
       // Clamp parameters
       _elevation = _elevation.clamp(-math.pi / 2 + 0.01, math.pi / 2 - 0.01); // Prevent gimbal lock at poles
@@ -174,6 +202,7 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
   Future<void> handle(List<InputEvent> events) async {
     // Synchronous accumulation only; the combined update is applied once per
     // frame (or at the end of this batch when no app was provided).
+    _hasPendingUpdate = true;
     for (final event in events) {
       switch (event) {
         case ScrollEvent(delta: final scrollDelta):
@@ -227,6 +256,9 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
           }
           break;
 
+        case ScaleStartEvent():
+          // A new gesture's scale is cumulative from 1.0 again.
+          _lastPinchScale = 1.0;
         case ScaleUpdateEvent(
           numPointers: final numPointers,
           scale: final scaleFactor,
@@ -237,11 +269,25 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
             _pendingDeltaAzimuth -= localFocalPointDelta!.$1 * sensitivity.touchSensitivity;
             _pendingDeltaElevation -= localFocalPointDelta.$2 * sensitivity.touchSensitivity;
           } else {
-            _radiusScaleFactor = scaleFactor;
+            // Multiplicative accumulation: fold in the ratio to the last
+            // scale seen in this gesture. Never fold into [_radius] here —
+            // [_radius] may still be the uninitialized placeholder until
+            // [_initializeFromCamera] has run inside [_applyPending].
+            if (scaleFactor <= 0 || _lastPinchScale <= 0) {
+              // Degenerate collapse (both pointers at the same pixel):
+              // cumulative span is 0, so the total gesture scale is 0.
+              _pendingRadiusScale = 0;
+            } else {
+              _pendingRadiusScale *= scaleFactor / _lastPinchScale;
+            }
+            _lastPinchScale = scaleFactor;
           }
         case ScaleEndEvent():
-          _radius *= _radiusScaleFactor;
-          _radiusScaleFactor = 1.0;
+          // The gesture's increments were already accumulated per update;
+          // anything still pending is applied by the next [_applyPending]
+          // (flagged above), so the final pinch increment can no longer be
+          // dropped by a zero-delta early return.
+          _lastPinchScale = 1.0;
         default:
           break;
       }
