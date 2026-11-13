@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -460,6 +461,80 @@ void main() {
   });
 
   group('ensureMaterialTools', () {
+    test('concurrent apps install once and only publish smoke-tested tools', () async {
+      final tools = FakeTools();
+      final spec = resolveMaterialToolsSpec(version: 'v1.77.2', hostOS: 'linux', hostArch: 'x64');
+      final cacheRoot = Directory(p.join(tempDir.path, 'shared_cache'));
+      final live = Directory(p.join(cacheRoot.path, spec.cacheDirName));
+      final started = Completer<void>();
+      final release = Completer<void>();
+      final downloads = <String>[];
+      Future<void> download(Uri url, File destination) async {
+        downloads.add(destination.path);
+        expect(live.existsSync(), isFalse);
+        started.complete();
+        await release.future;
+        await tools.downloader()(url, destination);
+      }
+
+      Future<MaterialTools> install() => ensureMaterialTools(
+        spec: spec,
+        cacheRoot: cacheRoot,
+        download: download,
+        runProcess: (executable, args) async {
+          if (executable.contains('.thermion-tools-install-')) {
+            expect(live.existsSync(), isFalse);
+          }
+          return tools.run(executable, args);
+        },
+      );
+      final first = install();
+      await started.future;
+      final second = install();
+      release.complete();
+      final results = await Future.wait([first, second]);
+      expect(downloads, hasLength(1));
+      expect(downloads.single, contains('.thermion-tools-install-'));
+      expect(results.map((r) => r.downloaded), [true, false]);
+      expect(results.map((r) => r.matc.path).toSet(), hasLength(1));
+      expect(cacheRoot.listSync().whereType<Directory>().map((d) => p.basename(d.path)), [spec.cacheDirName]);
+    });
+
+    test('failed private installation is cleaned and retry uses a different download path', () async {
+      final tools = FakeTools();
+      final spec = resolveMaterialToolsSpec(version: 'v1.77.2', hostOS: 'linux', hostArch: 'x64');
+      final cacheRoot = Directory(p.join(tempDir.path, 'failed_install'));
+      final downloads = <String>[];
+      await expectLater(
+        ensureMaterialTools(
+          spec: spec,
+          cacheRoot: cacheRoot,
+          runProcess: tools.run,
+          download: (url, file) async {
+            downloads.add(file.path);
+            file.writeAsStringSync('partial zip');
+            throw StateError('interrupted download');
+          },
+        ),
+        throwsA(isA<MaterialToolsError>()),
+      );
+      expect(Directory(p.join(cacheRoot.path, spec.cacheDirName)).existsSync(), isFalse);
+      final abandoned = Directory(p.join(cacheRoot.path, '.thermion-tools-install-abandoned'))..createSync();
+      File(p.join(abandoned.path, 'partial.zip')).writeAsStringSync('partial');
+      await ensureMaterialTools(
+        spec: spec,
+        cacheRoot: cacheRoot,
+        runProcess: tools.run,
+        download: (url, file) async {
+          downloads.add(file.path);
+          await tools.downloader()(url, file);
+        },
+      );
+      expect(downloads.toSet(), hasLength(2));
+      expect(abandoned.existsSync(), isFalse);
+      expect(File(downloads.first).existsSync(), isFalse);
+    });
+
     test('reuses a cache that passes the smoke test without downloading', () async {
       final tools = FakeTools();
       final spec = resolveMaterialToolsSpec(version: 'v1.77.2', hostOS: 'linux', hostArch: 'x64');

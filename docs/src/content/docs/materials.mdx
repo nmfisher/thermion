@@ -159,8 +159,11 @@ ${XDG_CACHE_HOME:-$HOME/.cache}/thermion/filament-tools/filament-<tag>-webgpu-<h
 ```
 
 The cache is shared by all projects on the machine and is trusted only
-after `matc` passes a `-a webgpu` smoke test; a failing cache is deleted
-and re-downloaded. These builds of `matc` support WebGPU (WGSL) — the
+after `matc` passes a `-a webgpu` smoke test. Installation holds a shared
+cache lock across app builds. Downloads and extraction use a private temporary
+directory; only a complete installation that passes the smoke test is renamed
+into the live cache. A failed download leaves no partial installation. These
+builds of `matc` support WebGPU (WGSL) — the
 official Filament release binaries do not.
 
 #### `backends`
@@ -200,7 +203,9 @@ All materials compile in staging before any output is published. If a tool
 fails, the previous generation remains intact. Publication keeps backups and
 writes the manifest last; a publication error restores the previous generation,
 and the next hook run recovers any publication interrupted by process exit.
-Stale cleanup never deletes a filename owned by a current material.
+Stale cleanup never deletes a filename owned by a current material. Before
+compiling, the hook rejects output filenames shared by different inputs,
+including collisions introduced by `resgen_prefixes` with cached materials.
 
 The hook registers discovery directories, transitive include files, the
 manifest and generated files as build dependencies. New directory/glob matches

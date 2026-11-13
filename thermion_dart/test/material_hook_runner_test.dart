@@ -73,9 +73,14 @@ void main() {
       expect(File(p.join(root.path, 'out/eye.filamat')).existsSync(), isFalse);
       await changed(() => File(p.join(root.path, 'out/.thermion-materials.json')).deleteSync(), 3);
       pubspec.writeAsStringSync(
-        pubspec.readAsStringSync().replaceFirst('inputs: [materials]', 'inputs: [materials/**/*.mat]'),
+        pubspec.readAsStringSync().replaceFirst('inputs: [materials]', 'inputs: [materials/new/**/*.mat]'),
       );
       await settle();
+      final selected =
+          (jsonDecode(File(p.join(root.path, 'last-result.json')).readAsStringSync()) as Map)['inputs'] as List;
+      expect(selected, hasLength(2));
+      expect(selected, everyElement(contains('${p.separator}new${p.separator}')));
+      expect(File(p.join(root.path, 'out/skin.filamat')).existsSync(), isFalse);
       await changed(() => write('materials/new/deep/glob.mat', 'new glob match'), 1);
     },
     timeout: const Timeout(Duration(minutes: 3)),

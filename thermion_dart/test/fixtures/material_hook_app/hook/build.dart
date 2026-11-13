@@ -11,10 +11,7 @@ void main(List<String> args) async {
     final tools = FakeTools();
     final result = await compileUserMaterials(
       appRoot: root,
-      config: parseMaterialCompilationConfig({
-        'inputs': ['materials'],
-        'output': 'out',
-      })!,
+      config: parseMaterialCompilationConfig(input.userDefines['material_compilation'])!,
       filamentVersion: 'v1.77.2',
       packageVersion: 'test',
       hostOS: Platform.operatingSystem,
@@ -24,8 +21,12 @@ void main(List<String> args) async {
       runProcess: tools.run,
     );
     output.dependencies.addAll(result.dependencies);
-    File(
-      '${root.path}/last-result.json',
-    ).writeAsStringSync(jsonEncode({'compiled': result.compiled, 'skipped': result.skipped}));
+    File('${root.path}/last-result.json').writeAsStringSync(
+      jsonEncode({
+        'compiled': result.compiled,
+        'skipped': result.skipped,
+        'inputs': result.inputs.map((f) => f.path).toList(),
+      }),
+    );
   });
 }

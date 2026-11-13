@@ -786,7 +786,7 @@ typedef MaterialTools = ({File matc, File resgen, bool downloaded});
 ///
 /// Mirrors scripts/regenerate-materials.sh: the cache is trusted only after
 /// matc passes the `-a webgpu` smoke test; a failing (or missing) cache is
-/// deleted and re-downloaded once, and a matc that still cannot compile
+/// replaced after a validated download, and a matc that still cannot compile
 /// WebGPU materials afterwards throws [MaterialToolsError].
 Future<MaterialTools> ensureMaterialTools({
   required MaterialToolsSpec spec,
@@ -795,70 +795,72 @@ Future<MaterialTools> ensureMaterialTools({
   ToolProcess? runProcess,
   void Function(String message)? onLog,
 }) async {
-  final log = onLog ?? (_) {};
-  final fetch = download ?? _defaultDownload;
-  final toolsDir = Directory(p.join(cacheRoot.path, spec.cacheDirName));
-  final matc = File(p.join(toolsDir.path, 'bin', 'matc${spec.exeSuffix}'));
-  final resgen = File(p.join(toolsDir.path, 'bin', 'resgen${spec.exeSuffix}'));
+  // Different apps have different output locks but share this cache. Keep
+  // installation serialized across both processes and calls in this isolate.
+  return withMaterialOutputLock(cacheRoot, () async {
+    final log = onLog ?? (_) {};
+    final fetch = download ?? _defaultDownload;
+    final toolsDir = Directory(p.join(cacheRoot.path, spec.cacheDirName));
+    File binary(Directory dir, String name) => File(p.join(dir.path, 'bin', '$name${spec.exeSuffix}'));
+    Future<bool> toolsOk(Directory dir) async =>
+        binary(dir, 'matc').existsSync() &&
+        binary(dir, 'resgen').existsSync() &&
+        await smokeTestMatc(binary(dir, 'matc'), runProcess: runProcess);
 
-  Future<bool> toolsOk() async {
-    if (!matc.existsSync() || !resgen.existsSync()) return false;
-    return smokeTestMatc(matc, runProcess: runProcess);
-  }
+    if (await toolsOk(toolsDir)) {
+      log('Using cached WebGPU-capable matc/resgen from ${toolsDir.path}');
+      return (matc: binary(toolsDir, 'matc'), resgen: binary(toolsDir, 'resgen'), downloaded: false);
+    }
 
-  if (await toolsOk()) {
-    log('Using cached WebGPU-capable matc/resgen from ${toolsDir.path}');
-    return (matc: matc, resgen: resgen, downloaded: false);
-  }
-
-  log('Downloading Filament tools (matc, resgen) from ${spec.url}');
-  if (toolsDir.existsSync()) {
-    toolsDir.deleteSync(recursive: true);
-  }
-  cacheRoot.createSync(recursive: true);
-  final zipFile = File(p.join(cacheRoot.path, spec.zipName));
-  try {
+    // Only installers holding the cache lock own these directories. Remove
+    // leftovers from interrupted installs, then use a private download path.
+    const prefix = '.thermion-tools-install-';
+    for (final entry in cacheRoot.listSync().whereType<Directory>()) {
+      if (p.basename(entry.path).startsWith(prefix)) entry.deleteSync(recursive: true);
+    }
+    final staging = cacheRoot.createTempSync(prefix);
+    final installation = Directory(p.join(staging.path, 'tools'))..createSync();
+    final zipFile = File(p.join(staging.path, spec.zipName));
     try {
-      await fetch(Uri.parse(spec.url), zipFile);
-    } catch (e) {
-      throw MaterialToolsError(
-        'Could not download the Filament tools for material compilation.\n'
-        '  URL: ${spec.url}\n'
-        '  Filament version: ${spec.version}\n'
-        '  Artifact: ${spec.zipName}\n'
-        '  Cause: $e\n'
-        'Material compilation needs these tools and there is no cached copy '
-        'under ${toolsDir.path}. Restore network access (or pre-populate that '
-        'cache) and re-run the build.',
-      );
+      log('Downloading Filament tools (matc, resgen) from ${spec.url}');
+      try {
+        await fetch(Uri.parse(spec.url), zipFile);
+      } catch (e) {
+        throw MaterialToolsError(
+          'Could not download the Filament tools for material compilation.\n'
+          '  URL: ${spec.url}\n'
+          '  Filament version: ${spec.version}\n'
+          '  Artifact: ${spec.zipName}\n'
+          '  Cause: $e\n'
+          'Restore network access (or pre-populate the cache under ${toolsDir.path}) and re-run the build.',
+        );
+      }
+      final extracted = extractToolBinaries(ZipDecoder().decodeBytes(await zipFile.readAsBytes()), installation);
+      log('Extracted ${extracted.length} tool files into ${installation.path}');
+      if (!binary(installation, 'matc').existsSync() || !binary(installation, 'resgen').existsSync()) {
+        throw MaterialToolsError(
+          'The Filament artifact ${spec.url} does not contain bin/matc and '
+          'bin/resgen for this host (${spec.hostPlatform}). The pinned Filament '
+          'version needs a Build Filament workflow run that ships the shader tools in its release zip.',
+        );
+      }
+      await _makeExecutable([binary(installation, 'matc'), binary(installation, 'resgen')]);
+      if (!await toolsOk(installation)) {
+        throw MaterialToolsError(
+          'matc from ${spec.url} does not support -a webgpu (smoke test failed '
+          'after a fresh download). The R2 artifact was built without '
+          'FILAMENT_SUPPORTS_WEBGPU; re-run the Build Filament workflow for the pinned Filament version.',
+        );
+      }
+      // Readers also hold this lock. Publish only the complete, validated
+      // directory, on the same filesystem; a partial extraction is never live.
+      if (toolsDir.existsSync()) toolsDir.deleteSync(recursive: true);
+      installation.renameSync(toolsDir.path);
+      return (matc: binary(toolsDir, 'matc'), resgen: binary(toolsDir, 'resgen'), downloaded: true);
+    } finally {
+      if (staging.existsSync()) staging.deleteSync(recursive: true);
     }
-    final extracted = extractToolBinaries(ZipDecoder().decodeBytes(await zipFile.readAsBytes()), toolsDir);
-    log('Extracted ${extracted.length} tool files into ${toolsDir.path}');
-  } finally {
-    if (zipFile.existsSync()) {
-      zipFile.deleteSync();
-    }
-  }
-  if (!matc.existsSync() || !resgen.existsSync()) {
-    throw MaterialToolsError(
-      'The Filament artifact ${spec.url} does not contain bin/matc and '
-      'bin/resgen for this host (${spec.hostPlatform}). The pinned Filament '
-      'version needs a Build Filament workflow run that ships the shader '
-      'tools in its release zip.',
-    );
-  }
-  await _makeExecutable([matc, resgen]);
-  if (!await toolsOk()) {
-    // A stale tools dir must not survive a failed smoke test.
-    toolsDir.deleteSync(recursive: true);
-    throw MaterialToolsError(
-      'matc from ${spec.url} does not support -a webgpu (smoke test failed '
-      'after a fresh download). The R2 artifact was built without '
-      'FILAMENT_SUPPORTS_WEBGPU; re-run the Build Filament workflow for the '
-      'pinned Filament version.',
-    );
-  }
-  return (matc: matc, resgen: resgen, downloaded: true);
+  });
 }
 
 /// The archive package does not preserve the executable bit, and zip entries
@@ -931,6 +933,22 @@ MaterialCompilePlan planMaterialCompilation({
 }) {
   final manifest = readMaterialsManifest(File(p.join(outputDir.path, materialManifestName)));
   final stems = checkOutputStems(inputs);
+  final owners = <String, File>{};
+  for (final input in inputs) {
+    for (final name in expectedOutputNames(stems[input]!, resgen: resgen, prefix: resgenPrefixFor?.call(input))) {
+      // Treat case-only differences as collisions on every host so a config
+      // cannot change ownership when moved to a case-insensitive filesystem.
+      final key = p.normalize(name).toLowerCase();
+      final previous = owners[key];
+      if (previous != null) {
+        throw MaterialToolsError(
+          'Material output "$name" is owned by both ${previous.path} and ${input.path}. '
+          'Choose distinct resgen_prefixes for these inputs.',
+        );
+      }
+      owners[key] = input;
+    }
+  }
 
   if (manifest == null) {
     return MaterialCompilePlan(

@@ -20,12 +20,14 @@ void main() {
     ToolProcess? runner,
     void Function(String)? log,
     bool resgen = false,
+    Map<String, String> prefixes = const {},
   }) => compileUserMaterials(
     appRoot: root,
     config: parseMaterialCompilationConfig({
       'inputs': ['materials'],
       'output': 'out',
       'resgen': resgen,
+      'resgen_prefixes': prefixes,
     })!,
     filamentVersion: 'v1.77.2',
     packageVersion: 'test',
@@ -36,6 +38,80 @@ void main() {
     runProcess: runner ?? tools.run,
     onLog: log,
   );
+
+  test('rejects output ownership collisions with cached inputs before compiling', () async {
+    write('materials/a.mat', 'a');
+    write('materials/b.mat', 'b');
+    final tools = FakeTools();
+    await compile(tools, resgen: true);
+    final output = Directory(p.join(root.path, 'out'));
+    final before = {
+      for (final file in output.listSync().whereType<File>()) p.basename(file.path): file.readAsBytesSync(),
+    };
+    final calls = tools.matcCompiles.length;
+    for (final prefixes in [
+      {'a': 'b'},
+      {'a': 'B'},
+      {'a': 'shared', 'b': 'shared'},
+    ]) {
+      await expectLater(
+        compile(tools, resgen: true, prefixes: prefixes),
+        throwsA(
+          isA<MaterialToolsError>().having((e) => e.message, 'owners', allOf(contains('a.mat'), contains('b.mat'))),
+        ),
+      );
+      expect(tools.matcCompiles.length, calls);
+      for (final entry in before.entries) {
+        expect(File(p.join(output.path, entry.key)).readAsBytesSync(), entry.value);
+      }
+    }
+    expect((await compile(tools, resgen: true)).compiled, 0);
+  });
+
+  test('separate app processes share one complete tool installation', () async {
+    final children = <Process>[];
+    final results = <Future<(int, String, String)>>[];
+    addTearDown(() {
+      for (final child in children) {
+        child.kill();
+      }
+    });
+    for (var i = 0; i < 3; i++) {
+      final child = await Process.start(Platform.resolvedExecutable, [
+        'test/fixtures/material_cache_worker.dart',
+        root.path,
+        '$i',
+      ]);
+      children.add(child);
+      results.add(() async {
+        final stdout = child.stdout.transform(SystemEncoding().decoder).join();
+        final stderr = child.stderr.transform(SystemEncoding().decoder).join();
+        return (await child.exitCode, await stdout, await stderr);
+      }());
+    }
+    Future<void> until(bool Function() ready) async {
+      final deadline = DateTime.now().add(const Duration(seconds: 20));
+      while (!ready()) {
+        if (DateTime.now().isAfter(deadline)) fail('cache workers timed out');
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+    }
+
+    await until(() => List.generate(3, (i) => File(p.join(root.path, 'ready-$i')).existsSync()).every((v) => v));
+    write('start', 'start');
+    await until(() => root.listSync().whereType<File>().any((f) => p.basename(f.path).startsWith('download-')));
+    // Hold the first fetch open while the other processes enter installation.
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    write('finish-download', 'finish');
+    for (final result in await Future.wait(results)) {
+      expect(result.$1, 0, reason: '${result.$2}\n${result.$3}');
+      expect(result.$2, contains('compiled=1'));
+    }
+    expect(root.listSync().whereType<File>().where((f) => p.basename(f.path).startsWith('download-')), hasLength(1));
+    for (var i = 0; i < 3; i++) {
+      expect(File(p.join(root.path, 'app-$i/out/skin.filamat')).existsSync(), isTrue);
+    }
+  });
 
   test('tracks nested includes and ignores commented include directives', () async {
     write('materials/skin.mat', 'fragment {\n#include "common.glsl"\n}');
