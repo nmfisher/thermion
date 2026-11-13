@@ -14,9 +14,10 @@
 #pragma comment(lib, "matp.lib")
 #pragma comment(lib, "filamat.lib")
 #if defined(THERMION_ENABLE_RUNTIME_MATERIALS)
-// Windows artifacts contain the individual filamat dependencies rather than
-// the combined archive installed on other platforms. Runtime compilation
-// reaches these shader compiler and generated shader-package symbols.
+// On Windows, filamat's shader compiler dependencies are separate .lib files.
+// Link them explicitly when runtime compilation is enabled; filamat.lib alone
+// leaves unresolved references to shader compiler code and the generated shader
+// data (SHADERS_PACKAGE) provided by shaders.lib.
 #pragma comment(lib, "shaders.lib")
 #pragma comment(lib, "OSDependent.lib")
 #pragma comment(lib, "glslang.lib")
