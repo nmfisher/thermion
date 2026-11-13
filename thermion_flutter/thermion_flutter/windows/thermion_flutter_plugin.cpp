@@ -151,10 +151,11 @@ namespace thermion::tflutter::windows
             _retiringTextureIds.end();
       }
       if (!retiring) {
-        if (job.context) {
-          job.context->Blit(job.handle);
-        }
-        if (job.registrar) {
+        // Publish only a completed copy. When Blit skips the frame or its
+        // fence wait times out, the shared texture may hold a partial copy,
+        // so Flutter keeps showing the previous frame instead.
+        const bool copied = job.context && job.context->Blit(job.handle);
+        if (copied && job.registrar) {
           job.registrar->MarkTextureFrameAvailable(job.flutterTextureId);
         }
       }
