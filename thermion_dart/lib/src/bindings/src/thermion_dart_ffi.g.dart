@@ -2337,7 +2337,7 @@ external ffi.Pointer<ffi.Double> Mat4_getData(ffi.Pointer<TMat4> matrix);
     ffi.Pointer<ffi.Char>,
     ffi.Pointer<ffi.Char>,
   )
->(isLeaf: true)
+>()
 external ffi.Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialPackage(
   ffi.Pointer<TJobThread> tJobThread,
   ffi.Pointer<TEngine> tEngine,
@@ -2354,7 +2354,7 @@ external ffi.Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialP
     ffi.Pointer<ffi.Char>,
     ffi.Pointer<ffi.Char>,
   )
->(isLeaf: true)
+>()
 external ffi.Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialPackageWithDiagnostics(
   ffi.Pointer<TJobThread> tJobThread,
   ffi.Pointer<TEngine> tEngine,
@@ -2401,7 +2401,7 @@ external ffi.Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialP
     ffi.Pointer<ffi.Char>,
     ffi.UnsignedInt,
   )
->(isLeaf: true)
+>()
 external ffi.Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialSource(
   ffi.Pointer<TJobThread> tJobThread,
   ffi.Pointer<TEngine> tEngine,
@@ -2422,7 +2422,7 @@ external ffi.Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialS
     ffi.Pointer<ffi.Char>,
     ffi.UnsignedInt,
   )
->(isLeaf: true)
+>()
 external ffi.Pointer<TMaterialCompilerPackage> MaterialCompiler_compileMaterialSourceWithDiagnostics(
   ffi.Pointer<TJobThread> tJobThread,
   ffi.Pointer<TEngine> tEngine,

@@ -693,6 +693,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       MaterialShading.cloth => bindings.TShading.SHADING_CLOTH,
       MaterialShading.specularGlossiness => bindings.TShading.SHADING_SPECULAR_GLOSSINESS,
     };
+    // Web UTF-8 conversion uses the Wasm stack; free() cannot reclaim it.
+    final stack = FILAMENT_WASM ? stackSave() : null;
     var namePtr = nullptr.cast<Char>();
     var sourcePtr = nullptr.cast<Char>();
     final Pointer<TMaterialCompilerPackage> package;
@@ -709,8 +711,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         nativeShading,
       );
     } finally {
-      if (namePtr != nullptr) free(namePtr);
-      if (sourcePtr != nullptr) free(sourcePtr);
+      if (stack != null) {
+        stackRestore(stack);
+      } else {
+        if (namePtr != nullptr) free(namePtr);
+        if (sourcePtr != nullptr) free(sourcePtr);
+      }
     }
     return _materialFromCompiledPackage(package, name);
   }
@@ -723,6 +729,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
     // Encode before allocating native inputs so encoding failures need no cleanup.
     final includesJson = includes == null || includes.isEmpty ? null : json.encode(includes);
+    final stack = FILAMENT_WASM ? stackSave() : null;
     var namePtr = nullptr.cast<Char>();
     var sourcePtr = nullptr.cast<Char>();
     var includesPtr = nullptr.cast<Char>();
@@ -740,9 +747,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         includesPtr,
       );
     } finally {
-      if (namePtr != nullptr) free(namePtr);
-      if (sourcePtr != nullptr) free(sourcePtr);
-      if (includesPtr != nullptr) free(includesPtr);
+      if (stack != null) {
+        stackRestore(stack);
+      } else {
+        if (namePtr != nullptr) free(namePtr);
+        if (sourcePtr != nullptr) free(sourcePtr);
+        if (includesPtr != nullptr) free(includesPtr);
+      }
     }
     return _materialFromCompiledPackage(package, name);
   }
