@@ -46,6 +46,7 @@ import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
 import 'material_publication.dart';
+import 'filament_artifacts.dart';
 
 /// R2 base for all prebuilt artifacts (Filament libs, web engine zips and
 /// the Filament release zips that carry the shader tools). Same host as
@@ -567,7 +568,8 @@ void checkMaterialLinkingBuildable({required bool buildCodeAssets, required Mate
 /// every blob in the output directory.
 ///
 /// sha256 over the pipeline version, the pinned Filament tag, the
-/// thermion_dart package version and the host platform/arch. Any change (a
+/// thermion_dart package version, host platform/arch and pinned tools archive
+/// digest (when available). Any change (a
 /// Filament bump, a thermion_dart bump, building on another machine) forces
 /// a full rebuild. The downloaded matc binary's own sha256 is recorded in
 /// the manifest as `matcSha256` and ALSO forces a full rebuild when it
@@ -579,12 +581,14 @@ String computeMatcId({
   required String packageVersion,
   required String hostPlatform,
   required String hostArch,
+  String? toolsSha256,
 }) {
   final buffer = StringBuffer()
     ..writeln('pipeline=$materialPipelineVersion')
     ..writeln('filament=$filamentVersion')
     ..writeln('package=$packageVersion')
     ..writeln('host=$hostPlatform/$hostArch');
+  if (toolsSha256 != null) buffer.writeln('tools=$toolsSha256');
   return sha256.convert(utf8.encode(buffer.toString())).toString();
 }
 
@@ -699,9 +703,12 @@ typedef MaterialToolsSpec = ({
   /// Full R2 URL of the zip.
   String url,
 
+  /// Full archive digest from the shipped pin, when pinned.
+  String? sha256,
+
   /// Per-user cache dir name, e.g. filament-v1.77.2-webgpu-linux. The
-  /// -webgpu marker distinguishes these from any future non-WebGPU matc
-  /// cache (same idea as scripts/regenerate-materials.sh).
+  /// -webgpu marker distinguishes these from non-WebGPU caches. Pinned
+  /// archives append -<hash16> so a pin change selects a fresh cache.
   String cacheDirName,
 
   /// '.exe' on Windows, '' elsewhere.
@@ -719,6 +726,7 @@ MaterialToolsSpec resolveMaterialToolsSpec({
   required String version,
   required String hostOS,
   required String hostArch,
+  FilamentPin pin = const {},
 }) {
   final os = hostOS.toLowerCase();
   final arch = hostArch.toLowerCase();
@@ -747,12 +755,14 @@ MaterialToolsSpec resolveMaterialToolsSpec({
         'build hook is supported on Linux, macOS and Windows hosts only.',
       );
   }
+  final artifact = resolveFilamentArtifact(version, platform, 'release', pin);
   return (
     version: version,
     hostPlatform: platform,
-    zipName: 'filament-$version-$platform-release.zip',
-    url: '$materialToolsR2BaseUrl/filament-$version-$platform-release.zip',
-    cacheDirName: 'filament-$version-webgpu-$platform',
+    zipName: artifact.zipName,
+    url: artifact.url,
+    sha256: artifact.sha256,
+    cacheDirName: 'filament-$version-webgpu-$platform${artifact.cacheSuffix}',
     exeSuffix: exeSuffix,
   );
 }
@@ -956,6 +966,12 @@ Future<MaterialTools> ensureMaterialTools({
           '  Cause: $e\n'
           'Restore network access (or pre-populate the cache under ${toolsDir.path}) and re-run the build.',
         );
+      }
+      if (spec.sha256 case final expected?) {
+        final actual = sha256.convert(await zipFile.readAsBytes()).toString();
+        if (actual != expected) {
+          throw MaterialToolsError('SHA-256 mismatch for ${spec.zipName}: expected $expected, got $actual.');
+        }
       }
       final extracted = extractToolBinaries(ZipDecoder().decodeBytes(await zipFile.readAsBytes()), installation);
       log('Extracted ${extracted.length} tool files into ${installation.path}');
@@ -1208,6 +1224,7 @@ Future<UserMaterialsResult> compileUserMaterials({
   required String hostOS,
   required String hostArch,
   String? toolsCacheRoot,
+  FilamentPin toolsPin = const {},
   UrlDownloader? download,
   ToolProcess? runProcess,
   void Function(String message)? onLog,
@@ -1216,7 +1233,7 @@ Future<UserMaterialsResult> compileUserMaterials({
   return withMaterialOutputLock(outputDir, () async {
     recoverMaterialPublication(outputDir);
     final log = onLog ?? (_) {};
-    final spec = resolveMaterialToolsSpec(version: filamentVersion, hostOS: hostOS, hostArch: hostArch);
+    final spec = resolveMaterialToolsSpec(version: filamentVersion, hostOS: hostOS, hostArch: hostArch, pin: toolsPin);
     final inputs = expandMaterialInputs(appRoot: appRoot, inputs: config.inputs);
     final stems = checkOutputStems(inputs);
     final dependencies = materialDiscoveryDependencies(appRoot, config.inputs);
@@ -1241,6 +1258,7 @@ Future<UserMaterialsResult> compileUserMaterials({
       packageVersion: packageVersion,
       hostPlatform: spec.hostPlatform,
       hostArch: hostArch,
+      toolsSha256: spec.sha256,
     );
     final manifestFile = File(p.join(outputDir.path, materialManifestName));
     final previous = readMaterialsManifest(manifestFile);

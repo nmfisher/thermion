@@ -70,6 +70,7 @@ void main(List<String> args) async {
         packageVersion: await readPubspecVersion(Directory(pkgRootFilePath)),
         hostOS: Platform.operatingSystem,
         hostArch: hostArch ?? 'x64',
+        toolsPin: _loadFilamentPin(packageRoot, logger),
         download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
         onLog: logger.info,
       );
@@ -78,6 +79,7 @@ void main(List<String> args) async {
       // in runner invalidation; internal manifest checks cannot run otherwise.
       output.dependencies.addAll(result.dependencies);
       output.dependencies.add(File(path.join(pkgRootFilePath, 'pubspec.yaml')).uri);
+      output.dependencies.add(File(path.join(pkgRootFilePath, filamentPinFileName)).uri);
     }
 
     if (!input.config.buildCodeAssets) {

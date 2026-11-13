@@ -135,6 +135,27 @@ void main() {
   }
 
   group('resolveMaterialToolsSpec', () {
+    test('uses pinned host release URL, full digest and isolated cache', () {
+      final digest = 'a' * 64;
+      for (final entry in [
+        ('macos', 'arm64', 'macos'),
+        ('linux', 'arm64', 'linux-arm64'),
+        ('linux', 'x64', 'linux'),
+        ('windows', 'x64', 'windows'),
+      ]) {
+        final spec = resolveMaterialToolsSpec(
+          version: 'v1.77.2',
+          hostOS: entry.$1,
+          hostArch: entry.$2,
+          pin: {'${entry.$3}/release': digest},
+        );
+        expect(spec.zipName, 'filament-v1.77.2-${entry.$3}-release-${digest.substring(0, 16)}.zip');
+        expect(spec.url, '$materialToolsR2BaseUrl/${spec.zipName}');
+        expect(spec.sha256, digest);
+        expect(spec.cacheDirName, endsWith('-${digest.substring(0, 16)}'));
+      }
+    });
+
     test('resolves linux x64', () {
       final spec = resolveMaterialToolsSpec(version: 'v1.77.2', hostOS: 'linux', hostArch: 'x64');
       expect(spec.hostPlatform, 'linux');
@@ -598,6 +619,32 @@ void main() {
   });
 
   group('ensureMaterialTools', () {
+    test('rejects pinned archive digest mismatch before extraction or tool execution', () async {
+      final spec = resolveMaterialToolsSpec(
+        version: 'v1.77.2',
+        hostOS: 'macos',
+        hostArch: 'arm64',
+        pin: {'macos/release': 'a' * 64},
+      );
+      final cache = Directory(p.join(tempDir.path, 'digest_mismatch'));
+      var executed = false;
+      await expectLater(
+        ensureMaterialTools(
+          spec: spec,
+          cacheRoot: cache,
+          download: FakeTools().downloader(),
+          runProcess: (exe, args) async {
+            executed = true;
+            return (exitCode: 0, stdout: '', stderr: '');
+          },
+        ),
+        throwsA(isA<MaterialToolsError>().having((e) => e.message, 'digest', contains('SHA-256 mismatch'))),
+      );
+      expect(executed, isFalse);
+      expect(Directory(p.join(cache.path, spec.cacheDirName)).existsSync(), isFalse);
+      expect(cache.listSync().whereType<Directory>(), isEmpty);
+    });
+
     test('concurrent apps install once and only publish smoke-tested tools', () async {
       final tools = FakeTools();
       final spec = resolveMaterialToolsSpec(version: 'v1.77.2', hostOS: 'linux', hostArch: 'x64');
@@ -1010,6 +1057,51 @@ void main() {
     }
 
     Directory outputDir() => Directory(p.join(appRoot.path, 'build', 'materials'));
+
+    test('pin flip rebuilds unchanged materials even before the replacement tool is cached', () async {
+      final tools = FakeTools();
+      final archives = <String, List<int>>{};
+      for (final marker in ['first', 'replacement']) {
+        final zip = File(p.join(appRoot.path, '$marker.zip'));
+        await zipDownloader({
+          'bin/matc': utf8Bytes(workingMatcContent),
+          'bin/resgen': utf8Bytes('resgen'),
+          'identity': utf8Bytes(marker),
+        })(Uri.parse('https://unused.invalid'), zip);
+        final bytes = zip.readAsBytesSync();
+        archives[sha256Content(bytes)] = bytes;
+      }
+      var downloads = 0;
+      Future<UserMaterialsResult> compile(String digest) => compileUserMaterials(
+        appRoot: appRoot,
+        config: parseMaterialCompilationConfig({
+          'inputs': ['materials'],
+          'output': 'build/materials',
+        })!,
+        filamentVersion: 'v1.77.2',
+        packageVersion: 'test',
+        hostOS: 'linux',
+        hostArch: 'x64',
+        toolsCacheRoot: toolsCache.path,
+        toolsPin: {'linux/release': digest},
+        download: (url, file) async {
+          expect(url.path, endsWith('-${digest.substring(0, 16)}.zip'));
+          downloads++;
+          file.writeAsBytesSync(archives[digest]!);
+        },
+        runProcess: tools.run,
+      );
+      final first = archives.keys.first;
+      final replacement = archives.keys.last;
+      expect((await compile(first)).compiled, 2);
+      expect((await compile(first)).compiled, 0);
+      expect((await compile(replacement)).compiled, 2);
+      expect((await compile(replacement)).compiled, 0);
+      expect(downloads, 2);
+      // Both pins retain usable caches; reverting the pin restores the old one.
+      expect((await compile(first)).compiled, 2);
+      expect(downloads, 2);
+    });
 
     test('first run downloads tools once and emits one blended package per material', () async {
       final tools = FakeTools();
