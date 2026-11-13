@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert' show json;
+import 'dart:isolate';
 import 'dart:math' as math;
 
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_manager.dart';
@@ -585,25 +586,50 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   // alpha channel (even if the original image did not contain one).
   //
   Future<LinearImage> decodeImage(Uint8List data, {String name = "image", bool requireAlpha = false}) async {
-    final namePtr = name.toNativeUtf8().cast<Char>();
-    try {
-      // Decoding runs on the job thread: Image_decode can take tens of
-      // milliseconds on realistic textures, which previously blocked this
-      // isolate (and frame scheduling). The native entry point copies [data]
-      // and [name] before returning, so the borrows below end with the call.
-      final ptr = await withPointerCallback<TLinearImage>((cb) {
-        Image_decodeJobThread(jobThreadHandle, data.address, data.length, namePtr, requireAlpha, cb);
-      });
-      if (ptr == nullptr) {
-        throw Exception("Failed to decode image");
-      }
-      return FFILinearImage(ptr, jobThreadHandle);
-    } finally {
-      free(namePtr);
-      if (FILAMENT_WASM) {
-        data.free();
+    if (FILAMENT_WASM) {
+      // Web: pass() copies [data] into Filament's Wasm heap and frees the
+      // copy after the call. A bare `data.address` borrow would either leak
+      // Wasm stack space (< 32 KB, stackAlloc without stackRestore) or leak
+      // the whole buffer in the Wasm heap (>= 32 KB: data.address mallocs,
+      // while data.free() frees offsetInBytes == 0).
+      final namePtr = name.toNativeUtf8().cast<Char>();
+      try {
+        final ptr = await data.pass((bytes) {
+          return withPointerCallback<TLinearImage>((cb) {
+            Image_decodeJobThread(jobThreadHandle, bytes.address, bytes.length, namePtr, requireAlpha, cb);
+          });
+        });
+        if (ptr == nullptr) {
+          throw Exception("Failed to decode image");
+        }
+        return FFILinearImage(ptr, jobThreadHandle);
+      } finally {
+        free(namePtr);
       }
     }
+    // Native: Image_decode is a pure CPU PNG/JPEG/HDR decode that never
+    // touches filament::Engine, so it must not sit on the render JobThread:
+    // it would block RenderManager_renderJobThread for tens of milliseconds
+    // (and hold the engine API mutex once that lands). Decoding in a
+    // short-lived isolate keeps both this isolate and the JobThread
+    // stall-free. Only the raw address crosses back; Pointer objects are
+    // not sendable between isolates.
+    final imageAddress = await Isolate.run(() {
+      final dataPtr = allocate<Uint8>(data.length);
+      final namePtr = name.toNativeUtf8();
+      try {
+        dataPtr.asTypedList(data.length).setAll(0, data);
+        return Image_decode(dataPtr, data.length, namePtr.cast<Char>(), requireAlpha).address;
+      } finally {
+        free(namePtr);
+        free(dataPtr);
+      }
+    });
+    final ptr = Pointer<TLinearImage>.fromAddress(imageAddress);
+    if (ptr == nullptr) {
+      throw Exception("Failed to decode image");
+    }
+    return FFILinearImage(ptr, jobThreadHandle);
   }
 
   //
