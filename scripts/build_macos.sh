@@ -244,8 +244,8 @@ for mode in release debug; do
     continue
   fi
   mkdir -p "$tools_target" || exit 1
-  cp out/prebuilt-tools-release/tools/matc/matc "$tools_target/" || exit 1
-  cp out/prebuilt-tools-release/tools/resgen/resgen "$tools_target/" || exit 1
+  cp "$FILAMENT_BASE_DIR/out/prebuilt-tools-release/tools/matc/matc" "$tools_target/" || exit 1
+  cp "$FILAMENT_BASE_DIR/out/prebuilt-tools-release/tools/resgen/resgen" "$tools_target/" || exit 1
 done
 
 # Copy release libraries
