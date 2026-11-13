@@ -131,6 +131,24 @@ namespace thermion
             return reinterpret_cast<TMaterialCompilerPackage *>(payload);
         }
 
+        filamat::Package buildMaterial(filamat::MaterialBuilder &builder, filament::Engine *engine)
+        {
+#if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_MAIN_THREAD)
+            // The browser caller is not the worker that created the engine.
+            // A temporary NOOP engine supplies a caller-adopted job system
+            // through Filament's public API; JobSystem's private headers are
+            // deliberately absent from the installed artifacts.
+            (void)engine;
+            auto *compilerEngine = filament::Engine::create(filament::Engine::Backend::NOOP);
+            if (compilerEngine == nullptr) return {};
+            auto package = builder.build(compilerEngine->getJobSystem());
+            filament::Engine::destroy(&compilerEngine);
+            return package;
+#else
+            return builder.build(engine->getJobSystem());
+#endif
+        }
+
         TMaterialCompilerPackage *compileLocked(
             filament::Engine *engine, const char *name,
             const char *materialSource, TShading shading)
@@ -145,7 +163,7 @@ namespace thermion
                         .platform(platformForThisBuild())
                         .targetApi(targetApiForThisBuild())
                         .optimization(filamat::MaterialBuilder::Optimization::PERFORMANCE);
-                    return builder.build(engine->getJobSystem());
+                    return buildMaterial(builder, engine);
                 });
         }
 
@@ -453,7 +471,7 @@ namespace thermion
                     {
                         return {};
                     }
-                    return builder.build(engine->getJobSystem());
+                    return buildMaterial(builder, engine);
                 });
         }
 
@@ -465,12 +483,10 @@ namespace thermion
         // the JS event loop — but the future.get() used by the packaged-
         // task path (non-web, below) busy-spins the main thread waiting
         // for the queued job, which therefore can never start: the first
-        // compile deadlocks the page at 100% CPU. The main thread created
-        // the engine (FEngine's constructor adopts its creator), so
-        // calling `compile` here is valid for MaterialBuilder::build —
-        // the tradeoff is that the UI blocks for the duration of the
-        // compile (~1s) instead of staying responsive as it does on
-        // native.
+        // compile deadlocks the page at 100% CPU. buildMaterial owns a
+        // caller-adopted compilation job system when the engine belongs to
+        // the render worker. Main-thread engines use their existing adopted
+        // job system. The UI blocks for the duration of compilation (~1s).
         //
         // Elsewhere the CPU-bound compile runs on the job thread that
         // created the engine. MaterialBuilder::build drives the engine's
