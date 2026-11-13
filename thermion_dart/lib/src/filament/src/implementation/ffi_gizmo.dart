@@ -1,8 +1,8 @@
-import '../../../bindings/heap_buffer.dart';
 import 'dart:async';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'ffi_filament_app.dart';
 import 'ffi_material.dart';
+import '../../../bindings/heap_buffer.dart';
 
 class FFIGizmo extends GizmoAsset {
   final Set<ThermionEntity> entities;
