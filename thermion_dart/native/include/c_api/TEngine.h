@@ -1,6 +1,7 @@
 #pragma once
 
 #include "APIExport.h"
+#include "TBackend.h"
 #include "APIBoundaryTypes.h"
 #include "TMaterialInstance.h"
 #include "TTexture.h"
@@ -9,16 +10,6 @@
 extern "C"
 {
 #endif
-
-enum TBackend {
-    BACKEND_DEFAULT = 0,  //!< Automatically selects an appropriate driver for the platform.
-    BACKEND_OPENGL = 1,   //!< Selects the OpenGL/ES driver (default on Android)
-    BACKEND_VULKAN = 2,   //!< Selects the Vulkan driver if the platform supports it (default on Linux/Windows)
-    BACKEND_METAL = 3,    //!< Selects the Metal driver if the platform supports it (default on MacOS/iOS).
-    BACKEND_WEBGPU = 4,   //!< Selects the WebGPU driver if the platform supports it.
-    BACKEND_NOOP = 5,     //!< Selects the no-op driver for testing purposes.
-};
-typedef enum TBackend TBackend;
 
 EMSCRIPTEN_KEEPALIVE TEngine *Engine_create(
     TBackend backend,

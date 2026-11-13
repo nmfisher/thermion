@@ -168,6 +168,13 @@ jobs:
       - name: Check public Filament version
         run: python3 scripts/generate-filament-version.py --check
 
+      # Compare the generator-owned C and Dart files. Bindings are regenerated
+      # below; native assertions and Dart tests check their mappings.
+      - name: Check TBackend enum drift vs Filament
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_generate_tbackend.py' -v
+          make tbackend-check
+
       - name: Cache pub dependencies
         uses: actions/cache@v4
         with:

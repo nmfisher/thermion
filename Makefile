@@ -44,6 +44,12 @@ bindings: dart-bindings flutter-bindings
 shared:
 	cd thermion_dart/native && make
 
+# Compares generated TBackend.h and public Dart Backend with the pinned
+# Filament enum. Run make bindings after regenerating these files.
+# Downloads the pinned Filament artifact's header tree on first use.
+tbackend-check:
+	python3 scripts/generate_tbackend.py --check
+
 # We compile a small set of custom materials for various helpers (background image, gizmo, etc)
 # You must specify the `FILAMENT_PATH` environment variable, either the path /out/release
 # eg: FILAMENT_PATH=/path/to/filament/out/release/bin make materials
