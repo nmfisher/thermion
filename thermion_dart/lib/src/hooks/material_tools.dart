@@ -14,11 +14,6 @@
 ///         resgen: false   # also emit .c/.h per material
 /// ```
 ///
-/// With `link_generated: true` the emitted `.c` files are additionally
-/// compiled and linked straight into `libthermion_dart` (native builds
-/// only), the same mechanism thermion uses for its own materials under
-/// `native/include/material/`. See [MaterialCompilationConfig.linkGenerated].
-///
 /// The hook then expands the inputs to `.mat` files, downloads the
 /// WebGPU-capable `matc`/`resgen` pair matching the Filament version pinned
 /// in `filament.version` from R2 (for the HOST platform, not the target)
@@ -36,11 +31,6 @@
 /// loads them from bytes (`FilamentApp.createMaterial(Uint8List data)`), so
 /// the build product is a `.filamat` file on disk (plus optional `.c`/`.h`
 /// via `resgen`).
-///
-/// Exception: with `link_generated: true` the emitted `.c` files ARE
-/// compiled into `libthermion_dart` by the build hook (native builds only),
-/// so their `<PREFIX>_PACKAGE` symbols are resolvable through Dart FFI via
-/// the default code asset, without any separate asset id.
 ///
 /// Kept free of build-hook imports and structured around injectable I/O
 /// (downloader, process runner) so it can be unit tested without network
@@ -62,10 +52,8 @@ const String materialToolsR2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313
 
 /// Bumped whenever this pipeline changes shape (backend presets, manifest
 /// schema, matcId scheme). Folded into the matcId so an old output directory
-/// can never satisfy a new pipeline. v3 added the `linkedGenerated` manifest
-/// field (link_generated); v4 patches resgen emission for external C linkage
-/// (see [patchResgenOutput]) so older, unpatched outputs rebuild.
-const int materialPipelineVersion = 4;
+/// can never satisfy a new pipeline.
+const int materialPipelineVersion = 2;
 
 /// Name of the manifest written into the output directory (written LAST —
 /// it is the gate that makes repeat builds fast).
@@ -110,7 +98,6 @@ class MaterialCompilationConfig {
     required this.output,
     required this.backends,
     required this.resgen,
-    this.linkGenerated = false,
     this.resgenPrefixes = const {},
   });
 
@@ -126,16 +113,6 @@ class MaterialCompilationConfig {
 
   /// Also convert each `.filamat` to C (`resgen -c`).
   final bool resgen;
-
-  /// NEW: also compile the emitted `.c` files into `libthermion_dart`
-  /// (native builds only — a web build with this flag fails the build; see
-  /// [checkMaterialLinkingBuildable]). Implies `resgen` emission: the user
-  /// never sets both.
-  final bool linkGenerated;
-
-  /// True when `.c`/`.h` must be emitted this run ([resgen] or
-  /// [linkGenerated]).
-  bool get emitsResgen => resgen || linkGenerated;
 
   /// Optional `resgen_prefixes` overrides: material name (file stem) ->
   /// symbol prefix. Unlisted materials use their sanitised name.
@@ -215,12 +192,12 @@ MaterialCompilationConfig? parseMaterialCompilationConfig(Object? raw, {void Fun
   if (raw is! Map) {
     throw MaterialToolsError(
       'material_compilation must be a map (inputs, output, backends, '
-      'resgen, link_generated), but got ${raw.runtimeType}. See the Thermion materials docs.',
+      'resgen), but got ${raw.runtimeType}. See the Thermion materials docs.',
     );
   }
   final map = Map<String, dynamic>.from(raw);
 
-  const knownKeys = {'inputs', 'output', 'backends', 'resgen', 'link_generated', 'resgen_prefixes'};
+  const knownKeys = {'inputs', 'output', 'backends', 'resgen', 'resgen_prefixes'};
   for (final key in map.keys) {
     if (!knownKeys.contains(key)) {
       log(
@@ -261,21 +238,6 @@ MaterialCompilationConfig? parseMaterialCompilationConfig(Object? raw, {void Fun
     throw MaterialToolsError('material_compilation.resgen must be true or false, but got ${resgenRaw.runtimeType}.');
   }
 
-  final linkGeneratedRaw = map['link_generated'];
-  if (linkGeneratedRaw != null && linkGeneratedRaw is! bool) {
-    throw MaterialToolsError(
-      'material_compilation.link_generated must be true or false, but got '
-      '${linkGeneratedRaw.runtimeType}.',
-    );
-  }
-  final linkGenerated = linkGeneratedRaw == true;
-  if (linkGenerated) {
-    log(
-      'material_compilation.link_generated: the emitted .c files will be '
-      'compiled into libthermion_dart (native builds only; implies resgen).',
-    );
-  }
-
   final prefixesRaw = map['resgen_prefixes'];
   final prefixes = <String, String>{};
   if (prefixesRaw != null) {
@@ -298,7 +260,6 @@ MaterialCompilationConfig? parseMaterialCompilationConfig(Object? raw, {void Fun
     output: output.trim(),
     backends: resolveBackends(map['backends']),
     resgen: resgenRaw == true,
-    linkGenerated: linkGenerated,
     resgenPrefixes: prefixes,
   );
 }
@@ -474,106 +435,6 @@ Map<File, String> checkOutputStems(List<File> inputs) {
   return stems;
 }
 
-/// The resgen symbol prefixes of Thermion's OWN materials, which are
-/// compiled into libthermion_dart alongside the user's generated `.c`
-/// files when `link_generated` is on (see materialSources in hook/build.dart
-/// — `gizmo` keeps its historical prefix although its files are named
-/// `gizmo_material_*`). Each defines `<PREFIX>_PACKAGE`.
-const List<String> reservedResgenPrefixes = [
-  'bone_overlay',
-  'capture_uv',
-  'edge_outline',
-  'gizmo',
-  'grid',
-  'image',
-  'linear_depth',
-  'silhouette',
-  'translation_axis',
-  'unlit_fixed_size',
-  'wireframe',
-];
-
-/// The resgen symbol prefix an input compiles with: the explicit
-/// `resgen_prefixes` override keyed by stem (or file stem), else the
-/// sanitised stem itself.
-String resgenPrefixFor(File input, {required String stem, required Map<String, String> resgenPrefixes}) {
-  return resgenPrefixes[stem] ?? resgenPrefixes[p.basenameWithoutExtension(input.path)] ?? stem;
-}
-
-/// Maps every input to its resgen symbol prefix and rejects symbol
-/// collisions at plan time, before anything is compiled or linked.
-///
-/// resgen defines one C symbol per material, `<PREFIX>_PACKAGE[]` (the
-/// prefix uppercased). Two inputs whose effective prefixes differ only by
-/// case (or an input whose prefix matches one of the [reserved] prefixes
-/// Thermion's own materials define) would define the SAME symbol and fail
-/// at link time with an obscure duplicate-definition error — so they are
-/// caught here, with both inputs and the symbol named. The reserved check
-/// only matters when the `.c` files are linked, so callers pass
-/// [reservedResgenPrefixes] only for `link_generated` builds.
-Map<File, String> checkResgenPrefixes(
-  List<File> inputs, {
-  Map<String, String> resgenPrefixes = const {},
-  Set<String> reserved = const {},
-}) {
-  final prefixes = <File, String>{};
-  final bySymbol = <String, File>{};
-  for (final input in inputs) {
-    final stem = materialOutputStem(input);
-    final prefix = resgenPrefixFor(input, stem: stem, resgenPrefixes: resgenPrefixes);
-    final symbol = '${prefix.toUpperCase()}_PACKAGE';
-    final existing = bySymbol[symbol];
-    if (existing != null && p.absolute(existing.path) != p.absolute(input.path)) {
-      throw MaterialToolsError(
-        'material_compilation inputs ${p.basename(existing.path)} and '
-        '${p.basename(input.path)} both produce the resgen symbol $symbol '
-        '(prefixes sanitise to "${prefix.toUpperCase()}"). Rename one of the '
-        'materials or set a distinct resgen_prefixes entry for it — linking '
-        'would fail with a duplicate symbol definition.',
-      );
-    }
-    bySymbol[symbol] = input;
-    prefixes[input] = prefix;
-  }
-  for (final reservedPrefix in reserved) {
-    final symbol = '${reservedPrefix.toUpperCase()}_PACKAGE';
-    final input = bySymbol[symbol];
-    if (input != null) {
-      throw MaterialToolsError(
-        'material_compilation input ${p.basename(input.path)} produces the '
-        'resgen symbol $symbol, which collides with one of Thermion\'s own '
-        'built-in materials compiled into libthermion_dart. Rename the '
-        'material, or give it a distinct prefix with a resgen_prefixes entry '
-        '(e.g. ${p.basenameWithoutExtension(input.path)}: '
-        'app_${p.basenameWithoutExtension(input.path)}).',
-      );
-    }
-  }
-  return prefixes;
-}
-
-/// Fails a build early when `link_generated` is configured for a build that
-/// produces no native library. Web (`!buildCodeAssets`) builds return before
-/// any CBuilder exists; their material `.c` sources are compiled into the
-/// wasm engine via native/web CMakeLists instead, which this option does not
-/// affect — so silently ignoring the flag would ship a library without the
-/// symbols the user asked for.
-void checkMaterialLinkingBuildable({required bool buildCodeAssets, required MaterialCompilationConfig config}) {
-  if (config.linkGenerated && !buildCodeAssets) {
-    throw MaterialToolsError(
-      'material_compilation.link_generated is set, but this is a web build '
-      '(buildCodeAssets is false) and web builds produce no '
-      'libthermion_dart to link into: material C sources for web are '
-      'compiled into the wasm engine through native/web CMakeLists, which '
-      'this option does not affect.\n'
-      'Remove link_generated from material_compilation for web builds '
-      '(resgen: true still emits the .c/.h if you need them for your own '
-      'wasm build), or build for a native target (Android, iOS, macOS, '
-      'Linux, Windows).',
-    );
-  }
-}
-
 //
 // matcId + manifest
 //
@@ -613,21 +474,13 @@ class MaterialsManifest {
     required this.matcSha256,
     required this.backends,
     required this.resgen,
-    required this.linkedGenerated,
     required this.inputs,
   });
 
   final String matcId;
   final String? matcSha256;
   final List<String> backends;
-
-  /// Whether `.c`/`.h` emission was on (resgen OR link_generated).
   final bool resgen;
-
-  /// Whether the emitted `.c` files were linked into libthermion_dart
-  /// (the run's `link_generated` value). A change forces a full rebuild so
-  /// the record can never disagree with reality.
-  final bool linkedGenerated;
 
   /// input path (relative to the app root, as passed in) -> sha256, plus
   /// `"outputs/<input>": [file names]` entries recording what was written.
@@ -658,7 +511,6 @@ MaterialsManifest? readMaterialsManifest(File manifest) {
     matcSha256: decoded['matcSha256'] is String ? decoded['matcSha256'] as String : null,
     backends: List<String>.from(backends.cast<String>()),
     resgen: decoded['resgen'] == true,
-    linkedGenerated: decoded['linkedGenerated'] == true,
     inputs: inputs.map((k, v) => MapEntry(k, v is String ? v : '')),
   );
   final outputs = decoded['outputs'];
@@ -677,7 +529,6 @@ String encodeMaterialsManifest({
   required String? matcSha256,
   required List<String> backends,
   required bool resgen,
-  required bool linkedGenerated,
   required Map<String, String> inputs,
   required Map<String, List<String>> outputs,
 }) {
@@ -688,7 +539,6 @@ String encodeMaterialsManifest({
     if (matcSha256 != null) 'matcSha256': matcSha256,
     'backends': backends,
     'resgen': resgen,
-    'linkedGenerated': linkedGenerated,
     'inputs': orderedInputs,
     'outputs': outputs,
     'generatedAt': DateTime.now().toUtc().toIso8601String(),
@@ -1045,8 +895,7 @@ class MaterialCompilePlan {
 ///                               .mat files (the core requirement: a
 ///                               Filament/thermion bump ships a new matc and
 ///                               every blob must be rebuilt)
-///   - backends/resgen/link_generated differ -> recompile everything
-///                               (config change)
+///   - backends/resgen differ -> recompile everything (config change)
 ///   - cached matc hash moved -> recompile everything
 ///   - input added/removed/hash changed -> recompile that input
 ///   - output file missing    -> recompile that input (the manifest alone is
@@ -1059,25 +908,15 @@ MaterialCompilePlan planMaterialCompilation({
   required Directory outputDir,
   required String matcId,
   required List<String> backends,
-
-  /// Whether `.c`/`.h` emission is on: `resgen` OR `link_generated`.
   required bool resgen,
-
-  /// Whether the emitted `.c` files are linked into libthermion_dart.
-  bool linkGenerated = false,
   String? matcSha256,
 
-  /// The `resgen_prefixes` overrides, used both for the plan-time symbol
-  /// collision check and for presence checks matching custom prefixes.
-  Map<String, String> resgenPrefixes = const {},
+  /// Resolves the resgen symbol prefix of an input (null = the stem), so
+  /// presence checks match the files a custom prefix actually produces.
+  String? Function(File input)? resgenPrefixFor,
 }) {
   final manifest = readMaterialsManifest(File(p.join(outputDir.path, materialManifestName)));
   final stems = checkOutputStems(inputs);
-  checkResgenPrefixes(
-    inputs,
-    resgenPrefixes: resgenPrefixes,
-    reserved: linkGenerated ? reservedResgenPrefixes.toSet() : const <String>{},
-  );
 
   if (manifest == null) {
     return MaterialCompilePlan(
@@ -1100,10 +939,6 @@ MaterialCompilePlan planMaterialCompilation({
         '${backends.join(',')})';
   } else if (manifest.resgen != resgen) {
     fullReason = 'resgen changed (${manifest.resgen} -> $resgen)';
-  } else if (manifest.linkedGenerated != linkGenerated) {
-    fullReason =
-        'link_generated changed (${manifest.linkedGenerated} -> '
-        '$linkGenerated) — recompiling so the manifest records what was linked';
   } else if (matcSha256 != null && manifest.matcSha256 != null && manifest.matcSha256 != matcSha256) {
     fullReason = 'the cached matc binary changed — rebuilding everything';
   }
@@ -1130,11 +965,10 @@ MaterialCompilePlan planMaterialCompilation({
   for (final input in inputs) {
     final recorded = manifest.inputs[_manifestKey(input, appRoot)];
     final stem = stems[input]!;
-    final prefix = resgenPrefixFor(input, stem: stem, resgenPrefixes: resgenPrefixes);
     final outputsPresent = expectedOutputNames(
       stem,
       resgen: resgen,
-      prefix: prefix,
+      prefix: resgenPrefixFor?.call(input),
     ).every((name) => File(p.join(outputDir.path, name)).existsSync());
     if (recorded == null) {
       toCompile.add(input);
@@ -1175,11 +1009,6 @@ typedef UserMaterialsResult = ({
 
   /// Whether the matc/resgen pair had to be downloaded this run.
   bool toolsDownloaded,
-
-  /// The generated `.c` files to compile into libthermion_dart when
-  /// `link_generated` is on — exactly the set the manifest vouches for
-  /// (see [linkedGeneratedSources]); empty otherwise.
-  List<File> linkedSources,
 });
 
 /// End-to-end entry point used by the build hook.
@@ -1246,27 +1075,19 @@ Future<UserMaterialsResult> compileUserMaterials({
     outputDir: outputDir,
     matcId: matcId,
     backends: config.backends,
-    resgen: config.emitsResgen,
-    linkGenerated: config.linkGenerated,
+    resgen: config.resgen,
     matcSha256: cachedMatcHash,
-    resgenPrefixes: config.resgenPrefixes,
+    resgenPrefixFor: (input) =>
+        config.resgenPrefixes[stems[input]!] ?? config.resgenPrefixes[p.basenameWithoutExtension(input.path)],
   );
   final previousManifest = readMaterialsManifest(manifestFile);
-  List<File> linked() => linkedGeneratedSources(config: config, inputs: inputs, outputDir: outputDir, appRoot: appRoot);
 
   if (plan.toCompile.isEmpty && plan.staleOutputs.isEmpty) {
     log(
       'thermion materials: all ${inputs.length} up to date '
       '(matcId ${_shortId(matcId)}); nothing compiled into ${outputDir.path}',
     );
-    return (
-      inputs: inputs,
-      outputDir: outputDir,
-      compiled: 0,
-      skipped: inputs.length,
-      toolsDownloaded: false,
-      linkedSources: linked(),
-    );
+    return (inputs: inputs, outputDir: outputDir, compiled: 0, skipped: inputs.length, toolsDownloaded: false);
   }
 
   if (plan.reason != null) {
@@ -1283,8 +1104,7 @@ Future<UserMaterialsResult> compileUserMaterials({
       matcId: matcId,
       matcSha256: cachedMatcHash ?? previousManifest?.matcSha256,
       backends: config.backends,
-      resgen: config.emitsResgen,
-      linkGenerated: config.linkGenerated,
+      resgen: config.resgen,
       inputs: {for (final input in inputs) _manifestKey(input, appRoot): inputHashes[input]!},
       previousOutputs: previousManifest?.outputs ?? const {},
     );
@@ -1292,14 +1112,7 @@ Future<UserMaterialsResult> compileUserMaterials({
       'thermion materials: 0 of ${inputs.length} needed compiling '
       '(cleaned ${plan.staleOutputs.length} stale outputs in ${outputDir.path})',
     );
-    return (
-      inputs: inputs,
-      outputDir: outputDir,
-      compiled: 0,
-      skipped: inputs.length,
-      toolsDownloaded: false,
-      linkedSources: linked(),
-    );
+    return (inputs: inputs, outputDir: outputDir, compiled: 0, skipped: inputs.length, toolsDownloaded: false);
   }
 
   final tools = await ensureMaterialTools(
@@ -1322,13 +1135,13 @@ Future<UserMaterialsResult> compileUserMaterials({
   final writtenOutputs = <String, List<String>>{};
   for (final input in plan.toCompile) {
     final stem = stems[input]!;
-    final prefix = resgenPrefixFor(input, stem: stem, resgenPrefixes: config.resgenPrefixes);
+    final prefix = config.resgenPrefixes[stem] ?? config.resgenPrefixes[p.basenameWithoutExtension(input.path)] ?? stem;
     writtenOutputs[_manifestKey(input, appRoot)] = await _compileOne(
       input: input,
       stem: stem,
       prefix: prefix,
       backends: config.backends,
-      runResgen: config.emitsResgen,
+      runResgen: config.resgen,
       outputDir: outputDir,
       matc: tools.matc,
       resgen: tools.resgen,
@@ -1348,8 +1161,7 @@ Future<UserMaterialsResult> compileUserMaterials({
     matcId: matcId,
     matcSha256: usedMatcHash,
     backends: config.backends,
-    resgen: config.emitsResgen,
-    linkGenerated: config.linkGenerated,
+    resgen: config.resgen,
     inputs: inputsByManifestKey,
     previousOutputs: {...?previousManifest?.outputs, ...writtenOutputs},
     restrictTo: inputsByManifestKey.keys.toSet(),
@@ -1360,8 +1172,7 @@ Future<UserMaterialsResult> compileUserMaterials({
       'thermion materials: compiled ${plan.toCompile.length} of ${inputs.length} '
       'into ${outputDir.path} (backends ${config.backends.join(',')}',
     );
-  if (config.emitsResgen) summary.write(', resgen on');
-  if (config.linkGenerated) summary.write(', linking generated .c into libthermion_dart');
+  if (config.resgen) summary.write(', resgen on');
   if (plan.skipped.isNotEmpty) summary.write('; ${plan.skipped.length} skipped as up to date');
   if (plan.reason != null) summary.write('; full rebuild');
   summary.write(')');
@@ -1373,75 +1184,7 @@ Future<UserMaterialsResult> compileUserMaterials({
     compiled: plan.toCompile.length,
     skipped: plan.skipped.length,
     toolsDownloaded: tools.downloaded,
-    linkedSources: linked(),
   );
-}
-
-/// The generated `.c` files that may be compiled into libthermion_dart for
-/// a `link_generated` run: for every current input, the `.c` outputs the
-/// manifest vouches for, verified to exist on disk.
-///
-/// Deliberately NOT a directory listing: stale leftovers the manifest does
-/// not vouch for (e.g. from an interrupted run, or a hand-dropped file) are
-/// never linked. A vouched file that has gone missing is an error, not a
-/// silent gap — the plan step should have recompiled it.
-List<File> linkedGeneratedSources({
-  required MaterialCompilationConfig config,
-  required List<File> inputs,
-  required Directory outputDir,
-  required Directory appRoot,
-}) {
-  if (!config.linkGenerated) return const [];
-  final manifest = readMaterialsManifest(File(p.join(outputDir.path, materialManifestName)));
-  if (manifest == null) {
-    throw MaterialToolsError(
-      'material_compilation.link_generated: no readable '
-      '${materialManifestName} in ${outputDir.path} to vouch for the '
-      'generated sources.',
-    );
-  }
-  final linked = <File>[];
-  for (final input in inputs) {
-    final names = manifest.outputs[_manifestKey(input, appRoot)] ?? const <String>[];
-    for (final name in names) {
-      if (!name.endsWith('.c')) continue;
-      final file = File(p.join(outputDir.path, name));
-      if (!file.existsSync()) {
-        throw MaterialToolsError(
-          'material_compilation.link_generated: $name (from '
-          '${p.basename(input.path)}) is recorded in the manifest but '
-          'missing from ${outputDir.path}.',
-        );
-      }
-      linked.add(file);
-    }
-  }
-  return linked;
-}
-
-/// Appends the [linkedSources] emitted by [compileUserMaterials] to the
-/// CBuilder inputs: each `.c` goes onto [sources] and the output directory
-/// onto [includeDirs], so `skin.c` can resolve `#include "skin.h"`. This is
-/// the same mechanism the hook uses for Thermion's own materials
-/// (`materialSources` under native/include/material). Absolute paths (like
-/// the plugin include dirs) are fine for CBuilder on every platform.
-///
-/// Returns the number of sources added; 0 when linking is disabled (the
-/// hook never calls it then, so nothing mutates).
-int linkGeneratedIntoNativeBuild({
-  required List<String> sources,
-  required List<String> includeDirs,
-  required List<File> linkedSources,
-  required Directory outputDir,
-}) {
-  if (linkedSources.isEmpty) return 0;
-  if (!includeDirs.contains(outputDir.path)) {
-    includeDirs.add(outputDir.path);
-  }
-  for (final source in linkedSources) {
-    if (!sources.contains(source.path)) sources.add(source.path);
-  }
-  return linkedSources.length;
 }
 
 void _removeStaleOutputs(List<String> staleOutputs, Directory outputDir, void Function(String) log) {
@@ -1462,7 +1205,6 @@ void _writeManifest(
   required String? matcSha256,
   required List<String> backends,
   required bool resgen,
-  required bool linkGenerated,
   required Map<String, String> inputs,
   required Map<String, List<String>> previousOutputs,
   Set<String>? restrictTo,
@@ -1478,7 +1220,6 @@ void _writeManifest(
       matcSha256: matcSha256,
       backends: backends,
       resgen: resgen,
-      linkedGenerated: linkGenerated,
       inputs: inputs,
       outputs: outputs,
     ),
@@ -1538,11 +1279,6 @@ Future<List<String>> _compileOne({
           '${resgenResult.stderr.isNotEmpty ? resgenResult.stderr : resgenResult.stdout}',
         );
       }
-      // resgen's raw .c does not include its own header, so its
-      // `const uint8_t <NAME>_PACKAGE[]` definition would have internal
-      // linkage under CBuilder's -x c++ and be dead-stripped at -O3 —
-      // patch for external C linkage exactly like thermion's own pipeline.
-      patchResgenOutput(staging, log: log);
     }
 
     // Move every produced file into place atomically.
@@ -1561,52 +1297,6 @@ Future<List<String>> _compileOne({
   } finally {
     if (staging.existsSync()) {
       staging.deleteSync(recursive: true);
-    }
-  }
-}
-
-/// Post-processes resgen output in [staging] exactly the way Thermion's own
-/// materials pipeline does (materials/build.sh), because resgen's raw output
-/// cannot be compiled into libthermion_dart as-is:
-///
-///  - Each emitted `<name>.c` gets `#include "<name>.h"` prepended. The
-///    header declares `extern "C" { extern const uint8_t <NAME>_PACKAGE[]; }`;
-///    a definition that FOLLOWS that declaration has external C linkage.
-///    Without the include, CBuilder compiles the `.c` as C++ (`-x c++`),
-///    the `const` definition gets internal linkage, and `-O3` dead-strips
-///    the unreferenced array — the symbol silently never reaches the
-///    library (verified on a real build: the `.so` grew by 32 bytes and
-///    exported nothing). Compiling the `.c` separately and archiving it
-///    (the Objective-C route) would not help: an archive member nothing
-///    references is never pulled in by the linker.
-///  - The header's raw `extern "C" {` (invalid C) is wrapped in
-///    `#ifdef __cplusplus` guards, so the emitted header is valid in both
-///    C and C++.
-///
-/// Both patches are no-ops on already-processed or differently-shaped
-/// output; everything happens in staging, before the atomic move.
-void patchResgenOutput(Directory staging, {required void Function(String message) log}) {
-  for (final entity in staging.listSync().whereType<File>()) {
-    final name = p.basename(entity.path);
-    if (name.endsWith('.c')) {
-      final headerName = '${p.basenameWithoutExtension(name)}.h';
-      if (!File(p.join(staging.path, headerName)).existsSync()) continue;
-      final content = entity.readAsStringSync();
-      if (content.contains('#include "$headerName"')) continue;
-      entity.writeAsStringSync('#include "$headerName"\n$content', flush: true);
-      log(
-        'thermion materials: patched $name to include $headerName '
-        '(external C linkage for the package symbol)',
-      );
-    } else if (name.endsWith('.h')) {
-      final content = entity.readAsStringSync();
-      if (content.contains('#ifdef __cplusplus')) continue;
-      final patched = content
-          .replaceFirst('extern "C" {', '#ifdef __cplusplus\nextern "C" {\n#endif')
-          .replaceFirst(RegExp(r'\n\}\n'), '\n#ifdef __cplusplus\n}\n#endif\n');
-      if (patched != content) {
-        entity.writeAsStringSync(patched, flush: true);
-      }
     }
   }
 }
