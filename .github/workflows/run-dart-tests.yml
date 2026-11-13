@@ -201,14 +201,26 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PYTHON'
+          import json
           import os
           import pathlib
           import subprocess
-          import sys
-          filename = 'thermion_dart.dll' if sys.platform == 'win32' else 'libthermion_dart.so'
-          library = pathlib.Path('thermion_dart/.dart_tool/lib', filename).resolve()
-          if not library.is_file():
-              raise SystemExit(f'Native test library missing: {library}')
+          # Read the hook's code asset rather than assuming the Dart SDK's
+          # staging directory, which differs between SDKs and platforms.
+          libraries = set()
+          outputs = pathlib.Path('thermion_dart/.dart_tool/hooks_runner/thermion_dart')
+          for output in outputs.glob('*/output.json'):
+              for asset in json.loads(output.read_text()).get('assets', []):
+                  encoding = asset.get('encoding', {})
+                  if (asset.get('type') == 'code_assets/code'
+                          and encoding.get('id') == 'package:thermion_dart/thermion_dart.dart'):
+                      library = pathlib.Path(encoding['file']).resolve()
+                      if library.is_file():
+                          libraries.add(library)
+          if len(libraries) != 1:
+              raise SystemExit(f'Expected one built Thermion code asset, found: {libraries}')
+          library = libraries.pop()
+          print(f'Running native regressions against {library}', flush=True)
           build = pathlib.Path(os.environ['RUNNER_TEMP'], 'engine-api-lock-tests')
           subprocess.run(['cmake', '-S', 'thermion_dart/native/test/rendering', '-B', str(build),
                           '-DCMAKE_BUILD_TYPE=Debug', f'-DTHERMION_TEST_LIBRARY={library}'], check=True)
