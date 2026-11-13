@@ -60,6 +60,21 @@ int main() {
         }
         check(executed == 201);
     }
+    // Under continuous direct-call traffic the waiter count may never reach
+    // zero, even while the mutex is available. Model that backlog without
+    // holding the mutex: a queued task must not wait for the backlog to drain.
+    {
+        auto owner = JobThread::create();
+        std::promise<void> executed;
+        auto ready = executed.get_future();
+        engineApiWaiters().fetch_add(1);
+        owner->addDetachedTask([&] { executed.set_value(); });
+        const bool progressed = ready.wait_for(2s) == std::future_status::ready;
+        engineApiWaiters().fetch_sub(1);
+        JobThread::destroy(std::move(owner));
+        check(progressed);
+        check(engineApiWaiters() == 0);
+    }
     // Dart completions raised inside a task must run after the task, with the
     // engine API lock released (a Dart callback can block until another thread
     // that needs the lock makes progress).

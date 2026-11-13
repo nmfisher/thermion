@@ -91,7 +91,8 @@ std::recursive_mutex& engineApiMutex();
 // The job thread runs tasks back to back; std::recursive_mutex is not fair, so
 // without a handoff a busy queue (GLB loads, many queued setters) re-takes the
 // lock between tasks and starves the caller's thread for seconds. Before
-// taking the lock for its next task the job thread waits until this is 0.
+// taking the lock for its next task the job thread yields for a bounded
+// number of attempts before contending for the mutex itself.
 std::atomic<int>& engineApiWaiters();
 
 // Never call into Dart while holding engineApiMutex(). A Dart completion

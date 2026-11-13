@@ -69,15 +69,12 @@ void deferDartCallback(std::function<void()> fn) {
     }
 }
 
-// Let callers that are already waiting take the lock before the next
-// task. Yield first; back off to short sleeps if a caller holds it for long.
+// Give waiting direct callers a chance before the next task, then compete
+// for the mutex normally. A continuous stream of direct calls can keep the
+// waiter count nonzero indefinitely; waiting for it to drain starves the worker.
 static void yieldToDirectCallers() {
-    for (int spins = 0; engineApiWaiters().load(std::memory_order_acquire) > 0; ++spins) {
-        if (spins < 64) {
-            std::this_thread::yield();
-        } else {
-            std::this_thread::sleep_for(std::chrono::microseconds(50));
-        }
+    for (int spins = 0; spins < 64 && engineApiWaiters().load(std::memory_order_acquire) > 0; ++spins) {
+        std::this_thread::yield();
     }
 }
 
