@@ -1051,12 +1051,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     }
     final out = Int32List(await getBoneCount(skinIndex: skinIndex));
     if (out.isNotEmpty) {
-      withNativeBuffer(
-        out,
-        (ptr) => SceneAsset_getBones(asset, skinIndex, ptr.cast()),
-        copyIn: false,
-        copyBack: true,
-      );
+      withNativeBuffer(out, (ptr) => SceneAsset_getBones(asset, skinIndex, ptr.cast()), copyIn: false, copyBack: true);
     }
     return out;
   }
