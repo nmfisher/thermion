@@ -4,6 +4,25 @@
 
 ### New features
 
+- New `material_compilation.link_generated: true` option (follow-up to the
+  `material_compilation` build hook below): the `.c` files emitted by
+  resgen are also compiled and linked **into `libthermion_dart`** — the
+  same mechanism Thermion uses for its own materials — instead of being
+  left in the output directory for you to build yourself. `link_generated`
+  implies `resgen` emission, is native-only (a web build with it set fails
+  with an actionable error: web material C is compiled into the wasm engine
+  via CMakeLists), and exports the generated `<PREFIX>_PACKAGE` symbols
+  (e.g. `SKIN_PACKAGE`) resolvable from Dart FFI through the default code
+  asset. Symbol collisions are caught at plan time with both inputs named:
+  two materials whose resgen prefixes sanitise to the same symbol, or a
+  material reusing one of Thermion's built-in material names (`grid`,
+  `image`, `gizmo`, ...) under `link_generated`, fail before anything is
+  compiled. Only the `.c` files the materials manifest vouches for are
+  linked; the manifest records whether linking was on. Generated sources
+  establish external C linkage, guard C++ declarations, and explicitly export
+  data symbols with default visibility on Android/ELF and `dllexport` on
+  Windows. Manifest pipeline schema v6 rebuilds older generated outputs once.
+
 - Compile the *consuming app's own* `.mat` files in the Dart build hook
   (issue #399). Add `material_compilation` (inputs / output / backends /
   resgen) under `hooks.user_defines.thermion_dart` in your app's

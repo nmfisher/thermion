@@ -257,15 +257,4 @@ void main() {
     },
     timeout: const Timeout(Duration(minutes: 2)),
   );
-
-  test('native linking is explicitly unavailable in the core compilation PR', () {
-    expect(
-      () => parseMaterialCompilationConfig({
-        'inputs': ['materials'],
-        'output': 'out',
-        'link_generated': true,
-      }),
-      throwsA(isA<MaterialToolsError>()),
-    );
-  });
 }
