@@ -155,18 +155,23 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
 
       _azimuth += _pendingDeltaAzimuth;
       _elevation += _pendingDeltaElevation;
-      _radius = (_radius + _pendingDeltaRadius) * _pendingRadiusScale;
+      // Clamp the stored radius itself, not just a local copy: an unclamped
+      // _radius could wind up to 0 (or negative) via scroll windup or a
+      // degenerate pinch, after which every multiplicative pinch applies to a
+      // zero/negative base and zoom is bricked or inverted. The floor keeps
+      // the base non-zero even when minZoomDistance <= 0.
+      _radius = ((_radius + _pendingDeltaRadius) * _pendingRadiusScale)
+          .clamp(math.max(minZoomDistance, 1e-4), maxZoomDistance);
       _pendingDeltaAzimuth = 0;
       _pendingDeltaElevation = 0;
       _pendingDeltaRadius = 0;
       _pendingRadiusScale = 1.0;
       _hasPendingUpdate = false;
 
-      var radius = _radius;
+      final radius = _radius;
 
       // Clamp parameters
       _elevation = _elevation.clamp(-math.pi / 2 + 0.01, math.pi / 2 - 0.01); // Prevent gimbal lock at poles
-      radius = radius.clamp(minZoomDistance, maxZoomDistance);
       _azimuth = _azimuth % (2 * math.pi); // Keep azimuth within 0-2PI range (optional)
 
       final double xOffset = radius * math.cos(_elevation) * math.sin(_azimuth);
@@ -273,14 +278,14 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
             // scale seen in this gesture. Never fold into [_radius] here —
             // [_radius] may still be the uninitialized placeholder until
             // [_initializeFromCamera] has run inside [_applyPending].
-            if (scaleFactor <= 0 || _lastPinchScale <= 0) {
-              // Degenerate collapse (both pointers at the same pixel):
-              // cumulative span is 0, so the total gesture scale is 0.
-              _pendingRadiusScale = 0;
-            } else {
+            if (scaleFactor > 0 && _lastPinchScale > 0) {
               _pendingRadiusScale *= scaleFactor / _lastPinchScale;
+              _lastPinchScale = scaleFactor;
             }
-            _lastPinchScale = scaleFactor;
+            // Degenerate samples (both pointers at the same pixel report a
+            // cumulative span of 0) are ignored above rather than folded in:
+            // a zero ratio would collapse _pendingRadiusScale to 0 and zero
+            // out the radius in [_applyPending].
           }
         case ScaleEndEvent():
           // The gesture's increments were already accumulated per update;
