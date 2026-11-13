@@ -74,6 +74,37 @@ void main() {
     }
   }, skip: !FILAMENT_WASM);
 
+  test('successful compilation preserves the Wasm stack through material creation', () async {
+    for (final compile in <Future<Material> Function()>[
+      () => app.compileMaterialSource(
+        'stack_source_success',
+        'void material(inout MaterialInputs material) { prepareMaterial(material); material.baseColor = vec4(1.0); }',
+        shading: MaterialShading.unlit,
+      ),
+      () => app.compileMaterialPackage('stack_package_success', '''
+material { name : StackPackage, shadingModel : unlit }
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = vec4(1.0);
+    }
+}
+'''),
+    ]) {
+      final stack = stackSave();
+      try {
+        final material = await compile();
+        try {
+          expect(stackSave().address, stack.address, reason: 'successful compile retained Wasm stack space');
+        } finally {
+          await material.destroy();
+        }
+      } finally {
+        stackRestore(stack);
+      }
+    }
+  }, skip: !FILAMENT_WASM);
+
   test('error results own their text and legacy functions still return null', () {
     final name = 'owned_error'.toNativeUtf8().cast<Char>();
     final firstSource = 'firstInvalidBlock {}'.toNativeUtf8().cast<Char>();

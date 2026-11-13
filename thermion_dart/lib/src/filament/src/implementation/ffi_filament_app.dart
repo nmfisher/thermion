@@ -646,11 +646,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (data.isEmpty) {
       throw const FormatException('Material package is empty.');
     }
-    try {
-      // Each .address is a separate synchronous borrow. The render-thread
-      // entry point snapshots in native code before returning, and the native
-      // builder checks that snapshot again before passing it to Filament.
-      final actualVersion = Material_getPackageVersion(data.address, data.length).toInt();
+    // Web uses one scoped heap copy, avoiding stack allocation for package
+    // bytes. Native borrows the Dart storage. The render-thread entry point
+    // snapshots synchronously; keep the scope until its completion callback.
+    return data.pass((buffer) async {
+      final actualVersion = Material_getPackageVersion(buffer.address, buffer.length).toInt();
       if (actualVersion < 0) {
         throw const FormatException('Invalid material package chunk layout or version metadata.');
       }
@@ -662,15 +662,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         );
       }
       final ptr = await withPointerCallback<TMaterial>((cb) {
-        Engine_buildMaterialJobThread(jobThreadHandle, engine, data.address, data.length, cb);
+        Engine_buildMaterialJobThread(jobThreadHandle, engine, buffer.address, buffer.length, cb);
       });
       if (ptr == nullptr) {
         throw StateError('Filament could not create the material.');
       }
       return FFIMaterial(ptr, this);
-    } finally {
-      if (FILAMENT_WASM) data.free();
-    }
+    });
   }
 
   @override

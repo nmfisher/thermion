@@ -123,6 +123,34 @@ void main() {
       }
     });
 
+    test('repeated material creation preserves the Wasm stack', () async {
+      final stack = stackSave();
+      try {
+        for (var i = 0; i < 20; i++) {
+          final material = await app.createMaterial(validPackage);
+          try {
+            expect(stackSave().address, stack.address, reason: 'material creation $i retained Wasm stack space');
+          } finally {
+            await material.destroy();
+          }
+        }
+      } finally {
+        stackRestore(stack);
+      }
+    }, skip: !FILAMENT_WASM);
+
+    test('package rejection preserves the Wasm stack', () async {
+      final stack = stackSave();
+      try {
+        for (final bytes in [withVersion(69), ...malformedPackages().values]) {
+          await expectLater(app.createMaterial(bytes), throwsFormatException);
+          expect(stackSave().address, stack.address);
+        }
+      } finally {
+        stackRestore(stack);
+      }
+    }, skip: !FILAMENT_WASM);
+
     test('native render-thread path completes with null for rejected packages', () async {
       for (final bytes in [withVersion(69), ...malformedPackages().values.where((bytes) => bytes.isNotEmpty)]) {
         try {
