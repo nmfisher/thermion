@@ -152,12 +152,18 @@ blob built by an older `matc` is never silently kept. Otherwise:
 #### Tools and cache
 
 `matc` (and `resgen` when `resgen: true`) are downloaded from Thermion's R2
-bucket for the **host** platform (`filament-<tag>-<host>-release.zip`, only
-the `bin/` entries are extracted) into:
+bucket for the **host** platform. The hook selects the release archive through
+the shipped `filament.libs.json` pin and verifies its full SHA-256 before
+extracting `bin/`. Pinned archives use immutable hash-suffixed URLs; a pin
+change selects a separate tool cache and rebuilds the app’s material packages.
+The cache lives under:
 
 ```
-${XDG_CACHE_HOME:-$HOME/.cache}/thermion/filament-tools/filament-<tag>-webgpu-<host>/
+${XDG_CACHE_HOME:-$HOME/.cache}/thermion/filament-tools/filament-<tag>-webgpu-<host>-<hash16>/
 ```
+
+Without a pin entry, the hook falls back to the legacy archive URL and omits
+the hash suffix from the cache directory.
 
 The cache is shared by all projects on the machine and is trusted only
 after `matc` passes a `-a webgpu` smoke test. Installation holds a shared
