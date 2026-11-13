@@ -15,6 +15,8 @@
 // Exit codes: 0 pass, 2 setup failure, 3 hierarchy corrupted, 4 lock not held,
 // by job-thread tasks, 5/6 starvation (caller wait > 250 ms / < 100 job ticks). A crash shows as the platform's crash exit code.
 
+#include "c_api/TBackend.h"
+
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -89,7 +91,7 @@ static EntityId makeNode(EntityId parent) {
 
 // --- job-thread tasks (no user data in JobThread_addTask, so globals) ------
 static void setupTask() {
-    gEngine = Engine_create(5 /* filament::Engine::Backend::NOOP in Filament 1.77 (TBackend NOOP=4 maps to WEBGPU there) */, nullptr, nullptr, 1, false);
+    gEngine = Engine_create(BACKEND_NOOP, nullptr, nullptr, 1, false);
     if (gEngine) {
         gTm = Engine_getTransformManager(gEngine);
         gEm = Engine_getEntityManager(gEngine);

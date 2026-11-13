@@ -103,8 +103,10 @@ int main() {
         bool reentered = false;
         {
             EngineApiGuard outer;
+            check(engineApiWaiters() == 0);
             {
                 EngineApiGuard inner;
+                check(engineApiWaiters() == 0);
                 const int result = 42;
                 deferDartCallback([&, result] {
                     check(result == 42); // task-local payload was copied

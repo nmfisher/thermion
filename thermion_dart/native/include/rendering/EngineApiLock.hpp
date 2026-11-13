@@ -87,8 +87,8 @@ namespace thermion {
 // runs at DLL unload and no static-destruction-order hazard exists).
 std::recursive_mutex& engineApiMutex();
 
-// Number of guards currently acquiring or waiting for engineApiMutex(). The job
-// thread runs tasks back to back; std::recursive_mutex is not fair, so
+// Number of outer guards currently acquiring or waiting for engineApiMutex().
+// The job thread runs tasks back to back; std::recursive_mutex is not fair, so
 // without a handoff a busy queue (GLB loads, many queued setters) re-takes the
 // lock between tasks and starves the caller's thread for seconds. Before
 // taking the lock for its next task the job thread waits until this is 0.

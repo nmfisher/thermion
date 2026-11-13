@@ -197,6 +197,25 @@ jobs:
             test/skybox_tests.dart `
             --concurrency=1
 
+      - name: Run native engine lock and callback regressions
+        shell: bash
+        run: |
+          python3 - <<'PYTHON'
+          import os
+          import pathlib
+          import subprocess
+          import sys
+          filename = 'thermion_dart.dll' if sys.platform == 'win32' else 'libthermion_dart.so'
+          library = pathlib.Path('thermion_dart/.dart_tool/lib', filename).resolve()
+          if not library.is_file():
+              raise SystemExit(f'Native test library missing: {library}')
+          build = pathlib.Path(os.environ['RUNNER_TEMP'], 'engine-api-lock-tests')
+          subprocess.run(['cmake', '-S', 'thermion_dart/native/test/rendering', '-B', str(build),
+                          '-DCMAKE_BUILD_TYPE=Debug', f'-DTHERMION_TEST_LIBRARY={library}'], check=True)
+          subprocess.run(['cmake', '--build', str(build), '--config', 'Debug', '--parallel', '2'], check=True)
+          subprocess.run(['ctest', '--test-dir', str(build), '-C', 'Debug', '--output-on-failure'], check=True)
+          PYTHON
+
       - name: Upload Dart test output candidate
         uses: actions/upload-artifact@v4
         with:
