@@ -21,7 +21,7 @@ for archive in args.archives:
                 destination.write_bytes(package.read(f'bin/{name}{suffix}'))
                 destination.chmod(0o755)
                 if sys.platform == 'darwin':
-                    subprocess.run(['lipo', '-verify_arch', 'arm64', 'x86_64', str(destination)], check=True)
+                    subprocess.run(['lipo', str(destination), '-verify_arch', 'arm64', 'x86_64'], check=True)
         material = root / 'smoke.mat'
         material.write_text('material { name : HostToolsSmoke, shadingModel : unlit }\n')
         output = root / 'smoke.filamat'

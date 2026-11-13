@@ -100,6 +100,9 @@ jobs:
       - name: Checkout thermion
         uses: actions/checkout@v4
 
+      - name: Test host-tool verification before building
+        run: python3 -m unittest discover -s scripts -p 'test_verify_material_host_tools.py' -v
+
       - name: Checkout Filament
         run: git clone --depth 1 --branch ${{ env.FILAMENT_VERSION }} ${{ env.FILAMENT_REPO }} filament
 
@@ -111,12 +114,6 @@ jobs:
           mkdir -p output
           chmod +x scripts/build_macos.sh
           scripts/build_macos.sh filament ${{ env.FILAMENT_VERSION }} output --clean
-
-      - name: Verify packaged universal matc and resgen
-        run: |
-          python3 scripts/verify-material-host-tools.py \
-            output/filament-${{ env.FILAMENT_VERSION }}-macos-release.zip \
-            output/filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
@@ -131,6 +128,12 @@ jobs:
           name: filament-macos-debug
           path: output/filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
           retention-days: 7
+
+      - name: Verify packaged universal matc and resgen
+        run: |
+          python3 scripts/verify-material-host-tools.py \
+            output/filament-${{ env.FILAMENT_VERSION }}-macos-release.zip \
+            output/filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
 
       - name: Upload to R2
         if: inputs.upload_to_r2
