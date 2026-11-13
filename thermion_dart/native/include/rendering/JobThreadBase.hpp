@@ -9,6 +9,13 @@
 
 namespace thermion {
 
+// One queued unit of work. [isLifecycle] marks destruction/detachment work
+// that a pre-render drain must skip (see JobThreadBase::addLifecycleTask).
+struct TaskEntry {
+    std::function<void()> fn;
+    bool isLifecycle = false;
+};
+
 // Shared job submission and queue storage. Each platform controls scheduling,
 // its stop flag and worker destruction. Concrete workers are final so their
 // virtual hooks stay fixed during worker startup and shutdown.
@@ -33,7 +40,8 @@ public:
     /// Platforms that can drain pending work synchronously with an in-flight
     /// animation callback (the web worker's pre-render drain) keep this work
     /// out of that drain; everywhere else it behaves exactly like
-    /// [addDetachedTask].
+    /// [addDetachedTask]. Both kinds share one FIFO deque: lifecycle and
+    /// ordinary tasks must never reorder against each other.
     template <class Rt>
     auto addLifecycleTask(std::packaged_task<Rt()>& task) -> std::future<Rt> {
         auto result = task.get_future();
@@ -60,7 +68,10 @@ protected:
     }
 
     std::mutex _taskMutex;
-    std::deque<std::function<void()>> _tasks;
+    // Single FIFO deque for ordinary and lifecycle work; entries carry the
+    // lifecycle flag so a drain can stop at the next lifecycle barrier
+    // without reordering anything queued behind it.
+    std::deque<TaskEntry> _tasks;
 };
 
 } // namespace thermion

@@ -105,7 +105,7 @@ void WebJobThread::enqueue(std::function<void()> work) {
         Log("Cannot submit work after JobThread shutdown");
         std::abort();
     }
-    _tasks.push_back(std::move(work));
+    _tasks.push_back(TaskEntry{std::move(work), false});
     scheduleWakeLocked();
 #endif
 }
@@ -122,9 +122,11 @@ void WebJobThread::enqueueLifecycle(std::function<void()> work) {
         Log("Cannot submit work after JobThread shutdown");
         std::abort();
     }
-    // Lifecycle tasks run only from pumpTasks. The pre-render drain skips
-    // them so it can never free objects an animation callback is using.
-    _lifecycleTasks.push_back(std::move(work));
+    // Lifecycle tasks share the single FIFO deque (flagged, so the pre-render
+    // drain stops at them instead of running them). A second deque would let
+    // an unawaited attach (ordinary) overtake a queued detach (lifecycle) and
+    // permanently kill the Web render loop.
+    _tasks.push_back(TaskEntry{std::move(work), true});
     scheduleWakeLocked();
 #endif
 }
@@ -175,23 +177,13 @@ void WebJobThread::pumpTasks() {
     // yield to browser events with a zero-timeout continuation. The fixed cap
     // could split a multi-call scene update across animation frames; the
     // budget keeps long streams from starving the worker event loop instead.
-    // Lifecycle tasks always follow ordinary ones: destruction work delayed
-    // past later state updates is safe (everything it touches is still
-    // alive), while the reverse order is not.
+    // Ordinary and lifecycle entries share the deque and pop strictly in FIFO
+    // order, so an attach queued after a detach can never overtake it.
     std::unique_lock<std::mutex> lock(_taskMutex);
     const double drainStartMs = emscripten_get_now();
     while (!_tasks.empty()) {
-        auto task = std::move(_tasks.front());
+        auto task = std::move(_tasks.front().fn);
         _tasks.pop_front();
-        lock.unlock();
-        task();
-        task = {};
-        lock.lock();
-        if (emscripten_get_now() - drainStartMs > kDrainBudgetMs) break;
-    }
-    while (!_lifecycleTasks.empty()) {
-        auto task = std::move(_lifecycleTasks.front());
-        _lifecycleTasks.pop_front();
         lock.unlock();
         task();
         task = {};
@@ -202,7 +194,7 @@ void WebJobThread::pumpTasks() {
     lock.unlock();
     runAfterBatchCallback();
     lock.lock();
-    if (!_tasks.empty() || !_lifecycleTasks.empty()) {
+    if (!_tasks.empty()) {
         // A timer continuation yields the worker event loop; re-proxying onto
         // the currently executing queue could otherwise drain without yielding.
         emscripten_set_timeout(pumpCallback, 0, this);
@@ -229,22 +221,26 @@ void WebJobThread::drainPendingTasks() {
     // Pre-render drain: apply every ordinary task queued so far so a frame
     // never renders a partially-updated scene. Runs on this worker's thread
     // from RenderManager::onAnimationFrame; pumps and animation callbacks
-    // never nest on one thread, so this cannot re-enter itself. A wakeup that
-    // was already scheduled still fires afterwards and no-ops on the drained
-    // queue. Lifecycle tasks deliberately stay queued for pumpTasks. In
-    // THERMION_WEB_MAIN_THREAD mode commands execute inline, so this is a
+    // never nest on one thread, so this cannot re-enter itself. Stops at the
+    // first lifecycle entry — a barrier: draining ordinary tasks queued
+    // behind it would reorder the queue, and running the lifecycle entry
+    // itself could free objects the animation callback still touches. Those
+    // stay for the next pumpTasks. _wakePending is only cleared once the
+    // whole deque is empty, so queued lifecycle work keeps its wakeup and
+    // later enqueue() calls cannot schedule duplicate concurrent pumps.
+    // In THERMION_WEB_MAIN_THREAD mode commands execute inline, so this is a
     // no-op there.
     CurrentThreadScope current(*this);
     std::unique_lock<std::mutex> lock(_taskMutex);
-    while (!_tasks.empty()) {
-        auto task = std::move(_tasks.front());
+    while (!_tasks.empty() && !_tasks.front().isLifecycle) {
+        auto task = std::move(_tasks.front().fn);
         _tasks.pop_front();
         lock.unlock();
         task();
         task = {};
         lock.lock();
     }
-    if (!isStopping()) {
+    if (_tasks.empty() && !isStopping()) {
         _wakePending = false;
     }
 }
