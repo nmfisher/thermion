@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
  
 
 #include <filament/View.h>
@@ -30,6 +31,7 @@ namespace thermion
             TMaterial *tMaterial,
             TGizmoType tGizmoType)
         {
+    THERMION_ENGINE_API_GUARD;
 
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *view = reinterpret_cast<View *>(tView);
@@ -82,12 +84,14 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void Gizmo_pick(TGizmo *tGizmo, uint32_t x, uint32_t y, GizmoPickCallback callback)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *gizmo = reinterpret_cast<Gizmo *>(tGizmo);
             gizmo->pick(x, y, reinterpret_cast<Gizmo::GizmoPickCallback>(callback));
         }
 
         EMSCRIPTEN_KEEPALIVE void Gizmo_highlight(TGizmo *tGizmo, TGizmoAxis tAxis)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *gizmo = reinterpret_cast<Gizmo *>(tGizmo);
             auto axis = static_cast<Gizmo::Axis>(tAxis);
             gizmo->highlight(axis);
@@ -95,6 +99,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void Gizmo_unhighlight(TGizmo *tGizmo)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *gizmo = reinterpret_cast<Gizmo *>(tGizmo);
             gizmo->unhighlight(Gizmo::Axis::X);
             gizmo->unhighlight(Gizmo::Axis::Y);

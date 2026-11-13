@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
 #include <math/mat4.h>
 #include <filament/Camera.h>
 #include <filament/ColorGrading.h>
@@ -24,6 +25,7 @@ namespace thermion
 #endif
                 
         EMSCRIPTEN_KEEPALIVE void Camera_lookAt(TCamera *tCamera, double3 eye, double3 focus, double3 up) {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             camera->lookAt(
                 filament::math::float3 { static_cast<float>(eye.x), static_cast<float>(eye.y), static_cast<float>(eye.z) },
@@ -33,6 +35,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void Camera_getFrustum(TCamera *tCamera, double *out) {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             auto frustum = camera->getFrustum();
             auto planes = frustum.getNormalizedPlanes();
@@ -44,33 +47,39 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void Camera_setLensProjection(TCamera *tCamera, double near, double far, double aspect, double focalLength) {
+            THERMION_ENGINE_API_GUARD;
             TRACE("Setting lens projection %f %f %f %f", near, far, aspect, focalLength);
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             camera->setLensProjection(focalLength, aspect, near, far);
         }
 
         EMSCRIPTEN_KEEPALIVE void Camera_setExposure(TCamera *tCamera, float aperture, float shutterSpeed, float sensitivity) {
+            THERMION_ENGINE_API_GUARD;
             TRACE("Setting exposure %f %f %f", aperture, shutterSpeed, sensitivity);
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             camera->setExposure(aperture, shutterSpeed, sensitivity);
         }
 
         EMSCRIPTEN_KEEPALIVE float Camera_getAperture(TCamera *tCamera) {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return camera->getAperture();
         }
 
         EMSCRIPTEN_KEEPALIVE float Camera_getShutterSpeed(TCamera *tCamera) {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return camera->getShutterSpeed();
         }
 
         EMSCRIPTEN_KEEPALIVE float Camera_getSensitivity(TCamera *tCamera) {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return camera->getSensitivity();
         }
 
         EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera *tCamera, double *tModelMatrix) {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             auto modelMatrix = convert_double_to_mat4f(tModelMatrix);
             camera->setModelMatrix(modelMatrix);
@@ -78,98 +87,118 @@ namespace thermion
 
 
         EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrixNative(TCamera *camera, TMat4 *matrix) {
+            THERMION_ENGINE_API_GUARD;
             reinterpret_cast<Camera *>(camera)->setModelMatrix(*reinterpret_cast<const filament::math::mat4 *>(matrix));
         }
         EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCullingNative(TCamera *camera, TMat4 *matrix, double near, double far) {
+            THERMION_ENGINE_API_GUARD;
             reinterpret_cast<Camera *>(camera)->setCustomProjection(*reinterpret_cast<const filament::math::mat4 *>(matrix), near, far);
         }
         EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrixFromBuffer(TCamera *camera, const double *matrix16) {
+            THERMION_ENGINE_API_GUARD;
             reinterpret_cast<Camera *>(camera)->setModelMatrix(load_mat4(matrix16));
         }
 
         EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCullingFromBuffer(TCamera *camera, const double *matrix16, double near, double far) {
+            THERMION_ENGINE_API_GUARD;
             reinterpret_cast<Camera *>(camera)->setCustomProjection(load_mat4(matrix16), near, far);
         }
 
         EMSCRIPTEN_KEEPALIVE void Camera_getModelMatrixInto(TCamera *camera, double *out16) {
+            THERMION_ENGINE_API_GUARD;
             store_mat4(reinterpret_cast<Camera *>(camera)->getModelMatrix(), out16);
         }
 
         EMSCRIPTEN_KEEPALIVE void Camera_getViewMatrixInto(TCamera *camera, double *out16) {
+            THERMION_ENGINE_API_GUARD;
             store_mat4(reinterpret_cast<Camera *>(camera)->getViewMatrix(), out16);
         }
 
         EMSCRIPTEN_KEEPALIVE void Camera_getProjectionMatrixInto(TCamera *camera, double *out16) {
+            THERMION_ENGINE_API_GUARD;
             store_mat4(reinterpret_cast<Camera *>(camera)->getProjectionMatrix(), out16);
         }
 
         EMSCRIPTEN_KEEPALIVE void Camera_getCullingProjectionMatrixInto(TCamera *camera, double *out16) {
+            THERMION_ENGINE_API_GUARD;
             store_mat4(reinterpret_cast<Camera *>(camera)->getCullingProjectionMatrix(), out16);
         }
 
         EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera *tCamera, double4x4 projectionMatrix, double near, double far)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             camera->setCustomProjection(convert_double4x4_to_mat4(projectionMatrix), near, far);
         }
 
         EMSCRIPTEN_KEEPALIVE double Camera_getFocusDistance(TCamera *tCamera) {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return camera->getFocusDistance();
         }
 
         EMSCRIPTEN_KEEPALIVE float Camera_getFov(TCamera *tCamera, bool horizontal) {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return camera->getFieldOfViewInDegrees(horizontal ? Camera::Fov::HORIZONTAL : Camera::Fov::VERTICAL);
         }
 
-        EMSCRIPTEN_KEEPALIVE double4x4 Camera_getProjectionMatrix(TCamera *const tCamera) { 
+        EMSCRIPTEN_KEEPALIVE double4x4 Camera_getProjectionMatrix(TCamera *const tCamera) {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return convert_mat4_to_double4x4(camera->getProjectionMatrix());
         }
 
-        EMSCRIPTEN_KEEPALIVE double4x4 Camera_getCullingProjectionMatrix(TCamera *const tCamera) { 
+        EMSCRIPTEN_KEEPALIVE double4x4 Camera_getCullingProjectionMatrix(TCamera *const tCamera) {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return convert_mat4_to_double4x4(camera->getCullingProjectionMatrix());
         }
 
         EMSCRIPTEN_KEEPALIVE void Camera_setFocusDistance(TCamera *tCamera, float distance) {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return camera->setFocusDistance(distance);
         }
 
         EMSCRIPTEN_KEEPALIVE double4x4 Camera_getModelMatrix(TCamera *tCamera)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return convert_mat4_to_double4x4(camera->getModelMatrix());
         }
 
         EMSCRIPTEN_KEEPALIVE double4x4 Camera_getViewMatrix(TCamera *const tCamera)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return convert_mat4_to_double4x4(camera->getViewMatrix());
         }
 
         EMSCRIPTEN_KEEPALIVE EntityId Camera_getEntity(TCamera *tCamera)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return utils::Entity::smuggle(camera->getEntity());
         }
 
         EMSCRIPTEN_KEEPALIVE double Camera_getFocalLength(TCamera *const tCamera)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return camera->getFocalLength() * 1000.0;
         }
 
         EMSCRIPTEN_KEEPALIVE double Camera_getNear(TCamera *const tCamera)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return camera->getNear();
         }
 
         EMSCRIPTEN_KEEPALIVE double Camera_getCullingFar(TCamera *const tCamera)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return camera->getCullingFar();
         }
@@ -178,6 +207,7 @@ namespace thermion
                                                        double bottom, double top,
                                                        double near, double far)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             filament::Camera::Projection filamentProjection;
             switch(projection) {
@@ -192,6 +222,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void Camera_setProjectionFromFov(TCamera *tCamera, double fovInDegrees, double aspect, double near, double far, bool horizontal) {
+            THERMION_ENGINE_API_GUARD;
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             camera->setProjection(fovInDegrees, aspect, near, far, horizontal ? filament::Camera::Fov::HORIZONTAL : filament::Camera::Fov::VERTICAL);
         }

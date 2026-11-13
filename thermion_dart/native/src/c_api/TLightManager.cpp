@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
 #include <filament/LightManager.h>
 
 #include <utils/Entity.h>
@@ -11,6 +12,7 @@
 extern "C" {
 
 EMSCRIPTEN_KEEPALIVE void LightManager_setPosition(TLightManager *tLightManager, EntityId light, double x, double y, double z) {
+    THERMION_ENGINE_API_GUARD;
     auto lightManager = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lightManager->getInstance(utils::Entity::import(light));
     if (!instance.isValid()) {
@@ -21,6 +23,7 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setPosition(TLightManager *tLightManager,
 }
 
 EMSCRIPTEN_KEEPALIVE void LightManager_setDirection(TLightManager *tLightManager, EntityId light, double x, double y, double z) {
+    THERMION_ENGINE_API_GUARD;
     auto lightManager = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lightManager->getInstance(utils::Entity::import(light));
     if (!instance.isValid()) {
@@ -31,6 +34,7 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setDirection(TLightManager *tLightManager
 }
 
 EMSCRIPTEN_KEEPALIVE int LightManager_createLight(TEngine *tEngine, TLightManager *tLightManager, TLightType type) {
+    THERMION_ENGINE_API_GUARD;
     auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
     auto *lightManager = reinterpret_cast<filament::LightManager*>(tLightManager);
     filament::LightManager::Type lightType;
@@ -55,11 +59,13 @@ EMSCRIPTEN_KEEPALIVE int LightManager_createLight(TEngine *tEngine, TLightManage
 }
 
 EMSCRIPTEN_KEEPALIVE void LightManager_destroyLight(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     lm->destroy(utils::Entity::import(entity));
 }
 
 EMSCRIPTEN_KEEPALIVE void LightManager_setColor(TLightManager *tLightManager, EntityId entity, double r, double g, double b) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto color = filament::LinearColor{static_cast<float>(r), static_cast<float>(g), static_cast<float>(b)};
 
@@ -73,6 +79,7 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setColor(TLightManager *tLightManager, En
 }
 
 EMSCRIPTEN_KEEPALIVE void LightManager_setColorTemperature(TLightManager *tLightManager, EntityId entity, double colorTemperature) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto color = filament::Color::cct(colorTemperature);
 
@@ -87,6 +94,7 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setColorTemperature(TLightManager *tLight
 
 
 EMSCRIPTEN_KEEPALIVE void LightManager_setIntensity(TLightManager *tLightManager, EntityId entity, double intensity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -95,6 +103,7 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setIntensity(TLightManager *tLightManager
 }
 
 EMSCRIPTEN_KEEPALIVE void LightManager_setFalloff(TLightManager *tLightManager, EntityId entity, double falloff) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -103,6 +112,7 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setFalloff(TLightManager *tLightManager, 
 }
 
 EMSCRIPTEN_KEEPALIVE void LightManager_setSpotLightCone(TLightManager *tLightManager, EntityId entity, double inner, double outer) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -111,6 +121,7 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setSpotLightCone(TLightManager *tLightMan
 }
 
 EMSCRIPTEN_KEEPALIVE void LightManager_setShadowCaster(TLightManager *tLightManager, EntityId entity, bool enabled) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -120,11 +131,13 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setShadowCaster(TLightManager *tLightMana
 
 // Entity and light management
 EMSCRIPTEN_KEEPALIVE bool LightManager_hasComponent(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     return lm->hasComponent(utils::Entity::import(entity));
 }
 
 EMSCRIPTEN_KEEPALIVE int LightManager_getType(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (!instance.isValid()) {
@@ -134,6 +147,7 @@ EMSCRIPTEN_KEEPALIVE int LightManager_getType(TLightManager *tLightManager, Enti
 }
 
 EMSCRIPTEN_KEEPALIVE bool LightManager_isDirectional(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (!instance.isValid()) {
@@ -143,6 +157,7 @@ EMSCRIPTEN_KEEPALIVE bool LightManager_isDirectional(TLightManager *tLightManage
 }
 
 EMSCRIPTEN_KEEPALIVE bool LightManager_isPointLight(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (!instance.isValid()) {
@@ -152,6 +167,7 @@ EMSCRIPTEN_KEEPALIVE bool LightManager_isPointLight(TLightManager *tLightManager
 }
 
 EMSCRIPTEN_KEEPALIVE bool LightManager_isSpotLight(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (!instance.isValid()) {
@@ -162,6 +178,7 @@ EMSCRIPTEN_KEEPALIVE bool LightManager_isSpotLight(TLightManager *tLightManager,
 
 // Position and direction getters
 EMSCRIPTEN_KEEPALIVE double3 LightManager_getPosition(TLightManager *tLightManager, EntityId light) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(light));
     if (instance.isValid()) {
@@ -172,6 +189,7 @@ EMSCRIPTEN_KEEPALIVE double3 LightManager_getPosition(TLightManager *tLightManag
 }
 
 EMSCRIPTEN_KEEPALIVE double3 LightManager_getDirection(TLightManager *tLightManager, EntityId light) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(light));
     if (instance.isValid()) {
@@ -183,6 +201,7 @@ EMSCRIPTEN_KEEPALIVE double3 LightManager_getDirection(TLightManager *tLightMana
 
 // Color getter
 EMSCRIPTEN_KEEPALIVE double3 LightManager_getColor(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -194,6 +213,7 @@ EMSCRIPTEN_KEEPALIVE double3 LightManager_getColor(TLightManager *tLightManager,
 
 // Intensity variants
 EMSCRIPTEN_KEEPALIVE void LightManager_setIntensityCandela(TLightManager *tLightManager, EntityId entity, double intensity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -202,6 +222,7 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setIntensityCandela(TLightManager *tLight
 }
 
 EMSCRIPTEN_KEEPALIVE void LightManager_setIntensityWatts(TLightManager *tLightManager, EntityId entity, double watts, double efficiency) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -210,6 +231,7 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setIntensityWatts(TLightManager *tLightMa
 }
 
 EMSCRIPTEN_KEEPALIVE float LightManager_getIntensity(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -220,6 +242,7 @@ EMSCRIPTEN_KEEPALIVE float LightManager_getIntensity(TLightManager *tLightManage
 
 // Falloff getter
 EMSCRIPTEN_KEEPALIVE float LightManager_getFalloff(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -230,6 +253,7 @@ EMSCRIPTEN_KEEPALIVE float LightManager_getFalloff(TLightManager *tLightManager,
 
 // Spot light cone getters
 EMSCRIPTEN_KEEPALIVE float LightManager_getSpotLightOuterCone(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -239,6 +263,7 @@ EMSCRIPTEN_KEEPALIVE float LightManager_getSpotLightOuterCone(TLightManager *tLi
 }
 
 EMSCRIPTEN_KEEPALIVE float LightManager_getSpotLightInnerCone(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -249,6 +274,7 @@ EMSCRIPTEN_KEEPALIVE float LightManager_getSpotLightInnerCone(TLightManager *tLi
 
 // Sun-specific methods
 EMSCRIPTEN_KEEPALIVE void LightManager_setSunAngularRadius(TLightManager *tLightManager, EntityId entity, float angularRadius) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -257,6 +283,7 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setSunAngularRadius(TLightManager *tLight
 }
 
 EMSCRIPTEN_KEEPALIVE float LightManager_getSunAngularRadius(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -266,6 +293,7 @@ EMSCRIPTEN_KEEPALIVE float LightManager_getSunAngularRadius(TLightManager *tLigh
 }
 
 EMSCRIPTEN_KEEPALIVE void LightManager_setSunHaloSize(TLightManager *tLightManager, EntityId entity, float haloSize) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -274,6 +302,7 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setSunHaloSize(TLightManager *tLightManag
 }
 
 EMSCRIPTEN_KEEPALIVE float LightManager_getSunHaloSize(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -283,6 +312,7 @@ EMSCRIPTEN_KEEPALIVE float LightManager_getSunHaloSize(TLightManager *tLightMana
 }
 
 EMSCRIPTEN_KEEPALIVE void LightManager_setSunHaloFalloff(TLightManager *tLightManager, EntityId entity, float haloFalloff) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -291,6 +321,7 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setSunHaloFalloff(TLightManager *tLightMa
 }
 
 EMSCRIPTEN_KEEPALIVE float LightManager_getSunHaloFalloff(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -301,6 +332,7 @@ EMSCRIPTEN_KEEPALIVE float LightManager_getSunHaloFalloff(TLightManager *tLightM
 
 // Shadow caster getter
 EMSCRIPTEN_KEEPALIVE bool LightManager_isShadowCaster(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -311,6 +343,7 @@ EMSCRIPTEN_KEEPALIVE bool LightManager_isShadowCaster(TLightManager *tLightManag
 
 // Shadow options
 EMSCRIPTEN_KEEPALIVE void LightManager_setShadowOptions(TLightManager *tLightManager, EntityId entity, TShadowOptions options) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (!instance.isValid()) {
@@ -353,6 +386,7 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setShadowOptions(TLightManager *tLightMan
 }
 
 EMSCRIPTEN_KEEPALIVE TShadowOptions LightManager_getShadowOptions(TLightManager *tLightManager, EntityId entity) {
+    THERMION_ENGINE_API_GUARD;
     TShadowOptions outOptions = {};
 
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
@@ -396,6 +430,7 @@ EMSCRIPTEN_KEEPALIVE TShadowOptions LightManager_getShadowOptions(TLightManager 
 
 // Light channels
 EMSCRIPTEN_KEEPALIVE void LightManager_setLightChannel(TLightManager *tLightManager, EntityId entity, unsigned int channel, bool enable) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -404,6 +439,7 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setLightChannel(TLightManager *tLightMana
 }
 
 EMSCRIPTEN_KEEPALIVE bool LightManager_getLightChannel(TLightManager *tLightManager, EntityId entity, unsigned int channel) {
+    THERMION_ENGINE_API_GUARD;
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
@@ -414,19 +450,23 @@ EMSCRIPTEN_KEEPALIVE bool LightManager_getLightChannel(TLightManager *tLightMana
 
 // Shadow cascades utilities
 EMSCRIPTEN_KEEPALIVE void LightManager_computeUniformSplits(float* splitPositions, uint8_t cascades) {
+    THERMION_ENGINE_API_GUARD;
     filament::LightManager::ShadowCascades::computeUniformSplits(splitPositions, cascades);
 }
 
 EMSCRIPTEN_KEEPALIVE void LightManager_computeLogSplits(float* splitPositions, uint8_t cascades, float near, float far) {
+    THERMION_ENGINE_API_GUARD;
     filament::LightManager::ShadowCascades::computeLogSplits(splitPositions, cascades, near, far);
 }
 
 EMSCRIPTEN_KEEPALIVE void LightManager_computePracticalSplits(float* splitPositions, uint8_t cascades, float near, float far, float lambda) {
+    THERMION_ENGINE_API_GUARD;
     filament::LightManager::ShadowCascades::computePracticalSplits(splitPositions, cascades, near, far, lambda);
 }
 
 // Color temperature conversion utility
 EMSCRIPTEN_KEEPALIVE double3 LightManager_colorTemperatureToRgb(double colorTemperature) {
+    THERMION_ENGINE_API_GUARD;
     auto color = filament::Color::cct(colorTemperature);
     return double3 { static_cast<double>(color.r), static_cast<double>(color.g), static_cast<double>(color.b) };
 }

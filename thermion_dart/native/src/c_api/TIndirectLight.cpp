@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
 #include "c_api/TScene.h"
 
 #include <filament/Engine.h>
@@ -22,6 +23,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void IndirectLight_setRotation(TIndirectLight *tIndirectLight, double *rotation)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *indirectLight = reinterpret_cast<filament::IndirectLight *>(tIndirectLight);
         const filament::math::mat3f fRotation{
             filament::math::float3{static_cast<float>(rotation[0]), static_cast<float>(rotation[1]), static_cast<float>(rotation[2])},

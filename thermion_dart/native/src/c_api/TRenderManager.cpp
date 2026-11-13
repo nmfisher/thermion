@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
 #ifdef _WIN32
 #include "ThermionWin32.h"
 #endif
@@ -17,6 +18,7 @@ extern "C"
 #include "c_api/TRenderer.h"
 
 EMSCRIPTEN_KEEPALIVE TRenderManager *RenderManager_create(TEngine *tEngine, TRenderer *tRenderer) {
+    THERMION_ENGINE_API_GUARD;
     auto engine = reinterpret_cast<filament::Engine *>(tEngine);
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     auto *renderManager = new RenderManager(engine, renderer);
@@ -24,23 +26,27 @@ EMSCRIPTEN_KEEPALIVE TRenderManager *RenderManager_create(TEngine *tEngine, TRen
 }
 
 EMSCRIPTEN_KEEPALIVE void RenderManager_destroy(TRenderManager *tRenderer) {
+    THERMION_ENGINE_API_GUARD;
     auto *renderManager = reinterpret_cast<RenderManager *>(tRenderer);
     delete renderManager;
 }
 
 EMSCRIPTEN_KEEPALIVE void RenderManager_addAnimationManager(TRenderManager *tRenderer, TAnimationManager *tAnimationManager) {
+    THERMION_ENGINE_API_GUARD;
     auto *renderManager = reinterpret_cast<RenderManager *>(tRenderer);
     auto *animationManager = reinterpret_cast<thermion::AnimationManager *>(tAnimationManager);
     renderManager->addAnimationManager(animationManager);
 }
 
 EMSCRIPTEN_KEEPALIVE void RenderManager_removeAnimationManager(TRenderManager *tRenderer, TAnimationManager *tAnimationManager) {
+    THERMION_ENGINE_API_GUARD;
     auto *renderManager = reinterpret_cast<RenderManager *>(tRenderer);
     auto *animationManager = reinterpret_cast<thermion::AnimationManager *>(tAnimationManager);
     renderManager->removeAnimationManager(animationManager);
 }
 
 EMSCRIPTEN_KEEPALIVE void RenderManager_render(TRenderManager *tRenderer, uint64_t frameTimeInNanos) {
+    THERMION_ENGINE_API_GUARD;
     auto *renderManager = reinterpret_cast<RenderManager *>(tRenderer);
     renderManager->render(frameTimeInNanos);
 }
@@ -56,6 +62,7 @@ EMSCRIPTEN_KEEPALIVE void RenderManager_setPaused(TRenderManager *tRenderer, boo
 }
 
 EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderable(TRenderManager *tRenderer, TSwapChain *tSwapChain, TView **tViews, uint8_t numViews) {
+    THERMION_ENGINE_API_GUARD;
     auto *renderManager = reinterpret_cast<RenderManager *>(tRenderer);
     auto *swapChain = reinterpret_cast<filament::SwapChain *>(tSwapChain);
     auto *views = reinterpret_cast<View **>(tViews);
@@ -63,6 +70,7 @@ EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderable(TRenderManager *tRenderer,
 }
 
 EMSCRIPTEN_KEEPALIVE void RenderManager_removeSwapChain(TRenderManager *tRenderer, TSwapChain *tSwapChain) {
+    THERMION_ENGINE_API_GUARD;
     auto *renderManager = reinterpret_cast<RenderManager *>(tRenderer);
     auto *swapChain = reinterpret_cast<filament::SwapChain *>(tSwapChain);
     renderManager->removeSwapChain(swapChain);

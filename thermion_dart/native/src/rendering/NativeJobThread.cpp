@@ -1,9 +1,82 @@
 #include "rendering/NativeJobThread.hpp"
+#include "rendering/EngineApiLock.hpp"
 #include "Log.hpp"
 #include <cstdlib>
 #include <ctime>
+#include <chrono>
+#include <thread>
+#include <vector>
+#include <functional>
 
 namespace thermion {
+
+std::recursive_mutex& engineApiMutex() {
+    // Leaked on purpose: never destroyed, so nothing runs at DLL unload.
+    static std::recursive_mutex* m = new std::recursive_mutex();
+    return *m;
+}
+
+std::atomic<int>& engineApiWaiters() {
+    static std::atomic<int>* w = new std::atomic<int>(0);
+    return *w;
+}
+
+// The outermost guard owns this thread's completion queue. Never publish this
+// pointer to another thread: a callback there uses its own thread-local scope.
+static thread_local std::vector<std::function<void()>>* tDeferredDartCallbacks = nullptr;
+
+EngineApiGuard::EngineApiGuard() {
+    const bool outer = (tDeferredDartCallbacks == nullptr);
+    // RAII balances the waiter count even when lock() throws in an
+    // exception-enabled consumer. Production also builds with -fno-exceptions.
+    // Recursive re-entry on a thread that already holds an outer guard cannot
+    // contend for the mutex and must not inflate the waiter count.
+    struct Waiter {
+        bool active;
+        explicit Waiter(bool a) : active(a) {
+            if (active) engineApiWaiters().fetch_add(1, std::memory_order_acq_rel);
+        }
+        ~Waiter() {
+            if (active) engineApiWaiters().fetch_sub(1, std::memory_order_acq_rel);
+        }
+    } waiter(outer);
+    engineApiMutex().lock();
+    mPreviousDartCallbacks = tDeferredDartCallbacks;
+    if (outer) {
+        tDeferredDartCallbacks = &mDartCallbacks;
+    }
+}
+
+EngineApiGuard::~EngineApiGuard() {
+    if (!mPreviousDartCallbacks) {
+        // Clear before delivery so a callback cannot append to the vector being
+        // iterated. Destruction also restores the scope during stack unwinding.
+        tDeferredDartCallbacks = nullptr;
+    }
+    engineApiMutex().unlock();
+    if (!mPreviousDartCallbacks) {
+        for (auto& callback : mDartCallbacks) {
+            callback();
+        }
+    }
+}
+
+void deferDartCallback(std::function<void()> fn) {
+    if (tDeferredDartCallbacks) {
+        tDeferredDartCallbacks->push_back(std::move(fn));
+    } else {
+        fn();
+    }
+}
+
+// Give waiting direct callers a chance before the next task, then compete
+// for the mutex normally. A continuous stream of direct calls can keep the
+// waiter count nonzero indefinitely; waiting for it to drain starves the worker.
+static void yieldToDirectCallers() {
+    for (int spins = 0; spins < 64 && engineApiWaiters().load(std::memory_order_acquire) > 0; ++spins) {
+        std::this_thread::yield();
+    }
+}
 
 std::unique_ptr<NativeJobThread> NativeJobThread::create(const char*) {
     return std::make_unique<NativeJobThread>();
@@ -52,7 +125,14 @@ void NativeJobThread::run() {
         auto task = std::move(_tasks.front());
         _tasks.pop_front();
         taskLock.unlock();
-        task();
+        {
+            // Serialise with the direct (non-JobThread) C exports called from
+            // other threads (see EngineApiLock.hpp). Held per task, never
+            // while waiting for work, and never while calling into Dart.
+            yieldToDirectCallers();
+            EngineApiGuard engineLock;
+            task();
+        }
         taskLock.lock();
     }
 }
