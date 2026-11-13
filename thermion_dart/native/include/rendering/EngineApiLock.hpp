@@ -77,22 +77,43 @@ inline void deferDartCallback(std::function<void()> fn) { fn(); }
 #else
 
 #include <atomic>
+#include <condition_variable>
 #include <functional>
 #include <mutex>
+#include <thread>
 #include <vector>
 
 namespace thermion {
 
-// Process-wide, never destroyed (function-local leaked statics, so nothing
-// runs at DLL unload and no static-destruction-order hazard exists).
-std::recursive_mutex& engineApiMutex();
+// Recursive for nested exports on the owning thread, FIFO for queued callers.
+// Waiting nodes live on their calling thread's stack; no per-call allocation.
+class EngineApiMutex {
+public:
+    void lock();
+    bool try_lock();
+    void unlock();
 
-// Number of outer guards currently acquiring or waiting for engineApiMutex().
-// The job thread runs tasks back to back; std::recursive_mutex is not fair, so
-// without a handoff a busy queue (GLB loads, many queued setters) re-takes the
-// lock between tasks and starves the caller's thread for seconds. Before
-// taking the lock for its next task the job thread yields for a bounded
-// number of attempts before contending for the mutex itself.
+private:
+    struct Waiter {
+        explicit Waiter(EngineApiMutex& mutex);
+        ~Waiter();
+        EngineApiMutex& mutex;
+        Waiter* previous;
+        Waiter* next = nullptr;
+    };
+
+    std::mutex mMutex;
+    std::condition_variable mReady;
+    std::thread::id mOwner;
+    unsigned mDepth = 0;
+    Waiter* mFirst = nullptr;
+    Waiter* mLast = nullptr;
+};
+
+// Process-wide, never destroyed: no DLL-unload destruction-order dependency.
+EngineApiMutex& engineApiMutex();
+
+// Number of queued outer acquisitions; recursive entries do not join the queue.
 std::atomic<int>& engineApiWaiters();
 
 // Never call into Dart while holding engineApiMutex(). A Dart completion

@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <type_traits>
+#include <vector>
 #if defined(__cpp_exceptions) || defined(_CPPUNWIND)
 #include <stdexcept>
 #endif
@@ -59,6 +60,33 @@ int main() {
             check(executed == 201);
         }
         check(executed == 201);
+    }
+    // Once callers are queued, a releasing thread must not take another turn
+    // ahead of them. Recursion by the current owner still completes inline.
+    {
+        std::vector<std::thread> callers;
+        std::atomic<int> next{0};
+        {
+            EngineApiGuard owner;
+            for (int i = 0; i < 8; ++i) {
+                callers.emplace_back([&, i] {
+                    EngineApiGuard guard;
+                    check(next++ == i);
+                    EngineApiGuard nested;
+                });
+                const auto deadline = std::chrono::steady_clock::now() + 2s;
+                while (engineApiWaiters() != i + 1) {
+                    check(std::chrono::steady_clock::now() < deadline);
+                    std::this_thread::yield();
+                }
+            }
+        }
+        {
+            EngineApiGuard reacquire;
+            check(next == 8);
+        }
+        for (auto& caller : callers) caller.join();
+        check(engineApiWaiters() == 0);
     }
     // Under continuous direct-call traffic the waiter count may never reach
     // zero, even while the mutex is available. Model that backlog without
