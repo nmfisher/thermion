@@ -406,8 +406,7 @@ abstract class FilamentApp<T> {
   Future registerRequestFrameHook(RequestFrameHook hook);
 
   /// Removes a hook previously registered with
-  /// [registerRequestFrameHook]. Waits for any in-flight hook pass to finish
-  /// first so the hook list is never mutated mid-iteration.
+  /// [registerRequestFrameHook].
   Future unregisterRequestFrameHook(RequestFrameHook hook);
 
   // Retrieves the name assigned to the given entity (usually corresponds to the
