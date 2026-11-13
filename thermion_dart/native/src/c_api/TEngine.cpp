@@ -47,23 +47,23 @@
 // static_asserts pin every TBackend member to its Filament counterpart,
 // turning that class of drift into a compile error on every native build.
 //
-// The mirrored enum block in native/include/c_api/TEngine.h is generated
+// The mirrored enum block in native/include/c_api/TBackend.h is generated
 // from the pinned Filament version by scripts/generate_tbackend.py; run
 // `make tbackend-check` (or the CI step in
 // regenerate-bindings-and-materials.yml) to verify it.
 // ---------------------------------------------------------------------------
 static_assert((int)BACKEND_DEFAULT == (int)filament::backend::Backend::DEFAULT,
-    "TBackend drift: BACKEND_DEFAULT no longer matches filament::backend::Backend::DEFAULT. Regenerate the enum in native/include/c_api/TEngine.h with scripts/generate_tbackend.py.");
+    "TBackend drift: BACKEND_DEFAULT no longer matches filament::backend::Backend::DEFAULT. Regenerate the enum in native/include/c_api/TBackend.h with scripts/generate_tbackend.py.");
 static_assert((int)BACKEND_OPENGL == (int)filament::backend::Backend::OPENGL,
-    "TBackend drift: BACKEND_OPENGL no longer matches filament::backend::Backend::OPENGL. Regenerate the enum in native/include/c_api/TEngine.h with scripts/generate_tbackend.py.");
+    "TBackend drift: BACKEND_OPENGL no longer matches filament::backend::Backend::OPENGL. Regenerate the enum in native/include/c_api/TBackend.h with scripts/generate_tbackend.py.");
 static_assert((int)BACKEND_VULKAN == (int)filament::backend::Backend::VULKAN,
-    "TBackend drift: BACKEND_VULKAN no longer matches filament::backend::Backend::VULKAN. Regenerate the enum in native/include/c_api/TEngine.h with scripts/generate_tbackend.py.");
+    "TBackend drift: BACKEND_VULKAN no longer matches filament::backend::Backend::VULKAN. Regenerate the enum in native/include/c_api/TBackend.h with scripts/generate_tbackend.py.");
 static_assert((int)BACKEND_METAL == (int)filament::backend::Backend::METAL,
-    "TBackend drift: BACKEND_METAL no longer matches filament::backend::Backend::METAL. Regenerate the enum in native/include/c_api/TEngine.h with scripts/generate_tbackend.py.");
+    "TBackend drift: BACKEND_METAL no longer matches filament::backend::Backend::METAL. Regenerate the enum in native/include/c_api/TBackend.h with scripts/generate_tbackend.py.");
 static_assert((int)BACKEND_WEBGPU == (int)filament::backend::Backend::WEBGPU,
-    "TBackend drift: BACKEND_WEBGPU no longer matches filament::backend::Backend::WEBGPU. Regenerate the enum in native/include/c_api/TEngine.h with scripts/generate_tbackend.py.");
+    "TBackend drift: BACKEND_WEBGPU no longer matches filament::backend::Backend::WEBGPU. Regenerate the enum in native/include/c_api/TBackend.h with scripts/generate_tbackend.py.");
 static_assert((int)BACKEND_NOOP == (int)filament::backend::Backend::NOOP,
-    "TBackend drift: BACKEND_NOOP no longer matches filament::backend::Backend::NOOP. Regenerate the enum in native/include/c_api/TEngine.h with scripts/generate_tbackend.py.");
+    "TBackend drift: BACKEND_NOOP no longer matches filament::backend::Backend::NOOP. Regenerate the enum in native/include/c_api/TBackend.h with scripts/generate_tbackend.py.");
 
 #ifdef __cplusplus
 namespace thermion

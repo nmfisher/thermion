@@ -44,8 +44,8 @@ bindings: dart-bindings flutter-bindings
 shared:
 	cd thermion_dart/native && make
 
-# Verifies the pinned Filament Backend -> C TBackend -> native/JS binding
-# constants -> public Dart Backend chain (see scripts/generate_tbackend.py).
+# Compares generated TBackend.h and public Dart Backend with the pinned
+# Filament enum. Run make bindings after regenerating these files.
 # Downloads the pinned Filament artifact's header tree on first use.
 tbackend-check:
 	python3 scripts/generate_tbackend.py --check

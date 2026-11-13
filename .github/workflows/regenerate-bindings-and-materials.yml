@@ -168,8 +168,8 @@ jobs:
       - name: Check public Filament version
         run: python3 scripts/generate-filament-version.py --check
 
-      # TEngine.cpp casts backend values directly to Filament. Verify the C,
-      # binding and public Dart mirrors, plus the generator regressions.
+      # Compare the generator-owned C and Dart files. Bindings are regenerated
+      # below; native assertions and Dart tests check their mappings.
       - name: Check TBackend enum drift vs Filament
         run: |
           python3 -m unittest discover -s scripts -p 'test_generate_tbackend.py' -v

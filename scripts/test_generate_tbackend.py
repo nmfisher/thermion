@@ -1,4 +1,4 @@
-"""Regression tests for the Filament -> C -> bindings -> public Dart contract."""
+"""Regression tests for Clang extraction and generator-owned backend files."""
 import contextlib
 import io
 import json
@@ -14,43 +14,6 @@ import generate_tbackend as generator
 CONSTANTS = [(name, value, "") for value, name in enumerate(
     ["DEFAULT", "OPENGL", "VULKAN", "METAL", "WEBGPU", "NOOP"])]
 ROOT = Path(__file__).resolve().parents[1]
-
-
-class CommittedEnumTests(unittest.TestCase):
-    def setUp(self):
-        self.block = generator.emit_enum_block(CONSTANTS)
-
-    def test_expression_is_rejected_instead_of_matching_a_numeric_prefix(self):
-        with self.assertRaisesRegex(ValueError, "unsupported TBackend enumerator"):
-            generator.normalize(self.block.replace("BACKEND_NOOP = 5,", "BACKEND_NOOP = 5 - 1,"))
-
-    def test_commented_out_member_is_missing(self):
-        for comment in ["// BACKEND_NOOP = 5,", "/* BACKEND_NOOP = 5, */"]:
-            with self.subTest(comment=comment):
-                self.assertNotEqual(generator.normalize(self.block), generator.normalize(
-                    self.block.replace("BACKEND_NOOP = 5,", comment)))
-
-    def test_additional_implicit_member_is_detected(self):
-        actual = generator.normalize(self.block.replace("\n};", "\n    BACKEND_EXTRA,\n};"))
-        self.assertEqual(actual[-1], "BACKEND_EXTRA=6")
-        self.assertNotEqual(actual, generator.normalize(self.block))
-
-    def test_comment_with_assignment_does_not_change_values(self):
-        altered = self.block.replace("BACKEND_NOOP = 5,", "BACKEND_NOOP = 5, // previous = 4")
-        self.assertEqual(generator.normalize(self.block), generator.normalize(altered))
-
-    def test_implicit_numbering_matches_explicit_values(self):
-        implicit = "enum TBackend {" + ",".join("BACKEND_" + name for name, _, _ in CONSTANTS) + "};"
-        self.assertEqual(generator.normalize(implicit), generator.normalize(self.block))
-
-    def test_duplicate_members_are_rejected(self):
-        with self.assertRaisesRegex(ValueError, "duplicate"):
-            generator.normalize("enum TBackend { BACKEND_DEFAULT, BACKEND_DEFAULT };")
-
-    def test_commented_enum_is_not_the_committed_definition(self):
-        source = "/* enum TBackend { BACKEND_FAKE = 12 }; */\n" + self.block
-        match = generator.enum_match(source)
-        self.assertEqual(source[match.start():match.end()], self.block)
 
 
 @unittest.skipUnless(shutil.which("clang"), "Clang is required for real AST fixtures")
@@ -96,90 +59,93 @@ class ClangExtractionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "contract.cpp"
             for changed in [False, True]:
-                enum = generator.emit_enum_block(CONSTANTS)
+                enum = generator.emit_c_backend(CONSTANTS)
                 if changed:
                     enum = enum.replace("BACKEND_NOOP = 5", "BACKEND_NOOP = 4")
-                source.write_text(upstream + enum + "\n" + assertions)
+                (Path(directory) / "TBackend.h").write_text(enum)
+                source.write_text(upstream + '#include "TBackend.h"\n' + assertions)
                 result = subprocess.run(["clang", "-x", "c++", "-std=c++17", "-fsyntax-only", str(source)], capture_output=True, text=True)
                 self.assertEqual(result.returncode == 0, not changed, result.stderr)
 
 
-class MirrorChainTests(unittest.TestCase):
+class GeneratedOutputTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         root = Path(self.temp.name)
-        self.header = root / "TEngine.h"
+        self.header = root / "TBackend.h"
         self.dart = root / "backend.g.dart"
-        self.bindings = [root / "ffi.dart", root / "js.dart"]
-        for name, value in [("TENGINE_H", str(self.header)), ("DART_BACKEND", self.dart), ("BINDINGS", self.bindings)]:
+        for name, value in [("TBACKEND_H", self.header), ("DART_BACKEND", self.dart)]:
             context = patch.object(generator, name, value)
             context.start()
             self.addCleanup(context.stop)
-        self.write_all(CONSTANTS)
+        self.write_outputs(CONSTANTS)
 
-    def write_all(self, constants):
-        self.header.write_text(generator.emit_enum_block(constants))
-        self.dart.write_text(generator.emit_dart_backend(constants))
-        for path in self.bindings:
-            path.write_text("sealed class TBackend {\n" + "\n".join(
-                "static const BACKEND_%s = %d;" % (name, value) for name, value, _ in constants) + "\n}")
+    def write_outputs(self, constants):
+        for path, output in generator.generated_outputs(constants).items():
+            path.write_text(output)
 
-    def test_complete_chain_matches(self):
-        self.assertEqual(generator.check_mirrors(CONSTANTS), [])
+    def test_generated_files_match(self):
+        self.assertEqual(generator.check_generated(CONSTANTS), [])
 
-    def test_reshuffle_requires_both_binding_layers_to_be_regenerated(self):
+    def test_missing_file_fails(self):
+        self.dart.unlink()
+        self.assertTrue(generator.check_generated(CONSTANTS))
+
+    def test_reshuffle_changes_c_values_and_dart_retains_constant_references(self):
         changed = [(name, 5 if name == "WEBGPU" else 4 if name == "NOOP" else value, comment)
                    for name, value, comment in CONSTANTS]
-        self.header.write_text(generator.emit_enum_block(changed))
-        self.dart.write_text(generator.emit_dart_backend(changed))
-        self.assertEqual(len(generator.check_mirrors(changed)), 2)
-        self.write_all(changed)
-        self.assertEqual(generator.check_mirrors(changed), [])
+        self.assertTrue(generator.check_generated(changed))
+        self.write_outputs(changed)
+        self.assertEqual(generator.check_generated(changed), [])
+        self.assertIn("BACKEND_NOOP = 4", self.header.read_text())
         self.assertIn("NOOP(bindings.TBackend.BACKEND_NOOP)", self.dart.read_text())
         self.assertNotIn("NOOP(5)", self.dart.read_text())
 
-    def test_added_member_requires_public_enum_and_both_binding_layers(self):
+    def test_added_member_updates_both_outputs(self):
         added = CONSTANTS + [("EXTRA", 6, "")]
-        self.header.write_text(generator.emit_enum_block(added))
-        self.assertEqual(len(generator.check_mirrors(added)), 3)
-        self.write_all(added)
-        self.assertEqual(generator.check_mirrors(added), [])
+        differences = "\n".join(generator.check_generated(added))
+        self.assertIn("TBackend.h", differences)
+        self.assertIn("backend.g.dart", differences)
+        self.write_outputs(added)
+        self.assertEqual(generator.check_generated(added), [])
         self.assertIn("EXTRA(bindings.TBackend.BACKEND_EXTRA)", self.dart.read_text())
 
     def test_handwritten_public_value_is_rejected(self):
         self.dart.write_text(self.dart.read_text().replace("NOOP(bindings.TBackend.BACKEND_NOOP)", "NOOP(5)"))
-        self.assertEqual(len(generator.check_mirrors(CONSTANTS)), 1)
+        self.assertTrue(generator.check_generated(CONSTANTS))
 
     @unittest.skipUnless(shutil.which("clang"), "Clang is required for the CLI fixture")
-    def test_check_cli_status_for_each_reviewed_text_mutation(self):
+    def test_check_and_write_cli_for_manual_edits(self):
         root = Path(self.temp.name)
         header = root / "backend/DriverEnums.h"
         header.parent.mkdir()
         header.write_text("namespace filament::backend { enum class Backend { DEFAULT, OPENGL, VULKAN, METAL, WEBGPU, NOOP }; }")
-        block = generator.emit_enum_block(CONSTANTS)
+        original = generator.emit_c_backend(CONSTANTS)
         cases = [
-            ("expression", block.replace("BACKEND_NOOP = 5,", "BACKEND_NOOP = 5 - 1,"), 1),
-            ("commented member", block.replace("BACKEND_NOOP = 5,", "// BACKEND_NOOP = 5,"), 1),
-            ("implicit addition", block.replace("\n};", "\nBACKEND_EXTRA,\n};"), 1),
-            ("comment only", block.replace("BACKEND_NOOP = 5,", "BACKEND_NOOP = 5, // previous = 4"), 0),
+            ("unchanged", original, 0),
+            ("expression", original.replace("BACKEND_NOOP = 5,", "BACKEND_NOOP = 5 - 1,"), 1),
+            ("commented member", original.replace("BACKEND_NOOP = 5,", "// BACKEND_NOOP = 5,"), 1),
+            ("implicit addition", original.replace("\n};", "\nBACKEND_EXTRA,\n};"), 1),
+            ("comment only", original.replace("BACKEND_NOOP = 5,", "BACKEND_NOOP = 5, // previous = 4"), 1),
+            ("format only", original.replace("    BACKEND_NOOP", "  BACKEND_NOOP"), 1),
         ]
         for name, altered, expected in cases:
             with self.subTest(case=name):
                 self.header.write_text(altered)
-                output = io.StringIO()
-                with patch("sys.argv", ["generate_tbackend.py", "--check", "--filament-include", str(root)]), contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
-                    try:
-                        generator.main()
-                        actual = 0
-                    except SystemExit as error:
-                        actual = error.code if isinstance(error.code, int) else 1
-                self.assertEqual(actual, expected, output.getvalue())
+                self.assertEqual(self.run_cli("--check", root), expected)
+                self.assertEqual(self.run_cli("--write", root), 0)
+                self.assertEqual(self.header.read_text(), original)
+                self.assertEqual(self.run_cli("--check", root), 0)
 
-    def test_checker_rejects_committed_expression(self):
-        self.header.write_text(self.header.read_text().replace("BACKEND_NOOP = 5,", "BACKEND_NOOP = 5 - 1,"))
-        with self.assertRaisesRegex(ValueError, "unsupported"):
-            generator.check_mirrors(CONSTANTS)
+    def run_cli(self, mode, include):
+        output = io.StringIO()
+        with patch("sys.argv", ["generate_tbackend.py", mode, "--filament-include", str(include)]), contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+            try:
+                generator.main()
+                return 0
+            except SystemExit as error:
+                return error.code if isinstance(error.code, int) else 1
 
 
 if __name__ == "__main__":
