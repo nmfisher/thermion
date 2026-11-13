@@ -116,6 +116,7 @@ hooks:
         output: build/materials  # any directory, relative to the app root; created if missing
         backends: all            # optional: all (default) | native | web | explicit matc -a list
         resgen: false            # optional: also emit .c/.h
+        link_generated: false    # optional: also compile the emitted .c into libthermion_dart (native only)
 ```
 
 On every build the hook:
@@ -193,9 +194,45 @@ name (non `[A-Za-z0-9_]` characters become `_`, so `my-eye.mat` →
 ```
 
 Because every material is one blended package, there is exactly one
-`.c`/`.h` per material, so no per-variant renaming is needed. These files
-are emitted for consumers that build their own library; this option does
-not link them into Thermion.
+`.c`/`.h` per material and no per-variant symbol collision. Like
+Thermion's own materials pipeline, the emitted `.c` gets a prepended
+`#include` of its own header (so the package symbol has external C linkage
+when the file is compiled as C++) and the header's `extern "C"` block gets
+`__cplusplus` guards (so it is also valid C) — without the include, a C++
+compile gives the `const` array internal linkage and the optimiser drops
+the unreferenced symbol entirely. Public declarations also get explicit
+export annotations: default visibility on Android/ELF and `dllexport` on Windows.
+
+#### `link_generated`
+
+`resgen: true` only writes the `.c`/`.h` files; nothing compiles them, so
+they are only usable if you build your own native library. With
+`link_generated: true` the build hook additionally compiles the emitted
+`.c` files **straight into `libthermion_dart`** — the exact same mechanism
+Thermion uses for its own materials under `native/include/material/`. Each
+generated `.c` is appended to the native build's source list and the output
+directory is added to its include path (so `skin.c` resolves
+`#include "skin.h"`), before the native library is compiled and linked in
+the same build.
+
+Notes:
+
+- `link_generated: true` **implies `resgen`** emission — you never set both.
+- The generated symbols (`<PREFIX>_PACKAGE[]`, e.g. `SKIN_PACKAGE`) are
+  exported by `libthermion_dart`, so they are resolvable from Dart FFI
+  through the default code asset — no separate asset id or loading step.
+- **Native only.** Web builds compile their material C sources into the
+  wasm engine via CMakeLists, and a web build with `link_generated: true`
+  fails with an error explaining this — remove the flag for web targets.
+- **Symbol collisions fail the build at plan time.** Two materials whose
+  prefixes sanitise to the same symbol (or a material whose prefix matches
+  one of Thermion's built-in materials — `grid`, `image`, `gizmo`, ...) would
+  define the same `<PREFIX>_PACKAGE` symbol and fail at link time with an
+  obscure error; the hook catches this before compiling anything and names
+  both inputs. Give one of them a distinct `resgen_prefixes` entry.
+- Only the `.c` files the materials manifest vouches for are linked —
+  stale leftovers in the output directory are never picked up, and the
+  manifest records whether the generated sources were linked.
 
 #### Failure behaviour
 
@@ -217,7 +254,8 @@ nested includes. Failures are loud, never silent skips:
   Filament version.
 - `matc`/`resgen` exit non-zero: the build fails with the tool's stderr.
 - Bad configuration (unknown key values, an input that resolves to
-  nothing, two inputs with the same output name): the build fails with an
+  nothing, two inputs with the same output name or the same resgen symbol,
+  `link_generated` on a web build): the build fails with an
   actionable message.
 
 If `material_compilation` is absent, the hook does nothing new.
@@ -237,8 +275,8 @@ Filament build's `out/release/bin` (see the [Filament](/filament/) page).
 That target is for Thermion's **own** bundled materials (`materials/`, e.g.
 `image.mat`, `grid.mat`, `silhouette.mat`), whose compiled C variants are
 committed under `thermion_dart/native/include/material/` — it is unrelated
-to this opt-in compilation of your app's material assets. `resgen: true`
-emits source files but does not add them to Thermion's native build.
+to your app's materials, which are runtime assets unless you opt into
+`link_generated`.
 
 The hook's `getLibDir()` downloads the prebuilt **Filament** libraries.
 `CBuilder` builds **libthermion_dart locally**, linking those libraries and
