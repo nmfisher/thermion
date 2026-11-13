@@ -8,7 +8,8 @@ Earlier entries are consolidated. [Original detailed history](https://github.com
   package metadata, and compiler diagnostics.
 - Compile app materials at build time with caching, resgen output, and optional
   native embedding through `material_compilation.link_generated`.
-- Ship pinned macOS material tools and fix Android and Windows material builds.
+- Ship pinned macOS material tools; fix Android shader targeting and Windows
+  runtime-material linking.
 - Fix Wasm material/compiler memory leaks and pending gizmo callback lifetimes.
 - Serialize native engine access and defer callbacks until the engine lock is released.
 - Generate backend enums from Filament (`WEBGPU = 4`, `NOOP = 5`).
