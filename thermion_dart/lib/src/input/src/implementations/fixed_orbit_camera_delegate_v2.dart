@@ -160,8 +160,10 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
       // degenerate pinch, after which every multiplicative pinch applies to a
       // zero/negative base and zoom is bricked or inverted. The floor keeps
       // the base non-zero even when minZoomDistance <= 0.
-      _radius = ((_radius + _pendingDeltaRadius) * _pendingRadiusScale)
-          .clamp(math.max(minZoomDistance, 1e-4), maxZoomDistance);
+      _radius = ((_radius + _pendingDeltaRadius) * _pendingRadiusScale).clamp(
+        math.max(minZoomDistance, 1e-4),
+        maxZoomDistance,
+      );
       _pendingDeltaAzimuth = 0;
       _pendingDeltaElevation = 0;
       _pendingDeltaRadius = 0;
