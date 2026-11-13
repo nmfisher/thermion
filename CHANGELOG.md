@@ -16,7 +16,9 @@
   `matcId` (Filament tag + thermion_dart version + host platform/arch,
   plus the downloaded matc's sha256) makes unchanged builds a no-op and
   forces a full rebuild whenever the toolchain changes, even if no `.mat`
-  changed. Outputs are written atomically and the manifest last; tool or
+  changed. Transitive includes and discovery/output dependencies invalidate
+  cached builds. Whole-batch staging and journaled publication preserve the
+  previous generation on failure and recover interrupted writes; tool or
   download failures fail the build with an actionable message naming the
   URL and version. Fully opt-in: without the define, the hook does nothing
   new, and Thermion's own materials remain the committed blobs under

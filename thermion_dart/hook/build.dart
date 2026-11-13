@@ -64,10 +64,10 @@ void main(List<String> args) async {
         download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
         onLog: logger.info,
       );
-      // Re-run the hook (and recompile) whenever a .mat input changes.
-      for (final materialInput in result.inputs) {
-        output.dependencies.add(materialInput.uri);
-      }
+      // Include discovery directories, transitive includes and generated files
+      // in runner invalidation; internal manifest checks cannot run otherwise.
+      output.dependencies.addAll(result.dependencies);
+      output.dependencies.add(File(path.join(pkgRootFilePath, 'pubspec.yaml')).uri);
     }
 
     if (!input.config.buildCodeAssets) {

@@ -603,6 +603,10 @@ void main() {
       outputDir.createSync(recursive: true);
       File(p.join(outputDir.path, materialManifestName)).writeAsStringSync(
         encodeMaterialsManifest(
+          outputHashes: {
+            'skin.filamat': sha256Content([1]),
+            'iris.filamat': sha256Content([1]),
+          },
           matcId: 'id-1',
           matcSha256: null,
           backends: allMaterialBackends,
@@ -626,6 +630,10 @@ void main() {
       outputDir.createSync(recursive: true);
       File(p.join(outputDir.path, materialManifestName)).writeAsStringSync(
         encodeMaterialsManifest(
+          outputHashes: {
+            'skin.filamat': sha256Content([1]),
+            'iris.filamat': sha256Content([1]),
+          },
           matcId: 'id-1',
           matcSha256: null,
           backends: allMaterialBackends,
@@ -764,6 +772,7 @@ void main() {
       expect(File(p.join(outputDir().path, 'my_eye.filamat')).existsSync(), isTrue);
       expect(outputDir().listSync().whereType<File>().map((f) => p.basename(f.path)).toSet(), {
         materialManifestName,
+        '.thermion-materials.lock',
         'skin.filamat',
         'my_eye.filamat',
       });
@@ -982,8 +991,9 @@ void main() {
               .having((e) => e.message, 'message', contains('filament-v1.77.2-linux-release.zip')),
         ),
       );
-      // And nothing partial was written: the output dir was never created.
-      expect(outputDir().existsSync(), isFalse);
+      // Lock metadata may exist, but no material or manifest was published.
+      expect(File(p.join(outputDir().path, materialManifestName)).existsSync(), isFalse);
+      expect(outputDir().listSync().whereType<File>().map((f) => p.basename(f.path)), ['.thermion-materials.lock']);
     });
 
     test('the output directory is created when missing, also outside the app root', () async {

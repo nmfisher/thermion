@@ -143,8 +143,8 @@ example a Filament or Thermion bump ships a new `matc` — **every material is
 recompiled, even if no `.mat` file changed.** That is the whole point: a
 blob built by an older `matc` is never silently kept. Otherwise:
 
-- an input's hash changed, was added, or its output file is missing → that
-  material recompiles;
+- a material or transitive quoted include changed, a material was added, or
+  a recorded output is missing or has different bytes → that material recompiles;
 - an input was removed from the config → its outputs are deleted;
 - everything matches → the hook logs why it skipped and does nothing else.
 
@@ -190,15 +190,23 @@ name (non `[A-Za-z0-9_]` characters become `_`, so `my-eye.mat` →
 ```
 
 Because every material is one blended package, there is exactly one
-`.c`/`.h` per material and no per-variant symbol collision — no renaming or
-header patching is performed or needed.
+`.c`/`.h` per material, so no per-variant renaming is needed. These files
+are emitted for consumers that build their own library; this option does
+not link them into Thermion.
 
 #### Failure behaviour
 
-Every output is written atomically (temp file, then rename) and the
-manifest is written last, so an interrupted or failing run never leaves a
-half-written set the manifest would vouch for. Failures are loud, never
-silent skips:
+All materials compile in staging before any output is published. If a tool
+fails, the previous generation remains intact. Publication keeps backups and
+writes the manifest last; a publication error restores the previous generation,
+and the next hook run recovers any publication interrupted by process exit.
+Stale cleanup never deletes a filename owned by a current material.
+
+The hook registers discovery directories, transitive include files, the
+manifest and generated files as build dependencies. New directory/glob matches
+and deleted or changed outputs therefore invalidate the build-runner cache.
+Quoted includes resolve relative to the file that contains them, including
+nested includes. Failures are loud, never silent skips:
 
 - No network and no cached tools: the build fails naming the R2 URL and the
   Filament version.
@@ -224,7 +232,12 @@ Filament build's `out/release/bin` (see the [Filament](/filament/) page).
 That target is for Thermion's **own** bundled materials (`materials/`, e.g.
 `image.mat`, `grid.mat`, `silhouette.mat`), whose compiled C variants are
 committed under `thermion_dart/native/include/material/` — it is unrelated
-to your app's materials, which are never compiled into a native library.
+to this opt-in compilation of your app's material assets. `resgen: true`
+emits source files but does not add them to Thermion's native build.
+
+The hook's `getLibDir()` downloads the prebuilt **Filament** libraries.
+`CBuilder` builds **libthermion_dart locally**, linking those libraries and
+compiling Thermion's committed material arrays under `native/include/material/`.
 
 ## Compiling materials at runtime
 

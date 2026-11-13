@@ -49,7 +49,7 @@ jobs:
           EOF
           dart pub get
           dart test -p node test/backend_enum_test.dart test/js_pointer_callback_test.dart test/js_view_picking_test.dart test/js_geometry_memory_test.dart test/geometry_ctor_tests.dart -r expanded
-          dart test test/backend_enum_test.dart test/filament_artifacts_test.dart test/web_artifacts_test.dart \
+          dart test test/material_tools_test.dart test/material_publication_test.dart test/material_hook_runner_test.dart test/backend_enum_test.dart test/filament_artifacts_test.dart test/web_artifacts_test.dart \
             test/filament_version_test.dart test/material_backend_resolution_test.dart -r expanded
 
   dart-tests:
