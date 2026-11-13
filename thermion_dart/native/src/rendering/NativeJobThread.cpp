@@ -1,6 +1,7 @@
 #include "rendering/NativeJobThread.hpp"
 #include "rendering/EngineApiLock.hpp"
 #include "Log.hpp"
+#include <cassert>
 #include <cstdlib>
 #include <ctime>
 #include <chrono>
@@ -10,15 +11,73 @@
 
 namespace thermion {
 
-std::recursive_mutex& engineApiMutex() {
+EngineApiMutex& engineApiMutex() {
     // Leaked on purpose: never destroyed, so nothing runs at DLL unload.
-    static std::recursive_mutex* m = new std::recursive_mutex();
-    return *m;
+    static auto* mutex = new EngineApiMutex();
+    return *mutex;
 }
 
 std::atomic<int>& engineApiWaiters() {
-    static std::atomic<int>* w = new std::atomic<int>(0);
-    return *w;
+    static auto* waiters = new std::atomic<int>(0);
+    return *waiters;
+}
+
+// Both construction and destruction run with mMutex held. The stack node is
+// removed on every exit, including a throwing wait in exception-enabled builds.
+EngineApiMutex::Waiter::Waiter(EngineApiMutex& owner)
+    : mutex(owner), previous(owner.mLast) {
+    if (previous) previous->next = this;
+    else mutex.mFirst = this;
+    mutex.mLast = this;
+    engineApiWaiters().fetch_add(1, std::memory_order_release);
+}
+
+EngineApiMutex::Waiter::~Waiter() {
+    if (previous) previous->next = next;
+    else mutex.mFirst = next;
+    if (next) next->previous = previous;
+    else mutex.mLast = previous;
+    engineApiWaiters().fetch_sub(1, std::memory_order_release);
+    // If waiting threw, let the next queued caller use the idle mutex.
+    if (mutex.mDepth == 0 && mutex.mFirst) mutex.mReady.notify_all();
+}
+
+void EngineApiMutex::lock() {
+    std::unique_lock<std::mutex> lock(mMutex);
+    const auto caller = std::this_thread::get_id();
+    if (mDepth && mOwner == caller) {
+        ++mDepth;
+        return;
+    }
+    Waiter waiter(*this);
+    mReady.wait(lock, [&] { return mDepth == 0 && mFirst == &waiter; });
+    mOwner = caller;
+    mDepth = 1;
+}
+
+bool EngineApiMutex::try_lock() {
+    std::unique_lock<std::mutex> lock(mMutex, std::try_to_lock);
+    if (!lock.owns_lock()) return false;
+    const auto caller = std::this_thread::get_id();
+    if (mDepth && mOwner == caller) {
+        ++mDepth;
+        return true;
+    }
+    if (mDepth || mFirst) return false;
+    mOwner = caller;
+    mDepth = 1;
+    return true;
+}
+
+void EngineApiMutex::unlock() {
+    bool notify;
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        assert(mDepth && mOwner == std::this_thread::get_id());
+        notify = --mDepth == 0 && mFirst != nullptr;
+        if (mDepth == 0) mOwner = std::thread::id{};
+    }
+    if (notify) mReady.notify_all();
 }
 
 // The outermost guard owns this thread's completion queue. Never publish this
@@ -27,19 +86,6 @@ static thread_local std::vector<std::function<void()>>* tDeferredDartCallbacks =
 
 EngineApiGuard::EngineApiGuard() {
     const bool outer = (tDeferredDartCallbacks == nullptr);
-    // RAII balances the waiter count even when lock() throws in an
-    // exception-enabled consumer. Production also builds with -fno-exceptions.
-    // Recursive re-entry on a thread that already holds an outer guard cannot
-    // contend for the mutex and must not inflate the waiter count.
-    struct Waiter {
-        bool active;
-        explicit Waiter(bool a) : active(a) {
-            if (active) engineApiWaiters().fetch_add(1, std::memory_order_acq_rel);
-        }
-        ~Waiter() {
-            if (active) engineApiWaiters().fetch_sub(1, std::memory_order_acq_rel);
-        }
-    } waiter(outer);
     engineApiMutex().lock();
     mPreviousDartCallbacks = tDeferredDartCallbacks;
     if (outer) {
@@ -66,15 +112,6 @@ void deferDartCallback(std::function<void()> fn) {
         tDeferredDartCallbacks->push_back(std::move(fn));
     } else {
         fn();
-    }
-}
-
-// Give waiting direct callers a chance before the next task, then compete
-// for the mutex normally. A continuous stream of direct calls can keep the
-// waiter count nonzero indefinitely; waiting for it to drain starves the worker.
-static void yieldToDirectCallers() {
-    for (int spins = 0; spins < 64 && engineApiWaiters().load(std::memory_order_acquire) > 0; ++spins) {
-        std::this_thread::yield();
     }
 }
 
@@ -129,7 +166,6 @@ void NativeJobThread::run() {
             // Serialise with the direct (non-JobThread) C exports called from
             // other threads (see EngineApiLock.hpp). Held per task, never
             // while waiting for work, and never while calling into Dart.
-            yieldToDirectCallers();
             EngineApiGuard engineLock;
             task();
         }
