@@ -568,7 +568,8 @@ void checkMaterialLinkingBuildable({required bool buildCodeAssets, required Mate
 /// every blob in the output directory.
 ///
 /// sha256 over the pipeline version, the pinned Filament tag, the
-/// thermion_dart package version and the host platform/arch. Any change (a
+/// thermion_dart package version, host platform/arch and pinned tools archive
+/// digest (when available). Any change (a
 /// Filament bump, a thermion_dart bump, building on another machine) forces
 /// a full rebuild. The downloaded matc binary's own sha256 is recorded in
 /// the manifest as `matcSha256` and ALSO forces a full rebuild when it
@@ -706,8 +707,8 @@ typedef MaterialToolsSpec = ({
   String? sha256,
 
   /// Per-user cache dir name, e.g. filament-v1.77.2-webgpu-linux. The
-  /// -webgpu marker distinguishes these from any future non-WebGPU matc
-  /// cache (same idea as scripts/regenerate-materials.sh).
+  /// -webgpu marker distinguishes these from non-WebGPU caches. Pinned
+  /// archives append -<hash16> so a pin change selects a fresh cache.
   String cacheDirName,
 
   /// '.exe' on Windows, '' elsewhere.
