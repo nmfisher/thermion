@@ -168,12 +168,12 @@ jobs:
       - name: Check public Filament version
         run: python3 scripts/generate-filament-version.py --check
 
-      # TBackend (and, if this PoC is extended, other mirrored C enums) must
-      # stay value-compatible with the pinned filament::backend enums — the
-      # C values are cast verbatim in TEngine.cpp. Fails with a diff if the
-      # committed enum has drifted from the pinned Filament version.
+      # TEngine.cpp casts backend values directly to Filament. Verify the C,
+      # binding and public Dart mirrors, plus the generator regressions.
       - name: Check TBackend enum drift vs Filament
-        run: make tbackend-check
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_generate_tbackend.py' -v
+          make tbackend-check
 
       - name: Cache pub dependencies
         uses: actions/cache@v4
