@@ -227,8 +227,8 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
 
   /// Guards the immediate first allocation: build() can run several times
   /// before the async allocation completes, and each must not enqueue another
-  /// create. Cleared when an allocation finishes without producing a texture
-  /// so a later build can retry.
+  /// create. Cleared once that initial attempt finishes; a failed attempt
+  /// can then be retried on a later build.
   bool _initialAllocationInFlight = false;
 
   // Size the in-flight initial allocation targets; only meaningful while
@@ -311,10 +311,16 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
     // must not fall through to the debounce timer below: _currentWidth and
     // _currentHeight are still 0 until that allocation finishes, so the
     // timer would fire ~100 ms later and run a redundant resizeTexture for
-    // an identical size right after startup.
+    // an identical size right after startup. A transient resize that armed
+    // that timer before snapping back to the initial size would otherwise
+    // leave the stale larger size armed to fire, so clear it here too.
     if (_initialAllocationInFlight &&
         width == _initialAllocationWidth &&
         height == _initialAllocationHeight) {
+      _pendingWidth = width;
+      _pendingHeight = height;
+      _debounceTimer?.cancel();
+      _debounceTimer = null;
       return;
     }
 
@@ -349,10 +355,12 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
       try {
         await _performTextureAllocation(width, height);
       } finally {
-        // A failed initial allocation should be retried on a later build.
-        if (_texture == null) {
-          _initialAllocationInFlight = false;
-        }
+        // Always release the initial-allocation guard once the attempt
+        // finishes: keeping it after success would silently drop a later
+        // resize back to the initial size. Duplicate work is still
+        // prevented by build()'s same-size check and the guard in
+        // [_performTextureAllocation], and a failure can be retried.
+        _initialAllocationInFlight = false;
       }
     }, 'allocating a Thermion widget texture');
   }
