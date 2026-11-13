@@ -41,6 +41,39 @@ void main() {
     );
   });
 
+  test('failed source compilation restores the Wasm input stack', () async {
+    final stack = stackSave();
+    try {
+      final source = '// ${'x' * 4096}\nvoid material(inout MaterialInputs material) { broken syntax; }';
+      for (var i = 0; i < 20; i++) {
+        await expectLater(app.compileMaterialSource('stack_source_$i', source), throwsStateError);
+        expect(stackSave().address, stack.address, reason: 'source call $i retained Wasm stack space');
+      }
+    } finally {
+      stackRestore(stack);
+    }
+  }, skip: !FILAMENT_WASM);
+
+  test('failed package compilation restores the Wasm input stack', () async {
+    final stack = stackSave();
+    try {
+      final includes = {'large.glsl': '// ${'x' * 4096}\n'};
+      for (var i = 0; i < 20; i++) {
+        await expectLater(
+          app.compileMaterialPackage(
+            'stack_package_$i',
+            '#include "large.glsl"\nunexpectedBlock {}',
+            includes: includes,
+          ),
+          throwsStateError,
+        );
+        expect(stackSave().address, stack.address, reason: 'package call $i retained Wasm stack space');
+      }
+    } finally {
+      stackRestore(stack);
+    }
+  }, skip: !FILAMENT_WASM);
+
   test('error results own their text and legacy functions still return null', () {
     final name = 'owned_error'.toNativeUtf8().cast<Char>();
     final firstSource = 'firstInvalidBlock {}'.toNativeUtf8().cast<Char>();

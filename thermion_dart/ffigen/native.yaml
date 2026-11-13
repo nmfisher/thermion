@@ -19,6 +19,12 @@ functions:
       # functions must not be Dart FFI leaf calls. This excludes it only from
       # isLeaf:true, not from the bindings.
       - 'FrameScheduler_stop'
+      # Compilation waits for a job-thread future and must let the Dart VM
+      # coordinate GC and other isolates while the native call is blocked.
+      - 'MaterialCompiler_compileMaterialSource'
+      - 'MaterialCompiler_compileMaterialPackage'
+      - 'MaterialCompiler_compileMaterialSourceWithDiagnostics'
+      - 'MaterialCompiler_compileMaterialPackageWithDiagnostics'
 enums:
   as-int:
     include:
