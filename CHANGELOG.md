@@ -49,6 +49,13 @@
   vertex/fragment blocks and in-memory `#include` resolution. Enable
   `hooks.user_defines.thermion_dart.runtime_materials` to link the compiler.
 
+### Bug fixes
+
+- Fix build-time material compilation on macOS by packaging universal,
+  WebGPU-capable `matc` and `resgen` tools. Resolve host tools through the
+  shipped Filament artifact pin, verify archive checksums, and invalidate
+  material caches when the pinned tool archive changes.
+
 ## 0.6.1 - 2026-11-02
 
 - Fix Vulkan initialization on drivers that provide external-memory capabilities
