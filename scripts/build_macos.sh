@@ -104,6 +104,10 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
+# Enable WGSL only for the separate, exception-enabled host tools. The
+# runtime libraries retain their existing backend configuration.
+export FILAMENT_HOST_TOOLS_OPTIONS="-DFILAMENT_SUPPORTS_WEBGPU=ON"
+
 # Keep host tools separate from the runtime archives built below.
 git apply "$SCRIPT_DIR/filament-no-exceptions.patch" || exit 1
 
@@ -228,6 +232,21 @@ if [ "$BUILD_DEBUG" = true ]; then
     exit 1
   }
 fi
+
+# Ship the Release host tools in both variants, as the Linux archives do.
+# build.sh -l builds these as universal arm64/x86_64 executables.
+for mode in release debug; do
+  if [ "$mode" = release ] && [ "$BUILD_RELEASE" = true ]; then
+    tools_target="$TARGET_RELEASE_DIR/bin"
+  elif [ "$mode" = debug ] && [ "$BUILD_DEBUG" = true ]; then
+    tools_target="$TARGET_DEBUG_DIR/bin"
+  else
+    continue
+  fi
+  mkdir -p "$tools_target" || exit 1
+  cp out/prebuilt-tools-release/tools/matc/matc "$tools_target/" || exit 1
+  cp out/prebuilt-tools-release/tools/resgen/resgen "$tools_target/" || exit 1
+done
 
 # Copy release libraries
 if [ "$BUILD_RELEASE" = true ]; then
