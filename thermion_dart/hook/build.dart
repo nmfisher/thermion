@@ -9,6 +9,7 @@ import 'package:path/path.dart' as path;
 import '../lib/filament_version.dart';
 import '../lib/src/hooks/filament_artifacts.dart';
 import '../lib/src/hooks/material_backend_resolution.dart';
+import '../lib/src/hooks/material_tools.dart';
 import '../lib/src/hooks/web_artifacts.dart';
 import '../lib/src/logging/log.dart';
 
@@ -18,6 +19,56 @@ void main(List<String> args) async {
     var pkgRootFilePath = packageRoot.toFilePath(windows: Platform.isWindows);
 
     final logger = createBuildLogger(pkgRootFilePath, "build.log");
+
+    // Opt-in compilation of the CONSUMING APP's own .mat files (issue #399).
+    //
+    // Set `material_compilation` under `hooks.user_defines.thermion_dart` in
+    // the app's pubspec.yaml to point thermion at user .mat sources; the
+    // hook then compiles them with the version-matched, WebGPU-capable
+    // matc/resgen pair for the HOST platform (downloaded from R2 into a
+    // per-user cache) into the configured output directory. User materials
+    // are runtime assets loaded from bytes
+    // (FilamentApp.createMaterial(Uint8List)), NOT compiled into the native
+    // library — thermion's own materials stay the committed blobs under
+    // native/include/material/.
+    //
+    // A matcId (Filament tag + thermion_dart version + host platform/arch,
+    // plus the downloaded matc binary's sha256, recorded separately) in
+    // <output>/.thermion-materials.json makes repeat builds a no-op and
+    // forces a FULL rebuild whenever the toolchain changes, even if no
+    // .mat changed. Absent define -> nothing happens. Present but broken
+    // (bad paths, no network, matc failure) -> the build fails with an
+    // actionable message; it is never silently skipped.
+    //
+    // Runs before the branches below so web builds (which return early)
+    // compile their user materials too.
+    final materialCompilationRaw = input.userDefines["material_compilation"];
+    if (materialCompilationRaw != null) {
+      final consumingPackageRoot = _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
+      if (consumingPackageRoot == null) {
+        throw Exception(
+          "material_compilation is configured but the consuming package root "
+          "could not be resolved from ${input.outputDirectory}; inputs/output "
+          "are resolved relative to it.",
+        );
+      }
+      final config = parseMaterialCompilationConfig(materialCompilationRaw, onLog: logger.warning);
+      final hostArch = await detectHostArchitecture();
+      final result = await compileUserMaterials(
+        appRoot: Directory(consumingPackageRoot),
+        config: config!,
+        filamentVersion: filamentVersion,
+        packageVersion: await readPubspecVersion(Directory(pkgRootFilePath)),
+        hostOS: Platform.operatingSystem,
+        hostArch: hostArch ?? 'x64',
+        download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
+        onLog: logger.info,
+      );
+      // Include discovery directories, transitive includes and generated files
+      // in runner invalidation; internal manifest checks cannot run otherwise.
+      output.dependencies.addAll(result.dependencies);
+      output.dependencies.add(File(path.join(pkgRootFilePath, 'pubspec.yaml')).uri);
+    }
 
     if (!input.config.buildCodeAssets) {
       logger.info("buildCodeAssets is false, assumed to be building for web");
