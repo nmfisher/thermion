@@ -61,6 +61,20 @@ int main() {
         }
         check(executed == 201);
     }
+    // Completion can race the transition back to an empty-queue wait. Stopping
+    // immediately must still wake and join each worker, including idle workers.
+    for (int round = 0; round < 200; ++round) {
+        auto owner = JobThread::create();
+        if (round % 2) {
+            std::promise<void> done;
+            auto ready = done.get_future();
+            owner->addDetachedTask([&] { done.set_value(); });
+            check(ready.wait_for(2s) == std::future_status::ready);
+            JobThread::destroy(std::move(owner));
+        } else {
+            JobThread::destroy(std::move(owner));
+        }
+    }
     // Once callers are queued, a releasing thread must not take another turn
     // ahead of them. Recursion by the current owner still completes inline.
     {
