@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert' show json;
+import 'dart:isolate';
 import 'dart:math' as math;
 
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_manager.dart';
@@ -585,19 +586,46 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   // alpha channel (even if the original image did not contain one).
   //
   Future<LinearImage> decodeImage(Uint8List data, {String name = "image", bool requireAlpha = false}) async {
-    var now = DateTime.now();
-    final namePtr = name.toNativeUtf8().cast<Char>();
-    var ptr = Image_decode(data.address, data.length, namePtr, requireAlpha);
-    free(namePtr);
-
-    var finished = DateTime.now();
-    final elapsed = finished.millisecondsSinceEpoch - now.millisecondsSinceEpoch;
-    print("Image_decode (render thread) finished in $elapsed ms");
-
     if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
-      data.free();
+      // Web: pass() copies [data] into Filament's Wasm heap and frees the
+      // copy after the call. A bare `data.address` borrow would either leak
+      // Wasm stack space (< 32 KB, stackAlloc without stackRestore) or leak
+      // the whole buffer in the Wasm heap (>= 32 KB: data.address mallocs,
+      // while data.free() frees offsetInBytes == 0).
+      final namePtr = name.toNativeUtf8().cast<Char>();
+      try {
+        final ptr = await data.pass((bytes) {
+          return withPointerCallback<TLinearImage>((cb) {
+            Image_decodeJobThread(jobThreadHandle, bytes.address, bytes.length, namePtr, requireAlpha, cb);
+          });
+        });
+        if (ptr == nullptr) {
+          throw Exception("Failed to decode image");
+        }
+        return FFILinearImage(ptr, jobThreadHandle);
+      } finally {
+        free(namePtr);
+      }
     }
+    // Native: Image_decode is a pure CPU PNG/JPEG/HDR decode that never
+    // touches filament::Engine, so it must not sit on the render JobThread:
+    // it would block RenderManager_renderJobThread for tens of milliseconds
+    // (and hold the engine API mutex once that lands). Decoding in a
+    // short-lived isolate keeps both this isolate and the JobThread
+    // stall-free. Only the raw address crosses back; Pointer objects are
+    // not sendable between isolates.
+    final imageAddress = await Isolate.run(() {
+      final dataPtr = allocate<Uint8>(data.length);
+      final namePtr = name.toNativeUtf8();
+      try {
+        dataPtr.asTypedList(data.length).setAll(0, data);
+        return Image_decode(dataPtr, data.length, namePtr.cast<Char>(), requireAlpha).address;
+      } finally {
+        free(namePtr);
+        free(dataPtr);
+      }
+    });
+    final ptr = Pointer<TLinearImage>.fromAddress(imageAddress);
     if (ptr == nullptr) {
       throw Exception("Failed to decode image");
     }
@@ -958,14 +986,43 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return List<SwapChain>.unmodifiable(_swapChains);
   }
 
-  final _hooks = <Future Function()>[];
+  final _hooks = <RequestFrameHook>[];
+
+  /// Number of render() hook passes currently iterating. Register and
+  /// unregister may mutate [_hooks] while a pass runs (each pass iterates a
+  /// snapshot), so this counter — not the list itself — is what gates
+  /// [drainRequestFrameHooks].
+  int _activeHookPasses = 0;
+
+  final _hookIdleWaiters = <Completer<void>>[];
+
+  void _completeHookIdleWaiters() {
+    if (_hookIdleWaiters.isEmpty) return;
+    final waiters = List.of(_hookIdleWaiters);
+    _hookIdleWaiters.clear();
+    for (final waiter in waiters) {
+      waiter.complete();
+    }
+  }
+
+  /// Resolves once no request-frame hook pass is running (immediately when
+  /// none is). Replaces the former 1 ms polling loop and the single
+  /// in-flight Completer, which overlapping render() calls overwrote: a
+  /// one-shot hook that unregistered itself while a pass was running
+  /// deadlocked on the completer that only its own return could fire.
+  Future<void> drainRequestFrameHooks() {
+    if (_activeHookPasses == 0) return Future<void>.value();
+    final completer = Completer<void>();
+    _hookIdleWaiters.add(completer);
+    return completer.future;
+  }
 
   //
   @override
-  Future registerRequestFrameHook(Future Function() hook) async {
-    while (_processingRenderHooks) {
-      await Future.delayed(Duration(milliseconds: 1));
-    }
+  Future registerRequestFrameHook(RequestFrameHook hook) async {
+    // Hook passes iterate a snapshot of [_hooks], so the list can be mutated
+    // immediately, even mid-pass: a new hook starts on the next pass, and a
+    // hook that unregisters itself (e.g. one-shot hooks) cannot deadlock.
     if (!_hooks.contains(hook)) {
       _hooks.add(hook);
     }
@@ -973,38 +1030,56 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   //
   @override
-  Future unregisterRequestFrameHook(Future Function() hook) async {
-    while (_processingRenderHooks) {
-      await Future.delayed(Duration(milliseconds: 1));
-    }
-    if (_hooks.contains(hook)) {
-      _hooks.remove(hook);
-    }
+  Future unregisterRequestFrameHook(RequestFrameHook hook) async {
+    _hooks.remove(hook);
   }
 
-  bool _processingRenderHooks = false;
+  /// Timestamp of the last frame dispatched to hooks, on the scheduler's
+  /// steady clock. Zero until the first dispatched frame.
+  int _lastHookFrameTimeNanos = 0;
 
-  /// Waits for any request-frame hook that is already running.
-  Future<void> drainRequestFrameHooks() async {
-    while (_processingRenderHooks) {
-      await Future<void>.delayed(const Duration(milliseconds: 1));
-    }
-  }
+  /// Upper bound for the delta handed to request-frame hooks, so a pause, a
+  /// stalled frame, or a clock change cannot spike per-frame motion.
+  static const _maxHookDeltaNanos = 100 * 1000 * 1000;
 
   //
   @override
   Future render({int? frameTimeInNanos}) async {
-    _processingRenderHooks = true;
+    final resolvedFrameTimeNanos = frameTimeInNanos ?? bindings.FrameScheduler_steadyClockUs().toInt() * 1000;
+
+    var deltaNanos = resolvedFrameTimeNanos - _lastHookFrameTimeNanos;
+    if (_lastHookFrameTimeNanos == 0 || deltaNanos < 0) {
+      // First dispatched frame, or a non-monotonic timestamp (clock change):
+      // no elapsed time to integrate against.
+      deltaNanos = 0;
+    } else if (deltaNanos > _maxHookDeltaNanos) {
+      deltaNanos = _maxHookDeltaNanos;
+    }
+    _lastHookFrameTimeNanos = resolvedFrameTimeNanos;
+    final delta = Duration(microseconds: deltaNanos ~/ 1000);
+
+    _activeHookPasses++;
     try {
-      for (final hook in _hooks) {
-        await hook.call();
+      // Iterate a snapshot: hooks may register or unregister (including
+      // themselves) from inside a hook while this pass is running, without
+      // awaiting a drain and without a ConcurrentModificationError from an
+      // overlapping render().
+      for (final hook in List.of(_hooks)) {
+        await hook.call(resolvedFrameTimeNanos, delta);
       }
     } catch (err) {
       _logger.severe(err);
+    } finally {
+      _activeHookPasses--;
+      if (_activeHookPasses == 0) {
+        _completeHookIdleWaiters();
+      }
     }
-    _processingRenderHooks = false;
 
-    await renderManager.render(frameTimeInNanos: frameTimeInNanos);
+    // Hooks already saw resolvedFrameTimeNanos; the render itself must use
+    // the same resolved timestamp when the caller omitted one, per the
+    // RequestFrameHook contract.
+    await renderManager.render(frameTimeInNanos: resolvedFrameTimeNanos);
   }
 
   int _targetFramerate = 0;

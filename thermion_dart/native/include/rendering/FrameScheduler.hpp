@@ -198,7 +198,12 @@ public:
     void stop() override;
 private:
     void scheduleNextFrame();
+    // 32-bit timestamp callback; `long` wraps every ~2.14 s on 32-bit ABIs.
+    // Kept as the fallback for devices without the API 29 64-bit variant.
     static void frameCallback(long frameTimeNanos, void* data);
+    // 64-bit timestamp callback (API 29+), resolved via dlsym when present.
+    static void frameCallback64(int64_t frameTimeNanos, void* data);
+    static void handleFrame(uint64_t frameTimeNanos, void* data);
 };
 #endif
 

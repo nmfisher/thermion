@@ -27,7 +27,7 @@ NativeJobThread::~NativeJobThread() {
 void NativeJobThread::enqueue(std::function<void()> task) {
     {
         std::lock_guard<std::mutex> lock(_taskMutex);
-        _tasks.push_back(std::move(task));
+        _tasks.push_back(TaskEntry{std::move(task), false});
     }
     _cv.notify_one();
 }
@@ -49,7 +49,7 @@ void NativeJobThread::run() {
             continue;
         }
 
-        auto task = std::move(_tasks.front());
+        auto task = std::move(_tasks.front().fn);
         _tasks.pop_front();
         taskLock.unlock();
         task();

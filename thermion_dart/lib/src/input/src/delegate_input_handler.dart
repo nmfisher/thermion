@@ -40,6 +40,9 @@ class DelegateInputHandler implements InputHandler {
       viewer: viewer,
       delegate: OrbitInputHandlerDelegate(
         viewer.view,
+        // Coalesce pointer deltas and apply the orbit update once per
+        // rendered frame instead of once per input event.
+        app: viewer.app,
         moveOnHover: moveOnHover,
         sensitivity: sensitivity,
         minZoomDistance: minimumDistance,
