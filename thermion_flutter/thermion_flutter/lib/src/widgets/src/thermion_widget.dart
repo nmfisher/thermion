@@ -231,6 +231,11 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
   /// so a later build can retry.
   bool _initialAllocationInFlight = false;
 
+  // Size the in-flight initial allocation targets; only meaningful while
+  // [_initialAllocationInFlight] is true.
+  int _initialAllocationWidth = 0;
+  int _initialAllocationHeight = 0;
+
   // The current texture size (what's actually allocated)
   int _currentWidth = 0;
   int _currentHeight = 0;
@@ -302,6 +307,17 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
   void _scheduleTextureAllocation(int width, int height) {
     if (_disposing) return;
 
+    // A rebuild at the exact size the initial allocation already targets
+    // must not fall through to the debounce timer below: _currentWidth and
+    // _currentHeight are still 0 until that allocation finishes, so the
+    // timer would fire ~100 ms later and run a redundant resizeTexture for
+    // an identical size right after startup.
+    if (_initialAllocationInFlight &&
+        width == _initialAllocationWidth &&
+        height == _initialAllocationHeight) {
+      return;
+    }
+
     _pendingWidth = width;
     _pendingHeight = height;
 
@@ -312,6 +328,8 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
     // so start it only once (and retry if it fails).
     if (_texture == null && !_initialAllocationInFlight) {
       _initialAllocationInFlight = true;
+      _initialAllocationWidth = width;
+      _initialAllocationHeight = height;
       _debounceTimer?.cancel();
       _debounceTimer = null;
       _allocateTexture(width, height);
@@ -341,6 +359,15 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
 
   Future<void> _performTextureAllocation(int width, int height) async {
     if (_disposing) return;
+
+    // Already allocated at this size (e.g. a debounced rebuild that raced an
+    // allocation of the same dimensions): a resizeTexture to the identical
+    // size would be a pure waste of a full surface rebind.
+    if (_texture != null &&
+        width == _currentWidth &&
+        height == _currentHeight) {
+      return;
+    }
 
     PlatformTextureDescriptor? texture;
 
