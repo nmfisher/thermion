@@ -459,6 +459,20 @@ jobs:
         with:
           flutter-version: '3.44.8'
           channel: stable
+      - name: Backport Flutter simulator log-readiness fix
+        run: |
+          # Flutter flutter/flutter#193142 fixes the CI startup race in #181771.
+          # Apply only to this disposable SDK; remove once the pin includes it.
+          git -C "$FLUTTER_ROOT" apply --check "$GITHUB_WORKSPACE/.github/patches/flutter-ios-log-readiness.patch"
+          git -C "$FLUTTER_ROOT" apply "$GITHUB_WORKSPACE/.github/patches/flutter-ios-log-readiness.patch"
+          # The action has already built the tool snapshot from unpatched sources.
+          rm -f "$FLUTTER_ROOT/bin/cache/flutter_tools.snapshot"
+
+      - name: Test Flutter simulator log-readiness backport
+        working-directory: ${{ env.FLUTTER_ROOT }}/packages/flutter_tools
+        run: |
+          "$FLUTTER_ROOT/bin/cache/dart-sdk/bin/dart" test test/general.shard/ios/simulators_test.dart --reporter expanded
+
       - name: Generate integration harness
         run: python3 scripts/create-runtime-materials-test-app.py --platform ios --destination "$RUNNER_TEMP/runtime-materials-app"
       - name: Boot an available iPhone simulator
