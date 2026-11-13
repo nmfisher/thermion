@@ -32,6 +32,9 @@ class CallbackHolder<T extends Function> {
 
   CallbackHolder(this.pointer);
 
+  // Web callbacks have no NativeCallable isolate keep-alive to release.
+  void releaseIsolate() {}
+
   void dispose() {
     pointer.dispose();
   }
