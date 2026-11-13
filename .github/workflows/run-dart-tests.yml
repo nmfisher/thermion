@@ -55,7 +55,7 @@ jobs:
                 skip_native_build: true
           EOF
           dart pub get
-          dart test test/native_buffer_test.dart -r expanded
+          dart test test/native_buffer_test.dart test/engine_api_leaf_test.dart -r expanded
           dart test -p node test/backend_enum_test.dart test/js_pointer_callback_test.dart test/js_view_picking_test.dart test/js_geometry_memory_test.dart test/js_material_memory_test.dart test/geometry_ctor_tests.dart -r expanded
           dart test test/material_symbol_export_test.dart test/material_tools_test.dart test/material_publication_test.dart test/material_hook_runner_test.dart test/backend_enum_test.dart test/filament_artifacts_test.dart test/web_artifacts_test.dart \
             test/filament_version_test.dart test/material_backend_resolution_test.dart -r expanded
@@ -199,6 +199,25 @@ jobs:
             test/all_materials_smoke_test.dart `
             test/skybox_tests.dart `
             --concurrency=1
+
+      - name: Run native engine lock and callback regressions
+        shell: bash
+        run: |
+          python3 - <<'PYTHON'
+          import os
+          import pathlib
+          import subprocess
+          import sys
+          filename = 'thermion_dart.dll' if sys.platform == 'win32' else 'libthermion_dart.so'
+          library = pathlib.Path('thermion_dart/.dart_tool/lib', filename).resolve()
+          if not library.is_file():
+              raise SystemExit(f'Native test library missing: {library}')
+          build = pathlib.Path(os.environ['RUNNER_TEMP'], 'engine-api-lock-tests')
+          subprocess.run(['cmake', '-S', 'thermion_dart/native/test/rendering', '-B', str(build),
+                          '-DCMAKE_BUILD_TYPE=Debug', f'-DTHERMION_TEST_LIBRARY={library}'], check=True)
+          subprocess.run(['cmake', '--build', str(build), '--config', 'Debug', '--parallel', '2'], check=True)
+          subprocess.run(['ctest', '--test-dir', str(build), '-C', 'Debug', '--output-on-failure'], check=True)
+          PYTHON
 
       - name: Upload Dart test output candidate
         uses: actions/upload-artifact@v4
