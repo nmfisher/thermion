@@ -11,7 +11,7 @@ Earlier entries are consolidated. [Original detailed history](https://github.com
 - Ship pinned macOS material tools; fix Android shader targeting and Windows
   runtime-material linking.
 - Fix Wasm material/compiler memory leaks and pending gizmo callback lifetimes.
-- Serialize native engine access and defer callbacks until the engine lock is released.
+- Serialize native engine access; fix worker starvation, shutdown hangs, and callback delivery.
 - Generate backend enums from Filament (`WEBGPU = 4`, `NOOP = 5`).
 - **Breaking:** `setStencilHighlight` without an entity now highlights all
   renderables, including instances.
