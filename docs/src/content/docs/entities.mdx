@@ -19,9 +19,11 @@ Useful parameters:
 - `addToScene` (default `true`) — add renderables to the scene immediately.
 - `initialInstances` — pre-allocate GPU instances (see
   [instancing](#gpu-instancing) below).
-- `rebuildVertices` — rebuild vertex buffers with a superset of attributes
-  (barycentrics, unwelded vertices). Required for wireframe, flat shading,
-  and stencil highlights; costs ~3x vertex memory.
+- `requiredGeometryCapabilities` (default empty) — request geometry
+  capabilities at load time. `barycentrics` (or `uniqueTriangleCorners`)
+  rebuilds vertex buffers unwelded with a superset of attributes. Required
+  for wireframe, flat shading, and stencil highlights; costs ~3x vertex
+  memory. An empty set leaves the gltfio geometry untouched.
   See [Materials & Textures](/materials/).
 - `releaseSourceData` — free the CPU-side glTF copy after loading (disables
   creating further instances).

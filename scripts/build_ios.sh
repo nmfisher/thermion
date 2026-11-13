@@ -103,6 +103,17 @@ git checkout "${FILAMENT_VERSION}" || {
 # Keep host tools separate from the runtime archives built below.
 git apply "$SCRIPT_DIR/filament-no-exceptions.patch" || exit 1
 
+# Bundle smol-v into libfilamat_combined.a (omitted from upstream's
+# FILAMAT_DEPS despite the filamat target linking it) — without it every
+# consumer of the combined archive hits undefined _ZN5smolv... symbols.
+# See the same comment in build_web.sh.
+git apply "$SCRIPT_DIR/filament-smolv-combined.patch" || exit 1
+
+# Build matp (the material parser behind matc) into the runtime archives and
+# install its include-resolution headers, for runtime material compilation on
+# iOS. matp is exception-free, matching iOS's -fno-exceptions toolchain.
+git apply "$SCRIPT_DIR/filament-matp-runtime.patch" || exit 1
+
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
 sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh

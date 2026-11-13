@@ -1,0 +1,12 @@
+diff --git a/libs/filamat/CMakeLists.txt b/libs/filamat/CMakeLists.txt
+index 706ca0ce..8a365e9c 100644
+--- a/libs/filamat/CMakeLists.txt
++++ b/libs/filamat/CMakeLists.txt
+@@ -139,6 +139,7 @@ set(FILAMAT_DEPS
+         spirv-cross-glsl
+         spirv-cross-msl
+         zstd
++        smol-v
+         )
+ 
+ set(FILAMAT_COMBINED_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/libfilamat_combined.a")

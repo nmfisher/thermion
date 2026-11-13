@@ -36,11 +36,12 @@ jobs:
 
       - name: Download matching Filament web libraries
         run: |
-          filament_version="$(awk '{print $2}' filament.version)"
           filament_libs="$GITHUB_WORKSPACE/thermion_dart/native/web/lib/release"
           mkdir -p "$filament_libs"
+          # Pin-aware URL (thermion_dart/filament.libs.json): hash-suffixed
+          # immutable key when pinned, legacy key otherwise.
           curl --fail --location --retry 3 \
-            "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${filament_version}-web-release.zip" \
+            "$(python3 scripts/filament-artifact-url.py web release)" \
             --output "$RUNNER_TEMP/filament-web.zip"
           unzip -q "$RUNNER_TEMP/filament-web.zip" -d "$filament_libs"
 
@@ -62,5 +63,6 @@ jobs:
           cmake --build "$build_dir" --parallel 2
           node "$build_dir/web_upload_drain_test.js"
           node "$build_dir/web_canvas_thread_test.js"
+          node "$build_dir/web_frame_admission_test.js"
           node thermion_dart/native/test/web/worker_render_noop_test.cjs \
             "$RUNNER_TEMP/thermion-web-OFF/build/out/thermion_dart.js"

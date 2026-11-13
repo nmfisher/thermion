@@ -51,10 +51,11 @@ await asset.setMaterialInstanceAt(unlit);
 :::note
 Materials that need extra vertex attributes — **wireframe** (barycentric
 coordinates), **stencil highlight outlines**, and **flat shading** — only
-work on assets loaded with `loadGltf(..., rebuildVertices: true)`, which
-rebuilds vertex buffers with a superset of attributes at the cost of ~3x
-vertex memory. `setFlatShading` and `setStencilHighlight` **throw** if the
-asset wasn't loaded this way.
+work on assets loaded with
+`loadGltf(..., requiredGeometryCapabilities: {SceneAssetGeometryCapability.barycentrics})`,
+which rebuilds vertex buffers with a superset of attributes at the cost of
+~3x vertex memory. `setFlatShading` and `setStencilHighlight` **throw** if
+the asset wasn't loaded this way.
 :::
 
 ## Textures
@@ -225,5 +226,88 @@ That target is for Thermion's **own** bundled materials (`materials/`, e.g.
 committed under `thermion_dart/native/include/material/` — it is unrelated
 to your app's materials, which are never compiled into a native library.
 
-> A runnable example covering material swapping, parameter setting, and texture
-> binding is in `examples/flutter/materials_and_textures`.
+## Compiling materials at runtime
+
+Instead of precompiling `.filamat`/`.uberz` files, apps that need to generate
+materials at runtime (user-authored or procedural shaders) can compile GLSL
+`material()` source directly on the device with
+`FilamentApp.compileMaterialSource`:
+
+```dart
+final material = await FilamentApp.instance!.compileMaterialSource(
+  'my_material',
+  '''
+  void material(inout MaterialInputs material) {
+    prepareMaterial(material);
+    material.baseColor.rgb = float3(1.0, 0.0, 0.0);
+  }
+  ''',
+  shading: MaterialShading.lit,
+);
+```
+
+### Full `.mat` packages with parameters and includes
+
+`compileMaterialSource` only accepts the bare `material()` function. For a
+complete `.mat` source — the same format `matc` accepts, with a `material { ... }`
+configuration block and optional `vertex { ... }` code — use
+`FilamentApp.compileMaterialPackage`:
+
+```dart
+final material = await FilamentApp.instance!.compileMaterialPackage(
+  'my_material',
+  '''
+  material {
+      name : "MyMaterial",
+      shadingModel : unlit,
+      parameters : [ { type : float4, name : baseColor } ]
+  }
+  fragment {
+      #include "common.glsl"
+      void material(inout MaterialInputs material) {
+          prepareMaterial(material);
+          material.baseColor = tint(materialParams.baseColor);
+      }
+  }
+  ''',
+  includes: {
+    'common.glsl': 'vec4 tint(vec4 c) { return c * vec4(1.0, 0.9, 0.8, 1.0); }',
+  },
+);
+
+final instance = await material.createInstance();
+await instance.setParameterFloat4('baseColor', 1.0, 0.0, 0.0, 1.0);
+```
+
+`#include "name"` directives — in the source and in included files — are
+resolved against the `includes` map by exact name; there is no filesystem
+access, and an unresolvable include fails the compile. Everything else
+(shading model, parameters, blending, variants, ...) comes from the `.mat`
+source itself. This uses `matp`, the same parser that backs `matc`.
+
+### Enabling runtime compilation
+
+Both APIs are an opt-in build feature: they link Filament's `libfilamat`
+(which bakes in glslang and SPIRV-Tools, adding roughly 8–45 MB) and, for
+`compileMaterialPackage`, `libmatp`. Enable them with a
+`runtime_materials: true` user define under `hooks.user_defines.thermion_dart`
+in your app's `pubspec.yaml`; `FilamentApp.runtimeMaterialsSupported` reports
+whether the loaded build has it (otherwise both APIs throw
+`UnsupportedError`). On web the same flag selects a filamat-enabled engine
+variant (~20 MB larger than the default wasm). iOS device and simulator
+builds support the same flag and target Metal with the mobile shader model.
+Native compilation runs on Thermion's job thread; web compilation runs
+inline on the calling thread. Compilation is CPU-intensive (hundreds of
+milliseconds).
+
+:::note
+Runtime compilation needs Filament artifacts that ship `libfilamat` and
+`libmatp` (Filament v1.77.2 archives rebuilt with
+`scripts/filament-matp-runtime.patch`). If you consume artifacts published
+before that patch, rebuild them with the Build Filament workflow first.
+:::
+
+> A runnable web example — a live GLSL material editor that compiles and
+> applies materials in the browser — is in `examples/dart/material_editor`.
+> Material swapping, parameter setting, and texture binding with
+> precompiled materials: `examples/flutter/materials_and_textures`.

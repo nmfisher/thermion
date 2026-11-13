@@ -3,7 +3,7 @@ name: thermion-loading-gltf
 description: >
   Load, inspect, instance, and clean up glTF/GLB models in Thermion. Covers
   loadGltf and loadGltfFromBuffer parameters (addToScene, initialInstances,
-  releaseSourceData, rebuildVertices, resourceUri), the ThermionAsset API
+  releaseSourceData, requiredGeometryCapabilities, resourceUri), the ThermionAsset API
   (entity, child-entity queries, bounding boxes, transformToUnitCube,
   createInstance/getInstance for GPU instancing), scene add/remove, visibility
   layers, and destroyAsset/destroyAssets. Use when loading 3d models, spawning
@@ -32,9 +32,10 @@ final asset = await viewer.loadGltf(
   addToScene: true,          // add renderables to the scene immediately
   initialInstances: 4,       // pre-allocate N GPU instances (>= 1)
   releaseSourceData: false,  // true: no further createInstance calls possible
-  rebuildVertices: false,    // true: rebuild vertices with barycentrics/etc,
-                             //      enabling free material swapping (wireframe,
-                             //      flat shading, stencil highlights). ~3x vertex memory.
+  requiredGeometryCapabilities: const {},  // e.g. {SceneAssetGeometryCapability.barycentrics}:
+                                           //   unwelded vertices with barycentrics, enabling
+                                           //   free material swapping (wireframe, flat shading,
+                                           //   stencil highlights). ~3x vertex memory.
   resourceUri: null,         // for .gltf: where relative resources live
                              //      (defaults to the .gltf file's own URI)
 );
@@ -128,10 +129,10 @@ all references immediately.
   `camera.lookAt(Vector3(3, 3, 3))` after loading.
 - `releaseSourceData: true` (at load or via `asset.releaseSourceData()`) frees
   the CPU-side glTF copy but permanently disables `createInstance`.
-- `rebuildVertices: true` is required for later wireframe/flat-shading swaps and
-  stencil highlights (`setFlatShading`/`setStencilHighlight` throw without it);
-  it costs ~3x vertex memory but preserves animations, skeletons, and
-  instancing.
+- `requiredGeometryCapabilities: {SceneAssetGeometryCapability.barycentrics}`
+  is required for later wireframe/flat-shading swaps and stencil highlights
+  (`setFlatShading`/`setStencilHighlight` throw without it); it costs ~3x
+  vertex memory but preserves animations, skeletons, and instancing.
 
 ## References
 

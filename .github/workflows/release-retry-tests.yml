@@ -1,0 +1,28 @@
+name: Release retry tests
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - '.github/workflows/release.yml'
+      - '.github/workflows/release-retry-tests.yml'
+      - 'scripts/retry-release-runner.py'
+      - 'scripts/test_retry_release_runner.py'
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+      - '.github/workflows/release-retry-tests.yml'
+      - 'scripts/retry-release-runner.py'
+      - 'scripts/test_retry_release_runner.py'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s scripts -p 'test_retry_release_runner.py' -v

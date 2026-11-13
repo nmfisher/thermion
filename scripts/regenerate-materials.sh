@@ -16,7 +16,9 @@
 #
 # Intended for CI: run it whenever filament.version changes, then commit the
 # diff (see the materials jobs in
-# .github/workflows/regenerate-bindings-and-materials.yml). matc output for a
+# .github/workflows/regenerate-bindings-and-materials.yml; only the resgen
+# .c/.h outputs under thermion_dart/native/include/material/ are committed —
+# the .S/.apple.S/.bin outputs are unused and .gitignore'd). matc output for a
 # fixed version is deterministic, so an already-up-to-date tree produces no
 # diff and no commit.
 set -eu
@@ -36,7 +38,11 @@ CACHE_ROOT="${FILAMENT_TOOLS_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/thermion/fil
 TOOLS="$CACHE_ROOT/filament-$TAG-webgpu"
 
 R2_PUBLIC_URL="${R2_PUBLIC_URL:-https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev}"
-ZIP_NAME="filament-$TAG-linux-release.zip"
+# Pin-aware artifact name (thermion_dart/filament.libs.json): hash-suffixed
+# immutable key when pinned, legacy key otherwise. The cache dir stays
+# per-tag; the webgpu smoke test below re-downloads if the cached tools are
+# wrong/stale, so a pin flip self-heals.
+ZIP_NAME="$(python3 scripts/filament-artifact-url.py linux release --name-only)"
 
 # Smoke test: compile a minimal material with -a webgpu. matc built without
 # FILAMENT_SUPPORTS_WEBGPU fails this, so a bad or wrong-version cache is

@@ -56,6 +56,58 @@ on:
         default: true
 
 jobs:
+  windows-process-exit:
+    name: Windows process-exit integration (release)
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+
+      - name: Set up software Vulkan (Mesa Dozen over WARP)
+        shell: pwsh
+        run: |
+          & ./examples/flutter/quickstart/integration_test/windows_process_exit/setup_software_vulkan.ps1 `
+            -BundleDirectory examples/flutter/quickstart/build/windows/x64/runner/Release
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+          architecture: X64
+          cache: true
+          pub-cache: true
+
+      - name: Prime build hooks
+        working-directory: thermion_flutter/thermion_flutter
+        run: |
+          flutter pub get
+          flutter test test/frame_scheduler_clock_test.dart
+
+      - name: Build release integration app
+        working-directory: examples/flutter/quickstart
+        run: |
+          flutter pub get
+          flutter build windows --release --target integration_test/windows_process_exit/app.dart
+
+      - name: Test process exit and normal plugin teardown
+        shell: pwsh
+        run: |
+          & ./examples/flutter/quickstart/integration_test/windows_process_exit/run.ps1 `
+            -BundleDirectory examples/flutter/quickstart/build/windows/x64/runner/Release
+
+      - name: Upload shutdown logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-blit-worker-shutdown-logs
+          path: |
+            examples/flutter/quickstart/build/windows/x64/runner/Release/shutdown-*.log
+            thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
+
   flutter-tests:
     name: Flutter tests (${{ matrix.name }})
     strategy:

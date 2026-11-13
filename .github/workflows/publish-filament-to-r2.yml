@@ -1,24 +1,77 @@
 name: Publish Filament to R2 (from artifacts)
 
-# One-off helper: copy already-built Filament zips (from the GitHub artifacts of
-# verified 'Build Filament' runs) into R2 without rebuilding. The zips are
-# uploaded with their existing names. Safe to delete once publishing is done.
+# Copy already-built Filament zips from the GitHub artifacts of VERIFIED
+# 'Build Filament' runs into R2 under IMMUTABLE content-addressed keys, and
+# record their digests into the pin file thermion_dart/filament.libs.json.
+# Nothing is ever overwritten; the pin flip is the rollout gate.
+#
+#   1. Dispatch 'Build Filament' (upload_to_r2 either way — its uploads are
+#      content-addressed too). Zips also land as workflow artifacts
+#      (7-day retention: publish promptly).
+#   2. Verify the zips (contents; a runtime_materials test run against them).
+#   3. Dispatch THIS workflow with the build run's IDs. It downloads each
+#      artifact, computes its SHA-256, uploads
+#        s3://thermion/filament-<v>-<platform>-<variant>-<hash16>.zip
+#      (skipping keys that already exist) and merges the digests into
+#      filament.libs.json. The merged pin is uploaded as the
+#      'filament-libs-pin' workflow artifact.
+#   4. Roll out by committing the pin: set commit_pin true to push the pin
+#      update to the branch this workflow is dispatched from, or download
+#      the pin artifact and commit it yourself. Consumers on that revision
+#      then fetch the hash-keyed zips (verified against the full digest).
+#      Rollback = revert the pin commit; the old artifacts remain on R2.
+#
+# Safety properties:
+# - Only hash-suffixed keys are written. Identical content re-uploads are
+#   no-ops; different content gets a different key. The legacy mutable
+#   filament-<v>-<p>-<m>.zip keys are never touched (frozen compat surface
+#   for already-published thermion versions).
+# - Run IDs are validated before any upload; a typo fails the run.
+# - A missing artifact inside a provided run warns and skips (e.g. iOS
+#   simulator zips in older runs); zero published artifacts fails the run.
+# - The pin merge is additive per platform/variant: platforms not provided
+#   keep their existing entries.
+#
+# The hook (thermion_dart/hook/build.dart) reads the shipped pin; entries
+# absent from it fall back to the legacy keys, so this workflow can be
+# adopted platform-by-platform. See lib/src/hooks/filament_artifacts.dart.
 
 on:
   workflow_dispatch:
     inputs:
+      macos_run:
+        description: 'macOS Build Filament run ID (empty = skip platform)'
+        required: false
+        default: ''
+      ios_run:
+        description: 'iOS Build Filament run ID (publishes ios + ios-simulator; empty = skip)'
+        required: false
+        default: ''
       android_run:
-        description: 'Android Build Filament run ID (verify run with artifacts)'
-        required: true
-        default: '30462653269'
+        description: 'Android Build Filament run ID (empty = skip platform)'
+        required: false
+        default: ''
       linux_run:
-        description: 'Linux Build Filament run ID'
-        required: true
-        default: '30462656359'
+        description: 'Linux x64 Build Filament run ID (empty = skip platform)'
+        required: false
+        default: ''
+      linux_arm64_run:
+        description: 'Linux arm64 Build Filament run ID (empty = skip platform)'
+        required: false
+        default: ''
       windows_run:
-        description: 'Windows Build Filament run ID'
-        required: true
-        default: '30506886883'
+        description: 'Windows Build Filament run ID (empty = skip platform)'
+        required: false
+        default: ''
+      web_run:
+        description: 'Web Build Filament run ID (empty = skip platform)'
+        required: false
+        default: ''
+      commit_pin:
+        description: 'Commit the merged filament.libs.json to the branch this workflow runs on (the rollout). false = pin artifact only.'
+        required: false
+        default: false
+        type: boolean
 
 env:
   R2_BUCKET_NAME: thermion
@@ -28,18 +81,58 @@ jobs:
   publish:
     runs-on: ubuntu-24.04
     steps:
-      - name: Download artifacts and copy to R2
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts, upload hash keys, merge pin
+        id: publish
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MACOS_RUN: ${{ inputs.macos_run }}
+          IOS_RUN: ${{ inputs.ios_run }}
+          ANDROID_RUN: ${{ inputs.android_run }}
+          LINUX_RUN: ${{ inputs.linux_run }}
+          LINUX_ARM64_RUN: ${{ inputs.linux_arm64_run }}
+          WINDOWS_RUN: ${{ inputs.windows_run }}
+          WEB_RUN: ${{ inputs.web_run }}
         run: |
           set -euo pipefail
-          pip install --quiet awscli
 
+          if [ -z "$MACOS_RUN$IOS_RUN$ANDROID_RUN$LINUX_RUN$LINUX_ARM64_RUN$WINDOWS_RUN$WEB_RUN" ]; then
+            echo "ERROR: no run IDs provided; nothing to publish."
+            exit 1
+          fi
+
+          # GitHub runners ship AWS CLI v2; only install if missing (plain
+          # 'pip install' fails on PEP 668 externally-managed environments).
+          command -v aws >/dev/null 2>&1 || pip install --quiet --break-system-packages awscli
+
+          # Validate every provided run ID up front: a typo must fail the
+          # publish before anything is uploaded, not warn-and-skip halfway.
+          for pair in "macos:$MACOS_RUN" "ios:$IOS_RUN" "android:$ANDROID_RUN" \
+                      "linux:$LINUX_RUN" "linux-arm64:$LINUX_ARM64_RUN" \
+                      "windows:$WINDOWS_RUN" "web:$WEB_RUN"; do
+            run_id="${pair#*:}"
+            [ -n "$run_id" ] || continue
+            if ! gh run view "$run_id" -R "$GITHUB_REPOSITORY" --json databaseId >/dev/null; then
+              echo "ERROR: cannot access run $run_id (${pair%%:*}); check the ID and that its artifacts have not expired."
+              exit 1
+            fi
+          done
+
+          published=0
+          skipped=0
+          # pin-entries.json accumulates "<platform>/<variant>": "<sha256>"
+          # fragments; merged into filament.libs.json by the python step.
+          : > pin-entries.jsonl
           publish_platform() {
             local platform="$1" run_id="$2"
+            if [ -z "$run_id" ]; then
+              echo "=== $platform: no run ID provided -- skipping ==="
+              return 0
+            fi
             for variant in release debug; do
               local name="filament-${platform}-${variant}"
               echo "=== $name: downloading from run $run_id ==="
@@ -53,15 +146,102 @@ jobs:
                 echo "ERROR: no zip found inside artifact $name"
                 exit 1
               fi
-              local base
-              base="$(basename "$zip")"
-              echo "=== $name: uploading $base to R2 ==="
-              aws s3 cp "$zip" "s3://${R2_BUCKET_NAME}/${base}" --endpoint-url "${R2_ENDPOINT}"
-              echo "=== $name: published s3://${R2_BUCKET_NAME}/${base} ==="
+              local base sha hash16 key
+              base="$(basename "$zip" .zip)"
+              sha="$(sha256sum "$zip" | cut -d' ' -f1)"
+              # Cross-check against the sidecar the build uploaded (if present).
+              if [ -f "${zip}.sha256" ]; then
+                local recorded
+                recorded="$(cut -d' ' -f1 "${zip}.sha256")"
+                if [ "$recorded" != "$sha" ]; then
+                  echo "ERROR: $base digest mismatch vs build sidecar ($recorded != $sha); artifact corrupted in transit?"
+                  exit 1
+                fi
+              fi
+              hash16="${sha:0:16}"
+              key="${base}-${hash16}.zip"
+              if aws s3api head-object --bucket "$R2_BUCKET_NAME" --key "$key" \
+                  --endpoint-url "$R2_ENDPOINT" >/dev/null 2>&1; then
+                echo "=== $key already on R2 (identical content) -- skipping upload ==="
+                skipped=$((skipped + 1))
+              else
+                echo "=== uploading $key (sha256 $sha) ==="
+                aws s3 cp "$zip" "s3://${R2_BUCKET_NAME}/${key}" --endpoint-url "$R2_ENDPOINT"
+                published=$((published + 1))
+              fi
+              printf '"%s/%s" "%s"\n' "$platform" "$variant" "$sha" >> pin-entries.jsonl
             done
           }
 
-          publish_platform android  "${{ inputs.android_run }}"
-          publish_platform linux    "${{ inputs.linux_run }}"
-          publish_platform windows  "${{ inputs.windows_run }}"
-          echo "=== all published ==="
+          publish_platform macos        "$MACOS_RUN"
+          # The iOS job uploads device and simulator zips from one run.
+          publish_platform ios          "$IOS_RUN"
+          publish_platform ios-simulator "$IOS_RUN"
+          publish_platform android      "$ANDROID_RUN"
+          publish_platform linux        "$LINUX_RUN"
+          publish_platform linux-arm64  "$LINUX_ARM64_RUN"
+          publish_platform windows      "$WINDOWS_RUN"
+          publish_platform web          "$WEB_RUN"
+
+          if [ ! -s pin-entries.jsonl ]; then
+            echo "ERROR: nothing was published. Provide at least one run ID with artifacts."
+            exit 1
+          fi
+          echo "=== uploaded $published new zip(s), $skipped already present ==="
+
+      - name: Merge digests into filament.libs.json
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, pathlib, sys
+
+          pin_path = pathlib.Path("thermion_dart/filament.libs.json")
+          pin = json.loads(pin_path.read_text()) if pin_path.exists() else {}
+          if not isinstance(pin, dict):
+              sys.exit("filament.libs.json is not a JSON object")
+
+          changed = []
+          for line in pathlib.Path("pin-entries.jsonl").read_text().splitlines():
+              key, sha = line.split()
+              key, sha = key.strip('"'), sha.strip('"')
+              if pin.get(key) != sha:
+                  changed.append(f"{key}: {pin.get(key, '<absent>')} -> {sha}")
+              pin[key] = sha
+
+          # Sorted keys + trailing newline: same format as encodeFilamentPin
+          # in lib/src/hooks/filament_artifacts.dart (stable diffs).
+          pin_path.write_text(json.dumps(pin, indent=2, sort_keys=True) + "\n")
+          print("Pin changes:" if changed else "Pin unchanged (all digests already recorded).")
+          for c in changed:
+              print("  " + c)
+          PY
+          cat thermion_dart/filament.libs.json
+
+      - name: Upload merged pin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-libs-pin
+          path: thermion_dart/filament.libs.json
+          retention-days: 30
+
+      - name: Commit pin (rollout)
+        if: inputs.commit_pin
+        env:
+          PUSH_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Commit BEFORE rebasing (same pattern as the web.version commit in
+          # regenerate-bindings-and-materials.yml): --autostash absorbs any
+          # other stray dirt; a rebase cannot run over a dirty tree.
+          git add thermion_dart/filament.libs.json
+          if git diff --cached --quiet; then
+            echo "Pin unchanged; nothing to commit."
+            exit 0
+          fi
+          git commit -m "chore: pin Filament artifacts (content-addressed R2 keys)"
+          git pull --rebase --autostash origin "$PUSH_BRANCH"
+          # GITHUB_TOKEN push on purpose: suppresses workflow re-triggers
+          # (same rationale as regenerate-bindings-and-materials.yml).
+          git push origin "HEAD:$PUSH_BRANCH"

@@ -1,6 +1,7 @@
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/grid_overlay.dart';
 import 'helpers.dart';
 
@@ -400,5 +401,69 @@ void main() async {
       await viewer.view.removeStencilHighlight(editable);
       await expectLater(editable.setFlatShading(true), unweldedMatcher);
     });
+  });
+
+  test('stencil highlight is instance-safe: instance 1 maps to the owner entity', () async {
+    // The highlight overlay only renders through the render-target path (the
+    // same pattern every visible stencil-highlight capture in view_tests
+    // uses): ViewerBuilder + render target + stencil buffer, and an explicit
+    // render() before each capture. A lit glTF also needs a light source —
+    // the original #423 version captured four pure-black frames.
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .setStencilBufferEnabled(true)
+        .setPostProcessing(true)
+        .addDirectLight(DirectLight.sun(intensity: 100000, direction: Vector3(0.5, -1.0, -0.5).normalized()))
+        .execute((result) async {
+          final viewer = result.viewer;
+          final owner = await viewer.loadGltf(
+            "file://${testHelper.assetsDir}/cube.glb",
+            requiredGeometryCapabilities: const {SceneAssetGeometryCapability.accessibleGeometryBuffers},
+            initialInstances: 2,
+            addToScene: false,
+          );
+          final instances = await owner.getInstances();
+          expect(instances.length, 2);
+          await viewer.addToScene(instances[0]);
+          await viewer.addToScene(instances[1]);
+          await instances[1].setTransform(Matrix4.translation(Vector3(2, 0, 0)));
+
+          // Every renderable entity of instance 1 resolves to a non-negative
+          // primitive offset on the OWNER asset (the old lookup returned -1).
+          final ffiOwner = owner as FFIAsset;
+          var renderables = 0;
+          for (final e in [instances[1].entity, ...await instances[1].getChildEntities()]) {
+            final offset = await ffiOwner.getPrimitiveOffsetForEntity(e);
+            final ownerOffsets = await Future.wait(
+              [owner.entity, ...await owner.getChildEntities()].map(ffiOwner.getPrimitiveOffsetForEntity),
+            );
+            if (offset >= 0) {
+              renderables++;
+              expect(ownerOffsets, contains(offset));
+            }
+          }
+          expect(renderables, greaterThan(0));
+
+          await viewer.view.setHighlightOverlayEnabled(true);
+          await FilamentApp.instance!.render();
+          await testHelper.capture(null, "instance_highlight_before", captureRenderTarget: true, render: false);
+
+          // Highlight instance 1 (no explicit entity: every renderable node), the
+          // geometry comes from the owner. Must not throw or crash.
+          await viewer.view.setStencilHighlight(instances[1], geometrySource: owner);
+          await FilamentApp.instance!.render();
+          await testHelper.capture(null, "instance_highlight_on", captureRenderTarget: true, render: false);
+
+          // The outline follows the instance: move it and capture again.
+          await instances[1].setTransform(Matrix4.translation(Vector3(-2, 0, 0)));
+          await FilamentApp.instance!.render();
+          await testHelper.capture(null, "instance_highlight_moved", captureRenderTarget: true, render: false);
+
+          await viewer.view.removeStencilHighlight(instances[1]);
+          await FilamentApp.instance!.render();
+          await testHelper.capture(null, "instance_highlight_off", captureRenderTarget: true, render: false);
+          // Removing twice is harmless.
+          await viewer.view.removeStencilHighlight(instances[1]);
+        });
   });
 }

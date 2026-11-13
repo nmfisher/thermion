@@ -61,8 +61,9 @@ class _MyHomePageState extends State<MyHomePage> {
     // file containing a plain cube.
     // By default, all paths are treated as asset paths. To load from a file
     // instead, use file:// URIs.
-    // Setting rebuildVertices: true rebuilds vertex buffers with a superset
-    // of attributes, enabling free material swapping (wireframe, solid, etc).
+    // Passing requiredGeometryCapabilities (e.g. barycentrics) rebuilds vertex
+    // buffers with a superset of attributes, enabling free material swapping
+    // (wireframe, solid, etc).
     var asset = await _thermionViewer!
         .loadGltf("assets/FlightHelmet/FlightHelmet.gltf");
 
