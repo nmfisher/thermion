@@ -53,6 +53,14 @@ invalid packages can still cause a native panic.
 
 #### Runtime material compilation (optional)
 
+Runtime packages use Filament's performance optimization (`matc`'s default,
+or `-O`), rather than the size optimization selected by `matc -S`. They are
+not promised to be byte-identical to offline packages. Both runtime APIs
+embed the compilation flags and their input source for inspection; full
+packages embed the source after in-memory includes have been resolved.
+The web runtime compiler targets WebGL (`OPENGL`); it does not generate
+WebGPU materials.
+
 Instead of precompiling `.filamat` packages with `matc`, apps that need to
 generate materials at runtime (e.g. user-authored or procedurally generated
 shaders) can compile GLSL material source directly on the device:
