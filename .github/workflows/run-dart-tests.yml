@@ -125,6 +125,7 @@ jobs:
         run: |
           dart pub get
           xvfb-run dart test -j1 \
+            test/filament_cache_layout_test.dart \
             test/ffi_string_callback_test.dart \
             test/asset_tests.dart \
             test/instancing_tests.dart \
