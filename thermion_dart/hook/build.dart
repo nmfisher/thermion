@@ -763,7 +763,13 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
   // Unpinned artifacts keep the exact legacy path — existing caches stay valid.
   final artifact = resolveFilamentArtifact(version, platform, mode, pin);
   if (artifact.cacheSuffix.isNotEmpty) {
-    libDir = Directory('${libDir.path}${artifact.cacheSuffix}');
+    if (platform == 'android') {
+      // Every ABI shares this zip's extraction root and success token.
+      // Keep the ABI directory names exactly as packaged in the archive.
+      libDir = Directory(path.join('${libDir.parent.path}${artifact.cacheSuffix}', path.basename(libDir.path)));
+    } else {
+      libDir = Directory('${libDir.path}${artifact.cacheSuffix}');
+    }
   }
 
   logger.info("Searching for Filament libraries under ${libDir.path}");
