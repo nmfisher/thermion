@@ -474,21 +474,29 @@ namespace thermion::tflutter::windows
           auto& swap = swapIt->second;
           swap.frameCount++;
 
+          bool copied = false;
           if (swap.frameCount < 2) {
             // Frame 1: Filament is rendering into the new RT.
             // Blit OLD handle — old RT VkImage is still valid because
             // Dart deferred its Filament texture cleanup.
             // Flutter keeps showing last valid frame via old D3D texture.
-            _context->Blit(swap.oldD3DHandle);
+            copied = _context->Blit(swap.oldD3DHandle);
           } else {
             // Frame 2+: new RT has valid content from previous render.
             // Blit new handle, swap descriptor, retire old textures.
+            // Only swap and retire once a completed copy lands in newD3DHandle;
+            // if Blit times out or fails, keep oldD3DHandle live and retry next frame.
             _context->ClearPendingFirstBlit(swap.newD3DHandle);
-            _context->Blit(swap.newD3DHandle);
+            copied = _context->Blit(swap.newD3DHandle);
+            if (copied) {
+              (*it)->SwapDescriptor(swap.newD3DHandle, swap.width, swap.height);
+              _context->DestroyRenderingSurface(swap.oldD3DHandle);
+              _pendingSwaps.erase(swapIt);
+            }
+          }
 
-            (*it)->SwapDescriptor(swap.newD3DHandle, swap.width, swap.height);
-            _context->DestroyRenderingSurface(swap.oldD3DHandle);
-            _pendingSwaps.erase(swapIt);
+          if (copied) {
+            _textureRegistrar->MarkTextureFrameAvailable(*flutterTextureId);
           }
         } else {
           // Enqueue the Blit + MarkTextureFrameAvailable on the
@@ -510,8 +518,6 @@ namespace thermion::tflutter::windows
           result->Success(flutter::EncodableValue((int64_t) nullptr));
           return;
         }
-
-        _textureRegistrar->MarkTextureFrameAvailable(*flutterTextureId);
       } else {
         std::cout << "No context" << std::endl;
       }

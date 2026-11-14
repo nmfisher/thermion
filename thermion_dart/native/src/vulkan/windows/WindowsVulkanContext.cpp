@@ -41,7 +41,8 @@ namespace {
 // The blit worker and Filament's render thread both submit to queue 0 (the
 // blit must share Filament's queue to be ordered after the render; see
 // createCommandResources).
-// Vulkan requires external synchronization of every queue-level call, so we
+// Vulkan requires external synchronization of every queue-level call (including
+// vkDeviceWaitIdle, which synchronizes across all queues of the device), so we
 // interpose the process-wide bluevk function-pointer globals with wrappers
 // that serialize on this mutex. Both Filament's Vulkan backend (backend.lib)
 // and this blit worker are statically linked into the same thermion_dart.dll
@@ -55,6 +56,7 @@ PFN_vkQueueSubmit2    sRealQueueSubmit2    = nullptr;
 PFN_vkQueueWaitIdle   sRealQueueWaitIdle   = nullptr;
 PFN_vkQueuePresentKHR sRealQueuePresentKHR = nullptr;
 PFN_vkQueueBindSparse sRealQueueBindSparse = nullptr;
+PFN_vkDeviceWaitIdle  sRealDeviceWaitIdle  = nullptr;
 
 VKAPI_ATTR VkResult VKAPI_CALL SerializedQueueSubmit(VkQueue queue, uint32_t submitCount,
                                                      const VkSubmitInfo* pSubmits, VkFence fence) {
@@ -83,6 +85,11 @@ VKAPI_ATTR VkResult VKAPI_CALL SerializedQueueBindSparse(VkQueue queue, uint32_t
                                                          const VkBindSparseInfo* pBindInfo, VkFence fence) {
     std::lock_guard<std::mutex> lock(sQueueMutex);
     return sRealQueueBindSparse(queue, bindInfoCount, pBindInfo, fence);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL SerializedDeviceWaitIdle(VkDevice device) {
+    std::lock_guard<std::mutex> lock(sQueueMutex);
+    return sRealDeviceWaitIdle(device);
 }
 
 // Idempotent: safe to call every frame. For each global, capture the current
@@ -117,6 +124,11 @@ void InstallQueueSerializationShim() {
     if (bluevk::vkQueueBindSparse && bluevk::vkQueueBindSparse != &SerializedQueueBindSparse) {
         sRealQueueBindSparse = bluevk::vkQueueBindSparse;
         bluevk::vkQueueBindSparse = &SerializedQueueBindSparse;
+        swapped = true;
+    }
+    if (bluevk::vkDeviceWaitIdle && bluevk::vkDeviceWaitIdle != &SerializedDeviceWaitIdle) {
+        sRealDeviceWaitIdle = bluevk::vkDeviceWaitIdle;
+        bluevk::vkDeviceWaitIdle = &SerializedDeviceWaitIdle;
         swapped = true;
     }
 
