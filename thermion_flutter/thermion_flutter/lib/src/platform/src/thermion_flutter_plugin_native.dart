@@ -220,7 +220,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   }
 
   @override
-  bool get supportsStagedTextureResize => Platform.isMacOS || Platform.isLinux;
+  bool get supportsStagedTextureResize =>
+      Platform.isMacOS || Platform.isLinux || Platform.isWindows;
 
   @override
   Future<void> prepareTextureForPresentation(

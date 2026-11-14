@@ -92,6 +92,7 @@ filament::backend::VulkanPlatform::ExternalImageMetadata WindowsVulkanPlatform::
   metadata.filamentUsage = ext->filamentUsage;
   metadata.width = ext->width;
   metadata.height = ext->height;
+  metadata.mipLevels = 1;
   metadata.layers = ext->layers;
   metadata.samples = VK_SAMPLE_COUNT_1_BIT;
   metadata.format = ext->format;
@@ -105,6 +106,7 @@ filament::backend::VulkanPlatform::ExternalImageMetadata WindowsVulkanPlatform::
 filament::backend::VulkanPlatform::ImageData WindowsVulkanPlatform::createVkImageFromExternal(
         ExternalImageHandleRef image, uint32_t logicalWidth, uint32_t logicalHeight) const {
   auto* ext = static_cast<ExternalVulkanImage const*>(image.get());
+  ext->claimedByFilament.store(true, std::memory_order_release);
   ImageData data{};
   data.internal.image = ext->image;
   data.internal.memory = ext->memory;

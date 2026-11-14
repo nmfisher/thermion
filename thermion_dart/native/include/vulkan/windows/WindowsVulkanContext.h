@@ -32,18 +32,6 @@ namespace thermion::vulkan::windows {
 
         void DestroyRenderingSurface(HANDLE handle);
 
-        // Blits the contents of the paired Vulkan texture to the specified surface handle.
-        // Returns true only when the copy was submitted and its fence signalled;
-        // false when the frame was skipped or the copy may still be in flight,
-        // in which case the caller should not publish the frame.
-        bool Blit(HANDLE surfaceHandle);
-
-        // Clear the pending-first-blit flag for a handle.
-        // Used during resize swap: by the time the swap fires, Filament
-        // has already rendered into the new render target, so the first
-        // Blit should not be skipped.
-        void ClearPendingFirstBlit(HANDLE d3dTextureHandle);
-
         void* GetSharedContext();
 
         void readPixelsFromImage(

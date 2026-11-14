@@ -213,6 +213,19 @@ namespace thermion
       }
     }
 
+    #ifdef _WIN32
+    // Wait on the native render job thread for Vulkan queue 0 to finish
+    // writing to shared D3D11/Vulkan render targets before Dart notifies
+    // Flutter's D3D11 compositor.
+    if (rendered) {
+      auto *fence = mEngine->createFence();
+      if (fence) {
+        fence->wait(Fence::Mode::FLUSH, 100'000'000ULL);
+        mEngine->destroy(fence);
+      }
+    }
+    #endif
+
     #ifdef __EMSCRIPTEN__
         mEngine->execute();
     #endif

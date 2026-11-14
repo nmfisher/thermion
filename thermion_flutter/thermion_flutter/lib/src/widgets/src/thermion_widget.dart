@@ -325,8 +325,6 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
         previousTexture != null && plugin.supportsStagedTextureResize;
 
     if (previousTexture != null) {
-      // Resize existing texture (on Windows this reuses the Flutter
-      // texture ID to avoid a black frame flash).
       texture = await ThermionFlutterPlugin.instance.resizeTexture(
         previousTexture,
         widget.view,
@@ -383,8 +381,8 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
     }
 
     setState(() {
-      // Windows updates the descriptor in place. Staged desktop resize swaps
-      // to an already-primed descriptor and retires the old one below.
+      // Staged desktop resize swaps to an already-primed descriptor and
+      // retires the previous descriptor after the frame completes below.
       _texture = texture;
       _pendingTexture = null;
       _currentWidth = width;

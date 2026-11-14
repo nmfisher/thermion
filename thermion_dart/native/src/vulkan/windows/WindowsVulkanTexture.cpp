@@ -11,23 +11,15 @@ namespace thermion::vulkan::windows
 // Import utility functions from base vulkan namespace
 using ::thermion::vulkan::findOptimalMemoryType;
 
-    // Constructor for D3D-interop textures (doesn't own memory)
     WindowsVulkanTexture::WindowsVulkanTexture(VkImage image, VkDevice device, VkDeviceMemory imageMemory,
                                  uint32_t width, uint32_t height, HANDLE d3dTextureHandle)
         : BaseVulkanTexture(image, device, imageMemory, width, height),
-          _d3dTextureHandle(d3dTextureHandle), _ownsMemory(false) {}
-
-    // Constructor for pure Vulkan textures (owns memory)
-    WindowsVulkanTexture::WindowsVulkanTexture(VkImage image, VkDevice device, VkDeviceMemory imageMemory,
-                                 uint32_t width, uint32_t height, bool ownsMemory)
-        : BaseVulkanTexture(image, device, imageMemory, width, height),
-          _d3dTextureHandle(nullptr), _ownsMemory(ownsMemory) {}
+          _d3dTextureHandle(d3dTextureHandle) {}
 
     WindowsVulkanTexture::~WindowsVulkanTexture() {
-        // Only free memory if we own it (pure Vulkan textures)
-        // D3D-interop textures have memory imported from D3D without ownership transfer
-        // https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkImportMemoryWin32HandleInfoKHR.html
-        destroyResources(_ownsMemory);
+        if (_image != VK_NULL_HANDLE || _imageMemory != VK_NULL_HANDLE) {
+            destroyResources(true);
+        }
     }
 
 
@@ -39,7 +31,9 @@ using ::thermion::vulkan::findOptimalMemoryType;
         uint32_t height,
         HANDLE d3dTextureHandle)
     {
-        // Create image with external memory support
+        // Import the shared D3D11 RGBA8 texture directly as a renderable,
+        // sampleable Vulkan image so Filament renders zero-copy into the
+        // surface Flutter composites.
         VkExternalMemoryImageCreateInfo extImageInfo = {
             .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
             .handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT};
@@ -49,17 +43,20 @@ using ::thermion::vulkan::findOptimalMemoryType;
             .pNext = &extImageInfo,
             .flags = 0,
             .imageType = VK_IMAGE_TYPE_2D,
-            .format = VK_FORMAT_B8G8R8A8_UNORM,
+            .format = VK_FORMAT_R8G8B8A8_UNORM,
             .extent = {width, height, 1},
             .mipLevels = 1,
             .arrayLayers = 1,
             .samples = VK_SAMPLE_COUNT_1_BIT,
             .tiling = VK_IMAGE_TILING_OPTIMAL,
-            .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                     VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                     VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                     VK_IMAGE_USAGE_SAMPLED_BIT,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
 
-        VkImage image;
+        VkImage image = VK_NULL_HANDLE;
 
         VkResult result = bluevk::vkCreateImage(device, &imageInfo, nullptr, &image);
 
@@ -82,7 +79,7 @@ using ::thermion::vulkan::findOptimalMemoryType;
             .pNext = nullptr,
             .image = image};
 
-            bluevk::vkGetImageMemoryRequirements2(device, &ImageMemoryRequirementsInfo2, &MemoryRequirements2);
+        bluevk::vkGetImageMemoryRequirements2(device, &ImageMemoryRequirementsInfo2, &MemoryRequirements2);
         VkMemoryRequirements &MemoryRequirements = MemoryRequirements2.memoryRequirements;
 
         const VkMemoryDedicatedAllocateInfo MemoryDedicatedAllocateInfo{
@@ -98,12 +95,16 @@ using ::thermion::vulkan::findOptimalMemoryType;
             .handle = d3dTextureHandle,
             .name = nullptr};
 
-        // Find suitable memory type
         uint32_t memoryTypeIndex = findOptimalMemoryType(
             physicalDevice,
             MemoryRequirements.memoryTypeBits,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
         );
+        if (memoryTypeIndex == UINT32_MAX) {
+            bluevk::vkDestroyImage(device, image, nullptr);
+            ERROR("Failed to find suitable memory type for D3D11 interop image");
+            return nullptr;
+        }
 
         VkMemoryAllocateInfo allocInfo{
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -125,7 +126,6 @@ using ::thermion::vulkan::findOptimalMemoryType;
             std::cout << "  Memory type index: " << allocInfo.memoryTypeIndex << std::endl;
             std::cout << "  Error code: " << allocResult << std::endl;
 
-            // Get more detailed error message based on VkResult
             const char *errorMsg;
             switch (allocResult)
             {
@@ -146,12 +146,12 @@ using ::thermion::vulkan::findOptimalMemoryType;
             }
             std::cout << "  Error message: " << errorMsg << std::endl;
 
-            // Print memory requirements
             std::cout << "  Memory requirements:" << std::endl;
             std::cout << "    Size: " << MemoryRequirements.size << std::endl;
             std::cout << "    Alignment: " << MemoryRequirements.alignment << std::endl;
             std::cout << "    Memory type bits: 0x" << std::hex << MemoryRequirements.memoryTypeBits << std::dec << std::endl;
 
+            bluevk::vkDestroyImage(device, image, nullptr);
             return nullptr;
         }
 
@@ -167,6 +167,8 @@ using ::thermion::vulkan::findOptimalMemoryType;
         if (result != VK_SUCCESS)
         {
             std::cout << "vkBindImageMemory2 failed" << std::endl;
+            bluevk::vkFreeMemory(device, imageMemory, nullptr);
+            bluevk::vkDestroyImage(device, image, nullptr);
             return nullptr;
         }
         return std::make_unique<WindowsVulkanTexture>(image, device, imageMemory, width, height, d3dTextureHandle);
@@ -181,75 +183,5 @@ using ::thermion::vulkan::findOptimalMemoryType;
         return nullptr;
     }
 #endif
-
-    std::unique_ptr<WindowsVulkanTexture> WindowsVulkanTexture::createPure(
-        VkDevice device,
-        VkPhysicalDevice physicalDevice,
-        uint32_t width,
-        uint32_t height)
-    {
-        // Create image without external memory support (pure Vulkan)
-        VkImageCreateInfo imageInfo = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-            .pNext = nullptr,  // No external memory info
-            .flags = 0,
-            .imageType = VK_IMAGE_TYPE_2D,
-            .format = VK_FORMAT_R8G8B8A8_UNORM,  // RGBA format for render target
-            .extent = {width, height, 1},
-            .mipLevels = 1,
-            .arrayLayers = 1,
-            .samples = VK_SAMPLE_COUNT_1_BIT,
-            .tiling = VK_IMAGE_TILING_OPTIMAL,
-            // ALL THREE FLAGS REQUIRED: Filament needs SAMPLED_BIT for render target textures
-        .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
-        };
-
-        VkImage image;
-        VkResult result = bluevk::vkCreateImage(device, &imageInfo, nullptr, &image);
-        if (result != VK_SUCCESS) {
-            ERROR("Failed to create pure Vulkan image");
-            return nullptr;
-        }
-
-        std::cout << "Created pure Vulkan vkImage " << (int64_t)image << std::endl;
-
-        // Get memory requirements
-        VkMemoryRequirements memRequirements;
-        bluevk::vkGetImageMemoryRequirements(device, image, &memRequirements);
-
-        // Allocate device-local memory
-        uint32_t memoryTypeIndex = findOptimalMemoryType(
-            physicalDevice,
-            memRequirements.memoryTypeBits,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-        );
-
-        VkMemoryAllocateInfo allocInfo = {
-            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .pNext = nullptr,
-            .allocationSize = memRequirements.size,
-            .memoryTypeIndex = memoryTypeIndex
-        };
-
-        VkDeviceMemory imageMemory;
-        result = bluevk::vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory);
-        if (result != VK_SUCCESS) {
-            bluevk::vkDestroyImage(device, image, nullptr);
-            ERROR("Failed to allocate memory for pure Vulkan image");
-            return nullptr;
-        }
-
-        result = bluevk::vkBindImageMemory(device, image, imageMemory, 0);
-        if (result != VK_SUCCESS) {
-            bluevk::vkFreeMemory(device, imageMemory, nullptr);
-            bluevk::vkDestroyImage(device, image, nullptr);
-            ERROR("Failed to bind memory for pure Vulkan image");
-            return nullptr;
-        }
-
-        return std::make_unique<WindowsVulkanTexture>(image, device, imageMemory, width, height, true);
-    }
 
 } // namespace thermion::vulkan::windows

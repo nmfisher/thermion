@@ -138,31 +138,6 @@ class NativePlatformTextureDescriptorRegistry
     }
   }
 
-  Future<int> resizeWindowsTexture(
-    PlatformTextureDescriptor descriptor,
-    int width,
-    int height,
-  ) async {
-    final result = await channel.invokeMethod<List<Object?>>('resizeTexture', [
-      descriptor.flutterTextureId,
-      width,
-      height,
-    ]);
-    if (result == null || result.isEmpty) {
-      throw StateError('Native texture resize returned no external image');
-    }
-    return result.first as int;
-  }
-
-  Future<void> cancelWindowsTextureResize(
-    PlatformTextureDescriptor descriptor,
-  ) {
-    return channel.invokeMethod<void>(
-      'cancelResizeTexture',
-      descriptor.flutterTextureId,
-    );
-  }
-
   PlatformTextureDescriptor? _descriptorForTextureId(int textureId) {
     for (final descriptor in descriptors) {
       if (descriptor.flutterTextureId == textureId) {

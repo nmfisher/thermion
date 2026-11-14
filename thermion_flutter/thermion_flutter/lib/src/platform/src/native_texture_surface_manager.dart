@@ -82,10 +82,6 @@ class NativeTextureSurfaceManager {
   // mode, so track the Flutter-facing render target independently.
   final _viewRenderTargets = <View, RenderTarget>{};
 
-  // Windows keeps old render targets alive briefly while the native side
-  // blits into a pending replacement image.
-  final _deferredRenderTargets = <(RenderTarget, int)>[];
-
   // A Linux descriptor may need to enter the widget tree before populate()
   // can publish its hardware texture. Staged resize waits on this future
   // before rendering the replacement's first visible frame.
@@ -107,37 +103,16 @@ class NativeTextureSurfaceManager {
   void onEngineDestroyed() {
     registry.clear();
     _viewRenderTargets.clear();
-    _deferredRenderTargets.clear();
     _replacementBindings.clear();
   }
 
-  /// Notifies live descriptors and reaps render targets deferred by Windows
-  /// resize operations.
+  /// Notifies live descriptors after a rendered frame completes.
   Future<void> onFrameRendered() async {
     final markLinuxTextures = _markLinuxTextures;
     if (markLinuxTextures != null) {
       markLinuxTextures();
     } else {
       registry.markFrameAvailable();
-    }
-
-    if (_deferredRenderTargets.isEmpty) return;
-
-    final ready = <RenderTarget>[];
-    final remaining = <(RenderTarget, int)>[];
-    for (final (renderTarget, frames) in _deferredRenderTargets) {
-      if (frames <= 0) {
-        ready.add(renderTarget);
-      } else {
-        remaining.add((renderTarget, frames - 1));
-      }
-    }
-    _deferredRenderTargets
-      ..clear()
-      ..addAll(remaining);
-
-    for (final renderTarget in ready) {
-      await _destroyRenderTarget(renderTarget);
     }
   }
 
@@ -447,11 +422,7 @@ class NativeTextureSurfaceManager {
     int width,
     int height,
   ) async {
-    if (Platform.isWindows) {
-      return _resizeWindows(texture, view, width, height);
-    }
-
-    if (!Platform.isMacOS && !Platform.isLinux) {
+    if (!Platform.isMacOS && !Platform.isLinux && !Platform.isWindows) {
       final newTexture = await _createAndBind(
         view,
         width,
@@ -536,95 +507,6 @@ class NativeTextureSurfaceManager {
         }
       }),
     );
-  }
-
-  Future<PlatformTextureDescriptor> _resizeWindows(
-    PlatformTextureDescriptor texture,
-    View view,
-    int width,
-    int height,
-  ) async {
-    final externalImage = await registry.resizeWindowsTexture(
-      texture,
-      width,
-      height,
-    );
-    final existingRenderTarget = _viewRenderTargets[view];
-    Texture? color;
-    Texture? depth;
-    RenderTarget? renderTarget;
-    try {
-      final app = FilamentApp.instance;
-      if (app == null) {
-        throw StateError('Cannot resize a texture after Filament shutdown');
-      }
-      final options = _options();
-
-      color = await app.createTexture(
-        width,
-        height,
-        importedTextureHandle: -1,
-        flags: {
-          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-        },
-        textureFormat: options.renderTargetColorTextureFormat,
-        textureSamplerType: TextureSamplerType.SAMPLER_2D,
-      );
-      await app.setExternalImage(color, externalImage);
-
-      depth = await app.createTexture(
-        width,
-        height,
-        flags: {
-          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-          TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
-          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-          TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
-        },
-        textureFormat: options.renderTargetDepthTextureFormat,
-        textureSamplerType: TextureSamplerType.SAMPLER_2D,
-      );
-
-      renderTarget = await app.createRenderTarget(
-        width,
-        height,
-        color: color,
-        depth: depth,
-      );
-
-      final swapChains = await app.getSwapChains();
-      await app.renderManager.attach(view, swapChains.first);
-      await view.setViewport(width, height);
-      await view.setRenderTarget(renderTarget);
-    } catch (error, stackTrace) {
-      await _destroyCreatedRenderTarget(
-        renderTarget: renderTarget,
-        color: color,
-        depth: depth,
-      );
-      try {
-        await registry.cancelWindowsTextureResize(texture);
-      } catch (cleanupError, cleanupStackTrace) {
-        _logger.severe(
-          'Failed to cancel native Windows texture resize',
-          cleanupError,
-          cleanupStackTrace,
-        );
-      }
-      Error.throwWithStackTrace(error, stackTrace);
-    }
-
-    _viewRenderTargets[view] = renderTarget;
-    if (existingRenderTarget != null) {
-      _deferredRenderTargets.add((existingRenderTarget, 5));
-    }
-
-    texture.hardwareId = externalImage;
-    texture.width = width;
-    texture.height = height;
-    return texture;
   }
 
   Future<void> destroyForView(View view) {

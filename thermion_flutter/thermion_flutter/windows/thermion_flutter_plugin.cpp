@@ -13,28 +13,18 @@
 #include <flutter/standard_method_codec.h>
 #include <flutter/texture_registrar.h>
 
-#include <codecvt>
-#include <cstring>
-#include <filesystem>
-#include <fstream>
-
-#include <iostream>
-#include <locale>
-#include <map>
-#include <math.h>
-#include <memory>
-#include <sstream>
-#include <string>
-#include <vector>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <queue>
+#include <algorithm>
 #include <atomic>
+#include <cmath>
+#include <iostream>
+#include <memory>
+#include <mutex>
 #include <set>
+#include <string>
+#include <thread>
+#include <vector>
 
 #include "flutter_d3d_texture.h"
-
 
 namespace thermion::tflutter::windows
 {
@@ -65,159 +55,20 @@ namespace thermion::tflutter::windows
       : _textureRegistrar(textureRegistrar), _pluginRegistrar(pluginRegistrar),
         _channel(std::move(channel))
   {
-
-    // attach the method call handler for incoming messages
     _channel->SetMethodCallHandler([=](const auto &call, auto result)
                                    { this->HandleMethodCall(call, std::move(result)); });
   }
 
-  // this is only for storing Flutter surface descriptors
-  // (as opposed to the D3D/Vulkan handles, which are stored in the WindowsVulkanContext)
+  // Stores Flutter surface descriptors; OnTextureUnregistered can fire on
+  // Flutter's raster thread after TextureRegistrar::UnregisterTexture, so
+  // access to _context, _flutterTextures, and _retiringTextureIds is guarded
+  // by _contextMutex.
   static std::vector<std::unique_ptr<FlutterD3DTexture>> _flutterTextures;
-
-  // ────────────────────────────────────────────────────────────────
-  // Dedicated Blit-worker thread
-  // ────────────────────────────────────────────────────────────────
-  //
-  // Why: `markTextureFrameAvailable` was originally synchronous on
-  // the Flutter UI thread, calling `WindowsVulkanContext::Blit` which
-  // includes vkQueueSubmit + vkWaitForFences. Under multi-viewer
-  // load (8 viewers × Filament frames) this saturated the UI
-  // thread, killed the Win32 message pump, and Windows declared
-  // "Not Responding". A first naive fix spawned a detached
-  // `std::thread` per call — but `WindowsVulkanContext::Blit`'s
-  // shared command pool / queue / fence are NOT thread-safe (the
-  // Vulkan spec requires app-side synchronisation of VkQueue
-  // access), and the Intel driver crashed with `0xC0000005`
-  // access-violation inside `igvk64.dll` as soon as two Blits
-  // overlapped.
-  //
-  // Correct fix: ONE worker thread, ONE queue, one Blit in flight
-  // at any moment. The UI thread enqueues and returns immediately.
-  // If the queue grows past kMaxBlitQueueDepth the OLDEST entry is
-  // dropped — Flutter shows a previously-blitted texture for one
-  // frame, which is preferable to unbounded queue growth under
-  // sustained GPU pressure.
-  struct BlitJob {
-    thermion::vulkan::windows::WindowsVulkanContext* context;
-    flutter::TextureRegistrar* registrar;
-    HANDLE handle;
-    int64_t flutterTextureId;
-  };
-
-  static constexpr size_t kMaxBlitQueueDepth = 16;
-
-  static std::mutex _blitMutex;
-  // WindowsVulkanContext owns one command buffer/queue and parallel vectors of
-  // surface resources. Serialize worker blits with create/resize/destroy.
-  static std::mutex _contextMutex;
-  static std::condition_variable _blitCv;
-  static std::queue<BlitJob> _blitQueue;
   static std::set<int64_t> _retiringTextureIds;
-  // Heap-held, never a namespace-scope std::thread: this DLL's onexit table
-  // destroys file statics at DLL_PROCESS_DETACH. When the process exits via
-  // exit()/ExitProcess while the plugin is still alive (dart:io exit(), any
-  // path that skips window teardown), ExitProcess has already killed the
-  // worker but the std::thread still holds its id, so ~thread() saw
-  // joinable() and called std::terminate -> abort -> 0xC0000409. The pointer
-  // is deliberately leaked at process exit.
-  static std::thread* _blitWorker = nullptr;
-  static std::atomic<bool> _blitWorkerStarted{false};
-  static std::atomic<bool> _blitWorkerShouldStop{false};
-
-  static void BlitWorkerLoop() {
-    while (true) {
-      BlitJob job;
-      {
-        std::unique_lock<std::mutex> lock(_blitMutex);
-        _blitCv.wait(lock, [] {
-          return !_blitQueue.empty() || _blitWorkerShouldStop.load();
-        });
-        if (_blitWorkerShouldStop.load() && _blitQueue.empty()) {
-          return;
-        }
-        job = _blitQueue.front();
-        _blitQueue.pop();
-      }
-      // A texture can begin retiring after its job is popped. Recheck while
-      // holding the same context lock used by surface destruction: either this
-      // blit completes before destruction, or it is skipped after retirement.
-      std::lock_guard<std::mutex> contextLock(_contextMutex);
-      bool retiring = false;
-      {
-        std::lock_guard<std::mutex> blitLock(_blitMutex);
-        retiring =
-            _retiringTextureIds.find(job.flutterTextureId) !=
-            _retiringTextureIds.end();
-      }
-      if (!retiring) {
-        // Publish only a completed copy. When Blit skips the frame or its
-        // fence wait times out, the shared texture may hold a partial copy,
-        // so Flutter keeps showing the previous frame instead.
-        const bool copied = job.context && job.context->Blit(job.handle);
-        if (copied && job.registrar) {
-          job.registrar->MarkTextureFrameAvailable(job.flutterTextureId);
-        }
-      }
-    }
-  }
-
-  static void EnsureBlitWorkerStarted() {
-    bool expected = false;
-    if (_blitWorkerStarted.compare_exchange_strong(expected, true)) {
-      _blitWorker = new std::thread(BlitWorkerLoop);
-    }
-  }
-
-  static void EnqueueBlit(BlitJob&& job) {
-    EnsureBlitWorkerStarted();
-    {
-      std::lock_guard<std::mutex> lock(_blitMutex);
-      if (_retiringTextureIds.find(job.flutterTextureId) !=
-          _retiringTextureIds.end()) {
-        return;
-      }
-      // Bounded queue — drop oldest under sustained GPU pressure
-      // rather than growing without limit. Visual effect under
-      // overload: one stale frame, no hang, no crash.
-      while (_blitQueue.size() >= kMaxBlitQueueDepth) {
-        _blitQueue.pop();
-      }
-      _blitQueue.push(std::move(job));
-    }
-    _blitCv.notify_one();
-  }
-
-  static void RetireBlitJobs(int64_t flutterTextureId) {
-    std::lock_guard<std::mutex> lock(_blitMutex);
-    _retiringTextureIds.insert(flutterTextureId);
-
-    std::queue<BlitJob> retained;
-    while (!_blitQueue.empty()) {
-      auto job = std::move(_blitQueue.front());
-      _blitQueue.pop();
-      if (job.flutterTextureId != flutterTextureId) {
-        retained.push(std::move(job));
-      }
-    }
-    _blitQueue.swap(retained);
-  }
+  static std::mutex _contextMutex;
 
   ThermionFlutterPlugin::~ThermionFlutterPlugin() {
     StopFrameScheduler();
-
-    // Stop the Blit worker thread cleanly. We signal the stop flag,
-    // wake the worker (it may be sleeping on the condition variable
-    // with an empty queue), and join. The worker drains queued
-    // jobs first, then returns. Safe against hot restart / app
-    // teardown.
-    if (_blitWorkerStarted.load()) {
-      _blitWorkerShouldStop.store(true);
-      _blitCv.notify_all();
-      if (_blitWorker && _blitWorker->joinable()) {
-        _blitWorker->join();
-      }
-    }
   }
 
   void ThermionFlutterPlugin::CreateTexture(
@@ -256,6 +107,7 @@ namespace thermion::tflutter::windows
 
     auto flutterTextureId = _textureRegistrar->RegisterTexture(flutterTexture->GetFlutterTexture());
     flutterTexture->SetFlutterTextureId(flutterTextureId);
+    _retiringTextureIds.erase(flutterTextureId);
     _flutterTextures.push_back(std::move(flutterTexture));
 
     std::cout << "Registered Flutter texture ID " << flutterTextureId
@@ -268,107 +120,33 @@ namespace thermion::tflutter::windows
     result->Success(resultList);
   }
 
-  void ThermionFlutterPlugin::ResizeTexture(
-      const flutter::MethodCall<flutter::EncodableValue> &methodCall,
-      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result)
-  {
-    std::lock_guard<std::mutex> contextLock(_contextMutex);
-    if (!_context)
-    {
-      result->Error("NO_CONTEXT", "No rendering context");
-      return;
-    }
-
-    const auto *args =
-        std::get_if<flutter::EncodableList>(methodCall.arguments());
-
-    int64_t flutterTextureId = std::get<int64_t>(args->at(0));
-    int dWidth = std::get<int>(args->at(1));
-    int dHeight = std::get<int>(args->at(2));
-    auto width = static_cast<uint32_t>(dWidth);
-    auto height = static_cast<uint32_t>(dHeight);
-
-    // Find the existing FlutterD3DTexture
-    auto it = std::find_if(_flutterTextures.begin(), _flutterTextures.end(), [=](auto &&ft)
-                           { return ft->GetFlutterTextureId() == flutterTextureId; });
-    if (it == _flutterTextures.end()) {
-      result->Error("NOT_FOUND", "Flutter texture not found");
-      return;
-    }
-
-    HANDLE oldD3DHandle = (*it)->GetD3DTextureHandle();
-
-    // A second resize can arrive before the two-frame descriptor swap. The
-    // abandoned replacement is no longer a Flutter surface, but its Filament
-    // target is retained by Dart's deferred cleanup. Transfer image ownership
-    // to Filament and retire the native interop resources before replacing it.
-    auto pendingIt = _pendingSwaps.find(flutterTextureId);
-    if (pendingIt != _pendingSwaps.end()) {
-      _context->DestroyRenderingSurface(pendingIt->second.newD3DHandle);
-      _pendingSwaps.erase(pendingIt);
-    }
-
-    // Create new D3D + Vulkan textures
-    auto newD3DHandle = _context->CreateRenderingSurface(width, height, 0, 0);
-    if (!newD3DHandle) {
-      result->Error("CREATE_FAILED", "Failed to create new D3D texture");
-      return;
-    }
-
-    auto externalImage = _context->CreateExternalImageForSurface(newD3DHandle);
-
-    // Store pending swap — will be applied after first successful Blit
-    _pendingSwaps[flutterTextureId] = PendingSwap{
-      oldD3DHandle, newD3DHandle, width, height,
-      static_cast<int64_t>(reinterpret_cast<intptr_t>(externalImage))
-    };
-
-    // Return [externalImage] to Dart
-    std::vector<flutter::EncodableValue> resultList;
-    resultList.push_back(flutter::EncodableValue(static_cast<int64_t>(reinterpret_cast<intptr_t>(externalImage))));
-    result->Success(resultList);
-  }
-
   bool ThermionFlutterPlugin::OnTextureUnregistered(int64_t flutterTextureId)
   {
     std::cerr << "ThermionFlutterPlugin::OnTextureUnregistered" << std::endl;
 
     std::lock_guard<std::mutex> contextLock(_contextMutex);
+    _retiringTextureIds.erase(flutterTextureId);
+
     if (!_context) {
-      std::cerr << "No rendering context is active, cannot destroy Flutter texture ID" << flutterTextureId << std::endl;
-      return false;    
+      std::cerr << "No rendering context is active, cannot destroy Flutter texture ID " << flutterTextureId << std::endl;
+      return false;
     }
 
     auto it = std::find_if(_flutterTextures.begin(), _flutterTextures.end(), [=](auto &&ft)
                            { return ft->GetFlutterTextureId() == flutterTextureId; });
-    
+
     if (it == _flutterTextures.end()) {
       std::cerr << "Failed to find Flutter texture associated with Flutter texture ID " << flutterTextureId << std::endl;
       return false;
     }
-    
+
     auto flutterTexture = std::move(*it);
     HANDLE d3dTextureHandle = flutterTexture->GetD3DTextureHandle();
     _flutterTextures.erase(it);
     std::cerr << "Erased flutter texture" << std::endl;
 
-    // If unregister races the two-frame resize handshake, Flutter still owns
-    // the old descriptor while Filament is rendering into the new surface.
-    // Retire both native surfaces and remove the stale handshake.
-    std::vector<HANDLE> handles{d3dTextureHandle};
-    auto pendingIt = _pendingSwaps.find(flutterTextureId);
-    if (pendingIt != _pendingSwaps.end()) {
-      handles.push_back(pendingIt->second.oldD3DHandle);
-      handles.push_back(pendingIt->second.newD3DHandle);
-      _pendingSwaps.erase(pendingIt);
-    }
-    std::set<HANDLE> uniqueHandles(handles.begin(), handles.end());
-    for (auto handle : uniqueHandles) {
-      _context->DestroyRenderingSurface(handle);
-    }
-
+    _context->DestroyRenderingSurface(d3dTextureHandle);
     return true;
-    
   }
 
   void ThermionFlutterPlugin::DestroyTexture(
@@ -381,9 +159,10 @@ namespace thermion::tflutter::windows
 
     std::cerr << "Unregistering Flutter texture ID " << flutterTextureId << std::endl;
 
-    // Prevent queued or subsequently delivered frame notifications from
-    // touching the surface after TextureRegistrar begins unregistration.
-    RetireBlitJobs(flutterTextureId);
+    {
+      std::lock_guard<std::mutex> contextLock(_contextMutex);
+      _retiringTextureIds.insert(flutterTextureId);
+    }
 
     _textureRegistrar->UnregisterTexture(
       flutterTextureId,
@@ -404,9 +183,9 @@ namespace thermion::tflutter::windows
       const flutter::MethodCall<flutter::EncodableValue> &methodCall,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result)
   {
-    // std::cout << methodCall.method_name().c_str() << std::endl;
     if (methodCall.method_name() == "getSharedContext")
     {
+      std::lock_guard<std::mutex> contextLock(_contextMutex);
       if (!_context)
       {
         _context = new thermion::vulkan::windows::WindowsVulkanContext();
@@ -419,107 +198,38 @@ namespace thermion::tflutter::windows
     }
     else if (methodCall.method_name() == "destroyTexture")
     {
-      // result->Success(flutter::EncodableValue((int64_t) nullptr));
       DestroyTexture(methodCall, std::move(result));
-    }
-    else if (methodCall.method_name() == "resizeTexture")
-    {
-      ResizeTexture(methodCall, std::move(result));
-    }
-    else if (methodCall.method_name() == "cancelResizeTexture")
-    {
-      const auto *flutterTextureId =
-          std::get_if<int64_t>(methodCall.arguments());
-      if (!flutterTextureId) {
-        result->Error("BAD_ARGUMENT", "Missing Flutter texture ID");
-        return;
-      }
-
-      std::lock_guard<std::mutex> contextLock(_contextMutex);
-      auto pendingIt = _pendingSwaps.find(*flutterTextureId);
-      if (pendingIt != _pendingSwaps.end()) {
-        if (_context) {
-          _context->DestroyRenderingSurface(pendingIt->second.newD3DHandle);
-        }
-        _pendingSwaps.erase(pendingIt);
-      }
-      result->Success(flutter::EncodableValue((int64_t) nullptr));
     }
     else if (methodCall.method_name() == "markTextureFrameAvailable")
     {
-      std::lock_guard<std::mutex> contextLock(_contextMutex);
-      if (_context)
+      const auto *flutterTextureId = std::get_if<int64_t>(methodCall.arguments());
+
+      if (!flutterTextureId || *flutterTextureId == -1)
       {
-        const auto *flutterTextureId = std::get_if<int64_t>(methodCall.arguments());
+        std::cout << "Bad texture" << std::endl;
+        result->Success(flutter::EncodableValue((int64_t) nullptr));
+        return;
+      }
 
-        if (!flutterTextureId || *flutterTextureId == -1)
+      bool shouldMark = false;
+      {
+        std::lock_guard<std::mutex> contextLock(_contextMutex);
+        if (_context &&
+            _retiringTextureIds.find(*flutterTextureId) == _retiringTextureIds.end())
         {
-          std::cout << "Bad texture" << std::endl;
-          result->Success(flutter::EncodableValue((int64_t) nullptr));
-          return;
-        }
-
-        // Find the FlutterD3DTexture for this flutterTextureId
-        auto it = std::find_if(_flutterTextures.begin(), _flutterTextures.end(), [=](auto &&ft)
-                               { return ft->GetFlutterTextureId() == *flutterTextureId; });
-
-        if (it == _flutterTextures.end()) {
-          std::cerr << "Failed to find Flutter texture for ID " << *flutterTextureId << std::endl;
-          result->Success(flutter::EncodableValue((int64_t) nullptr));
-          return;
-        }
-
-        auto swapIt = _pendingSwaps.find(*flutterTextureId);
-        if (swapIt != _pendingSwaps.end()) {
-          auto& swap = swapIt->second;
-          swap.frameCount++;
-
-          bool copied = false;
-          if (swap.frameCount < 2) {
-            // Frame 1: Filament is rendering into the new RT.
-            // Blit OLD handle — old RT VkImage is still valid because
-            // Dart deferred its Filament texture cleanup.
-            // Flutter keeps showing last valid frame via old D3D texture.
-            copied = _context->Blit(swap.oldD3DHandle);
+          auto it = std::find_if(
+              _flutterTextures.begin(), _flutterTextures.end(),
+              [=](auto &&ft) { return ft->GetFlutterTextureId() == *flutterTextureId; });
+          if (it != _flutterTextures.end()) {
+            shouldMark = true;
           } else {
-            // Frame 2+: new RT has valid content from previous render.
-            // Blit new handle, swap descriptor, retire old textures.
-            // Only swap and retire once a completed copy lands in newD3DHandle;
-            // if Blit times out or fails, keep oldD3DHandle live and retry next frame.
-            _context->ClearPendingFirstBlit(swap.newD3DHandle);
-            copied = _context->Blit(swap.newD3DHandle);
-            if (copied) {
-              (*it)->SwapDescriptor(swap.newD3DHandle, swap.width, swap.height);
-              _context->DestroyRenderingSurface(swap.oldD3DHandle);
-              _pendingSwaps.erase(swapIt);
-            }
+            std::cerr << "Failed to find Flutter texture for ID " << *flutterTextureId << std::endl;
           }
-
-          if (copied) {
-            _textureRegistrar->MarkTextureFrameAvailable(*flutterTextureId);
-          }
-        } else {
-          // Enqueue the Blit + MarkTextureFrameAvailable on the
-          // dedicated worker thread. Synchronous Blit on the UI
-          // thread saturates the Win32 message pump under multi-
-          // viewer load and the per-call detached-thread variant
-          // crashed inside the Intel Vulkan driver because Blit's
-          // command pool / queue / fence are not thread-safe. The
-          // worker thread serialises all Blits process-wide and
-          // returns the UI thread immediately. See BlitWorkerLoop
-          // / EnqueueBlit above.
-          HANDLE d3dTextureHandle = (*it)->GetD3DTextureHandle();
-          EnqueueBlit(BlitJob{
-              _context,
-              _textureRegistrar,
-              d3dTextureHandle,
-              *flutterTextureId,
-          });
-          result->Success(flutter::EncodableValue((int64_t) nullptr));
-          return;
         }
-      } else {
-        std::cout << "No context" << std::endl;
+      }
+
+      if (shouldMark) {
+        _textureRegistrar->MarkTextureFrameAvailable(*flutterTextureId);
       }
       result->Success(flutter::EncodableValue((int64_t) nullptr));
     }
@@ -531,12 +241,13 @@ namespace thermion::tflutter::windows
     }
     else if (methodCall.method_name() == "getDriverPlatform")
     {
+      std::lock_guard<std::mutex> contextLock(_contextMutex);
       if (!_context) {
         std::cerr << "No context, creating new one" << std::endl;
         _context = new thermion::vulkan::windows::WindowsVulkanContext();
-       } else { 
+      } else {
         std::cerr << "Context already exists, returning existing" << std::endl;
-       }
+      }
       result->Success(flutter::EncodableValue((int64_t)_context->GetPlatform()));
     }
     else if (methodCall.method_name() == "startFrameScheduler")
@@ -554,7 +265,6 @@ namespace thermion::tflutter::windows
     }
     else if (methodCall.method_name() == "initDartApi")
     {
-      // Initialize Dart API DL for port-based messaging (hot restart safe)
       int64_t dataAddress = std::get<int64_t>(*methodCall.arguments());
       void* data = reinterpret_cast<void*>(dataAddress);
       if (!_dartApiInitialized && data != nullptr) {
@@ -565,7 +275,6 @@ namespace thermion::tflutter::windows
     }
     else if (methodCall.method_name() == "startFrameSchedulerWithPort")
     {
-      // Port-based frame scheduling (hot restart safe)
       const auto *args = std::get_if<flutter::EncodableList>(methodCall.arguments());
       int64_t port = std::get<int64_t>(args->at(0));
       int targetFps = std::get<int>(args->at(1));
@@ -653,7 +362,6 @@ namespace thermion::tflutter::windows
           uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
               now.time_since_epoch()).count();
 
-          // Post to Dart port - silently drops if isolate is dead (hot restart safe)
           Dart_CObject msg;
           msg.type = Dart_CObject_kInt64;
           msg.value.as_int64 = static_cast<int64_t>(nanos);
@@ -677,4 +385,4 @@ namespace thermion::tflutter::windows
     _usePortMode = false;
   }
 
-} // namespace thermion_flutter
+} // namespace thermion::tflutter::windows

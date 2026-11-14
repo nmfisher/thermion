@@ -276,18 +276,10 @@ CommandResources createCommandResources(VkDevice device, VkPhysicalDevice physic
     // 1. Find a suitable queue family
     resources.queueFamilyIndex = findGraphicsQueueFamily(physicalDevice);
 
-    // 2. Get the queue handle. Always use queue 0, the queue Filament renders
-    //    on (via VulkanSharedContext). The blit reads Filament's render target
-    //    and nothing on our side waits on a semaphore from Filament, so the
-    //    only ordering between "render", "copy" and "next render" is queue
-    //    submission order plus the pipeline barriers in Blit(). Barriers do
-    //    not order work across queues, so a blit on a second queue can read a
-    //    half-drawn frame (issue #458). Concurrent submission to one queue
-    //    from two threads is a data race (VK_ERROR_DEVICE_LOST on newer NVIDIA
-    //    drivers), so WindowsVulkanContext serializes queue calls with a shim.
+    // 2. Get queue 0 (used only by standalone diagnostic pixel readback after
+    //    Filament has flushed and waited).
     const uint32_t queueIndex = 0;
-    resources.queueSharedWithFilament = true;
-    Log("[INFO] Blit/command queue: family %d, queue index %d",
+    Log("[INFO] Command queue: family %d, queue index %d",
         (int)resources.queueFamilyIndex, (int)queueIndex);
 
     vkGetDeviceQueue(device,
@@ -609,28 +601,15 @@ VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevi
         #endif
         VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, };
 
-    // Request a second queue in the family when the hardware exposes one.
-    // Queue 0 is handed to Filament via VulkanSharedContext (render thread);
-    // the D3D-interop Blit submits from the Flutter platform thread. VkQueue
-    // access is externally synchronized, so sharing one queue across those
-    // two threads is a data race — tolerated by some drivers, but newer
-    // NVIDIA drivers (observed on RTX 5090 / 610.62) fail the first
-    // concurrent submission with VK_ERROR_DEVICE_LOST. The blit now shares
-    // queue 0 behind a serialization shim (see createCommandResources), so
-    // the second queue is currently unused.
-    uint32_t familyCount = 0;
-    bluevk::vkGetPhysicalDeviceQueueFamilyProperties(*physicalDevice, &familyCount, nullptr);
-    std::vector<VkQueueFamilyProperties> families(familyCount);
-    bluevk::vkGetPhysicalDeviceQueueFamilyProperties(*physicalDevice, &familyCount, families.data());
-    const uint32_t queueCount =
-        families[*queueFamilyIndex].queueCount >= 2 ? 2u : 1u;
-
-    float queuePriorities[2] = {1.0f, 1.0f};
+    // Filament's Vulkan backend renders directly into imported D3D11 RGBA8
+    // shared textures on queue 0 via VulkanSharedContext; no secondary blit
+    // queue is required.
+    float queuePriority = 1.0f;
     VkDeviceQueueCreateInfo queueCreateInfo = {};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     queueCreateInfo.queueFamilyIndex = *queueFamilyIndex;
-    queueCreateInfo.queueCount = queueCount;
-    queueCreateInfo.pQueuePriorities = queuePriorities;
+    queueCreateInfo.queueCount = 1;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
 
     VkDeviceCreateInfo deviceCreateInfo = {};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
