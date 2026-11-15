@@ -276,21 +276,17 @@ CommandResources createCommandResources(VkDevice device, VkPhysicalDevice physic
     // 1. Find a suitable queue family
     resources.queueFamilyIndex = findGraphicsQueueFamily(physicalDevice);
 
-    // 2. Get the queue handle. Use the SECOND queue in the family when the
-    //    hardware has one (the device requests two — see createLogicalDevice):
-    //    queue 0 belongs to Filament's render thread via VulkanSharedContext,
-    //    and submitting to it concurrently from the platform thread is a
-    //    data race (VK_ERROR_DEVICE_LOST on newer NVIDIA drivers). Fall back
-    //    to queue 0 only on hardware exposing a single graphics queue.
-    uint32_t familyCount = 0;
-    bluevk::vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, nullptr);
-    std::vector<VkQueueFamilyProperties> families(familyCount);
-    bluevk::vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, families.data());
-    const uint32_t queueIndex =
-        families[resources.queueFamilyIndex].queueCount >= 2 ? 1u : 0u;
-    // Signal single-queue HW: the blit reuses Filament's queue 0 and so
-    // needs queue-level call serialization (see WindowsVulkanContext shim).
-    resources.queueSharedWithFilament = (queueIndex == 0);
+    // 2. Get the queue handle. Always use queue 0, the queue Filament renders
+    //    on (via VulkanSharedContext). The blit reads Filament's render target
+    //    and nothing on our side waits on a semaphore from Filament, so the
+    //    only ordering between "render", "copy" and "next render" is queue
+    //    submission order plus the pipeline barriers in Blit(). Barriers do
+    //    not order work across queues, so a blit on a second queue can read a
+    //    half-drawn frame (issue #458). Concurrent submission to one queue
+    //    from two threads is a data race (VK_ERROR_DEVICE_LOST on newer NVIDIA
+    //    drivers), so WindowsVulkanContext serializes queue calls with a shim.
+    const uint32_t queueIndex = 0;
+    resources.queueSharedWithFilament = true;
     Log("[INFO] Blit/command queue: family %d, queue index %d",
         (int)resources.queueFamilyIndex, (int)queueIndex);
 
@@ -619,8 +615,9 @@ VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevi
     // access is externally synchronized, so sharing one queue across those
     // two threads is a data race — tolerated by some drivers, but newer
     // NVIDIA drivers (observed on RTX 5090 / 610.62) fail the first
-    // concurrent submission with VK_ERROR_DEVICE_LOST. With two queues the
-    // blit gets its own (see createCommandResources).
+    // concurrent submission with VK_ERROR_DEVICE_LOST. The blit now shares
+    // queue 0 behind a serialization shim (see createCommandResources), so
+    // the second queue is currently unused.
     uint32_t familyCount = 0;
     bluevk::vkGetPhysicalDeviceQueueFamilyProperties(*physicalDevice, &familyCount, nullptr);
     std::vector<VkQueueFamilyProperties> families(familyCount);
