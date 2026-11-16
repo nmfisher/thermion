@@ -3810,7 +3810,7 @@ external int Renderer_getFrameInfoHistory(ffi.Pointer<TRenderer> tRenderer, ffi.
     ffi.Size,
     ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Size)>>,
   )
->(isLeaf: true)
+>()
 external void Renderer_getFrameInfoHistoryJobThread(
   ffi.Pointer<TJobThread> jobThread,
   ffi.Pointer<TRenderer> tRenderer,
