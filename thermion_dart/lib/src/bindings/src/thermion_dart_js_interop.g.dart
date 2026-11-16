@@ -1934,6 +1934,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     size_t capacity,
     Pointer<NativeFunction<void Function(size_t)>> onComplete,
   );
+  external size_t _Renderer_getMaxFrameHistorySize(Pointer<TRenderer> tRenderer);
   external void _Renderer_readPixels(
     Pointer<TRenderer> tRenderer,
     int width,
@@ -7783,6 +7784,11 @@ void Renderer_getFrameInfoHistoryJobThread(
     capacity,
     onComplete.cast(),
   );
+  return result;
+}
+
+Dartsize_t Renderer_getMaxFrameHistorySize(Pointer<TRenderer> tRenderer) {
+  final result = GeneratedBindings.instance._Renderer_getMaxFrameHistorySize(tRenderer.cast());
   return result;
 }
 

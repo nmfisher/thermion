@@ -3819,6 +3819,9 @@ external void Renderer_getFrameInfoHistoryJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Size)>> onComplete,
 );
 
+@ffi.Native<ffi.Size Function(ffi.Pointer<TRenderer>)>(isLeaf: true)
+external int Renderer_getMaxFrameHistorySize(ffi.Pointer<TRenderer> tRenderer);
+
 @ffi.Native<
   ffi.Void Function(
     ffi.Pointer<TRenderer>,

@@ -51,6 +51,17 @@ void main() async {
       final everything = await FilamentApp.instance!.getFrameInfoHistory(count: 1000);
       expect(everything.length, greaterThanOrEqualTo(history.length));
       expect(everything.first.frameId, history.first.frameId);
+
+      // These counts previously overflowed the allocation byte count to zero
+      // or a negative value. Both must be capped before sizing the buffer.
+      for (final count in [1 << 58, 0x7fffffffffffffff]) {
+        final capped = await FilamentApp.instance!.getFrameInfoHistory(count: count);
+        expect(
+          capped.map((frame) => frame.frameId),
+          orderedEquals(everything.map((frame) => frame.frameId)),
+          reason: 'count: $count',
+        );
+      }
     });
   });
 }

@@ -52,6 +52,9 @@ EMSCRIPTEN_KEEPALIVE void Renderer_setFrameInterval(
     uint8_t interval 
 );
 
+// Returns Filament's reported upper bound for the frame timing history.
+EMSCRIPTEN_KEEPALIVE size_t Renderer_getMaxFrameHistorySize(TRenderer *tRenderer);
+
 // Copies up to [capacity] of the most recent frames into [out], newest
 // first, and returns the number copied. Filament keeps at most
 // Renderer::getMaxFrameHistorySize() frames.

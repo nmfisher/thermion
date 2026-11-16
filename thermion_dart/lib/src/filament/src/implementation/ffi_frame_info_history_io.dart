@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:thermion_dart/thermion_dart.dart';
 
 /// Native (dart:ffi) implementation of [FilamentApp.getFrameInfoHistory].
@@ -10,10 +12,11 @@ Future<List<FrameTimingInfo>> getFrameInfoHistory(
   Pointer<TRenderer> renderer,
   int count,
 ) async {
-  final out = allocate<TFrameInfo>(sizeOf<TFrameInfo>() * count);
+  final capacity = math.min(count, Renderer_getMaxFrameHistorySize(renderer));
+  final out = allocate<TFrameInfo>(sizeOf<TFrameInfo>() * capacity);
   try {
     final copied = await withSizeCallback(
-      (callback) => Renderer_getFrameInfoHistoryJobThread(jobThread, renderer, out, count, callback),
+      (callback) => Renderer_getFrameInfoHistoryJobThread(jobThread, renderer, out, capacity, callback),
     );
     return [
       for (var i = 0; i < copied; i++)

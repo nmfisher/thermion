@@ -85,6 +85,12 @@ EMSCRIPTEN_KEEPALIVE void Renderer_setFrameRateOptions(
     renderer->setFrameRateOptions(fro);
 }
 
+EMSCRIPTEN_KEEPALIVE size_t Renderer_getMaxFrameHistorySize(TRenderer *tRenderer) {
+    THERMION_ENGINE_API_GUARD;
+    auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
+    return renderer->getMaxFrameHistorySize();
+}
+
 EMSCRIPTEN_KEEPALIVE size_t Renderer_getFrameInfoHistory(TRenderer *tRenderer, TFrameInfo *out, size_t capacity) {
     THERMION_ENGINE_API_GUARD;
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
