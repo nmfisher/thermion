@@ -40,7 +40,8 @@ jobs:
           mkdir -p "$filament_libs"
           # Pin-aware URL (thermion_dart/filament.libs.json): hash-suffixed
           # immutable key when pinned, legacy key otherwise.
-          curl --fail --location --retry 3 \
+          # --retry-all-errors: plain --retry skips a truncated transfer (exit 18).
+          curl --fail --location --retry 3 --retry-all-errors \
             "$(python3 scripts/filament-artifact-url.py web release)" \
             --output "$RUNNER_TEMP/filament-web.zip"
           unzip -q "$RUNNER_TEMP/filament-web.zip" -d "$filament_libs"
