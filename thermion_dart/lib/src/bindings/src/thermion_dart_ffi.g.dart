@@ -3799,7 +3799,7 @@ external void Renderer_endFrameJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Size Function(ffi.Pointer<TRenderer>, ffi.Pointer<TFrameInfo>, ffi.Size)>(isLeaf: true)
+@ffi.Native<ffi.Size Function(ffi.Pointer<TRenderer>, ffi.Pointer<TFrameInfo>, ffi.Size)>()
 external int Renderer_getFrameInfoHistory(ffi.Pointer<TRenderer> tRenderer, ffi.Pointer<TFrameInfo> out, int capacity);
 
 @ffi.Native<
@@ -3819,7 +3819,7 @@ external void Renderer_getFrameInfoHistoryJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Size)>> onComplete,
 );
 
-@ffi.Native<ffi.Size Function(ffi.Pointer<TRenderer>)>(isLeaf: true)
+@ffi.Native<ffi.Size Function(ffi.Pointer<TRenderer>)>()
 external int Renderer_getMaxFrameHistorySize(ffi.Pointer<TRenderer> tRenderer);
 
 @ffi.Native<
