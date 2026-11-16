@@ -5,6 +5,7 @@
 
 #include "Log.hpp"
 
+#include <algorithm>
 #include <thread>
 #include <functional>
 
@@ -82,6 +83,31 @@ EMSCRIPTEN_KEEPALIVE void Renderer_setFrameRateOptions(
     fro.interval = interval;
     fro.interval = interval;
     renderer->setFrameRateOptions(fro);
+}
+
+EMSCRIPTEN_KEEPALIVE size_t Renderer_getFrameInfoHistory(TRenderer *tRenderer, TFrameInfo *out, size_t capacity) {
+    THERMION_ENGINE_API_GUARD;
+    auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
+    const size_t requested = std::min<size_t>(capacity, renderer->getMaxFrameHistorySize());
+    if (out == nullptr || requested == 0) {
+        return 0;
+    }
+    const auto history = renderer->getFrameInfoHistory(requested);
+    const size_t count = std::min<size_t>(requested, history.size());
+    for (size_t i = 0; i < count; i++) {
+        const auto &info = history[i];
+        out[i] = TFrameInfo {
+            info.frameId,
+            info.gpuFrameDuration,
+            info.denoisedGpuFrameDuration,
+            info.beginFrame,
+            info.endFrame,
+            info.backendBeginFrame,
+            info.backendEndFrame,
+            info.gpuFrameComplete,
+        };
+    }
+    return count;
 }
 
 class CaptureCallbackHandler : public filament::backend::CallbackHandler

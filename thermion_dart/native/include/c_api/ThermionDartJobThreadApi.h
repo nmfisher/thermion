@@ -11,6 +11,7 @@
 #include "TBufferObject.h"
 #include "TTransformManager.h"
 #include "TLightManager.h"
+#include "TRenderer.h"
 
 #ifdef __cplusplus
 namespace thermion
@@ -123,6 +124,7 @@ namespace thermion
             uint8_t *out,
             size_t outLength,
             uint32_t requestId,  VoidCallback onComplete);
+        EMSCRIPTEN_KEEPALIVE void Renderer_getFrameInfoHistoryJobThread(TJobThread *jobThread, TRenderer *tRenderer, TFrameInfo *out, size_t capacity, void (*onComplete)(size_t));
 
         EMSCRIPTEN_KEEPALIVE void Material_createInstanceJobThread(TJobThread *jobThread, TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *));
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterTextureJobThread(TJobThread *jobThread, TMaterialInstance *tMaterialInstance, const char *propertyName, TTexture* tTexture, TTextureSampler* tSampler, uint32_t requestId, VoidCallback onComplete);

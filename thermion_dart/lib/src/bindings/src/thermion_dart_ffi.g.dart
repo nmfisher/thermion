@@ -3799,6 +3799,26 @@ external void Renderer_endFrameJobThread(
   VoidCallback onComplete,
 );
 
+@ffi.Native<ffi.Size Function(ffi.Pointer<TRenderer>, ffi.Pointer<TFrameInfo>, ffi.Size)>(isLeaf: true)
+external int Renderer_getFrameInfoHistory(ffi.Pointer<TRenderer> tRenderer, ffi.Pointer<TFrameInfo> out, int capacity);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TRenderer>,
+    ffi.Pointer<TFrameInfo>,
+    ffi.Size,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Size)>>,
+  )
+>(isLeaf: true)
+external void Renderer_getFrameInfoHistoryJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TRenderer> tRenderer,
+  ffi.Pointer<TFrameInfo> out,
+  int capacity,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Size)>> onComplete,
+);
+
 @ffi.Native<
   ffi.Void Function(
     ffi.Pointer<TRenderer>,
@@ -6044,6 +6064,10 @@ final class TEngine extends ffi.Opaque {}
 
 final class TEntityManager extends ffi.Opaque {}
 
+const int TFRAME_INFO_INVALID = -1;
+
+const int TFRAME_INFO_PENDING = -2;
+
 sealed class TFeatureLevel {
   static const FEATURE_LEVEL_0 = 0;
   static const FEATURE_LEVEL_1 = 1;
@@ -6097,6 +6121,32 @@ final class TFogOptions extends ffi.Struct {
 
   @ffi.Bool()
   external bool enabled;
+}
+
+final class TFrameInfo extends ffi.Struct {
+  @ffi.Uint32()
+  external int frameId;
+
+  @ffi.Int64()
+  external int gpuFrameDuration;
+
+  @ffi.Int64()
+  external int denoisedGpuFrameDuration;
+
+  @ffi.Int64()
+  external int beginFrame;
+
+  @ffi.Int64()
+  external int endFrame;
+
+  @ffi.Int64()
+  external int backendBeginFrame;
+
+  @ffi.Int64()
+  external int backendEndFrame;
+
+  @ffi.Int64()
+  external int gpuFrameComplete;
 }
 
 final class TGizmo extends ffi.Opaque {}

@@ -1926,6 +1926,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external size_t _Renderer_getFrameInfoHistory(Pointer<TRenderer> tRenderer, Pointer<TFrameInfo> out, size_t capacity);
+  external void _Renderer_getFrameInfoHistoryJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TRenderer> tRenderer,
+    Pointer<TFrameInfo> out,
+    size_t capacity,
+    Pointer<NativeFunction<void Function(size_t)>> onComplete,
+  );
   external void _Renderer_readPixels(
     Pointer<TRenderer> tRenderer,
     int width,
@@ -7756,6 +7764,28 @@ void Renderer_endFrameJobThread(
   return result;
 }
 
+Dartsize_t Renderer_getFrameInfoHistory(Pointer<TRenderer> tRenderer, Pointer<TFrameInfo> out, Dartsize_t capacity) {
+  final result = GeneratedBindings.instance._Renderer_getFrameInfoHistory(tRenderer.cast(), out.cast(), capacity);
+  return result;
+}
+
+void Renderer_getFrameInfoHistoryJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TRenderer> tRenderer,
+  Pointer<TFrameInfo> out,
+  Dartsize_t capacity,
+  Pointer<NativeFunction<void Function(size_t)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._Renderer_getFrameInfoHistoryJobThread(
+    jobThread.cast(),
+    tRenderer.cast(),
+    out.cast(),
+    capacity,
+    onComplete.cast(),
+  );
+  return result;
+}
+
 void Renderer_readPixels(
   Pointer<TRenderer> tRenderer,
   int width,
@@ -11176,6 +11206,10 @@ final class TEntityManager extends Struct {
   }
 }
 
+const int TFRAME_INFO_INVALID = -1;
+
+const int TFRAME_INFO_PENDING = -2;
+
 sealed class TFeatureLevel {
   static const FEATURE_LEVEL_0 = 0;
   static const FEATURE_LEVEL_1 = 1;
@@ -11489,6 +11523,21 @@ final class TFogOptions extends Struct {
 
   static Pointer<TFogOptions> stackAlloc() {
     return Pointer<TFogOptions>(NativeLibrary.instance.stackAlloc<TFogOptions>(52));
+  }
+}
+
+extension TFrameInfoExt on Pointer<TFrameInfo> {
+  TFrameInfo toDart() {
+    return TFrameInfo(this);
+  }
+}
+
+final class TFrameInfo extends Struct {
+  Pointer<TFrameInfo> get address => super.address.cast();
+  TFrameInfo(super.address);
+
+  static Pointer<TFrameInfo> stackAlloc() {
+    return Pointer<TFrameInfo>(NativeLibrary.instance.stackAlloc<TFrameInfo>(0));
   }
 }
 
@@ -13828,6 +13877,9 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TFogOptions:
         final ptr = TFogOptions.stackAlloc();
+        return ptr.toDart() as T;
+      case TFrameInfo:
+        final ptr = TFrameInfo.stackAlloc();
         return ptr.toDart() as T;
       case TGizmo:
         final ptr = TGizmo.stackAlloc();

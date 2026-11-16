@@ -389,6 +389,19 @@ abstract class FilamentApp<T> {
   /// (last writer wins). Values <= 0 remove the cap.
   void setTargetFramerate(int fps);
 
+  /// Returns timing for up to [count] of the most recent frames the renderer
+  /// has processed, newest first.
+  ///
+  /// GPU times cover only Filament's work, so they include rendering into a
+  /// texture that a platform view displays, which platform frame timings
+  /// leave out. The renderer keeps a short history, so fewer than [count]
+  /// frames can be returned, and a frame appears only after the GPU reports
+  /// its timing, a few frames after it was rendered.
+  ///
+  /// Throws [RangeError] when [count] is less than 1. Throws
+  /// [UnsupportedError] on web.
+  Future<List<FrameTimingInfo>> getFrameInfoHistory({int count = 1});
+
   //
   Future registerRequestFrameHook(Future Function() hook);
 

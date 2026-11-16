@@ -714,6 +714,18 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Renderer_getFrameInfoHistoryJobThread(TJobThread *jobThread, TRenderer *tRenderer, TFrameInfo *out, size_t capacity, void (*onComplete)(size_t))
+  {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto count = Renderer_getFrameInfoHistory(tRenderer, out, capacity);
+          PROXY(onComplete(count));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
