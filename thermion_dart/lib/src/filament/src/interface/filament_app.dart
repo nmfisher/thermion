@@ -398,8 +398,8 @@ abstract class FilamentApp<T> {
   /// frames can be returned, and a frame appears only after the GPU reports
   /// its timing, a few frames after it was rendered.
   ///
-  /// Throws [RangeError] when [count] is less than 1. Throws
-  /// [UnsupportedError] on web.
+  /// Throws [RangeError] when [count] is less than 1, or when a timing value
+  /// cannot be represented exactly as an integer on web.
   Future<List<FrameTimingInfo>> getFrameInfoHistory({int count = 1});
 
   //

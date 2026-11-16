@@ -13,8 +13,8 @@ compiler-opts:
   - '-D__EMSCRIPTEN__'
 structs:
   dependency-only: opaque
-  exclude: 
-    - '.*'
+  include:
+    - 'TFrameInfo'
 unions:
   dependency-only: opaque
   exclude: 
