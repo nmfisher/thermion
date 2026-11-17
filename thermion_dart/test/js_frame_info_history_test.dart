@@ -3,8 +3,9 @@ library;
 
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart' show FrameTimingInfo;
+import 'package:thermion_dart/src/bindings/bindings.dart' as bindings;
 import 'package:thermion_dart/src/bindings/src/js_interop.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_frame_info_history_js.dart' as history;
+import 'package:thermion_dart/src/filament/src/implementation/ffi_frame_info_history.dart' as history;
 
 void main() {
   late Uint8List heap;
@@ -110,8 +111,11 @@ void main() {
     expect(callbacks, isEmpty);
   });
 
-  Future<List<FrameTimingInfo>> read({int count = 2}) =>
-      history.getFrameInfoHistory(Pointer<TJobThread>.fromAddress(3), Pointer<TRenderer>.fromAddress(7), count);
+  Future<List<FrameTimingInfo>> read({int count = 2}) => history.getFrameInfoHistory(
+    bindings.Pointer<bindings.TJobThread>.fromAddress(3),
+    bindings.Pointer<bindings.TRenderer>.fromAddress(7),
+    count,
+  );
 
   test('keeps output alive until completion and reads a fresh heap view', () async {
     final pending = read(count: 9007199254740991);

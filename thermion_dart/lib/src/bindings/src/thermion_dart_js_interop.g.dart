@@ -5,8 +5,9 @@
 import 'dart:typed_data';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
-import 'package:ffigen_js/ffigen_js.dart';
-export 'package:ffigen_js/ffigen_js.dart';
+import 'package:ffigen_js/ffigen_js.dart' hide sizeOf;
+import 'package:ffigen_js/ffigen_js.dart' as _ffigenJs show sizeOf;
+export 'package:ffigen_js/ffigen_js.dart' hide sizeOf;
 
 extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   static GeneratedBindings get instance => NativeLibrary.instance as GeneratedBindings;
@@ -14011,6 +14012,24 @@ final class double4x4 extends Struct {
 
 typedef size_t = int;
 typedef Dartsize_t = int;
+
+/// The target ABI size in bytes, including record padding.
+/// Does not require initializing a native module. Opaque types are unsupported.
+int sizeOf<T extends NativeType>() {
+  if (T == Aabb3) return Aabb3.byteSize;
+  if (T == TAmbientOcclusionOptions) return TAmbientOcclusionOptions.byteSize;
+  if (T == TFogOptions) return TFogOptions.byteSize;
+  if (T == TFrameInfo) return TFrameInfo.byteSize;
+  if (T == TGtao) return TGtao.byteSize;
+  if (T == TShadowOptions) return TShadowOptions.byteSize;
+  if (T == TSoftShadowOptions) return TSoftShadowOptions.byteSize;
+  if (T == TSsct) return TSsct.byteSize;
+  if (T == TViewport) return TViewport.byteSize;
+  if (T == TVsmShadowOptions) return TVsmShadowOptions.byteSize;
+  if (T == double3) return double3.byteSize;
+  if (T == double4x4) return double4x4.byteSize;
+  return _ffigenJs.sizeOf<T>();
+}
 
 extension StructAllocator on Struct {
   static T create<T>() {
