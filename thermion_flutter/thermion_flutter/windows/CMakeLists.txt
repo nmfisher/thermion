@@ -26,7 +26,8 @@ set_target_properties(${PLUGIN_NAME} PROPERTIES
 target_compile_features(${PLUGIN_NAME} PUBLIC cxx_std_20)
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 
-set(GENERATED_HEADERS_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/../.dart_tool/generated_headers.cmake")
+get_filename_component(GENERATED_HEADERS_CMAKE
+  "${CMAKE_CURRENT_SOURCE_DIR}/../.dart_tool/generated_headers.cmake" ABSOLUTE)
 
 # `generated_headers.cmake` is produced by `thermion_flutter`'s build hook
 # (`hook/build.dart`) during `flutter assemble dart_build`, which runs AFTER
@@ -37,15 +38,16 @@ set(GENERATED_HEADERS_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/../.dart_tool/generated
 # resolved deterministically below from thermion_dart's root, and every
 # entry taken from this file is validated to exist before use.
 if(EXISTS "${GENERATED_HEADERS_CMAKE}")
+  # include() automatically registers the file as a configure dependency.
   include("${GENERATED_HEADERS_CMAKE}")
 else()
   message(STATUS
     "thermion_flutter: ${GENERATED_HEADERS_CMAKE} not yet present; "
     "resolving Filament headers deterministically instead.")
   set(DART_PKG_HEADERS "")
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${GENERATED_HEADERS_CMAKE}")
 endif()
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-  "${GENERATED_HEADERS_CMAKE}")
 
 # Drop entries that no longer exist on disk — a stale file from an older
 # hook version lists pre-artifact paths (native/include/filament*) that

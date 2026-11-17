@@ -3,6 +3,7 @@
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import time
@@ -166,6 +167,7 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         self.build_and_run()
 
     def test_pin_rotation_reconfigures_without_using_old_headers(self):
+        self.mode = "Debug"
         self.write_pin({"linux/release": PIN_A})
         old = self.assemble_into(digest=PIN_A)
         self.configure()
@@ -181,6 +183,7 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         (spaced / "lib").mkdir(parents=True)
         self.package = spaced
         self.write_version()
+        self.mode = "Debug"
         self.write_pin({"linux/release": PIN_A})
         self.write_package_config(spaced.as_uri() + "/")
         self.assemble_into(digest=PIN_A)
@@ -193,6 +196,37 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         self.configure("Debug", "linux-x64", f"-DCMAKE_INSTALL_PREFIX:PATH={custom.as_posix()}")
         self.build_and_run()
         self.assertEqual(Path(self.install_prefix()), custom)
+
+    def test_symlinked_plugin_with_existing_generated_headers_ninja_recompact(self):
+        ninja = shutil.which("ninja") or shutil.which("ninja-build")
+        if not ninja:
+            self.skipTest("ninja is not installed")
+        real_pkg = Path(self.temporary.name) / "real_thermion_flutter"
+        shutil.copytree(LINUX.parent / "linux", real_pkg / "linux")
+        shutil.copytree(LINUX.parent / "cmake", real_pkg / "cmake")
+        (real_pkg / ".dart_tool").mkdir()
+        (real_pkg / ".dart_tool/generated_headers.cmake").write_text(
+            'set(DART_PKG_HEADERS "/nonexistent/stale/include")\n'
+        )
+        symlinks_dir = self.app / "flutter/ephemeral/.plugin_symlinks"
+        symlinks_dir.mkdir(parents=True)
+        symlink_pkg = symlinks_dir / "thermion_flutter"
+        try:
+            symlink_pkg.symlink_to(real_pkg, target_is_directory=True)
+        except OSError as exc:
+            self.skipTest(f"symlinks unavailable: {exc}")
+
+        self.mode = "Debug"
+        self.write_pin({"linux/release": PIN_A})
+        self.assemble_into(digest=PIN_A)
+        self.run_command(
+            "cmake", "-G", "Ninja", f"-DCMAKE_MAKE_PROGRAM={ninja}",
+            "-S", str(self.app), "-B", str(self.build),
+            f"-DPLUGIN_ROOT={(symlink_pkg / 'linux').as_posix()}",
+            "-DCMAKE_BUILD_TYPE=Debug", "-DFLUTTER_TARGET_PLATFORM=linux-x64",
+        )
+        self.run_command(ninja, "-C", str(self.build), "-t", "recompact")
+        self.build_and_run()
 
     def test_missing_version_remains_a_configure_error(self):
         (self.package / "lib/filament_version.dart").unlink()
