@@ -922,6 +922,12 @@ void thermion_flutter_mark_textures(void* pluginPtr) {
   auto* self = FLUTTER_FILAMENT_PLUGIN(pluginPtr);
   if (!self || !self->textures || !self->texture_registrar) return;
   for (auto* tex : *self->textures) {
+    // The blit fallback renders into a separate image. Publish its contents
+    // to the exported DMA-BUF before Flutter samples the texture.
+    if (self->backend_type == BACKEND_VULKAN && self->vulkan_context &&
+        self->vulkan_context->NeedsBlit(tex->surface_id)) {
+      self->vulkan_context->BlitToExport(tex->surface_id);
+    }
     fl_texture_registrar_mark_texture_frame_available(
         self->texture_registrar, FL_TEXTURE(tex));
   }
