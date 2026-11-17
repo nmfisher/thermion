@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.19)
 set(PROJECT_NAME "thermion_flutter")
 project(${PROJECT_NAME} LANGUAGES C CXX)
 
@@ -141,34 +141,17 @@ if(_td_root)
   endif()
 endif()
 
-# --- Filament artifact headers (deterministic; #132) ------------------------
-# Filament's C++ headers ship inside the same version-matched artifact the
-# build hook downloads (thermion_dart/hook/build.dart -> getLibDir):
-#   <thermion_dart>/.dart_tool/thermion_dart/lib/<version>/windows/<mode>/include
-# Derive them here from the same inputs the hook itself uses — thermion_dart's
-# root plus filament.version — so configure never depends on hook-written
-# state. Headers are build-mode-independent (the hook's own cache repair
-# relies on that), so any extracted release/debug dir serves any build mode.
-set(_ARTIFACT_INCLUDES "")
+# Declare the hook's future cache paths, including content-addressed pins.
+# Globbing only existing directories leaves the first compile without headers.
+# The version file lives inside the package, including hosted/pub-cache layouts.
+set(_FILAMENT_HEADERS "")
 if(_td_root)
-  set(_version_dir "*")
-  set(_version_file "${_td_root}/../filament.version")
-  if(EXISTS "${_version_file}")
-    file(READ "${_version_file}" _version_raw)
-    string(STRIP "${_version_raw}" _version_raw)
-    # Format "<repo-url> <version>"; the version is the last field (matches
-    # _getFilamentVersion in thermion_dart/hook/build.dart).
-    string(REGEX MATCH "[^ \t]+$" _version_dir "${_version_raw}")
-  endif()
-  file(GLOB _ARTIFACT_INCLUDES CONFIGURE_DEPENDS
-    "${_td_root}/.dart_tool/thermion_dart/lib/${_version_dir}/windows/*/include")
+  include("${CMAKE_CURRENT_SOURCE_DIR}/filament_headers.cmake")
+  thermion_windows_filament_headers(_FILAMENT_HEADERS "${_td_root}")
 endif()
 
-# A Filament include dir is usable when it actually carries the headers the
-# plugin needs; some published debug artifacts shipped an include/ tree
-# without bluevk (the hook repairs those caches — see build.dart).
-set(_FILAMENT_HEADERS "")
-foreach(_dir IN LISTS _ARTIFACT_INCLUDES DART_PKG_HEADERS)
+# Retain existing hook metadata as a fallback, after the current pin's paths.
+foreach(_dir IN LISTS DART_PKG_HEADERS)
   if(IS_DIRECTORY "${_dir}" AND EXISTS "${_dir}/bluevk/BlueVK.h")
     list(FIND _FILAMENT_HEADERS "${_dir}" _dup)
     if(_dup EQUAL -1)
@@ -178,19 +161,10 @@ foreach(_dir IN LISTS _ARTIFACT_INCLUDES DART_PKG_HEADERS)
 endforeach()
 
 if(NOT _FILAMENT_HEADERS)
-  if(NOT _td_root)
-    message(FATAL_ERROR
-      "thermion_flutter: could not resolve thermion_dart's root (neither "
-      "package_config.json nor the monorepo fallback); cannot locate "
-      "Filament headers.")
-  endif()
   message(FATAL_ERROR
-    "thermion_flutter: no Filament headers found under "
-    "${_td_root}/.dart_tool/thermion_dart/lib/${_version_dir}/windows/*/include "
-    "(version pinned by ${_td_root}/../filament.version), and "
-    "generated_headers.cmake provided no usable entry either. The artifact is "
-    "downloaded by thermion_dart's build hook — on a clean machine the first "
-    "build fetches it; rerun once that has completed.")
+    "thermion_flutter: could not resolve thermion_dart's root (neither "
+    "package_config.json nor the monorepo fallback); cannot locate "
+    "Filament headers.")
 endif()
 message(STATUS "thermion_flutter: Filament headers: ${_FILAMENT_HEADERS}")
 
@@ -223,6 +197,10 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
  Shlwapi
  thermion_dart
 )
+
+# Native-assets hooks download Filament during this target. Finish them before
+# compiling any plugin source that includes the future header paths above.
+add_dependencies(${PLUGIN_NAME} flutter_assemble)
 
 set(thermion_flutter_bundled_libraries
   ${runner_BINARY_DIR}/../../../native_assets/windows/thermion_dart.dll
