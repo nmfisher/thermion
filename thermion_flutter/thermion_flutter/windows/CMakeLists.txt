@@ -49,20 +49,6 @@ else()
     "${GENERATED_HEADERS_CMAKE}")
 endif()
 
-# Drop entries that no longer exist on disk — a stale file from an older
-# hook version lists pre-artifact paths (native/include/filament*) that
-# were removed from the tree.
-if(DART_PKG_HEADERS)
-  foreach(_dir IN LISTS DART_PKG_HEADERS)
-    if(NOT IS_DIRECTORY "${_dir}")
-      message(WARNING
-        "thermion_flutter: ignoring non-existent include dir from "
-        "generated_headers.cmake (stale hook output?): ${_dir}")
-      list(REMOVE_ITEM DART_PKG_HEADERS "${_dir}")
-    endif()
-  endforeach()
-endif()
-
 # --- Resolve thermion_dart include paths -----------------------------------
 # Preference 1: parse the consuming app's package_config.json, which exists
 #   after `flutter pub get` and before cmake configure, to find thermion_dart's
@@ -90,6 +76,8 @@ set(_FILAMENT_HEADERS "")
 if(_td_root)
   thermion_filament_headers(_FILAMENT_HEADERS "${_td_root}" "windows")
 endif()
+
+thermion_filter_generated_headers(DART_PKG_HEADERS "${_FILAMENT_HEADERS}")
 
 # Retain existing hook metadata as a fallback, after the current pin's paths.
 foreach(_dir IN LISTS DART_PKG_HEADERS)

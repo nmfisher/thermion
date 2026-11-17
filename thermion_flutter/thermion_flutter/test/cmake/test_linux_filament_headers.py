@@ -218,14 +218,39 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
 
         self.mode = "Debug"
         self.write_pin({"linux/release": PIN_A})
-        self.assemble_into(digest=PIN_A)
-        self.run_command(
+        expected_include = self.assemble_into(digest=PIN_A)
+        (real_pkg / ".dart_tool/generated_headers.cmake").write_text(
+            f'set(DART_PKG_HEADERS "{expected_include.as_posix()}" "/nonexistent/stale/include")\n'
+        )
+        cfg = self.run_command(
             "cmake", "-G", "Ninja", f"-DCMAKE_MAKE_PROGRAM={ninja}",
             "-S", str(self.app), "-B", str(self.build),
             f"-DPLUGIN_ROOT={(symlink_pkg / 'linux').as_posix()}",
             "-DCMAKE_BUILD_TYPE=Debug", "-DFLUTTER_TARGET_PLATFORM=linux-x64",
         )
+        cfg_out = cfg.stdout + cfg.stderr
+        self.assertIn("stale hook output?): /nonexistent/stale/include", cfg_out)
+        self.assertNotIn(f"stale hook output?): {expected_include.as_posix()}", cfg_out)
         self.run_command(ninja, "-C", str(self.build), "-t", "recompact")
+        self.build_and_run()
+
+    def test_partial_clean_generated_headers_does_not_warn_for_expected_path(self):
+        isolated = Path(self.temporary.name) / "isolated_thermion_flutter"
+        shutil.copytree(LINUX.parent / "linux", isolated / "linux")
+        shutil.copytree(LINUX.parent / "cmake", isolated / "cmake")
+        (isolated / ".dart_tool").mkdir()
+        self.mode = "Debug"
+        self.write_pin({"linux/release": PIN_A})
+        expected_include = self.assemble_into(digest=PIN_A)
+        (isolated / ".dart_tool/generated_headers.cmake").write_text(
+            f'set(DART_PKG_HEADERS "{expected_include.resolve(strict=False).as_posix()}")\n'
+        )
+        cfg = self.run_command(
+            "cmake", "-S", str(self.app), "-B", str(self.build),
+            f"-DPLUGIN_ROOT={(isolated / 'linux').as_posix()}",
+            "-DCMAKE_BUILD_TYPE=Debug", "-DFLUTTER_TARGET_PLATFORM=linux-x64",
+        )
+        self.assertNotIn("stale hook output?", cfg.stdout + cfg.stderr)
         self.build_and_run()
 
     def test_missing_version_remains_a_configure_error(self):

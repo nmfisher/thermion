@@ -3,6 +3,7 @@
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import time
@@ -210,6 +211,28 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         self.write_package_config("../../my%20packages%20%281%29/thermion_dart/")
         self.assemble_into(digest=PIN_A)
         self.configure()
+        self.build_and_run()
+
+    def test_partial_clean_generated_headers_warns_only_for_stale_paths(self):
+        isolated = Path(self.temporary.name) / "isolated_thermion_flutter"
+        shutil.copytree(WINDOWS.parent / "windows", isolated / "windows")
+        shutil.copytree(WINDOWS.parent / "cmake", isolated / "cmake")
+        (isolated / ".dart_tool").mkdir()
+        self.write_pin({"windows/release": PIN_A})
+        expected_include = self.assemble_into(digest=PIN_A)
+        (isolated / ".dart_tool/generated_headers.cmake").write_text(
+            f'set(DART_PKG_HEADERS "{expected_include.resolve(strict=False).as_posix()}" "/nonexistent/stale/include")\n'
+        )
+        self.mode = "Debug"
+        cfg = self.run_command(
+            "cmake", "-S", str(self.app), "-B", str(self.build),
+            f"-DPLUGIN_ROOT={(isolated / 'windows').as_posix()}",
+            "-DCMAKE_BUILD_TYPE=Debug",
+        )
+        cfg_out = cfg.stdout + cfg.stderr
+        self.assertIn("stale hook output?): /nonexistent/stale/include", cfg_out)
+        self.assertNotIn("release-" + PIN_A[:16], cfg_out.split("stale hook output?):")[-1].splitlines()[0] if "stale hook output?):" in cfg_out else "")
+        self.assertEqual(cfg_out.count("stale hook output?"), 1)
         self.build_and_run()
 
     def test_missing_version_remains_a_configure_error(self):
