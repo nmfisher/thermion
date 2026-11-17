@@ -184,6 +184,34 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         self.build_and_run()
         self.assertEqual(Path(self.install_prefix()), custom)
 
+    def write_package_config(self, uri):
+        (self.app / ".dart_tool/package_config.json").write_text(json.dumps({
+            "configVersion": 2,
+            "packages": [{"name": "thermion_dart", "rootUri": uri}],
+        }))
+
+    def test_percent_encoded_file_uri_with_spaces_and_escaped_percent(self):
+        spaced = Path(self.temporary.name) / "Jane Doe (Local)" / "dir%20lit" / "thermion_dart"
+        (spaced / "lib").mkdir(parents=True)
+        self.package = spaced
+        self.write_version()
+        self.write_pin({"windows/release": PIN_A})
+        self.write_package_config(spaced.as_uri() + "/")
+        self.assemble_into(digest=PIN_A)
+        self.configure()
+        self.build_and_run()
+
+    def test_percent_encoded_relative_uri_with_spaces(self):
+        spaced = Path(self.temporary.name) / "my packages (1)" / "thermion_dart"
+        (spaced / "lib").mkdir(parents=True)
+        self.package = spaced
+        self.write_version()
+        self.write_pin({"windows/release": PIN_A})
+        self.write_package_config("../../my%20packages%20%281%29/thermion_dart/")
+        self.assemble_into(digest=PIN_A)
+        self.configure()
+        self.build_and_run()
+
     def test_missing_version_remains_a_configure_error(self):
         (self.package / "lib/filament_version.dart").unlink()
         self.assemble_into()

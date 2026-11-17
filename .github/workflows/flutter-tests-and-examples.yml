@@ -16,17 +16,10 @@
 #   leg (same runner, reusing its SDK setup); see the step comment there
 #   for the prebuilt-wasm caveat.
 #
-# Desktop example jobs keep a minimal "prime build hooks" step (one small unit
-# test) before its first cmake configure: the plugin's CMake configure runs
-# BEFORE the in-build hook step that extracts the Filament headers from the
-# R2 artifact and writes .dart_tool/generated_headers.cmake
-# (DART_PKG_HEADERS). On a fresh checkout the first `flutter build
-# windows/linux/macos` would otherwise configure with an empty
-# DART_PKG_HEADERS and the plugin compile fails on bluevk/BlueVK.h. Running
-# a flutter test out of band fires the hooks so the header dir and
-# generated_headers.cmake already exist when cmake configures.
-# The Windows process-exit job deliberately builds without priming, covering
-# a clean package/artifact cache before the first native build (#459).
+# Windows and Linux plugin CMake configurations declare future Filament header
+# paths from package-shipped version/pin metadata and depend on
+# flutter_assemble, so native builds work directly from a clean package and
+# artifact cache without priming hooks via an out-of-band `flutter test` (#459).
 #
 # Replaces the former run-flutter-builds.yml (whose build jobs embedded the
 # unit tests as priming steps) and, together with run-dart-tests.yml,
@@ -82,8 +75,8 @@ jobs:
           cache: true
           pub-cache: true
 
-      - name: Test Windows header bootstrap
-        run: python -m unittest discover -s thermion_flutter/thermion_flutter/test/cmake -p test_windows_filament_headers.py -v
+      - name: Test CMake header bootstrap
+        run: python -m unittest discover -s thermion_flutter/thermion_flutter/test/cmake -p "test_*_filament_headers.py" -v
 
       - name: Verify the native cache is cold
         shell: pwsh
@@ -164,6 +157,11 @@ jobs:
           sudo apt-get install -y libc++-18-dev libc++abi-18-dev
           echo "/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"
 
+      - name: Test CMake header bootstrap
+        if: matrix.name != 'Windows'
+        shell: bash
+        run: python3 -m unittest discover -s thermion_flutter/thermion_flutter/test/cmake -p "test_*_filament_headers.py" -v
+
       - name: Run thermion_flutter unit tests
         working-directory: thermion_flutter/thermion_flutter
         shell: bash
@@ -240,14 +238,18 @@ jobs:
           sudo apt-get install -y libc++-18-dev libc++abi-18-dev
           echo "/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"
 
-      # Prime the build hooks (see header comment). A single small test file
-      # is enough to fire them; the full suite already ran in flutter-tests.
-      - name: Prime build hooks
-        working-directory: thermion_flutter/thermion_flutter
+      - name: Verify the native cache is cold
+        working-directory: ${{ github.workspace }}
         shell: bash
         run: |
-          flutter pub get
-          flutter test test/frame_scheduler_clock_test.dart
+          for path in \
+            thermion_dart/.dart_tool/thermion_dart/lib \
+            thermion_flutter/thermion_flutter/.dart_tool/generated_headers.cmake; do
+            if [ -e "$path" ]; then
+              echo "Cold-build regression was prewarmed: $path" >&2
+              exit 1
+            fi
+          done
 
       # macOS: build native macOS examples.
       - name: Build quickstart (macOS)

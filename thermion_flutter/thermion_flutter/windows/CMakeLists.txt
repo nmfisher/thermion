@@ -71,68 +71,8 @@ endif()
 set(_TD_INCLUDE "")
 set(_TD_VULKAN_WINDOWS "")
 
-# Walk up from runner_BINARY_DIR to find the Flutter app root
-# (the directory containing .dart_tool/package_config.json).
-# runner_BINARY_DIR is the runner's output directory, always under the
-# consuming Flutter app's build/ tree.  CMAKE_CURRENT_SOURCE_DIR may point
-# to the real source (resolved junctions/symlinks) outside the app tree.
-set(_PKG_CONFIG "")
-set(_search_dir "${runner_BINARY_DIR}")
-foreach(_i RANGE 1 15)
-  if(EXISTS "${_search_dir}/.dart_tool/package_config.json")
-    set(_PKG_CONFIG "${_search_dir}/.dart_tool/package_config.json")
-    message(STATUS "thermion_flutter: found package_config at ${_PKG_CONFIG}")
-    break()
-  endif()
-  get_filename_component(_search_dir "${_search_dir}" DIRECTORY)
-endforeach()
-
-if(_PKG_CONFIG)
-  file(READ "${_PKG_CONFIG}" _pkg_json)
-  if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.19")
-    string(JSON _pkg_len ERROR_VARIABLE _json_err LENGTH "${_pkg_json}" packages)
-    if(NOT _json_err AND _pkg_len GREATER 0)
-      math(EXPR _pkg_end "${_pkg_len} - 1")
-      set(_td_rootUri "")
-      foreach(_idx RANGE 0 ${_pkg_end})
-        string(JSON _pkg_name ERROR_VARIABLE _json_err GET "${_pkg_json}" packages ${_idx} name)
-        if(_json_err)
-          continue()
-        endif()
-        if(_pkg_name STREQUAL "thermion_dart")
-          string(JSON _td_rootUri ERROR_VARIABLE _json_err GET "${_pkg_json}" packages ${_idx} rootUri)
-          break()
-        endif()
-      endforeach()
-
-      if(_td_rootUri)
-        # rootUri may be a file:/// URI (e.g. file:///D:/path on Windows,
-        # file:///home on Linux) or a relative path like "../../thermion_dart".
-        # Strip file:/// (3 slashes) first, then file:// (2 slashes) as fallback.
-        string(REGEX REPLACE "^file:///" "" _td_root "${_td_rootUri}")
-        string(REGEX REPLACE "^file://" "" _td_root "${_td_root}")
-        if(NOT IS_ABSOLUTE "${_td_root}")
-          get_filename_component(_pkg_dir "${_PKG_CONFIG}" DIRECTORY)
-          get_filename_component(_td_root "${_pkg_dir}/${_td_root}" ABSOLUTE)
-        endif()
-        message(STATUS "thermion_flutter: resolved thermion_dart to ${_td_root}")
-      endif()
-    endif()
-  endif()
-endif()
-
-if(NOT _td_root)
-  # Monorepo fallback – resolves the real source dir (follows symlinks/junctions)
-  # then navigates to thermion_dart using the known repo layout.
-  get_filename_component(_REAL_PLUGIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
-  get_filename_component(_td_root
-    "${_REAL_PLUGIN_DIR}/../../../thermion_dart" ABSOLUTE)
-  if(NOT EXISTS "${_td_root}/native/include")
-    set(_td_root "")
-  else()
-    message(STATUS "thermion_flutter: using monorepo fallback ${_td_root}")
-  endif()
-endif()
+include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/filament_headers.cmake")
+thermion_resolve_package_root(_td_root "${runner_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
 
 if(_td_root)
   set(_TD_INCLUDE "${_td_root}/native/include")
@@ -146,8 +86,7 @@ endif()
 # The version file lives inside the package, including hosted/pub-cache layouts.
 set(_FILAMENT_HEADERS "")
 if(_td_root)
-  include("${CMAKE_CURRENT_SOURCE_DIR}/filament_headers.cmake")
-  thermion_windows_filament_headers(_FILAMENT_HEADERS "${_td_root}")
+  thermion_filament_headers(_FILAMENT_HEADERS "${_td_root}" "windows")
 endif()
 
 # Retain existing hook metadata as a fallback, after the current pin's paths.
@@ -189,7 +128,7 @@ foreach (_variableName ${_variableNames})
     message(STATUS "${_variableName}=${${_variableName}}")
 endforeach()
 
-target_link_directories(${PLUGIN_NAME} PRIVATE ${runner_BINARY_DIR}/../../../native_assets/windows/)
+target_link_directories(${PLUGIN_NAME} PRIVATE "${runner_BINARY_DIR}/../../../native_assets/windows/")
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE 
  flutter
@@ -203,8 +142,8 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
 add_dependencies(${PLUGIN_NAME} flutter_assemble)
 
 set(thermion_flutter_bundled_libraries
-  ${runner_BINARY_DIR}/../../../native_assets/windows/thermion_dart.dll
-  ${runner_BINARY_DIR}/../../../native_assets/windows/thermion_dart.lib
+  "${runner_BINARY_DIR}/../../../native_assets/windows/thermion_dart.dll"
+  "${runner_BINARY_DIR}/../../../native_assets/windows/thermion_dart.lib"
   PARENT_SCOPE
 )
 
