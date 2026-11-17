@@ -122,6 +122,11 @@ struct _ThermionFlutterPlugin
 
 G_DEFINE_TYPE(ThermionFlutterPlugin, thermion_flutter_plugin, g_object_get_type())
 
+// Global plugin instance used by Dart's direct post-render texture notifier.
+// Clear it before disposal starts so callbacks cannot acquire an object whose
+// native resources are being torn down.
+static ThermionFlutterPlugin* g_plugin_instance = nullptr;
+
 static void destroy_all_contexts(ThermionFlutterPlugin *self)
 {
   if (self->vulkan_context)
@@ -707,13 +712,23 @@ static FlMethodResponse *handle_destroy_texture(ThermionFlutterPlugin *self, FlM
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
 
+static void mark_texture_frame_available(
+    ThermionFlutterPlugin *self, ThermionTextureGL *texture)
+{
+  // Vulkan may render into an intermediate image that must be copied to the
+  // DMA-BUF exported to Flutter. OpenGL renders into the export directly.
+  if (self->backend_type == BACKEND_VULKAN && self->vulkan_context &&
+      self->vulkan_context->NeedsBlit(texture->surface_id))
+  {
+    self->vulkan_context->BlitToExport(texture->surface_id);
+  }
+
+  fl_texture_registrar_mark_texture_frame_available(
+      self->texture_registrar, FL_TEXTURE(texture));
+}
+
 static FlMethodResponse *handle_mark_texture_frame_available(ThermionFlutterPlugin *self, FlMethodCall *method_call)
 {
-  static auto lastMark = std::chrono::high_resolution_clock::now();
-  auto now = std::chrono::high_resolution_clock::now();
-  auto intervalUs = std::chrono::duration_cast<std::chrono::microseconds>(now - lastMark).count();
-  lastMark = now;
-
   FlValue *args = fl_method_call_get_args(method_call);
   int64_t flutterTextureId = fl_value_get_int(args);
 
@@ -721,17 +736,7 @@ static FlMethodResponse *handle_mark_texture_frame_available(ThermionFlutterPlug
   {
     if (fl_texture_get_id(FL_TEXTURE(tex)) == flutterTextureId)
     {
-      // Vulkan path may need blit; OpenGL path never needs blit
-      if (self->backend_type == BACKEND_VULKAN && self->vulkan_context)
-      {
-        if (self->vulkan_context->NeedsBlit(tex->surface_id))
-        {
-          self->vulkan_context->BlitToExport(tex->surface_id);
-        }
-      }
-
-      fl_texture_registrar_mark_texture_frame_available(
-          self->texture_registrar, FL_TEXTURE(tex));
+      mark_texture_frame_available(self, tex);
       break;
     }
   }
@@ -841,6 +846,11 @@ static void thermion_flutter_plugin_dispose(GObject *object)
 {
   ThermionFlutterPlugin *self = FLUTTER_FILAMENT_PLUGIN(object);
 
+  if (g_plugin_instance == self)
+  {
+    g_plugin_instance = nullptr;
+  }
+
   destroy_all_contexts(self);
 
   if (self->textures)
@@ -881,9 +891,6 @@ static void method_call_cb(FlMethodChannel *channel, FlMethodCall *method_call,
   thermion_flutter_plugin_handle_method_call(plugin, method_call);
 }
 
-// Global plugin instance used by Dart's direct post-render texture notifier.
-static ThermionFlutterPlugin* g_plugin_instance = nullptr;
-
 void thermion_flutter_plugin_register_with_registrar(FlPluginRegistrar *registrar)
 {
   ThermionFlutterPlugin *plugin = FLUTTER_FILAMENT_PLUGIN(
@@ -914,21 +921,14 @@ void* thermion_flutter_get_plugin_handle() {
   return g_plugin_instance;
 }
 
-// Called from Dart after the common render future completes. Marks all
-// textures as frame-available so Flutter picks up the new content on its next
-// raster pass.
+// Called from Dart after the common render future completes. Publish any
+// Vulkan exports, then mark every texture available for Flutter's next raster
+// pass.
 extern "C" __attribute__((visibility("default")))
 void thermion_flutter_mark_textures(void* pluginPtr) {
   auto* self = FLUTTER_FILAMENT_PLUGIN(pluginPtr);
   if (!self || !self->textures || !self->texture_registrar) return;
   for (auto* tex : *self->textures) {
-    // The blit fallback renders into a separate image. Publish its contents
-    // to the exported DMA-BUF before Flutter samples the texture.
-    if (self->backend_type == BACKEND_VULKAN && self->vulkan_context &&
-        self->vulkan_context->NeedsBlit(tex->surface_id)) {
-      self->vulkan_context->BlitToExport(tex->surface_id);
-    }
-    fl_texture_registrar_mark_texture_frame_available(
-        self->texture_registrar, FL_TEXTURE(tex));
+    mark_texture_frame_available(self, tex);
   }
 }
