@@ -171,15 +171,7 @@ Future<int> withInt32Callback(Function(Pointer<NativeFunction<void Function(int)
   }
 }
 
-Pointer<T> allocate<T extends NativeType>(int byteCount) {
-  switch (T) {
-    case PointerClass:
-    case Char:
-      return malloc(byteCount);
-    default:
-      throw Exception(T.toString());
-  }
-}
+Pointer<T> allocate<T extends NativeType>(int byteCount) => malloc<T>(byteCount);
 
 Future<int> withUInt32Callback(Function(Pointer<NativeFunction<Void Function(int)>>) func) async {
   final completer = Completer<int>();

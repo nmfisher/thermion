@@ -1,4 +1,5 @@
 export 'src/interface/filament_app.dart';
+export 'src/interface/frame_timing_info.dart';
 export 'src/interface/skybox.dart';
 export 'src/interface/engine.dart';
 export 'src/interface/layers.dart';

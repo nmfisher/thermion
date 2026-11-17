@@ -32,6 +32,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/src/filament/src/interface/surface_orientation.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:logging/logging.dart';
+import 'ffi_frame_info_history.dart' as frame_info_history;
 import 'ffi_gltf_mesh_data.dart';
 import 'resource_loader.dart';
 
@@ -1036,6 +1037,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   /// unlimited. Native admission is process-wide; each web engine applies its
   /// own limit on the worker as well as pacing Dart's request-frame hooks.
   int get targetFramerate => _targetFramerate;
+
+  //
+  @override
+  Future<List<FrameTimingInfo>> getFrameInfoHistory({int count = 1}) async {
+    if (count < 1) {
+      throw RangeError.range(count, 1, null, 'count');
+    }
+    return frame_info_history.getFrameInfoHistory(jobThreadHandle, renderer, count);
+  }
 
   //
   @override

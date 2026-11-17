@@ -5,8 +5,9 @@
 import 'dart:typed_data';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
-import 'package:ffigen_js/ffigen_js.dart';
-export 'package:ffigen_js/ffigen_js.dart';
+import 'package:ffigen_js/ffigen_js.dart' hide sizeOf;
+import 'package:ffigen_js/ffigen_js.dart' as _ffigenJs show sizeOf;
+export 'package:ffigen_js/ffigen_js.dart' hide sizeOf;
 
 extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   static GeneratedBindings get instance => NativeLibrary.instance as GeneratedBindings;
@@ -1926,6 +1927,15 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external size_t _Renderer_getFrameInfoHistory(Pointer<TRenderer> tRenderer, Pointer<TFrameInfo> out, size_t capacity);
+  external void _Renderer_getFrameInfoHistoryJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TRenderer> tRenderer,
+    Pointer<TFrameInfo> out,
+    size_t capacity,
+    Pointer<NativeFunction<void Function(size_t)>> onComplete,
+  );
+  external size_t _Renderer_getMaxFrameHistorySize(Pointer<TRenderer> tRenderer);
   external void _Renderer_readPixels(
     Pointer<TRenderer> tRenderer,
     int width,
@@ -7756,6 +7766,33 @@ void Renderer_endFrameJobThread(
   return result;
 }
 
+Dartsize_t Renderer_getFrameInfoHistory(Pointer<TRenderer> tRenderer, Pointer<TFrameInfo> out, Dartsize_t capacity) {
+  final result = GeneratedBindings.instance._Renderer_getFrameInfoHistory(tRenderer.cast(), out.cast(), capacity);
+  return result;
+}
+
+void Renderer_getFrameInfoHistoryJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TRenderer> tRenderer,
+  Pointer<TFrameInfo> out,
+  Dartsize_t capacity,
+  Pointer<NativeFunction<void Function(size_t)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._Renderer_getFrameInfoHistoryJobThread(
+    jobThread.cast(),
+    tRenderer.cast(),
+    out.cast(),
+    capacity,
+    onComplete.cast(),
+  );
+  return result;
+}
+
+Dartsize_t Renderer_getMaxFrameHistorySize(Pointer<TRenderer> tRenderer) {
+  final result = GeneratedBindings.instance._Renderer_getMaxFrameHistorySize(tRenderer.cast());
+  return result;
+}
+
 void Renderer_readPixels(
   Pointer<TRenderer> tRenderer,
   int width,
@@ -10543,10 +10580,15 @@ extension Aabb3Ext on Pointer<Aabb3> {
   Aabb3 toDart() {
     return Aabb3(this);
   }
+
+  Aabb3 operator [](int index) {
+    return Aabb3(Pointer<Aabb3>(addr + index * Aabb3.byteSize));
+  }
 }
 
 final class Aabb3 extends Struct {
   Pointer<Aabb3> get address => super.address.cast();
+  static const int byteSize = 24;
   double get centerX {
     final addr = Pointer<Aabb3>(this.address.addr + 0);
     if (addr.addr % 4 != 0) {
@@ -10710,10 +10752,17 @@ extension TAmbientOcclusionOptionsExt on Pointer<TAmbientOcclusionOptions> {
   TAmbientOcclusionOptions toDart() {
     return TAmbientOcclusionOptions(this);
   }
+
+  TAmbientOcclusionOptions operator [](int index) {
+    return TAmbientOcclusionOptions(
+      Pointer<TAmbientOcclusionOptions>(addr + index * TAmbientOcclusionOptions.byteSize),
+    );
+  }
 }
 
 final class TAmbientOcclusionOptions extends Struct {
   Pointer<TAmbientOcclusionOptions> get address => super.address.cast();
+  static const int byteSize = 108;
 
   /// !< Ambient Occlusion radius in meters, between 0 and ~10
   double get radius {
@@ -11176,6 +11225,10 @@ final class TEntityManager extends Struct {
   }
 }
 
+const int TFRAME_INFO_INVALID = -1;
+
+const int TFRAME_INFO_PENDING = -2;
+
 sealed class TFeatureLevel {
   static const FEATURE_LEVEL_0 = 0;
   static const FEATURE_LEVEL_1 = 1;
@@ -11219,10 +11272,15 @@ extension TFogOptionsExt on Pointer<TFogOptions> {
   TFogOptions toDart() {
     return TFogOptions(this);
   }
+
+  TFogOptions operator [](int index) {
+    return TFogOptions(Pointer<TFogOptions>(addr + index * TFogOptions.byteSize));
+  }
 }
 
 final class TFogOptions extends Struct {
   Pointer<TFogOptions> get address => super.address.cast();
+  static const int byteSize = 52;
   double get distance {
     final addr = Pointer<TFogOptions>(this.address.addr + 0);
     if (addr.addr % 4 != 0) {
@@ -11492,6 +11550,137 @@ final class TFogOptions extends Struct {
   }
 }
 
+extension TFrameInfoExt on Pointer<TFrameInfo> {
+  TFrameInfo toDart() {
+    return TFrameInfo(this);
+  }
+
+  TFrameInfo operator [](int index) {
+    return TFrameInfo(Pointer<TFrameInfo>(addr + index * TFrameInfo.byteSize));
+  }
+}
+
+final class TFrameInfo extends Struct {
+  Pointer<TFrameInfo> get address => super.address.cast();
+  static const int byteSize = 64;
+  int get frameId {
+    final addr = Pointer<TFrameInfo>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getUint32(addr.addr, Endian.little);
+    }
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set frameId(int val) {
+    final addr = Pointer<TFrameInfo>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
+  }
+
+  BigInt get gpuFrameDuration {
+    final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+    final low = data.getUint32(this.address.addr + 8, Endian.little);
+    final high = data.getInt32(this.address.addr + 8 + 4, Endian.little);
+    return (BigInt.from(high) << 32) | BigInt.from(low);
+  }
+
+  set gpuFrameDuration(BigInt val) {
+    final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+    data.setUint32(this.address.addr + 8, val.toUnsigned(32).toInt(), Endian.little);
+    data.setUint32(this.address.addr + 8 + 4, (val >> 32).toUnsigned(32).toInt(), Endian.little);
+  }
+
+  BigInt get denoisedGpuFrameDuration {
+    final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+    final low = data.getUint32(this.address.addr + 16, Endian.little);
+    final high = data.getInt32(this.address.addr + 16 + 4, Endian.little);
+    return (BigInt.from(high) << 32) | BigInt.from(low);
+  }
+
+  set denoisedGpuFrameDuration(BigInt val) {
+    final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+    data.setUint32(this.address.addr + 16, val.toUnsigned(32).toInt(), Endian.little);
+    data.setUint32(this.address.addr + 16 + 4, (val >> 32).toUnsigned(32).toInt(), Endian.little);
+  }
+
+  BigInt get beginFrame {
+    final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+    final low = data.getUint32(this.address.addr + 24, Endian.little);
+    final high = data.getInt32(this.address.addr + 24 + 4, Endian.little);
+    return (BigInt.from(high) << 32) | BigInt.from(low);
+  }
+
+  set beginFrame(BigInt val) {
+    final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+    data.setUint32(this.address.addr + 24, val.toUnsigned(32).toInt(), Endian.little);
+    data.setUint32(this.address.addr + 24 + 4, (val >> 32).toUnsigned(32).toInt(), Endian.little);
+  }
+
+  BigInt get endFrame {
+    final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+    final low = data.getUint32(this.address.addr + 32, Endian.little);
+    final high = data.getInt32(this.address.addr + 32 + 4, Endian.little);
+    return (BigInt.from(high) << 32) | BigInt.from(low);
+  }
+
+  set endFrame(BigInt val) {
+    final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+    data.setUint32(this.address.addr + 32, val.toUnsigned(32).toInt(), Endian.little);
+    data.setUint32(this.address.addr + 32 + 4, (val >> 32).toUnsigned(32).toInt(), Endian.little);
+  }
+
+  BigInt get backendBeginFrame {
+    final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+    final low = data.getUint32(this.address.addr + 40, Endian.little);
+    final high = data.getInt32(this.address.addr + 40 + 4, Endian.little);
+    return (BigInt.from(high) << 32) | BigInt.from(low);
+  }
+
+  set backendBeginFrame(BigInt val) {
+    final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+    data.setUint32(this.address.addr + 40, val.toUnsigned(32).toInt(), Endian.little);
+    data.setUint32(this.address.addr + 40 + 4, (val >> 32).toUnsigned(32).toInt(), Endian.little);
+  }
+
+  BigInt get backendEndFrame {
+    final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+    final low = data.getUint32(this.address.addr + 48, Endian.little);
+    final high = data.getInt32(this.address.addr + 48 + 4, Endian.little);
+    return (BigInt.from(high) << 32) | BigInt.from(low);
+  }
+
+  set backendEndFrame(BigInt val) {
+    final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+    data.setUint32(this.address.addr + 48, val.toUnsigned(32).toInt(), Endian.little);
+    data.setUint32(this.address.addr + 48 + 4, (val >> 32).toUnsigned(32).toInt(), Endian.little);
+  }
+
+  BigInt get gpuFrameComplete {
+    final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+    final low = data.getUint32(this.address.addr + 56, Endian.little);
+    final high = data.getInt32(this.address.addr + 56 + 4, Endian.little);
+    return (BigInt.from(high) << 32) | BigInt.from(low);
+  }
+
+  set gpuFrameComplete(BigInt val) {
+    final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+    data.setUint32(this.address.addr + 56, val.toUnsigned(32).toInt(), Endian.little);
+    data.setUint32(this.address.addr + 56 + 4, (val >> 32).toUnsigned(32).toInt(), Endian.little);
+  }
+
+  TFrameInfo(super.address);
+
+  static Pointer<TFrameInfo> stackAlloc() {
+    return Pointer<TFrameInfo>(NativeLibrary.instance.stackAlloc<TFrameInfo>(64));
+  }
+}
+
 extension TGizmoExt on Pointer<TGizmo> {
   TGizmo toDart() {
     return TGizmo(this);
@@ -11562,10 +11751,15 @@ extension TGtaoExt on Pointer<TGtao> {
   TGtao toDart() {
     return TGtao(this);
   }
+
+  TGtao operator [](int index) {
+    return TGtao(Pointer<TGtao>(addr + index * TGtao.byteSize));
+  }
 }
 
 final class TGtao extends Struct {
   Pointer<TGtao> get address => super.address.cast();
+  static const int byteSize = 20;
 
   /// !< number of slices; higher values reduce noise
   int get sampleSliceCount {
@@ -12242,10 +12436,15 @@ extension TShadowOptionsExt on Pointer<TShadowOptions> {
   TShadowOptions toDart() {
     return TShadowOptions(this);
   }
+
+  TShadowOptions operator [](int index) {
+    return TShadowOptions(Pointer<TShadowOptions>(addr + index * TShadowOptions.byteSize));
+  }
 }
 
 final class TShadowOptions extends Struct {
   Pointer<TShadowOptions> get address => super.address.cast();
+  static const int byteSize = 104;
   int get mapSize {
     final addr = Pointer<TShadowOptions>(this.address.addr + 0);
     if (addr.addr % 4 != 0) {
@@ -12729,10 +12928,15 @@ extension TSoftShadowOptionsExt on Pointer<TSoftShadowOptions> {
   TSoftShadowOptions toDart() {
     return TSoftShadowOptions(this);
   }
+
+  TSoftShadowOptions operator [](int index) {
+    return TSoftShadowOptions(Pointer<TSoftShadowOptions>(addr + index * TSoftShadowOptions.byteSize));
+  }
 }
 
 final class TSoftShadowOptions extends Struct {
   Pointer<TSoftShadowOptions> get address => super.address.cast();
+  static const int byteSize = 16;
   double get penumbraScale {
     final addr = Pointer<TSoftShadowOptions>(this.address.addr + 0);
     if (addr.addr % 4 != 0) {
@@ -12827,10 +13031,15 @@ extension TSsctExt on Pointer<TSsct> {
   TSsct toDart() {
     return TSsct(this);
   }
+
+  TSsct operator [](int index) {
+    return TSsct(Pointer<TSsct>(addr + index * TSsct.byteSize));
+  }
 }
 
 final class TSsct extends Struct {
   Pointer<TSsct> get address => super.address.cast();
+  static const int byteSize = 40;
 
   /// !< full cone angle in radian, between 0 and pi/2
   double get lightConeRad {
@@ -13460,10 +13669,15 @@ extension TViewportExt on Pointer<TViewport> {
   TViewport toDart() {
     return TViewport(this);
   }
+
+  TViewport operator [](int index) {
+    return TViewport(Pointer<TViewport>(addr + index * TViewport.byteSize));
+  }
 }
 
 final class TViewport extends Struct {
   Pointer<TViewport> get address => super.address.cast();
+  static const int byteSize = 16;
   int get left {
     final addr = Pointer<TViewport>(this.address.addr + 0);
     if (addr.addr % 4 != 0) {
@@ -13557,10 +13771,15 @@ extension TVsmShadowOptionsExt on Pointer<TVsmShadowOptions> {
   TVsmShadowOptions toDart() {
     return TVsmShadowOptions(this);
   }
+
+  TVsmShadowOptions operator [](int index) {
+    return TVsmShadowOptions(Pointer<TVsmShadowOptions>(addr + index * TVsmShadowOptions.byteSize));
+  }
 }
 
 final class TVsmShadowOptions extends Struct {
   Pointer<TVsmShadowOptions> get address => super.address.cast();
+  static const int byteSize = 12;
   int get anisotropy {
     final addr = Pointer<TVsmShadowOptions>(this.address.addr + 0);
     final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
@@ -13663,10 +13882,15 @@ extension double3Ext on Pointer<double3> {
   double3 toDart() {
     return double3(this);
   }
+
+  double3 operator [](int index) {
+    return double3(Pointer<double3>(addr + index * double3.byteSize));
+  }
 }
 
 final class double3 extends Struct {
   Pointer<double3> get address => super.address.cast();
+  static const int byteSize = 24;
   double get x {
     final addr = Pointer<double3>(this.address.addr + 0);
     if (addr.addr % 8 != 0) {
@@ -13738,10 +13962,15 @@ extension double4x4Ext on Pointer<double4x4> {
   double4x4 toDart() {
     return double4x4(this);
   }
+
+  double4x4 operator [](int index) {
+    return double4x4(Pointer<double4x4>(addr + index * double4x4.byteSize));
+  }
 }
 
 final class double4x4 extends Struct {
   Pointer<double4x4> get address => super.address.cast();
+  static const int byteSize = 128;
   Array<Float64> get col1 => Array<Float64>((numElements: 4, addr: Pointer<Float64>(this.address.addr + 0)));
   set col1(Array<Float64> val) {
     final heap = NativeLibrary.instance.HEAPU8.toDart;
@@ -13783,6 +14012,24 @@ final class double4x4 extends Struct {
 
 typedef size_t = int;
 typedef Dartsize_t = int;
+
+/// The target ABI size in bytes, including record padding.
+/// Does not require initializing a native module. Opaque types are unsupported.
+int sizeOf<T extends NativeType>() {
+  if (T == Aabb3) return Aabb3.byteSize;
+  if (T == TAmbientOcclusionOptions) return TAmbientOcclusionOptions.byteSize;
+  if (T == TFogOptions) return TFogOptions.byteSize;
+  if (T == TFrameInfo) return TFrameInfo.byteSize;
+  if (T == TGtao) return TGtao.byteSize;
+  if (T == TShadowOptions) return TShadowOptions.byteSize;
+  if (T == TSoftShadowOptions) return TSoftShadowOptions.byteSize;
+  if (T == TSsct) return TSsct.byteSize;
+  if (T == TViewport) return TViewport.byteSize;
+  if (T == TVsmShadowOptions) return TVsmShadowOptions.byteSize;
+  if (T == double3) return double3.byteSize;
+  if (T == double4x4) return double4x4.byteSize;
+  return _ffigenJs.sizeOf<T>();
+}
 
 extension StructAllocator on Struct {
   static T create<T>() {
@@ -13828,6 +14075,9 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TFogOptions:
         final ptr = TFogOptions.stackAlloc();
+        return ptr.toDart() as T;
+      case TFrameInfo:
+        final ptr = TFrameInfo.stackAlloc();
         return ptr.toDart() as T;
       case TGizmo:
         final ptr = TGizmo.stackAlloc();
