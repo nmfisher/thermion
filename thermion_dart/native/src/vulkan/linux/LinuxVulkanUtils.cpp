@@ -273,6 +273,18 @@ std::vector<uint64_t> queryColorAttachmentModifiers(VkPhysicalDevice physicalDev
     // Filter for modifiers that support COLOR_ATTACHMENT_BIT
     for (uint32_t i = 0; i < modifierPropsList.drmFormatModifierCount; i++) {
         if (modifierProps[i].drmFormatModifierTilingFeatures & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT) {
+            // The exported dma-buf is described to the consumer by one fd,
+            // offset and stride, so only single-plane layouts can be
+            // imported. Offering a multi-plane modifier (for example Intel's
+            // CCS layouts, which add auxiliary planes) lets the driver pick
+            // one, and the EGL import then fails with EGL_BAD_MATCH.
+            if (modifierProps[i].drmFormatModifierPlaneCount != 1) {
+                std::cerr << "[ThermionVk] Skipping multi-plane modifier: 0x"
+                          << std::hex << modifierProps[i].drmFormatModifier << std::dec
+                          << " planes=" << modifierProps[i].drmFormatModifierPlaneCount
+                          << std::endl;
+                continue;
+            }
             result.push_back(modifierProps[i].drmFormatModifier);
             std::cerr << "[ThermionVk] COLOR_ATTACHMENT modifier: 0x"
                       << std::hex << modifierProps[i].drmFormatModifier << std::dec
