@@ -92,6 +92,7 @@ filament::backend::VulkanPlatform::ExternalImageMetadata WindowsVulkanPlatform::
   metadata.filamentUsage = ext->filamentUsage;
   metadata.width = ext->width;
   metadata.height = ext->height;
+  metadata.mipLevels = ext->mipLevels;
   metadata.layers = ext->layers;
   metadata.samples = VK_SAMPLE_COUNT_1_BIT;
   metadata.format = ext->format;

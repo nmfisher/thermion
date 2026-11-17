@@ -14,6 +14,7 @@ struct ExternalVulkanImage : public filament::backend::Platform::ExternalImage {
     VkFormat format = VK_FORMAT_UNDEFINED;
     uint32_t width = 0;
     uint32_t height = 0;
+    uint32_t mipLevels = 1;
     uint32_t layers = 1;
     VkImageUsageFlags usage = 0;
     VkDeviceSize allocationSize = 0;
