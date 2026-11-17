@@ -371,13 +371,17 @@ class LinuxVulkanContext::Impl {
                 return;
             }
 
-            // Barrier: render image → TRANSFER_SRC_OPTIMAL
+            // Barrier: render image → TRANSFER_SRC_OPTIMAL.
+            // Thermion imports surface color targets with SAMPLEABLE | COLOR_ATTACHMENT,
+            // so Filament's VulkanTexture default layout between render passes is
+            // VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
             VkImageMemoryBarrier renderBarrier = {
                 .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                 .pNext = nullptr,
-                .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                                 VK_ACCESS_SHADER_READ_BIT,
                 .dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
-                .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
@@ -401,7 +405,7 @@ class LinuxVulkanContext::Impl {
 
             VkImageMemoryBarrier preBarriers[] = {renderBarrier, exportBarrier};
             vkCmdPipelineBarrier(_blitCmdBuffer,
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
                 VK_PIPELINE_STAGE_TRANSFER_BIT,
                 0, 0, nullptr, 0, nullptr,
                 2, preBarriers);
@@ -420,15 +424,17 @@ class LinuxVulkanContext::Impl {
                 1, &copyRegion);
 
             // Post-blit barriers
-            // Render image → COLOR_ATTACHMENT_OPTIMAL (ready for next frame)
+            // Render image → SHADER_READ_ONLY_OPTIMAL (matches Filament's
+            // default layout expected at the start of its next render pass)
             VkImageMemoryBarrier renderPostBarrier = {
                 .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                 .pNext = nullptr,
                 .srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
-                .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                .dstAccessMask = VK_ACCESS_SHADER_READ_BIT |
+                                 VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
                                  VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                 .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 .image = renderImage,
@@ -452,7 +458,7 @@ class LinuxVulkanContext::Impl {
             VkImageMemoryBarrier postBarriers[] = {renderPostBarrier, exportPostBarrier};
             vkCmdPipelineBarrier(_blitCmdBuffer,
                 VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
                 0, 0, nullptr, 0, nullptr,
                 2, postBarriers);
 
@@ -624,9 +630,10 @@ class LinuxVulkanContext::Impl {
         }
 
         // Clears both images to transparent black and transitions renderImage
-        // into COLOR_ATTACHMENT_OPTIMAL and exportImage into GENERAL so a
-        // notification arriving before Filament's first render pass never hits
-        // VK_IMAGE_LAYOUT_UNDEFINED or exposes uninitialized memory.
+        // into SHADER_READ_ONLY_OPTIMAL (Filament's default layout for
+        // SAMPLEABLE | COLOR_ATTACHMENT targets) and exportImage into GENERAL
+        // so a notification arriving before Filament's first render pass never
+        // hits VK_IMAGE_LAYOUT_UNDEFINED or exposes uninitialized memory.
         bool InitializeBlitSurfaceLocked(LinuxVulkanTexture& texture) {
             if (!EnsureBlitResourcesLocked()) {
                 return false;
@@ -700,11 +707,12 @@ class LinuxVulkanContext::Impl {
                     .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                     .pNext = nullptr,
                     .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                    .dstAccessMask = VK_ACCESS_SHADER_READ_BIT |
+                                     VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
                                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
                                      VK_ACCESS_TRANSFER_READ_BIT,
                     .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                     .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                     .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                     .image = renderImage,
@@ -725,9 +733,7 @@ class LinuxVulkanContext::Impl {
             };
             vkCmdPipelineBarrier(_blitCmdBuffer,
                 VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                    VK_PIPELINE_STAGE_TRANSFER_BIT |
-                    VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
                 0, 0, nullptr, 0, nullptr,
                 2, postInitBarriers);
 
