@@ -90,7 +90,7 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         environment.pop("CMAKE_INSTALL_PREFIX", None)
         result = subprocess.run(command, capture_output=True, text=True, env=environment)
         if success:
-            self.assertEqual(result.returncode, 0, (result.stdout + result.stderr)[-10000:])
+            self.assertEqual(result.returncode, 0, (result.stdout + result.stderr)[-40000:])
         else:
             self.assertNotEqual(result.returncode, 0)
         return result
@@ -175,7 +175,21 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         time.sleep(1.1)
         self.write_pin({"linux/release": PIN_B})
         self.assemble_into(digest=PIN_B, marker=202)
-        self.build_and_run()
+        pin = self.package / "filament.libs.json"
+        print("=== DIAG pin mtime before build ===", pin.stat().st_mtime)
+        stamp = self.build / "CMakeFiles" / "generate.stamp"
+        if stamp.exists():
+            print("=== DIAG stamp mtime ===", stamp.stat().st_mtime)
+        dep = self.build / "CMakeFiles" / "generate.stamp.depend"
+        if dep.exists():
+            print("=== DIAG generate.stamp.depend ===")
+            print(dep.read_text())
+        result = self.run_command("cmake", "--build", str(self.build), "--config", self.mode, "--parallel", "4")
+        print("=== DIAG second build stdout ===")
+        print(result.stdout[-30000:])
+        name = "consumer.exe" if os.name == "nt" else "consumer"
+        executable = next(path for path in (self.build / "bin").rglob(name) if path.is_file())
+        self.run_command(str(executable))
         self.assertTrue(old.exists())
 
     def test_percent_encoded_file_uri_with_spaces(self):

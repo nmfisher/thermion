@@ -82,7 +82,7 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         environment.pop("CMAKE_INSTALL_PREFIX", None)
         result = subprocess.run(command, capture_output=True, text=True, env=environment)
         if success:
-            self.assertEqual(result.returncode, 0, (result.stdout + result.stderr)[-10000:])
+            self.assertEqual(result.returncode, 0, (result.stdout + result.stderr)[-40000:])
         else:
             self.assertNotEqual(result.returncode, 0)
         return result
@@ -199,7 +199,21 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         self.write_pin({"windows/release": PIN_A})
         self.write_package_config(spaced.as_uri() + "/")
         self.assemble_into(digest=PIN_A)
-        self.configure()
+        result = self.configure()
+        print("=== DIAG configure stdout ===")
+        print(result.stdout[-30000:])
+        print("=== DIAG package_config ===")
+        print((self.app / ".dart_tool/package_config.json").read_text())
+        dep = self.build / "CMakeFiles" / "generate.stamp.depend"
+        if dep.exists():
+            print("=== DIAG generate.stamp.depend ===")
+            print(dep.read_text())
+        for vcx in (self.build / "plugin").glob("*.vcxproj"):
+            text = vcx.read_text(errors="replace")
+            print(f"=== DIAG {vcx.name} (custom build excerpts) ===")
+            for line in text.splitlines():
+                if "AdditionalDependencies" in line or "generate.stamp" in line or "dir" in line.lower():
+                    print(line[:2000])
         self.build_and_run()
 
     def test_percent_encoded_relative_uri_with_spaces(self):
