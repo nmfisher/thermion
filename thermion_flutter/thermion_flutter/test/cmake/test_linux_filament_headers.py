@@ -194,7 +194,14 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         print("=== DIAG second build stdout ===")
         print(result.stdout[-30000:])
         name = "consumer.exe" if os.name == "nt" else "consumer"
-        executable = next(path for path in (self.build / "bin").rglob(name) if path.is_file())
+        matches = [path for path in (self.build / "bin").rglob(name) if path.is_file()]
+        print("=== DIAG consumer candidates ===")
+        for m in matches:
+            print(m, m.stat().st_mtime)
+        executable = matches[0]
+        dllname = "thermion_flutter_plugin.dll" if os.name == "nt" else "libthermion_flutter_plugin.so"
+        for d in (self.build / "bin").rglob(dllname):
+            print("=== DIAG dll ===", d, d.stat().st_mtime)
         self.run_command(str(executable))
         self.assertTrue(old.exists())
 
