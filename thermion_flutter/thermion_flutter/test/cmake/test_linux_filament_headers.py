@@ -202,7 +202,14 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         dllname = "thermion_flutter_plugin.dll" if os.name == "nt" else "libthermion_flutter_plugin.so"
         for d in (self.build / "bin").rglob(dllname):
             print("=== DIAG dll ===", d, d.stat().st_mtime)
-        self.run_command(str(executable))
+        run = self.run_command(str(executable), success=False)
+        print("=== DIAG consumer exit ===", run.returncode)
+        third = self.run_command("cmake", "--build", str(self.build), "--config", self.mode, "--parallel", "4")
+        print("=== DIAG third build stdout ===")
+        print(third.stdout[-20000:])
+        run2 = self.run_command(str(executable), success=False)
+        print("=== DIAG consumer exit after third build ===", run2.returncode)
+        self.assertEqual(run2.returncode, 0)
         self.assertTrue(old.exists())
 
     def test_percent_encoded_file_uri_with_spaces(self):
