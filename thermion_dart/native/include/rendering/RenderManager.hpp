@@ -40,8 +40,6 @@ namespace thermion
     {
 
     public:
-        static const uint8_t numViewAttachments = 8;
-
         RenderManager(Engine *engine, Renderer *renderer) : mEngine(engine), mRenderer(renderer), mLastRender(std::chrono::high_resolution_clock::now())
         {
         }
@@ -127,11 +125,16 @@ namespace thermion
         // Only tick() accesses the FPS gate. Pause requests set this flag.
         std::atomic<bool> mResetFrameRateGate{false};
         FrameRateGate mFrameRateGate;
+        struct ViewSlot
+        {
+            View *view = nullptr;
+            MaterialInstance *materialOverride = nullptr;
+        };
+
         struct ViewAttachment
         {
             SwapChain *swapChain = nullptr;
-            View *views[numViewAttachments] = {nullptr};
-            MaterialInstance *materialOverrides[numViewAttachments] = {nullptr};
+            std::vector<ViewSlot> views;
         };
 
         struct SavedMaterial
