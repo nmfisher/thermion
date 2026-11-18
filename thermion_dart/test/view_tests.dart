@@ -1764,6 +1764,416 @@ void main() async {
       await viewer.view.setHighlightOverlayEnabled(false);
     });
   });
+
+  group('BlendMode.transparent on custom RenderTarget (the-08lf verification gate)', () {
+    Future<void> runTranslucentSharedTargetTest({
+      required bool clear,
+      required bool discard,
+      required double clearB,
+      required double clearA,
+      required bool viewAPostProcessing,
+      required BlendMode viewABlendMode,
+      required bool viewAMSAA,
+      required bool viewAStencil,
+      required bool viewAHasSkybox,
+      required TextureFormat colorFormat,
+    }) async {
+      final app = FilamentApp.instance!;
+      const width = 512;
+      const height = 512;
+      final swapChain = await app.createHeadlessSwapChain(width, height, hasStencilBuffer: true);
+
+      final colorTex = await app.createTexture(
+        width,
+        height,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+        },
+        textureFormat: colorFormat,
+      );
+      final depthTex = await app.createTexture(
+        width,
+        height,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+        },
+        textureFormat: TextureFormat.DEPTH24_STENCIL8,
+      );
+      final sharedRt = await app.createRenderTarget(width, height, color: colorTex, depth: depthTex);
+
+      final sceneA = await app.createScene();
+      final skyboxA = viewAHasSkybox ? await app.createColoredSkybox(r: 1.0, g: 0.0, b: 0.0, a: 1.0) : null;
+      if (skyboxA != null) {
+        await sceneA.setSkybox(skyboxA);
+      }
+      final cameraA = await app.createCamera();
+      await cameraA.setLensProjection();
+      await cameraA.lookAt(Vector3(0, 0, 5));
+
+      final viewA = await app.createView();
+      await viewA.setName("gate_viewA");
+      await viewA.setScene(sceneA);
+      await viewA.setCamera(cameraA);
+      await viewA.setViewport(width, height);
+      await viewA.setBlendMode(viewABlendMode);
+      await viewA.setPostProcessing(viewAPostProcessing);
+      await viewA.setAntiAliasing(viewAMSAA, false, false);
+      await viewA.setStencilBufferEnabled(viewAStencil);
+      await viewA.setFrustumCullingEnabled(false);
+      await viewA.setRenderTarget(sharedRt);
+
+      final sceneB = await app.createScene();
+      final skyboxB = await app.createColoredSkybox(r: 0.0, g: 0.0, b: 0.0, a: 0.0);
+      await sceneB.setSkybox(skyboxB);
+      final cameraB = await app.createCamera();
+      await cameraB.setProjection(Projection.Orthographic, -1.0, 1.0, -1.0, 1.0, 0.0, 1.0);
+
+      final greenMat = await app.createUnlitMaterialInstance();
+      await greenMat.setParameterFloat4("baseColorFactor", 0.0, 1.0, 0.0, 1.0);
+      await greenMat.setCullingMode(CullingMode.NONE);
+      final rightHalfQuad = await app.createGeometry(
+        Geometry(
+          Float32List.fromList([0.0, -1.0, -0.5, 1.0, -1.0, -0.5, 1.0, 1.0, -0.5, 0.0, 1.0, -0.5]),
+          Uint16List.fromList([0, 1, 2, 0, 2, 3]),
+          indexType: IndexType.USHORT,
+        ),
+        materialInstances: [greenMat],
+      );
+      await sceneB.add(rightHalfQuad);
+
+      final viewB = await app.createView();
+      await viewB.setName("gate_viewB");
+      await viewB.setScene(sceneB);
+      await viewB.setCamera(cameraB);
+      await viewB.setViewport(width, height);
+      await viewB.setBlendMode(BlendMode.transparent);
+      await viewB.setPostProcessing(false);
+      await viewB.setFrustumCullingEnabled(false);
+      await viewB.setRenderTarget(sharedRt);
+
+      await app.renderManager.attach(viewA, swapChain, renderOrder: 0);
+      await app.renderManager.attach(viewB, swapChain, renderOrder: 1);
+
+      try {
+        await app.setClearOptions(viewAHasSkybox ? 0.0 : 1.0, 0.0, clearB, clearA, clear: clear, discard: discard);
+
+        // Capture via capture() rendering both views in order in one frame.
+        // results[0] is sharedRt immediately after viewA; results[1] is after viewB.
+        final results = await app.capture(swapChain, captureRenderTarget: true);
+        final bufA = results.first.$2;
+        final bufB = results.last.$2;
+        final floatsA = Float32List.view(bufA.buffer, bufA.offsetInBytes);
+        final floatsB = Float32List.view(bufB.buffer, bufB.offsetInBytes);
+
+        List<double> pixelAt(Float32List f, int x, int y) {
+          final idx = (y * width + x) * 4;
+          return [f[idx], f[idx + 1], f[idx + 2], f[idx + 3]];
+        }
+
+        final expectedLeft = pixelAt(floatsA, 128, 256);
+        final leftPx = pixelAt(floatsB, 128, 256);
+        final rightPx = pixelAt(floatsB, 384, 256);
+
+        // Also test RenderManager.render() followed by readPixels(render: false).
+        await app.render();
+        await app.flush();
+        final afterRender = await app.capture(swapChain, view: viewB, render: false, captureRenderTarget: true);
+        final buf2 = afterRender.single.$2;
+        final floats2 = Float32List.view(buf2.buffer, buf2.offsetInBytes);
+        final leftPx2 = pixelAt(floats2, 128, 256);
+        final rightPx2 = pixelAt(floats2, 384, 256);
+
+        for (final px in [leftPx, leftPx2]) {
+          expect(px[0], closeTo(expectedLeft[0], 0.02), reason: 'left-half R must match viewA ($expectedLeft)');
+          expect(px[1], closeTo(expectedLeft[1], 0.02), reason: 'left-half G must match viewA ($expectedLeft)');
+          expect(px[2], closeTo(expectedLeft[2], 0.02), reason: 'left-half B must match viewA ($expectedLeft)');
+          expect(px[3], closeTo(expectedLeft[3], 0.02), reason: 'left-half A must match viewA ($expectedLeft)');
+        }
+        for (final px in [rightPx, rightPx2]) {
+          expect(px[0], closeTo(0.0, 0.02), reason: 'right-half R must be 0.0');
+          expect(px[1], closeTo(1.0, 0.02), reason: 'right-half G must be 1.0');
+          expect(px[2], closeTo(0.0, 0.02), reason: 'right-half B must be 0.0');
+          expect(px[3], closeTo(1.0, 0.02), reason: 'right-half A must be 1.0');
+        }
+      } finally {
+        await app.renderManager.detachAll(swapChain);
+        await app.flush();
+        await sceneB.remove(rightHalfQuad);
+        await app.destroyAsset(rightHalfQuad);
+        await greenMat.destroy();
+        await sceneA.setSkybox(null);
+        await sceneB.setSkybox(null);
+        if (skyboxA != null) await skyboxA.destroy();
+        await skyboxB.destroy();
+        await viewA.setRenderTarget(null);
+        await viewB.setRenderTarget(null);
+        await viewA.setCamera(null);
+        await viewB.setCamera(null);
+        await viewA.setScene(null);
+        await viewB.setScene(null);
+        await app.destroyView(viewA);
+        await app.destroyView(viewB);
+        await cameraA.destroy();
+        await cameraB.destroy();
+        await app.destroyScene(sceneA);
+        await app.destroyScene(sceneB);
+        await sharedRt.destroy();
+        await colorTex.destroy();
+        await depthTex.destroy();
+        await app.destroySwapChain(swapChain);
+      }
+    }
+
+    for (final clearOpts in [
+      (label: 'clear=true discard=false', clear: true, discard: false, clearB: 0.0, clearA: 0.0),
+      (label: 'default clear=false discard=true', clear: false, discard: true, clearB: 0.0, clearA: 0.0),
+      (label: 'clear=true discard=true blue', clear: true, discard: true, clearB: 1.0, clearA: 1.0),
+    ]) {
+      for (final postProc in [false, true]) {
+        test('shared RT preserves viewA pixels (${clearOpts.label}, postProc=$postProc, RGBA32F)', () async {
+          await runTranslucentSharedTargetTest(
+            clear: clearOpts.clear,
+            discard: clearOpts.discard,
+            clearB: clearOpts.clearB,
+            clearA: clearOpts.clearA,
+            viewAPostProcessing: postProc,
+            viewABlendMode: BlendMode.opaque,
+            viewAMSAA: false,
+            viewAStencil: false,
+            viewAHasSkybox: true,
+            colorFormat: TextureFormat.RGBA32F,
+          );
+        });
+      }
+    }
+
+    test('shared RT matches production viewer config (SRGB8_A8, translucent main, MSAA, stencil, no skybox)', () async {
+      await runTranslucentSharedTargetTest(
+        clear: true,
+        discard: false,
+        clearB: 0.0,
+        clearA: 1.0,
+        viewAPostProcessing: true,
+        viewABlendMode: BlendMode.transparent,
+        viewAMSAA: true,
+        viewAStencil: true,
+        viewAHasSkybox: false,
+        colorFormat: TextureFormat.SRGB8_A8,
+      );
+    });
+
+    test('highlight overlay premultiplied alpha, sRGB parity, and outside alignment over mid-grey background', () async {
+      final app = FilamentApp.instance!;
+      const width = 512;
+      const height = 512;
+
+      for (final format in [TextureFormat.RGBA32F, TextureFormat.RGBA8, TextureFormat.SRGB8_A8]) {
+        await ViewerBuilder(testHelper)
+            .setStencilBufferEnabled(true)
+            .setPostProcessing(false)
+            .addDirectLight(DirectLight.sun(intensity: 100000, direction: Vector3(0.5, -1.0, -0.5).normalized()))
+            .execute((result) async {
+              final viewer = result.viewer;
+              final colorTex = await app.createTexture(
+                width,
+                height,
+                flags: {
+                  TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+                  TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+                  TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+                },
+                textureFormat: format,
+              );
+              final depthTex = await app.createTexture(
+                width,
+                height,
+                flags: {
+                  TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+                  TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
+                  TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+                },
+                textureFormat: TextureFormat.DEPTH24_STENCIL8,
+              );
+              final rt = await app.createRenderTarget(width, height, color: colorTex, depth: depthTex);
+
+              try {
+                await viewer.view.setPresentationRenderTarget(rt);
+                await viewer.view.setHighlightOverlayEnabled(true);
+
+                final cube = await viewer.loadGltf(
+                  "file://${testHelper.assetsDir}/cube.glb",
+                  requiredGeometryCapabilities: const {SceneAssetGeometryCapability.accessibleGeometryBuffers},
+                  addToScene: true,
+                );
+                await viewer.view.setStencilHighlight(cube, r: 1.0, g: 0.5, b: 0.0, outlineWidth: 5.0);
+                await app.setClearOptions(0.5, 0.5, 0.5, 1.0, clear: true, discard: false);
+                await app.render();
+                await app.flush();
+
+                final overlayView = viewer.view.getHighlightOverlay()!.overlayView;
+                final captured = await app.capture(null, view: overlayView, render: false, captureRenderTarget: true);
+                final bytes = captured.single.$2;
+                final floats = Float32List.view(bytes.buffer, bytes.offsetInBytes);
+
+                // Background corner (10, 10) must stay neutral mid-grey without unpremultiplied additive orange blowout.
+                // Linear targets store 0.5; SRGB8_A8 reads back 0.5 (linearized by Metal) or ~0.735 (raw sRGB on GL/WebGL).
+                final bgIdx = (10 * width + 10) * 4;
+                final bg = [floats[bgIdx], floats[bgIdx + 1], floats[bgIdx + 2], floats[bgIdx + 3]];
+                bool matchesHalf(double v) => format == TextureFormat.SRGB8_A8
+                    ? ((v - 0.5).abs() < 0.02 || (v - 0.735).abs() < 0.02)
+                    : (v - 0.5).abs() < 0.015;
+                expect(matchesHalf(bg[0]), isTrue, reason: '$format bg R=$bg');
+                expect(bg[1], closeTo(bg[0], 0.015), reason: '$format bg G must stay neutral grey: $bg');
+                expect(bg[2], closeTo(bg[0], 0.015), reason: '$format bg B must stay neutral grey: $bg');
+                expect(bg[3], closeTo(1.0, 0.015), reason: '$format bg A');
+
+                // Find outline pixels matching half-intensity orange (1.0, 0.5, 0.0) without double-gamma shift.
+                int outlinePixels = 0;
+                for (int i = 0; i < floats.length; i += 4) {
+                  final r = floats[i];
+                  final g = floats[i + 1];
+                  final b = floats[i + 2];
+                  final a = floats[i + 3];
+                  if (r > 0.95 && matchesHalf(g) && b < 0.02 && a > 0.98) {
+                    outlinePixels++;
+                  }
+                }
+                print('[PARITY $format] bg=$bg outlinePixels=$outlinePixels');
+                expect(outlinePixels, greaterThan(500), reason: '$format must render crisp 5px orange outline pixels');
+
+                // Center pixel (256, 256) inside the cube face must remain cube color, not outline orange.
+                final centerIdx = (256 * width + 256) * 4;
+                expect(
+                  floats[centerIdx + 2],
+                  greaterThan(0.1),
+                  reason: '$format cube face interior must not be overwritten',
+                );
+
+                // After removing highlight, even background must remain exact neutral mid-grey.
+                await viewer.view.removeStencilHighlight(cube);
+                await app.render();
+                await app.flush();
+                final cleared = await app.capture(null, view: overlayView, render: false, captureRenderTarget: true);
+                final clearedFloats = Float32List.view(cleared.single.$2.buffer, cleared.single.$2.offsetInBytes);
+                expect(clearedFloats[bgIdx], closeTo(bg[0], 0.015));
+                expect(clearedFloats[bgIdx + 1], closeTo(bg[1], 0.015));
+                expect(clearedFloats[bgIdx + 2], closeTo(bg[2], 0.015));
+
+                await viewer.view.setPresentationRenderTarget(null);
+                await viewer.view.setHighlightOverlayEnabled(false);
+              } finally {
+                await rt.destroy();
+                await colorTex.destroy();
+                await depthTex.destroy();
+              }
+            });
+      }
+    });
+
+    test(
+      'highlight overlay handles presentation target resize and null detach without stale target bindings',
+      () async {
+        final app = FilamentApp.instance!;
+        await ViewerBuilder(testHelper)
+            .setStencilBufferEnabled(true)
+            .addDirectLight(DirectLight.sun(intensity: 100000, direction: Vector3(0.5, -1.0, -0.5).normalized()))
+            .execute((result) async {
+              final viewer = result.viewer;
+              final view = viewer.view;
+
+              Future<(RenderTarget, Texture, Texture)> makeRt(int size) async {
+                final color = await app.createTexture(
+                  size,
+                  size,
+                  flags: {
+                    TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+                    TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+                    TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+                  },
+                  textureFormat: TextureFormat.RGBA8,
+                );
+                final depth = await app.createTexture(
+                  size,
+                  size,
+                  flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT, TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT},
+                  textureFormat: TextureFormat.DEPTH24_STENCIL8,
+                );
+                final rt = await app.createRenderTarget(size, size, color: color, depth: depth);
+                return (rt, color, depth);
+              }
+
+              final (rt1, c1, d1) = await makeRt(256);
+              final (rt2, c2, d2) = await makeRt(384);
+
+              try {
+                await view.setHighlightOverlayEnabled(true);
+                final overlay = view.getHighlightOverlay()!;
+                final cube = await viewer.loadGltf(
+                  "file://${testHelper.assetsDir}/cube.glb",
+                  requiredGeometryCapabilities: const {SceneAssetGeometryCapability.accessibleGeometryBuffers},
+                  addToScene: true,
+                );
+                await view.setStencilHighlight(cube, r: 1.0, g: 0.0, b: 0.0, outlineWidth: 3.0);
+
+                await view.setViewport(256, 256);
+                await view.setPresentationRenderTarget(rt1);
+                expect((await view.getRenderTarget())?.getNativeHandle(), rt1.getNativeHandle());
+                expect((await overlay.overlayView.getRenderTarget())?.getNativeHandle(), rt1.getNativeHandle());
+                await app.render();
+                await app.flush();
+
+                // Replace presentation target (resize) and immediately destroy rt1.
+                await view.setViewport(384, 384);
+                await view.setPresentationRenderTarget(rt2);
+                await app.flush();
+                await rt1.destroy();
+                await c1.destroy();
+                await d1.destroy();
+
+                expect((await view.getRenderTarget())?.getNativeHandle(), rt2.getNativeHandle());
+                expect((await overlay.overlayView.getRenderTarget())?.getNativeHandle(), rt2.getNativeHandle());
+                await app.render();
+                await app.flush();
+
+                // Verify rt2 received the red outline.
+                final cap = await app.capture(
+                  null,
+                  view: overlay.overlayView,
+                  render: false,
+                  captureRenderTarget: true,
+                );
+                final floats = Float32List.view(cap.single.$2.buffer, cap.single.$2.offsetInBytes);
+                int redOutlinePixels = 0;
+                for (int i = 0; i < floats.length; i += 4) {
+                  if (floats[i] > 0.95 && floats[i + 1] < 0.05 && floats[i + 2] < 0.05 && floats[i + 3] > 0.95) {
+                    redOutlinePixels++;
+                  }
+                }
+                expect(redOutlinePixels, greaterThan(200));
+
+                // Detach with null and destroy rt2; disable overlay.
+                await view.setPresentationRenderTarget(null);
+                await app.flush();
+                await rt2.destroy();
+                await c2.destroy();
+                await d2.destroy();
+                expect(await view.getRenderTarget(), isNull);
+                expect(await overlay.overlayView.getRenderTarget(), isNull);
+
+                await view.setHighlightOverlayEnabled(false);
+                expect(await view.getRenderTarget(), isNull);
+              } catch (e) {
+                await view.setPresentationRenderTarget(null);
+                rethrow;
+              }
+            });
+      },
+    );
+  });
 }
 
 int _maxX(
