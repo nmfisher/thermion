@@ -162,6 +162,24 @@ jobs:
         shell: bash
         run: python3 -m unittest discover -s thermion_flutter/thermion_flutter/test/cmake -p "test_*_filament_headers.py" -v
 
+      # Host-side texture lifecycle tests for the Linux plugin, under ASan and
+      # TSan. No GPU or display needed (see test/native/linux/README.md).
+      - name: Test Linux plugin texture lifecycle
+        if: matrix.name == 'Linux'
+        working-directory: thermion_flutter/thermion_flutter/test/native/linux
+        shell: bash
+        run: |
+          # TSan cannot map its shadow memory with the runner kernel's default
+          # 32 bits of mmap ASLR entropy.
+          sudo sysctl -w vm.mmap_rnd_bits=28
+          for sanitizer in address thread; do
+            cmake -S . -B "build-${sanitizer}" -G Ninja \
+              -DCMAKE_CXX_COMPILER=clang++ \
+              -DTHERMION_SANITIZER="${sanitizer}"
+            cmake --build "build-${sanitizer}"
+            ctest --test-dir "build-${sanitizer}" --output-on-failure
+          done
+
       - name: Run thermion_flutter unit tests
         working-directory: thermion_flutter/thermion_flutter
         shell: bash
