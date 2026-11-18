@@ -3,7 +3,6 @@ import 'dart:convert' show json;
 import 'dart:math' as math;
 
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_manager.dart';
-import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
 
 import '../../../bindings/heap_buffer.dart';
 
