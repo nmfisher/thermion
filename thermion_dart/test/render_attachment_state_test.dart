@@ -103,6 +103,22 @@ void main() {
       expect(() => attachments.add(attachments.first), throwsUnsupportedError);
     });
 
+    test('ViewAttachment has value semantics', () {
+      final view = _TestView(1);
+      final otherView = _TestView(2);
+
+      final attachment = ViewAttachment(view: view, order: 1, renderable: true);
+      expect(attachment, ViewAttachment(view: view, order: 1, renderable: true));
+      expect(attachment.hashCode, ViewAttachment(view: view, order: 1, renderable: true).hashCode);
+      expect(attachment, isNot(ViewAttachment(view: otherView, order: 1, renderable: true)));
+      expect(attachment, isNot(ViewAttachment(view: view, order: 2, renderable: true)));
+      expect(attachment, isNot(ViewAttachment(view: view, order: 1, renderable: false)));
+      expect(
+        attachment.toString(),
+        'ViewAttachment(view: $view, order: 1, renderable: true)',
+      );
+    });
+
     test('updates grouped view state before returning attachments', () {
       final state = RenderAttachmentState();
       final silhouetteView = _TestView(1);

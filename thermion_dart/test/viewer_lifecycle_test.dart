@@ -8,7 +8,6 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_light_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
-import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'helpers.dart';
 

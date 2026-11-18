@@ -23,6 +23,16 @@ class ViewAttachment {
   final bool renderable;
 
   const ViewAttachment({required this.view, required this.order, required this.renderable});
+
+  @override
+  bool operator ==(Object other) =>
+      other is ViewAttachment && other.view == view && other.order == order && other.renderable == renderable;
+
+  @override
+  int get hashCode => Object.hash(view, order, renderable);
+
+  @override
+  String toString() => 'ViewAttachment(view: $view, order: $order, renderable: $renderable)';
 }
 
 /// Coordinates frame submission for the views and swapchains owned by a
