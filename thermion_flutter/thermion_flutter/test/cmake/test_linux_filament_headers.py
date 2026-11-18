@@ -202,6 +202,17 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         dllname = "thermion_flutter_plugin.dll" if os.name == "nt" else "libthermion_flutter_plugin.so"
         for d in (self.build / "bin").rglob(dllname):
             print("=== DIAG dll ===", d, d.stat().st_mtime)
+        for vcx in (self.build / "plugin").glob("*.vcxproj"):
+            text = vcx.read_text(errors="replace")
+            print(f"=== DIAG {vcx.name} includes ===")
+            for line in text.splitlines():
+                if "AdditionalIncludeDirectories" in line:
+                    print(line[:3000])
+                    break
+        for hdr in (self.package / ".dart_tool/thermion_dart/lib").rglob("BlueVK.h"):
+            print("=== DIAG header ===", hdr, hdr.read_text().strip())
+        exp = (self.app / "expectation.h")
+        print("=== DIAG expectation ===", exp.read_text().strip())
         run = self.run_command(str(executable), success=False)
         print("=== DIAG consumer exit ===", run.returncode)
         third = self.run_command("cmake", "--build", str(self.build), "--config", self.mode, "--parallel", "4")
