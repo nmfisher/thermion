@@ -12,9 +12,8 @@ abstract class HighlightOverlayManager {
   Future setSwapChain(SwapChain swapChain);
   Future setCamera(Camera? camera);
   Future setViewport(int width, int height);
-  Future setRenderTarget(View mainView, RenderTarget renderTarget);
+  Future setRenderTarget(View mainView, RenderTarget? renderTarget);
   Future destroy();
-  bool isInternalRenderTarget(RenderTarget renderTarget);
   Set<ThermionEntity> get highlightedEntities;
 
   Future<void> addHighlight({
@@ -111,26 +110,36 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
   View? _mainView;
   RenderTarget? _originalMainViewRenderTarget;
   SwapChain? _swapChain;
-  RenderTarget? _flutterRenderTarget;
+
+  // Whether the main view is currently redirected to the internal composite
+  // target. Cleared when a null presentation target routes it back to direct
+  // output, so later resize/teardown calls do not re-bind or restore stale
+  // targets.
+  bool _mainViewRedirected = false;
 
   // Internal render target for main view (composite mode only)
   Texture? _mainViewColorTexture;
   Texture? _mainViewDepthTexture;
   RenderTarget? _mainViewRenderTarget;
 
-  /// Set the render target for composite mode (macOS/iOS).
+  /// Set the presentation target for composite mode (macOS/iOS).
   ///
   /// The main view is redirected to an internal render target so the edge
   /// detection view can composite the main scene with edge outlines into
-  /// [flutterRenderTarget].
+  /// [presentationRenderTarget].
+  ///
+  /// Passing null detaches the presentation target: the edge detection view
+  /// stops rendering into it (so the caller can destroy it safely) and the
+  /// main view falls back to rendering directly into its swapchain. The
+  /// internal composite target is kept for a later non-null call.
   ///
   /// Can be called multiple times (e.g. on resize) — will update the
-  /// Flutter render target that EdgeDetectionView outputs to.
-  Future<void> setRenderTarget(View mainView, RenderTarget flutterRenderTarget) async {
+  /// render target that EdgeDetectionView outputs to.
+  Future<void> setRenderTarget(View mainView, RenderTarget? presentationRenderTarget) async {
     _mainView = mainView;
 
-    if (_flutterRenderTarget == null) {
-      // First time — set up the internal RT and redirect main view
+    if (_mainViewRenderTarget == null && presentationRenderTarget != null) {
+      // First composite target — set up the internal RT and redirect main view
       _originalMainViewRenderTarget = await mainView.getRenderTarget();
 
       final vp = await mainView.getViewport();
@@ -138,14 +147,28 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
       final height = vp.height > 0 ? vp.height : 1;
 
       await _createMainViewRenderTarget(width, height);
-      await mainView.setRenderTarget(_mainViewRenderTarget);
       await overlayView.setMainSceneTexture(_mainViewColorTexture!);
-      _logger.info("Main view redirected to internal render target (composite mode)");
+      _logger.info("Main-view composite target initialized");
     }
 
-    _flutterRenderTarget = flutterRenderTarget;
-    await overlayView.setRenderTarget(flutterRenderTarget);
-    _logger.info("EdgeDetectionView configured for render target output");
+    await overlayView.setRenderTarget(presentationRenderTarget);
+
+    if (presentationRenderTarget == null) {
+      // No frame may sample or present through the target the caller is
+      // about to destroy: route the main view back to direct output. The
+      // captured original target is stale from here on — the caller owns
+      // (and typically destroys) it after detaching.
+      if (_mainViewRedirected) {
+        await mainView.setRenderTarget(null);
+        _mainViewRedirected = false;
+      }
+      _originalMainViewRenderTarget = null;
+    } else if (!_mainViewRedirected) {
+      await mainView.setRenderTarget(_mainViewRenderTarget);
+      _mainViewRedirected = true;
+      _logger.info("Main view redirected to internal render target (composite mode)");
+    }
+    _logger.info("Presentation render target updated");
   }
 
   /// Set the swapchain for overlay mode (web/Android).
@@ -163,13 +186,6 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     _swapChain = swapChain;
     await overlayView.setOverlayOnly(true);
     _logger.info("EdgeDetectionView registered with swapchain (overlay-only mode)");
-  }
-
-  /// Check if the given render target is the internal one used for main view
-  /// (as opposed to a Flutter-provided render target).
-  /// Used by FFIView.setRenderTarget() to determine if it should intercept.
-  bool isInternalRenderTarget(RenderTarget rt) {
-    return rt == _mainViewRenderTarget;
   }
 
   final FFIFilamentApp _app;
@@ -272,8 +288,10 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     // Create new resources FIRST
     await _createMainViewRenderTarget(width, height);
 
-    // Update all references before destroying old resources
-    if (_mainView != null) {
+    // Update all references before destroying old resources. Only re-bind
+    // the main view if it is currently redirected; after a null presentation
+    // target it renders directly and must stay there.
+    if (_mainView != null && _mainViewRedirected) {
       await _mainView!.setRenderTarget(_mainViewRenderTarget);
     }
     await overlayView.setMainSceneTexture(_mainViewColorTexture!);
@@ -369,10 +387,13 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     // NOW safe to destroy SilhouetteView (which destroys the silhouette texture)
     await silhouetteView.destroy();
 
-    // Tear down render targets and restore original state
-    // Restore main view's original render target (only if it was redirected)
-    if (_mainView != null && _mainViewRenderTarget != null) {
+    // Tear down render targets and restore original state. Only restore if
+    // the main view is still redirected: after a null presentation target it
+    // already renders directly and the captured original target may have
+    // been destroyed by its owner.
+    if (_mainView != null && _mainViewRedirected) {
       await _mainView!.setRenderTarget(_originalMainViewRenderTarget as FFIRenderTarget?);
+      _mainViewRedirected = false;
     }
 
     if (_swapChain != null) {
@@ -385,7 +406,6 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
 
     _mainView = null;
     _originalMainViewRenderTarget = null;
-    _flutterRenderTarget = null; // Don't destroy - Flutter layer owns this
 
     _logger.info("Highlight overlay torn down");
 
