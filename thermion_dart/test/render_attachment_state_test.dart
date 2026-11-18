@@ -113,10 +113,7 @@ void main() {
       expect(attachment, isNot(ViewAttachment(view: otherView, order: 1, renderable: true)));
       expect(attachment, isNot(ViewAttachment(view: view, order: 2, renderable: true)));
       expect(attachment, isNot(ViewAttachment(view: view, order: 1, renderable: false)));
-      expect(
-        attachment.toString(),
-        'ViewAttachment(view: $view, order: 1, renderable: true)',
-      );
+      expect(attachment.toString(), 'ViewAttachment(view: $view, order: 1, renderable: true)');
     });
 
     test('updates grouped view state before returning attachments', () {
