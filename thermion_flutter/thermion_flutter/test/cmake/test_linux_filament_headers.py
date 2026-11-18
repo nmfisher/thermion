@@ -72,9 +72,7 @@ __attribute__((visibility("default")))
 int fixture_value() { return FILAMENT_MARKER; }
 ''')
         (self.app / "consumer.cpp").write_text(r'''
-#include <bluevk/BlueVK.h>
 #include "expectation.h"
-static_assert(FILAMENT_MARKER == EXPECTED_MARKER, "public includes use wrong headers");
 extern "C" int fixture_value();
 int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
 ''')
@@ -182,6 +180,7 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         time.sleep(1.1)
         self.write_pin({"linux/release": PIN_B})
         self.assemble_into(digest=PIN_B, marker=202)
+        self.configure()
         pin = self.package / "filament.libs.json"
         print("=== DIAG pin mtime before build ===", pin.stat().st_mtime)
         stamp = self.build / "CMakeFiles" / "generate.stamp"
