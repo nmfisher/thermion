@@ -6,6 +6,11 @@
 #include <flutter_linux/fl_texture_gl.h>
 
 #include <cstring>
+#include <condition_variable>
+#include <deque>
+#include <functional>
+#include <mutex>
+#include <thread>
 #include <vector>
 #include <memory>
 #include <string>
@@ -55,42 +60,72 @@ static bool destroy_egl_image(EGLDisplay display, EGLImage image)
 static const int BACKEND_OPENGL = 1;
 static const int BACKEND_VULKAN = 2;
 
-// RAII guard: saves the current EGL context/surfaces and restores on destruction.
-struct EglContextGuard {
-  EGLContext prevCtx;
-  EGLSurface prevDraw;
-  EGLSurface prevRead;
-  EGLenum prevApi;
-  EGLDisplay prevDisplay;
-  EGLDisplay targetDisplay;
+// Runs every operation on the plugin's Flutter-shared utility EGL context on
+// one dedicated thread. Making a context current on GTK's platform thread
+// fails with EGL_BAD_ACCESS on NVIDIA, because GTK/GDK keeps its own GL state
+// there; LinuxOpenGLContext runs its producer on an EGL worker for the same
+// reason (#273). This thread never has any other context current, so no
+// save/restore of the caller's EGL state is needed.
+class FlutterEglWorker {
+public:
+  FlutterEglWorker() : thread_([this]() { Loop(); }) {}
 
-  EglContextGuard(EGLDisplay dpy)
-      : prevCtx(eglGetCurrentContext()),
-        prevDraw(eglGetCurrentSurface(EGL_DRAW)),
-        prevRead(eglGetCurrentSurface(EGL_READ)),
-        prevApi(eglQueryAPI()),
-        prevDisplay(eglGetCurrentDisplay()),
-        targetDisplay(dpy) {
-    // EGL does not allow switching client APIs while any context is current on
-    // the thread. Flutter's platform thread can have a GLES context current,
-    // so release it before binding desktop GL for plugin operations.
-    if (prevCtx != EGL_NO_CONTEXT && prevDisplay != EGL_NO_DISPLAY) {
-      eglMakeCurrent(
-          prevDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+  ~FlutterEglWorker() {
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      stopping_ = true;
+    }
+    ready_.notify_one();
+    thread_.join();
+  }
+
+  FlutterEglWorker(const FlutterEglWorker&) = delete;
+  FlutterEglWorker& operator=(const FlutterEglWorker&) = delete;
+
+  // Runs `task` on the worker thread and waits for it to finish.
+  void Run(const std::function<void()>& task) {
+    std::mutex doneMutex;
+    std::condition_variable doneReady;
+    bool done = false;
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      tasks_.emplace_back([&]() {
+        task();
+        std::lock_guard<std::mutex> doneLock(doneMutex);
+        done = true;
+        // Notify while holding the lock: the caller must not destroy
+        // doneReady before notify_one returns.
+        doneReady.notify_one();
+      });
+    }
+    ready_.notify_one();
+    std::unique_lock<std::mutex> doneLock(doneMutex);
+    doneReady.wait(doneLock, [&done]() { return done; });
+  }
+
+private:
+  void Loop() {
+    for (;;) {
+      std::function<void()> task;
+      {
+        std::unique_lock<std::mutex> lock(mutex_);
+        ready_.wait(lock, [this]() { return stopping_ || !tasks_.empty(); });
+        if (tasks_.empty()) {
+          return;
+        }
+        task = std::move(tasks_.front());
+        tasks_.pop_front();
+      }
+      task();
     }
   }
 
-  ~EglContextGuard() {
-    eglMakeCurrent(
-        targetDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-    eglBindAPI(prevApi);
-    if (prevCtx != EGL_NO_CONTEXT && prevDisplay != EGL_NO_DISPLAY) {
-      eglMakeCurrent(prevDisplay, prevDraw, prevRead, prevCtx);
-    }
-  }
-
-  EglContextGuard(const EglContextGuard&) = delete;
-  EglContextGuard& operator=(const EglContextGuard&) = delete;
+  std::mutex mutex_;
+  std::condition_variable ready_;
+  std::deque<std::function<void()>> tasks_;
+  bool stopping_ = false;
+  // Declared last so the queue is constructed before the thread starts.
+  std::thread thread_;
 };
 
 #define FLUTTER_FILAMENT_PLUGIN(obj)                                     \
@@ -110,8 +145,10 @@ struct _ThermionFlutterPlugin
 
   // OpenGL path — imports Flutter's EGL context before Filament starts.
   EGLenum flutter_egl_api;
-  // Used to release Flutter-owned texture names imported from DMA-BUF.
+  // Shares Flutter's raster context to release Flutter-owned texture names.
+  // Created, made current and destroyed only on flutter_egl_worker.
   EGLContext flutter_utility_egl_context;
+  FlutterEglWorker *flutter_egl_worker; // created on first use
   EGLDisplay egl_display;           // Flutter's EGL display
   // OpenGL producer context with GBM/DMA-BUF transport.
   thermion::opengl::linux_platform::LinuxOpenGLContext *opengl_context;
@@ -131,6 +168,15 @@ G_DEFINE_TYPE(ThermionFlutterPlugin, thermion_flutter_plugin, g_object_get_type(
 // native resources are being torn down.
 static ThermionFlutterPlugin* g_plugin_instance = nullptr;
 
+static FlutterEglWorker *flutter_egl_worker(ThermionFlutterPlugin *self)
+{
+  if (!self->flutter_egl_worker)
+  {
+    self->flutter_egl_worker = new FlutterEglWorker();
+  }
+  return self->flutter_egl_worker;
+}
+
 static void destroy_all_contexts(ThermionFlutterPlugin *self)
 {
   if (self->vulkan_context)
@@ -141,8 +187,11 @@ static void destroy_all_contexts(ThermionFlutterPlugin *self)
   if (self->flutter_utility_egl_context != EGL_NO_CONTEXT &&
       self->egl_display != EGL_NO_DISPLAY)
   {
-    eglDestroyContext(
-        self->egl_display, self->flutter_utility_egl_context);
+    EGLDisplay display = self->egl_display;
+    EGLContext context = self->flutter_utility_egl_context;
+    flutter_egl_worker(self)->Run([display, context]() {
+      eglDestroyContext(display, context);
+    });
     self->flutter_utility_egl_context = EGL_NO_CONTEXT;
   }
   if (self->opengl_context)
@@ -182,25 +231,37 @@ static EGLContext create_flutter_utility_context(
     EGLint major,
     EGLint minor)
 {
-  EglContextGuard guard(display);
-  if (!eglBindAPI(api))
+  bool apiBound = true;
+  EGLint error = EGL_SUCCESS;
+  EGLContext context = EGL_NO_CONTEXT;
+  flutter_egl_worker(self)->Run([&]() {
+    if (!eglBindAPI(api))
+    {
+      apiBound = false;
+      return;
+    }
+    EGLint attributes[] = {
+        EGL_CONTEXT_MAJOR_VERSION, major,
+        EGL_CONTEXT_MINOR_VERSION, minor,
+        EGL_NONE};
+    context = eglCreateContext(display, config, sharedContext, attributes);
+    if (context == EGL_NO_CONTEXT)
+    {
+      error = eglGetError();
+    }
+  });
+
+  if (!apiBound)
   {
     self->opengl_initialization_error =
         "Could not bind Flutter's EGL client API";
     return EGL_NO_CONTEXT;
   }
-
-  EGLint attributes[] = {
-      EGL_CONTEXT_MAJOR_VERSION, major,
-      EGL_CONTEXT_MINOR_VERSION, minor,
-      EGL_NONE};
-  EGLContext context =
-      eglCreateContext(display, config, sharedContext, attributes);
   if (context == EGL_NO_CONTEXT)
   {
     std::cerr << "[ThermionGL] Could not create a context shared with "
                  "Flutter: 0x"
-              << std::hex << eglGetError() << std::dec << std::endl;
+              << std::hex << error << std::dec << std::endl;
     self->opengl_initialization_error =
         "Could not create a utility context shared with Flutter";
   }
@@ -648,18 +709,30 @@ static bool delete_flutter_gl_texture(
     return false;
   }
 
-  EglContextGuard guard(self->egl_display);
-  if (!eglBindAPI(self->flutter_egl_api) ||
-      !eglMakeCurrent(
-          self->egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE,
-          self->flutter_utility_egl_context))
+  EGLDisplay display = self->egl_display;
+  EGLContext context = self->flutter_utility_egl_context;
+  EGLenum api = self->flutter_egl_api;
+  bool deleted = false;
+  EGLint error = EGL_SUCCESS;
+  flutter_egl_worker(self)->Run([&]() {
+    if (!eglBindAPI(api) ||
+        !eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context))
+    {
+      error = eglGetError();
+      return;
+    }
+    glDeleteTextures(1, &textureId);
+    // Releasing the context flushes the deletion.
+    eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    deleted = true;
+  });
+  if (!deleted)
   {
     std::cerr << "[ThermionGL] Cannot make owner context current while deleting "
               << description << " " << textureId << ": 0x"
-              << std::hex << eglGetError() << std::dec << std::endl;
+              << std::hex << error << std::dec << std::endl;
     return false;
   }
-  glDeleteTextures(1, &textureId);
   return true;
 }
 
@@ -824,6 +897,11 @@ static FlMethodResponse *handle_destroy_context(ThermionFlutterPlugin *self)
 {
   destroy_all_textures(self);
   destroy_all_contexts(self);
+  if (self->flutter_egl_worker)
+  {
+    delete self->flutter_egl_worker;
+    self->flutter_egl_worker = nullptr;
+  }
   g_autoptr(FlValue) result = fl_value_new_null();
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
@@ -940,6 +1018,11 @@ static void thermion_flutter_plugin_dispose(GObject *object)
   // contexts are still available.
   destroy_all_textures(self);
   destroy_all_contexts(self);
+  if (self->flutter_egl_worker)
+  {
+    delete self->flutter_egl_worker;
+    self->flutter_egl_worker = nullptr;
+  }
 
   // The engine is going away: the captured raster context/display are dead.
   // destroy_all_contexts deliberately keeps these during the session (see
@@ -983,6 +1066,7 @@ static void thermion_flutter_plugin_init(ThermionFlutterPlugin *self)
   self->vulkan_context = nullptr;
   self->flutter_egl_api = EGL_NONE;
   self->flutter_utility_egl_context = EGL_NO_CONTEXT;
+  self->flutter_egl_worker = nullptr;
   self->egl_display = EGL_NO_DISPLAY;
   self->opengl_context = nullptr;
   self->textures = new std::vector<ThermionTextureGL *>();
