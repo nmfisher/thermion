@@ -2,12 +2,17 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
+#include <functional>
+#include <memory>
 #include <mutex>
 #include <vector>
 #include <utility>
 
+#include <filament/RenderTarget.h>
 #include <filament/Renderer.h>
 #include <filament/SwapChain.h>
+#include <filament/Texture.h>
 #include <filament/View.h>
 #include <filament/Viewport.h>
 
@@ -40,6 +45,26 @@ namespace thermion
     {
 
     public:
+        struct CaptureViewRequest
+        {
+            View *view = nullptr;
+            RenderTarget *renderTarget = nullptr;
+            uint32_t width = 0;
+            uint32_t height = 0;
+            backend::PixelDataFormat format = backend::PixelDataFormat::RGBA;
+            backend::PixelDataType type = backend::PixelDataType::UBYTE;
+        };
+
+        struct CaptureResult
+        {
+            std::vector<std::vector<uint8_t>> buffers;
+        };
+
+        struct CapturePumpState
+        {
+            std::atomic<bool> alive{true};
+            std::atomic<uint32_t> pendingReadbacks{0};
+        };
         RenderManager(Engine *engine, Renderer *renderer) : mEngine(engine), mRenderer(renderer), mLastRender(std::chrono::high_resolution_clock::now())
         {
         }
@@ -50,6 +75,18 @@ namespace thermion
         /// invokes this directly.
         bool render(
             uint64_t frameTimeInNanos);
+
+        /// Atomically run beginFrame -> render -> readPixels -> endFrame on the
+        /// provided swapchain while holding mMutex. Returns false without invoking
+        /// onComplete if validation or beginFrame fails. When true is returned,
+        /// native owns the readback buffers until Filament completes all callbacks
+        /// and then invokes onComplete with the resulting CaptureResult.
+        bool capture(
+            SwapChain *swapChain,
+            uint64_t frameTimeInNanos,
+            bool render,
+            const std::vector<CaptureViewRequest> &views,
+            std::function<void(std::unique_ptr<CaptureResult>)> onComplete);
 
         /// Web: pause/resume rendering. When paused, tick() skips animation
         /// updates and swapchain rendering but still drains the Filament
@@ -111,6 +148,14 @@ namespace thermion
         void removeAnimationManager(AnimationManager *animationManager);
 
     private:
+#ifdef __EMSCRIPTEN__
+        static void onCapturePump(void *manager);
+        void runCapturePump();
+        void scheduleCapturePump(double delayMs);
+        void stopCapturePump();
+        // Accessed only on the engine's thread.
+        long mCapturePumpTimer = -1;
+#endif
 #if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_MAIN_THREAD)
         static bool onAnimationFrame(double timestamp, void* manager);
         static void onFrameTimeout(void* manager);
@@ -121,6 +166,7 @@ namespace thermion
         bool mFrameLoopUsesTimeout = false;
         double mNextFrameTimeMs = 0;
 #endif
+        std::shared_ptr<CapturePumpState> mCapturePumpState = std::make_shared<CapturePumpState>();
         std::atomic<int> mTargetFps{0};
         // Only tick() accesses the FPS gate. Pause requests set this flag.
         std::atomic<bool> mResetFrameRateGate{false};

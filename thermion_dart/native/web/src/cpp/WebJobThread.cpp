@@ -192,10 +192,15 @@ void WebJobThread::runAfterBatchCallback() {
 }
 
 void WebJobThread::dispatchCallback(std::function<void()> callback) const {
+    dispatchCallbackTo(_caller, std::move(callback));
+}
+
+void WebJobThread::dispatchCallbackTo(pthread_t caller, std::function<void()> callback) {
 #ifdef THERMION_WEB_MAIN_THREAD
+    (void)caller;
     callback();
 #else
-    if (!callbacks().proxyAsync(_caller, std::move(callback))) {
+    if (!callbacks().proxyAsync(caller, std::move(callback))) {
         Log("Failed to post render completion");
         std::abort();
     }

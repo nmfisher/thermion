@@ -33,6 +33,8 @@ public:
 
     // Posted callbacks outlive their worker and are serviced by browser events.
     void dispatchCallback(std::function<void()> callback) const;
+    static void dispatchCallbackTo(pthread_t caller, std::function<void()> callback);
+    pthread_t callerThread() const { return _caller; }
     static void executeCallbacks();
     // Called on the owning thread. Clear it before destroying its captures.
     void setAfterBatchCallback(std::function<void()> callback) {

@@ -55,6 +55,8 @@ void Renderer::endFrame() {
     renderer.active = nullptr;
 }
 void Renderer::renderStandaloneView(View const*) {}
+void Renderer::readPixels(uint32_t, uint32_t, uint32_t, uint32_t, backend::PixelBufferDescriptor&&) {}
+void Renderer::readPixels(RenderTarget*, uint32_t, uint32_t, uint32_t, uint32_t, backend::PixelBufferDescriptor&&) {}
 void Engine::execute() { ++static_cast<test::Engine&>(*this).executions; }
 void Engine::flush() {}
 void Engine::pumpMessageQueues() { ++static_cast<test::Engine&>(*this).pumps; }
@@ -72,6 +74,10 @@ void RenderableManager::setMaterialInstanceAt(Instance, size_t, MaterialInstance
 void RenderableManager::clearMaterialInstanceAt(Instance, size_t) {}
 Material const* MaterialInstance::getMaterial() const noexcept { return nullptr; }
 const char* Material::getName() const noexcept { return ""; }
+}
+
+namespace utils {
+void panic(const char*, const char*, int, const char*) noexcept { std::abort(); }
 }
 
 namespace thermion {

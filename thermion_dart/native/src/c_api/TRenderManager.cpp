@@ -16,6 +16,7 @@ using namespace thermion;
 extern "C"
 {
 #include "c_api/TRenderer.h"
+#include "c_api/TRenderManager.h"
 
 EMSCRIPTEN_KEEPALIVE TRenderManager *RenderManager_create(TEngine *tEngine, TRenderer *tRenderer) {
     THERMION_ENGINE_API_GUARD;
@@ -89,6 +90,67 @@ EMSCRIPTEN_KEEPALIVE void RenderManager_renderView(TRenderManager *tRenderManage
     auto *renderManager = reinterpret_cast<RenderManager *>(tRenderManager);
     auto *view = reinterpret_cast<filament::View *>(tView);
     renderManager->renderView(view, standalone);
+}
+
+EMSCRIPTEN_KEEPALIVE void RenderManager_capture(
+    TRenderManager *tRenderManager,
+    TSwapChain *tSwapChain,
+    uint64_t frameTimeInNanos,
+    bool render,
+    const TCaptureViewRequest *tRequests,
+    uint32_t viewCount,
+    void (*onComplete)(TCaptureResult *)) {
+    THERMION_ENGINE_API_GUARD;
+    if (!onComplete) {
+        return;
+    }
+    auto *renderManager = reinterpret_cast<RenderManager *>(tRenderManager);
+    auto *swapChain = reinterpret_cast<filament::SwapChain *>(tSwapChain);
+    std::vector<RenderManager::CaptureViewRequest> requests;
+    if (tRequests && viewCount > 0) {
+        requests.reserve(viewCount);
+        for (uint32_t i = 0; i < viewCount; ++i) {
+            requests.push_back(RenderManager::CaptureViewRequest{
+                reinterpret_cast<filament::View *>(tRequests[i].view),
+                reinterpret_cast<filament::RenderTarget *>(tRequests[i].renderTarget),
+                tRequests[i].width,
+                tRequests[i].height,
+                static_cast<filament::backend::PixelDataFormat>(tRequests[i].format),
+                static_cast<filament::backend::PixelDataType>(tRequests[i].type),
+            });
+        }
+    }
+    auto dispatch = [onComplete](std::unique_ptr<RenderManager::CaptureResult> result) {
+        auto *raw = reinterpret_cast<TCaptureResult *>(result.release());
+        ::thermion::deferDartCallback([onComplete, raw]() {
+            onComplete(raw);
+        });
+    };
+    if (!renderManager || !swapChain || requests.empty() ||
+        !renderManager->capture(swapChain, frameTimeInNanos, render, requests, dispatch)) {
+        dispatch(nullptr);
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE uint8_t *CaptureResult_getPixels(TCaptureResult *tCaptureResult, uint32_t index) {
+    auto *result = reinterpret_cast<RenderManager::CaptureResult *>(tCaptureResult);
+    if (!result || index >= result->buffers.size() || result->buffers[index].empty()) {
+        return nullptr;
+    }
+    return result->buffers[index].data();
+}
+
+EMSCRIPTEN_KEEPALIVE uint32_t CaptureResult_getByteLength(TCaptureResult *tCaptureResult, uint32_t index) {
+    auto *result = reinterpret_cast<RenderManager::CaptureResult *>(tCaptureResult);
+    if (!result || index >= result->buffers.size()) {
+        return 0;
+    }
+    return static_cast<uint32_t>(result->buffers[index].size());
+}
+
+EMSCRIPTEN_KEEPALIVE void CaptureResult_destroy(TCaptureResult *tCaptureResult) {
+    auto *result = reinterpret_cast<RenderManager::CaptureResult *>(tCaptureResult);
+    delete result;
 }
 
 }

@@ -30,6 +30,40 @@ void RenderManager::stopFrameLoop() {
 #endif
 }
 
+void RenderManager::scheduleCapturePump(double delayMs) {
+    if (mCapturePumpTimer != -1 || !mCapturePumpState->alive.load(std::memory_order_acquire)) {
+        return;
+    }
+    mCapturePumpTimer = emscripten_set_timeout(onCapturePump, delayMs, this);
+}
+
+void RenderManager::stopCapturePump() {
+    if (mCapturePumpTimer != -1) {
+        emscripten_clear_timeout(mCapturePumpTimer);
+        mCapturePumpTimer = -1;
+    }
+}
+
+void RenderManager::onCapturePump(void *manager) {
+    auto *self = static_cast<RenderManager *>(manager);
+    self->mCapturePumpTimer = -1;
+    self->runCapturePump();
+}
+
+void RenderManager::runCapturePump() {
+    if (!mCapturePumpState->alive.load(std::memory_order_acquire) ||
+        mCapturePumpState->pendingReadbacks.load(std::memory_order_acquire) == 0) {
+        return;
+    }
+    mEngine->flush();
+    mEngine->execute();
+    mEngine->pumpMessageQueues();
+    if (mCapturePumpState->alive.load(std::memory_order_acquire) &&
+        mCapturePumpState->pendingReadbacks.load(std::memory_order_acquire) > 0) {
+        scheduleCapturePump(1.0);
+    }
+}
+
 #ifndef THERMION_WEB_MAIN_THREAD
 void RenderManager::requestNextFrame() {
     if (mFrameLoopUsesTimeout) {

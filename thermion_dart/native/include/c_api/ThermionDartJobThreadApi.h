@@ -12,6 +12,7 @@
 #include "TTransformManager.h"
 #include "TLightManager.h"
 #include "TRenderer.h"
+#include "TRenderManager.h"
 
 #ifdef __cplusplus
 namespace thermion
@@ -51,6 +52,21 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderableJobThread(TJobThread *jobThread, TRenderManager *tRenderer, TSwapChain *tSwapChain, TView **tViews, uint8_t numViews, uint32_t requestId, VoidCallback onComplete);
 
         EMSCRIPTEN_KEEPALIVE void RenderManager_renderJobThread(TJobThread *jobThread, TRenderManager *tRenderManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete);
+        // Copies all per-view request arrays synchronously before queuing so
+        // callers may release temporary buffers immediately on return. Delivers
+        // a TCaptureResult* (or NULL if validation/beginFrame failed or the job
+        // thread is stopping) to onComplete; non-null results must be released
+        // via CaptureResult_destroy.
+        EMSCRIPTEN_KEEPALIVE void RenderManager_captureJobThread(
+            TJobThread *jobThread,
+            TRenderManager *tRenderManager,
+            TSwapChain *tSwapChain,
+            uint64_t frameTimeInNanos,
+            bool render,
+            const TCaptureViewRequest *requests,
+            uint32_t viewCount,
+            void (*onComplete)(TCaptureResult *)
+        );
         EMSCRIPTEN_KEEPALIVE void RenderManager_addAnimationManagerJobThread(TJobThread *jobThread, TRenderManager *tRenderManager, TAnimationManager *tAnimationManager, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void RenderManager_removeAnimationManagerJobThread(TJobThread *jobThread, TRenderManager *tRenderManager, TAnimationManager *tAnimationManager, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void RenderManager_removeSwapChainJobThread(TJobThread *jobThread, TRenderManager *tRenderManager, TSwapChain *tSwapChain, uint32_t requestId, VoidCallback onComplete);
