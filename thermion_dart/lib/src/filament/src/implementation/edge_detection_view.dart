@@ -15,9 +15,13 @@ import 'ffi_filament_app.dart';
 /// Renders a fullscreen quad that samples the silhouette texture and
 /// draws outlines where edges are detected.
 ///
-/// Extends [FFIView] directly to inherit all view functionality.
-class EdgeDetectionView extends FFIView {
+class EdgeDetectionView {
   final _logger = Logger('EdgeDetectionView');
+
+  final FFIView _view;
+
+  /// The underlying Filament [View] for render-manager attachment and pass setup.
+  View get view => _view;
 
   // Outline settings
   double _outlineWidth = 2.0;
@@ -53,7 +57,7 @@ class EdgeDetectionView extends FFIView {
   final FFIFilamentApp _app;
 
   EdgeDetectionView._(
-    Pointer<TView> view, {
+    this._view, {
     required FFIFilamentApp app,
     required FFIMaterial material,
     required Scene scene,
@@ -79,8 +83,7 @@ class EdgeDetectionView extends FFIView {
        _fullscreenQuadEntity = fullscreenQuadEntity,
        _edgeSampler = edgeSampler,
        _linearColorGrading = linearColorGrading,
-       _linearToneMapper = linearToneMapper,
-       super(view, app);
+       _linearToneMapper = linearToneMapper;
 
   /// Creates and initializes a new [EdgeDetectionView].
   static Future<EdgeDetectionView> create(
@@ -89,10 +92,7 @@ class EdgeDetectionView extends FFIView {
     required int width,
     required int height,
   }) async {
-    // Create view
-    final viewPtr = await withPointerCallback<TView>(
-      (cb) => Engine_createViewJobThread(app.jobThreadHandle, app.engine, cb),
-    );
+    final view = await FFIView.create(app) as FFIView;
 
     // Create edge material
     final materialPtr = await withPointerCallback<TMaterial>(
@@ -183,7 +183,7 @@ class EdgeDetectionView extends FFIView {
 
     // Create the EdgeDetectionView with all resources
     final edgeDetectionView = EdgeDetectionView._(
-      viewPtr,
+      view,
       app: app,
       material: edgeMaterial,
       scene: edgeScene,
@@ -200,69 +200,24 @@ class EdgeDetectionView extends FFIView {
     );
 
     // Configure view (renders to swap chain by default)
-    await edgeDetectionView.setScene(edgeScene);
-    await edgeDetectionView._setCamera(camera);
+    await view.setScene(edgeScene);
+    await view.setCamera(camera);
     await edgeDetectionView.setViewport(width, height);
 
     // Disable post-processing entirely: the main view already ran its own
     // tone-mapping/post-processing into the target, and the edge shader writes
     // premultiplied alpha directly onto it.
-    await edgeDetectionView._setPostProcessingInternal(false);
+    await view.setPostProcessing(false);
 
-    await edgeDetectionView.setShadowsEnabled(false);
-    await edgeDetectionView.setFrustumCullingEnabled(false);
+    await view.setShadowsEnabled(false);
+    await view.setFrustumCullingEnabled(false);
 
-    await edgeDetectionView.setName("highlight_edge_detection");
+    await view.setName("highlight_edge_detection");
 
     return edgeDetectionView;
   }
 
-  @override
-  Future setStencilHighlight(
-    ThermionAsset asset, {
-    double r = 1.0,
-    double g = 0.0,
-    double b = 0.0,
-    int? entity,
-    @Deprecated('Use outlineWidth instead') double scale = 1.05,
-    double outlineWidth = 3.0,
-    int primitiveIndex = 0,
-    ThermionAsset? geometrySource,
-  }) async {
-    throw Exception("disableHighlightOverlay cannot be called on a highlight view");
-  }
-
-  Future setAntiAliasing(bool msaa, bool fxaa, bool taa) {
-    throw UnsupportedError("Not supported for overlay views");
-  }
-
-  Future setPostProcessing(bool enabled) {
-    throw UnsupportedError("Not supported for overlay views");
-  }
-
-  /// Internal method to set post-processing during initialization.
-  Future _setPostProcessingInternal(bool enabled) {
-    return super.setPostProcessing(enabled);
-  }
-
-  @override
-  Future setCamera(Camera? camera) {
-    throw UnsupportedError("Not supported for overlay view");
-  }
-
-  Future _setCamera(Camera? camera) async {
-    await super.setCamera(camera);
-  }
-
-  @override
-  Future removeStencilHighlight(ThermionAsset asset) async {
-    throw Exception("disableHighlightOverlay cannot be called on a highlight view");
-  }
-
-  @override
-  Future setHighlightOverlayEnabled(bool enabled) async {
-    throw UnimplementedError();
-  }
+  Future<void> setRenderTarget(RenderTarget? renderTarget) => _view.setRenderTarget(renderTarget);
 
   /// Set outline appearance.
   Future<void> setOutlineParams({double? width, double? r, double? g, double? b}) async {
@@ -282,21 +237,19 @@ class EdgeDetectionView extends FFIView {
   }
 
   /// Update viewport size.
-  @override
-  Future setViewport(int width, int height) async {
-    await super.setViewport(width, height);
+  Future<void> setViewport(int width, int height) async {
+    await _view.setViewport(width, height);
     await _updateEdgeMaterialParams();
 
-    _logger.info('Viewport updated to ${width}x${height} ${getNativeHandle()}');
+    _logger.info('Viewport updated to ${width}x${height} ${_view.getNativeHandle()}');
   }
 
   /// Clean up all resources.
-  @override
   Future<void> destroy() async {
-    await super.setRenderTarget(null);
-    await super.setCamera(null);
+    await _view.setRenderTarget(null);
+    await _view.setCamera(null);
 
-    View_setScene(this.getNativeHandle(), nullptr);
+    View_setScene(_view.getNativeHandle(), nullptr);
 
     // Destroy fullscreen quad
     await _edgeScene.removeEntity(_fullscreenQuadEntity);
@@ -319,7 +272,7 @@ class EdgeDetectionView extends FFIView {
 
     // Clear color grading before destroying (must be done before
     // view destruction)
-    await setColorGrading(null);
+    await _view.setColorGrading(null);
     await (_linearColorGrading as FFIColorGrading).dispose();
     await _linearToneMapper.dispose();
 
@@ -327,13 +280,13 @@ class EdgeDetectionView extends FFIView {
     await _camera.destroy();
 
     // Destroy the underlying view
-    await super.destroy();
+    await _view.destroy();
 
     _logger.info('EdgeDetectionView disposed');
   }
 
   Future<void> _updateEdgeMaterialParams() async {
-    final vp = await getViewport();
+    final vp = await _view.getViewport();
 
     // Set silhouette texture
     await _edgeMaterialInstance.setParameterTexture('silhouette', _silhouetteTexture as FFITexture, _edgeSampler);

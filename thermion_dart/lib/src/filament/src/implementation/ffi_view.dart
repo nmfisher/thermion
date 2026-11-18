@@ -36,7 +36,7 @@ class FFIView extends View<Pointer<TView>> {
 
   RenderTarget? renderTarget;
 
-  late CallbackHolder<PickCallbackFunction> _onPickResultHolder;
+  CallbackHolder<PickCallbackFunction>? _onPickResultHolder;
   int _pendingPickCount = 0;
   bool _viewDestroyed = false;
 
@@ -44,7 +44,8 @@ class FFIView extends View<Pointer<TView>> {
     // Filament can finish a GPU pick after destroying its view. Keep the
     // callback registered until those results arrive, then release it.
     if (_viewDestroyed && _pendingPickCount == 0) {
-      _onPickResultHolder.dispose();
+      _onPickResultHolder?.dispose();
+      _onPickResultHolder = null;
     }
   }
 
@@ -53,13 +54,11 @@ class FFIView extends View<Pointer<TView>> {
     if (renderTargetPtr != nullptr) {
       renderTarget = FFIRenderTarget(renderTargetPtr, _app);
     }
-
-    _onPickResultHolder = _onPickResult.asCallback();
   }
 
   Future destroy() async {
     _destroyRequested = true;
-    _pickRequests.fillRange(0, _pickRequests.length, null);
+    _pickRequests?.fillRange(0, _pickRequests!.length, null);
     await _nameOperations;
     if (_hasMaterialOverride) {
       await setMaterialOverride(null);
@@ -266,10 +265,7 @@ class FFIView extends View<Pointer<TView>> {
   int _pickRequestId = -1;
 
   static int kMaxPickRequests = 1024;
-  final _pickRequests = List<({void Function(PickResult) handler, int x, int y, int viewportHeight})?>.generate(
-    kMaxPickRequests,
-    (idx) => null,
-  );
+  List<({void Function(PickResult) handler, int x, int y, int viewportHeight})?>? _pickRequests;
 
   ///
   ///
@@ -281,10 +277,14 @@ class FFIView extends View<Pointer<TView>> {
     // Destruction may have started while we awaited the viewport.
     if (_destroyRequested) return;
 
+    final pickRequests = _pickRequests ??=
+        List<({void Function(PickResult) handler, int x, int y, int viewportHeight})?>.filled(kMaxPickRequests, null);
+    final onPickResultHolder = _onPickResultHolder ??= _onPickResult.asCallback();
+
     _pickRequestId++;
     var pickRequestId = _pickRequestId;
 
-    _pickRequests[pickRequestId % kMaxPickRequests] = (
+    pickRequests[pickRequestId % kMaxPickRequests] = (
       handler: resultHandler,
       x: x,
       y: y,
@@ -298,10 +298,10 @@ class FFIView extends View<Pointer<TView>> {
       // the render job reads twice per frame without a lock, so calling
       // View_pick from the Dart thread could land between the two reads
       // (FrameGraph::assertValid abort on Windows after repeated picks).
-      View_pickJobThread(_app.jobThreadHandle, view, pickRequestId, x, y, _onPickResultHolder.pointer);
+      View_pickJobThread(_app.jobThreadHandle, view, pickRequestId, x, y, onPickResultHolder.pointer);
     } catch (_) {
       _pendingPickCount--;
-      _pickRequests[pickRequestId % kMaxPickRequests] = null;
+      pickRequests[pickRequestId % kMaxPickRequests] = null;
       rethrow;
     }
   }
@@ -320,16 +320,17 @@ class FFIView extends View<Pointer<TView>> {
       return;
     }
 
+    final pickRequests = _pickRequests;
     final modRequestId = requestId % kMaxPickRequests;
-    if (_pickRequests[modRequestId] == null) {
+    if (pickRequests == null || pickRequests[modRequestId] == null) {
       _logger.severe(
         """Warning : pick result received with no matching request ID. """
         """This indicates you're clearing the pick cache too quickly""",
       );
       return;
     }
-    final (:handler, :x, :y, :viewportHeight) = _pickRequests[modRequestId]!;
-    _pickRequests[modRequestId] = null;
+    final (:handler, :x, :y, :viewportHeight) = pickRequests[modRequestId]!;
+    pickRequests[modRequestId] = null;
 
     handler.call((
       entity: entityId,
@@ -560,7 +561,6 @@ class FFIView extends View<Pointer<TView>> {
 
   HighlightOverlayManager? _highlightOverlayManager;
 
-  @override
   HighlightOverlayManager? getHighlightOverlay() {
     return _highlightOverlayManager;
   }
