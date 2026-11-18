@@ -85,6 +85,23 @@ endif()
 
 thermion_filter_generated_headers(DART_PKG_HEADERS "${_FILAMENT_HEADERS}")
 
+# MSBuild unescapes %XX in project metadata; escape literal '%' in every
+# path handed to the generator (see thermion_escape_for_generator). The
+# unescaped lists above stay intact for CMake's own existence checks.
+set(_FILAMENT_HEADERS_GEN "")
+foreach(_dir IN LISTS _FILAMENT_HEADERS)
+  thermion_escape_for_generator(_dir_gen "${_dir}")
+  list(APPEND _FILAMENT_HEADERS_GEN "${_dir_gen}")
+endforeach()
+set(DART_PKG_HEADERS_GEN "")
+foreach(_dir IN LISTS DART_PKG_HEADERS)
+  thermion_escape_for_generator(_dir_gen "${_dir}")
+  list(APPEND DART_PKG_HEADERS_GEN "${_dir_gen}")
+endforeach()
+thermion_escape_for_generator(_TD_INCLUDE_GEN "${_TD_INCLUDE}")
+thermion_escape_for_generator(_TD_VULKAN_LINUX_GEN "${_TD_VULKAN_LINUX}")
+thermion_escape_for_generator(_TD_OPENGL_LINUX_GEN "${_TD_OPENGL_LINUX}")
+
 # Retain existing hook metadata as a fallback, after the current pin's paths.
 foreach(_dir IN LISTS DART_PKG_HEADERS)
   if(IS_DIRECTORY "${_dir}" AND EXISTS "${_dir}/bluevk/BlueVK.h")
@@ -104,11 +121,11 @@ endif()
 message(STATUS "thermion_flutter: Filament headers: ${_FILAMENT_HEADERS}")
 
 target_include_directories(${PLUGIN_NAME} PRIVATE
-  ${_FILAMENT_HEADERS}
-  ${DART_PKG_HEADERS}
-  "${_TD_INCLUDE}"
-  "${_TD_VULKAN_LINUX}"
-  "${_TD_OPENGL_LINUX}"
+  ${_FILAMENT_HEADERS_GEN}
+  ${DART_PKG_HEADERS_GEN}
+  "${_TD_INCLUDE_GEN}"
+  "${_TD_VULKAN_LINUX_GEN}"
+  "${_TD_OPENGL_LINUX_GEN}"
 )
 target_link_directories(${PLUGIN_NAME} PRIVATE "${NATIVE_ASSETS_DIR}")
 
