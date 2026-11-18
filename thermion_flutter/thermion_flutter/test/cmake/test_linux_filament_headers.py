@@ -172,6 +172,11 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         old = self.assemble_into(digest=PIN_A)
         self.configure()
         self.build_and_run()
+        # MSBuild's /m node reuse can keep a stale in-memory project after
+        # ZERO_CHECK regenerates it mid-build; disable node reuse so the
+        # reconfigured project is re-evaluated (fixture-only workaround).
+        os.environ["MSBUILDDISABLENODEREUSE"] = "1"
+        self.addCleanup(os.environ.pop, "MSBUILDDISABLENODEREUSE", None)
         time.sleep(1.1)
         self.write_pin({"linux/release": PIN_B})
         self.assemble_into(digest=PIN_B, marker=202)
