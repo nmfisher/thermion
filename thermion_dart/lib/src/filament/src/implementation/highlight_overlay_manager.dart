@@ -108,8 +108,13 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
 
   // State
   View? _mainView;
-  RenderTarget? _originalMainViewRenderTarget;
   SwapChain? _swapChain;
+
+  // The platform-owned target the main view's final image should reach.
+  // Updated on every setRenderTarget call (including resize replacements and
+  // null detaches) so teardown never restores a target a previous resize
+  // already destroyed.
+  RenderTarget? _presentationRenderTarget;
 
   // Whether the main view is currently redirected to the internal composite
   // target. Cleared when a null presentation target routes it back to direct
@@ -138,10 +143,10 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
   Future<void> setRenderTarget(View mainView, RenderTarget? presentationRenderTarget) async {
     _mainView = mainView;
 
-    if (_mainViewRenderTarget == null && presentationRenderTarget != null) {
-      // First composite target — set up the internal RT and redirect main view
-      _originalMainViewRenderTarget = await mainView.getRenderTarget();
+    _presentationRenderTarget = presentationRenderTarget;
 
+    if (_mainViewRenderTarget == null && presentationRenderTarget != null) {
+      // First composite target — set up the internal RT for the main view
       final vp = await mainView.getViewport();
       final width = vp.width > 0 ? vp.width : 1;
       final height = vp.height > 0 ? vp.height : 1;
@@ -152,17 +157,18 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     }
 
     await overlayView.setRenderTarget(presentationRenderTarget);
+    // Without a presentation target both views draw to the swapchain; the
+    // edge pass must overlay edges with alpha instead of compositing an
+    // opaque quad (sampling the stale internal texture) over the main view.
+    await overlayView.setOverlayOnly(presentationRenderTarget == null);
 
     if (presentationRenderTarget == null) {
       // No frame may sample or present through the target the caller is
-      // about to destroy: route the main view back to direct output. The
-      // captured original target is stale from here on — the caller owns
-      // (and typically destroys) it after detaching.
+      // about to destroy: route the main view back to direct output.
       if (_mainViewRedirected) {
         await mainView.setRenderTarget(null);
         _mainViewRedirected = false;
       }
-      _originalMainViewRenderTarget = null;
     } else if (!_mainViewRedirected) {
       await mainView.setRenderTarget(_mainViewRenderTarget);
       _mainViewRedirected = true;
@@ -387,12 +393,12 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     // NOW safe to destroy SilhouetteView (which destroys the silhouette texture)
     await silhouetteView.destroy();
 
-    // Tear down render targets and restore original state. Only restore if
-    // the main view is still redirected: after a null presentation target it
-    // already renders directly and the captured original target may have
-    // been destroyed by its owner.
+    // Tear down render targets and restore direct presentation. Only restore
+    // if the main view is still redirected: after a null presentation target
+    // it already renders directly. Restore the CURRENT presentation target —
+    // a resize may have replaced (and destroyed) the one captured earlier.
     if (_mainView != null && _mainViewRedirected) {
-      await _mainView!.setRenderTarget(_originalMainViewRenderTarget as FFIRenderTarget?);
+      await _mainView!.setRenderTarget(_presentationRenderTarget);
       _mainViewRedirected = false;
     }
 
@@ -405,7 +411,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     await _destroyMainViewRenderTarget();
 
     _mainView = null;
-    _originalMainViewRenderTarget = null;
+    _presentationRenderTarget = null; // Don't destroy - the platform layer owns this
 
     _logger.info("Highlight overlay torn down");
 
