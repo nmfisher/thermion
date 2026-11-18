@@ -2903,6 +2903,19 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _View_setSilhouetteMaterialOverride(
+    Pointer<TView> tView,
+    Pointer<TEngine> tEngine,
+    Pointer<TMaterialInstance> tMaterialInstance,
+  );
+  external void _View_setSilhouetteMaterialOverrideJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TView> tView,
+    Pointer<TEngine> tEngine,
+    Pointer<TMaterialInstance> tMaterialInstance,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _View_setSoftShadowOptions(Pointer<TView> tView, Pointer<TSoftShadowOptions> optionsPtr);
   external void _View_setSoftShadowOptionsJobThread(
     Pointer<TJobThread> jobThread,
@@ -10449,6 +10462,38 @@ void View_setShadowsEnabledJobThread(
     jobThread.cast(),
     tView.cast(),
     enabled,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+void View_setSilhouetteMaterialOverride(
+  Pointer<TView> tView,
+  Pointer<TEngine> tEngine,
+  Pointer<TMaterialInstance> tMaterialInstance,
+) {
+  final result = GeneratedBindings.instance._View_setSilhouetteMaterialOverride(
+    tView.cast(),
+    tEngine.cast(),
+    tMaterialInstance.cast(),
+  );
+  return result;
+}
+
+void View_setSilhouetteMaterialOverrideJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TView> tView,
+  Pointer<TEngine> tEngine,
+  Pointer<TMaterialInstance> tMaterialInstance,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._View_setSilhouetteMaterialOverrideJobThread(
+    jobThread.cast(),
+    tView.cast(),
+    tEngine.cast(),
+    tMaterialInstance.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );

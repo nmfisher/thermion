@@ -48,6 +48,13 @@ namespace thermion
 
   using std::string;
 
+  std::atomic<RenderManager::RenderViewFn> RenderManager::sRenderViewHook{nullptr};
+
+  void RenderManager::setRenderViewHook(RenderViewFn hook)
+  {
+    sRenderViewHook.store(hook, std::memory_order_release);
+  }
+
   void RenderManager::removeSwapChain(SwapChain *swapChain)
   {
     std::lock_guard lock(mMutex);
@@ -174,7 +181,11 @@ namespace thermion
     {
       if (!attachment.views[i]) break;
       numRendered++;
-      mRenderer->render(attachment.views[i]);
+      if (auto hook = sRenderViewHook.load(std::memory_order_acquire)) {
+        hook(mRenderer, attachment.views[i]);
+      } else {
+        mRenderer->render(attachment.views[i]);
+      }
     }
 
     auto beforeEnd = std::chrono::high_resolution_clock::now();

@@ -462,7 +462,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   //
-  Future<RenderTarget> createRenderTarget(int width, int height, {Texture? color, Texture? depth}) async {
+  Future<RenderTarget> createRenderTarget(
+    int width,
+    int height, {
+    Texture? color,
+    Texture? depth,
+    bool createDepth = true,
+  }) async {
     _logger.finest("Creating ${width}x${height} render target");
     if (color == null) {
       _logger.finest("No color texture provided");
@@ -480,7 +486,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
               as FFITexture;
       _logger.finest("Created ${width}x${height} color texture (TextureFormat.RGBA8)");
     }
-    if (depth == null) {
+    if (depth == null && createDepth) {
       _logger.finest("No depth texture provided");
       depth =
           await createTexture(
@@ -497,7 +503,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       _logger.finest("Created ${width}x${height} depth texture (TextureFormat.DEPTH32F)");
     }
     final renderTarget = await withPointerCallback<TRenderTarget>((cb) {
-      RenderTarget_createJobThread(jobThreadHandle, engine, color!.getNativeHandle(), depth!.getNativeHandle(), cb);
+      RenderTarget_createJobThread(
+        jobThreadHandle,
+        engine,
+        color!.getNativeHandle(),
+        depth?.getNativeHandle() ?? nullptr,
+        cb,
+      );
     });
     if (renderTarget == nullptr) {
       throw Exception("Failed to create RenderTarget");

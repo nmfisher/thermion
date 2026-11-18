@@ -1542,6 +1542,18 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void View_setSilhouetteMaterialOverrideJobThread(TJobThread *jobThread, TView *tView, TEngine *tEngine, TMaterialInstance *tMaterialInstance, uint32_t requestId, VoidCallback onComplete)
+  {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
+    std::packaged_task<void()> lambda(
+        [=]
+        {
+          View_setSilhouetteMaterialOverride(tView, tEngine, tMaterialInstance);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPoseJobThread(TJobThread *jobThread, TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete) {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(

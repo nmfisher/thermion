@@ -19,6 +19,7 @@
 #include <math/mat4.h>
 
 #include "c_api/TTexture.h"
+#include "rendering/SilhouetteOverride.hpp"
 
 #ifdef __cplusplus
 namespace thermion
@@ -58,14 +59,14 @@ EMSCRIPTEN_KEEPALIVE void Renderer_render(TRenderer *tRenderer, TView *tView) {
     THERMION_ENGINE_API_GUARD;
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     auto *view = reinterpret_cast<filament::View *>(tView);
-    renderer->render(view);
+    thermion::renderViewWithSilhouetteOverride(renderer, view);
 }
 
 EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneView(TRenderer *tRenderer, TView *tView) {
     THERMION_ENGINE_API_GUARD;
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     auto *view = reinterpret_cast<filament::View *>(tView);
-    renderer->renderStandaloneView(view);
+    thermion::renderStandaloneViewWithSilhouetteOverride(renderer, view);
 }
 
 EMSCRIPTEN_KEEPALIVE void Renderer_setFrameRateOptions(

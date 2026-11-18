@@ -5798,6 +5798,34 @@ external void View_setShadowsEnabledJobThread(
   VoidCallback onComplete,
 );
 
+@ffi.Native<
+  ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TEngine>, ffi.Pointer<TMaterialInstance>)
+>(isLeaf: true)
+external void View_setSilhouetteMaterialOverride(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TMaterialInstance> tMaterialInstance,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TView>,
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<TMaterialInstance>,
+    ffi.Uint32,
+    VoidCallback,
+  )
+>(isLeaf: true)
+external void View_setSilhouetteMaterialOverrideJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TMaterialInstance> tMaterialInstance,
+  int requestId,
+  VoidCallback onComplete,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TSoftShadowOptions)>(isLeaf: true)
 external void View_setSoftShadowOptions(ffi.Pointer<TView> tView, TSoftShadowOptions options);
 

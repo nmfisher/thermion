@@ -68,6 +68,9 @@ namespace thermion
         /// without drawing an intermediate frame.
         void flushCommands();
 
+        using RenderViewFn = void (*)(Renderer *renderer, View *view);
+        static void setRenderViewHook(RenderViewFn hook);
+
 #ifdef __EMSCRIPTEN__
         // Called on the engine's thread when the manager is attached/detached.
         // Main-thread web mode renders explicitly and does not start a loop.
@@ -144,6 +147,7 @@ namespace thermion
         // Main-thread controls must not take mMutex: tick() can hold it while
         // a Filament upload callback waits for that same main thread.
         std::atomic<bool> mRenderPaused{false};
+        static std::atomic<RenderViewFn> sRenderViewHook;
     };
 
 }

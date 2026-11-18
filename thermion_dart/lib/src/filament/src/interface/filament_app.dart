@@ -82,7 +82,13 @@ abstract class FilamentApp<T> {
   Future destroyAsset(covariant ThermionAsset asset);
 
   //
-  Future<RenderTarget> createRenderTarget(int width, int height, {covariant Texture? color, covariant Texture? depth});
+  Future<RenderTarget> createRenderTarget(
+    int width,
+    int height, {
+    covariant Texture? color,
+    covariant Texture? depth,
+    bool createDepth = true,
+  });
 
   //
   Future<Texture> createTexture(

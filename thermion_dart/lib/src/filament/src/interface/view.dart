@@ -493,13 +493,11 @@ abstract class View<T> extends NativeHandle<T> {
   /// The outline width is specified in pixels via [outlineWidth] and remains
   /// constant regardless of camera distance (screen-space expansion).
   ///
-  /// Uses a stencil-based two-pass rendering approach for clean, flicker-free
-  /// outlines.
+  /// Uses a two-pass silhouette and edge-detection rendering approach for clean,
+  /// flicker-free outlines.
   ///
-  /// Throws if the asset (or [geometrySource]) does not provide
-  /// [SceneAssetGeometryCapability.accessibleGeometryBuffers].
-  ///
-  /// The [scale] parameter is deprecated and ignored; use [outlineWidth] instead.
+  /// The [scale] and [geometrySource] parameters are deprecated and ignored;
+  /// use [outlineWidth] instead.
   Future setStencilHighlight(
     ThermionAsset asset, {
     double r = 1.0,
