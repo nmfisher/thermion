@@ -5798,9 +5798,7 @@ external void View_setShadowsEnabledJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<
-  ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TEngine>, ffi.Pointer<TMaterialInstance>)
->(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TEngine>, ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
 external void View_setSilhouetteMaterialOverride(
   ffi.Pointer<TView> tView,
   ffi.Pointer<TEngine> tEngine,
