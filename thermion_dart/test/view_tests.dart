@@ -1799,7 +1799,7 @@ void main() async {
         flags: {
           TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
           TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
-          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          if (!viewAMSAA) TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
         },
         textureFormat: TextureFormat.DEPTH24_STENCIL8,
       );
