@@ -85,6 +85,8 @@ abstract class HighlightOverlayManager {
 class FFIHighlightOverlayManager extends HighlightOverlayManager {
   final _logger = Logger('HighlightOverlayManager');
 
+  final FFIFilamentApp _app;
+
   // Views (always non-null after construction via create())
   final SilhouetteView silhouetteView;
   final EdgeDetectionView overlayView;
@@ -128,7 +130,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     _logger.info("EdgeDetectionView registered with swapchain (overlay-only mode)");
   }
 
-  FFIHighlightOverlayManager._({required this.silhouetteView, required this.overlayView});
+  FFIHighlightOverlayManager._(this._app, {required this.silhouetteView, required this.overlayView});
 
   /// Creates and initializes a new [HighlightOverlayManager].
   static Future<HighlightOverlayManager> create(FFIFilamentApp app, {required int width, required int height}) async {
@@ -156,7 +158,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
 
     await edgeDetectionView.setBlendMode(BlendMode.transparent);
 
-    final manager = FFIHighlightOverlayManager._(silhouetteView: silhouetteView, overlayView: edgeDetectionView);
+    final manager = FFIHighlightOverlayManager._(app, silhouetteView: silhouetteView, overlayView: edgeDetectionView);
 
     manager._logger.info("Highlight overlay manager initialized");
 
