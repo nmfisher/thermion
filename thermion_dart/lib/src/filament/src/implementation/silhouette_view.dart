@@ -15,8 +15,13 @@ import 'ffi_filament_app.dart';
 ///
 /// This texture is passed to the edge detection pass.
 ///
-class SilhouetteView extends FFIView {
+class SilhouetteView {
   final _logger = Logger('SilhouetteView');
+
+  final FFIView _view;
+
+  /// The underlying Filament [View] for render-manager attachment and pass setup.
+  View get view => _view;
 
   // Shared silhouette material and instance (owned by this class)
   final FFIMaterial _silhouetteMaterial;
@@ -43,7 +48,7 @@ class SilhouetteView extends FFIView {
   final FFIFilamentApp _app;
 
   SilhouetteView._(
-    Pointer<TView> view, {
+    this._view, {
     required FFIFilamentApp app,
     required FFIMaterial material,
     required FFIMaterialInstance materialInstance,
@@ -57,14 +62,11 @@ class SilhouetteView extends FFIView {
        _colorTexture = colorTexture,
        _renderTarget = renderTarget,
        _silhouetteScene = scene,
-       _skybox = skybox,
-       super(view, app);
+       _skybox = skybox;
 
   /// Creates and initializes a new [SilhouetteView].
   static Future<SilhouetteView> create(FFIFilamentApp app, {required int width, required int height}) async {
-    final viewPtr = await withPointerCallback<TView>(
-      (cb) => Engine_createViewJobThread(app.jobThreadHandle, app.engine, cb),
-    );
+    final view = await FFIView.create(app) as FFIView;
 
     // Create silhouette material and a single shared override instance
     final materialPtr = await withPointerCallback<TMaterial>(
@@ -95,7 +97,7 @@ class SilhouetteView extends FFIView {
 
     // Create the SilhouetteView with all resources
     final silhouetteView = SilhouetteView._(
-      viewPtr,
+      view,
       app: app,
       material: silhouetteMaterial,
       materialInstance: silhouetteMaterialInstance,
@@ -110,25 +112,26 @@ class SilhouetteView extends FFIView {
     silhouetteView._textureHeight = height;
 
     // Configure this view
-    await silhouetteView.setScene(silhouetteScene);
+    await view.setScene(silhouetteScene);
     await silhouetteView.setViewport(width, height);
-    await silhouetteView.setRenderTarget(renderTarget);
-    await silhouetteView.setPostProcessing(false);
-    await silhouetteView.setShadowsEnabled(false);
+    await view.setRenderTarget(renderTarget);
+    await view.setPostProcessing(false);
+    await view.setShadowsEnabled(false);
 
     // Register native per-view material override so shared entities render with
     // the double-sided opaque silhouette material without duplicating geometry.
-    await silhouetteView.setMaterialOverride(silhouetteMaterialInstance);
+    await view.setMaterialOverride(silhouetteMaterialInstance);
 
-    await silhouetteView.setName("highlight_silhouette");
+    await view.setName("highlight_silhouette");
 
     return silhouetteView;
   }
 
-  @override
-  Future setViewport(int width, int height) async {
+  Future<void> setCamera(Camera? camera) => _view.setCamera(camera);
+
+  Future<void> setViewport(int width, int height) async {
     _logger.info("setViewport $width x $height (current texture: ${_textureWidth}x${_textureHeight})");
-    await super.setViewport(width, height);
+    await _view.setViewport(width, height);
 
     // Resize if dimensions are valid and different from current texture size
     if (width > 0 && height > 0 && (width != _textureWidth || height != _textureHeight)) {
@@ -157,7 +160,7 @@ class SilhouetteView extends FFIView {
         await _app.createRenderTarget(width, height, color: _colorTexture, createDepth: false) as FFIRenderTarget;
 
     // Set new render target on view
-    await setRenderTarget(_renderTarget);
+    await _view.setRenderTarget(_renderTarget);
 
     // Update tracked dimensions
     _textureWidth = width;
@@ -179,30 +182,6 @@ class SilhouetteView extends FFIView {
 
   /// The color texture containing white silhouettes (for edge detection sampling).
   Texture get colorTexture => _colorTexture;
-
-  Future<bool> enableHighlightOverlay() async => throw Exception();
-
-  Future disableHighlightOverlay() async => throw Exception();
-
-  @override
-  Future setStencilHighlight(
-    ThermionAsset asset, {
-    double r = 1.0,
-    double g = 0.0,
-    double b = 0.0,
-    int? entity,
-    @Deprecated('Use outlineWidth instead') double scale = 1.05,
-    double outlineWidth = 3.0,
-    int primitiveIndex = 0,
-    ThermionAsset? geometrySource,
-  }) async {
-    // No-op for overlay views
-  }
-
-  @override
-  Future removeStencilHighlight(ThermionAsset asset) async {
-    throw Exception();
-  }
 
   /// Add a highlight for the given entity by sharing it in [_silhouetteScene].
   Future<void> addHighlight({required ThermionEntity target}) async {
@@ -229,7 +208,6 @@ class SilhouetteView extends FFIView {
   }
 
   /// Clean up all resources.
-  @override
   Future<void> destroy() async {
     // Remove all highlights from the silhouette scene
     for (final target in _highlightedEntities.toList()) {
@@ -237,7 +215,7 @@ class SilhouetteView extends FFIView {
     }
 
     // Clear the native override before destroying the material instance/view
-    await setMaterialOverride(null);
+    await _view.setMaterialOverride(null);
 
     // Destroy skybox
     await _skybox.destroy();
@@ -254,7 +232,7 @@ class SilhouetteView extends FFIView {
     await _silhouetteMaterial.destroy();
 
     // Destroy the underlying view
-    await super.destroy();
+    await _view.destroy();
 
     _logger.info('SilhouetteView disposed');
   }

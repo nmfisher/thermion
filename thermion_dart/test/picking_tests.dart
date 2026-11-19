@@ -10,6 +10,14 @@ void main() async {
   await testHelper.setup();
   Logger.root.level = Level.ALL;
 
+  test('destroying a view that never called pick() succeeds safely', () async {
+    final view = await FilamentApp.instance!.createView();
+    await view.setViewport(100, 80);
+
+    await FilamentApp.instance!.destroyView(view).timeout(const Duration(seconds: 5));
+    await expectLater(view.pick(0, 0, (_) {}), throwsStateError);
+  });
+
   test('destroying an unrendered view cancels its pending picks', () async {
     final view = await FilamentApp.instance!.createView();
     await view.setViewport(100, 80);

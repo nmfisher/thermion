@@ -408,9 +408,6 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
         "${descriptor.width}x${descriptor.height} at dpr $dpr",
       );
 
-      var overlay = view.getHighlightOverlay();
-      await overlay?.setSwapChain(bundle.swapChain);
-
       Thermion_setCanvasElementSize(
         js.StringUtils('#${bundle.canvasId}').toNativeUtf8(),
         descriptor.width,

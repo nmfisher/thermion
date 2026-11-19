@@ -513,7 +513,7 @@ void main() async {
     await ViewerBuilder(testHelper).setRenderTargetEnabled(true).setStencilBufferEnabled(true).execute((result) async {
       await result.viewer.view.setHighlightOverlayEnabled(true);
 
-      final manager = result.viewer.view.getHighlightOverlay();
+      final manager = (result.viewer.view as FFIView).getHighlightOverlay();
       assert(manager != null);
 
       var cube = await FilamentApp.instance!.createGeometry(GeometryUtils.cube(flipUvs: true));
@@ -630,7 +630,7 @@ void main() async {
   test('consecutive setStencilHighlight with different colors updates correctly', () async {
     await ViewerBuilder(testHelper).setRenderTargetEnabled(true).setStencilBufferEnabled(true).execute((result) async {
       await result.viewer.view.setHighlightOverlayEnabled(true);
-      final manager = result.viewer.view.getHighlightOverlay()!;
+      final manager = (result.viewer.view as FFIView).getHighlightOverlay()!;
 
       var cube = await FilamentApp.instance!.createGeometry(GeometryUtils.cube(flipUvs: true));
       await result.viewer.addToScene(cube);
@@ -680,7 +680,7 @@ void main() async {
   test('stencil highlight visible on plane from both sides', () async {
     await ViewerBuilder(testHelper).setRenderTargetEnabled(true).setStencilBufferEnabled(true).execute((result) async {
       await result.viewer.view.setHighlightOverlayEnabled(true);
-      final manager = result.viewer.view.getHighlightOverlay()!;
+      final manager = (result.viewer.view as FFIView).getHighlightOverlay()!;
 
       var materialInstance = await FilamentApp.instance!.createUbershaderMaterialInstance(unlit: true);
       await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 1);
@@ -772,7 +772,7 @@ void main() async {
       await FilamentApp.instance!.render();
 
       // Verify the entity was added to highlights
-      final manager = result.viewer.view.getHighlightOverlay();
+      final manager = (result.viewer.view as FFIView).getHighlightOverlay();
       expect(manager, isNotNull);
       expect(manager!.highlightedEntities, contains(firstChild));
 
@@ -1633,7 +1633,7 @@ void main() async {
   test('stencil highlight on translucent (AlphaMode.BLEND) entity renders full-strength outline', () async {
     await ViewerBuilder(testHelper).setRenderTargetEnabled(true).setStencilBufferEnabled(true).execute((result) async {
       await result.viewer.view.setHighlightOverlayEnabled(true);
-      final manager = result.viewer.view.getHighlightOverlay()!;
+      final manager = (result.viewer.view as FFIView).getHighlightOverlay()!;
 
       final alphaMi = await FilamentApp.instance!.createUbershaderMaterialInstance(
         unlit: true,
@@ -1678,7 +1678,7 @@ void main() async {
       final app = FilamentApp.instance!;
       final viewer = result.viewer;
       await viewer.view.setHighlightOverlayEnabled(true);
-      final manager = viewer.view.getHighlightOverlay()!;
+      final manager = (viewer.view as FFIView).getHighlightOverlay()!;
 
       final cube = await viewer.loadGltf(p.join(testHelper.assetsDir, "cube_with_morph_targets.glb"), addToScene: true);
       expect(cube.geometryCapabilities, isEmpty);
@@ -2014,7 +2014,7 @@ void main() async {
                 await app.render();
                 await app.flush();
 
-                final overlayView = viewer.view.getHighlightOverlay()!.overlayView;
+                final overlayView = (viewer.view as FFIView).getHighlightOverlay()!.overlayView;
                 final captured = await app.capture(null, view: overlayView, render: false, captureRenderTarget: true);
                 final bytes = captured.single.$2;
                 final floats = Float32List.view(bytes.buffer, bytes.offsetInBytes);
@@ -2111,7 +2111,7 @@ void main() async {
 
               try {
                 await view.setHighlightOverlayEnabled(true);
-                final overlay = view.getHighlightOverlay()!;
+                final overlay = (view as FFIView).getHighlightOverlay()!;
                 final cube = await viewer.loadGltf(
                   "file://${testHelper.assetsDir}/cube.glb",
                   requiredGeometryCapabilities: const {SceneAssetGeometryCapability.accessibleGeometryBuffers},

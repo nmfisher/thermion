@@ -1,4 +1,3 @@
-import 'package:thermion_dart/src/filament/src/implementation/highlight_overlay_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -481,10 +480,6 @@ abstract class View<T> extends NativeHandle<T> {
   //
   // Returns true if initialization succeeded, false if already enabled.
   Future setHighlightOverlayEnabled(bool enabled);
-
-  // Returns the highlight manager (or null if [setHighlightOverlayEnabled] was
-  // called with false).
-  HighlightOverlayManager? getHighlightOverlay();
 
   /// Renders a screen-space outline around [entity] with the given color.
   ///

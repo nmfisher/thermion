@@ -87,9 +87,15 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
 
   final FFIFilamentApp _app;
 
-  // Views (always non-null after construction via create())
-  final SilhouetteView silhouetteView;
-  final EdgeDetectionView overlayView;
+  // Passes (always non-null after construction via create())
+  final SilhouetteView _silhouettePass;
+  final EdgeDetectionView _edgeDetectionPass;
+
+  @override
+  View get silhouetteView => _silhouettePass.view;
+
+  @override
+  View get overlayView => _edgeDetectionPass.view;
 
   final _highlightedEntities = <ThermionEntity>{};
 
@@ -109,7 +115,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
   @override
   Future<void> setRenderTarget(View mainView, RenderTarget? presentationRenderTarget) async {
     await mainView.setRenderTarget(presentationRenderTarget);
-    await overlayView.setRenderTarget(presentationRenderTarget);
+    await _edgeDetectionPass.setRenderTarget(presentationRenderTarget);
     _logger.info("Presentation render target updated");
   }
 
@@ -125,12 +131,18 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
       return;
     }
 
-    await overlayView.setRenderTarget(null);
+    await _edgeDetectionPass.setRenderTarget(null);
     _swapChain = swapChain;
     _logger.info("EdgeDetectionView registered with swapchain (overlay-only mode)");
   }
 
-  FFIHighlightOverlayManager._(this._app, {required this.silhouetteView, required this.overlayView});
+  FFIHighlightOverlayManager._({
+    required SilhouetteView silhouettePass,
+    required EdgeDetectionView edgeDetectionPass,
+    required FFIFilamentApp app,
+  }) : _silhouettePass = silhouettePass,
+       _edgeDetectionPass = edgeDetectionPass,
+       _app = app;
 
   /// Creates and initializes a new [HighlightOverlayManager].
   static Future<HighlightOverlayManager> create(FFIFilamentApp app, {required int width, required int height}) async {
@@ -138,27 +150,31 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     final actualWidth = width > 0 ? width : 1;
     final actualHeight = height > 0 ? height : 1;
 
-    // Create silhouette view (first pass) — opaque so the black skybox clears background pixels
-    final silhouetteView = await SilhouetteView.create(app, width: actualWidth, height: actualHeight);
-    await silhouetteView.setBlendMode(BlendMode.opaque);
+    // Create silhouette pass (first pass) — opaque so the black skybox clears background pixels
+    final silhouettePass = await SilhouetteView.create(app, width: actualWidth, height: actualHeight);
+    await silhouettePass.view.setBlendMode(BlendMode.opaque);
 
-    // Create edge detection view (second pass)
-    final edgeDetectionView = await EdgeDetectionView.create(
+    // Create edge detection pass (second pass)
+    final edgeDetectionPass = await EdgeDetectionView.create(
       app,
       width: actualWidth,
       height: actualHeight,
-      silhouetteTexture: silhouetteView.colorTexture,
+      silhouetteTexture: silhouettePass.colorTexture,
     );
 
     // Wire up texture resize callback so EdgeDetectionView gets notified
     // when SilhouetteView resizes its render target
-    silhouetteView.onTextureResized = (newTexture) async {
-      await edgeDetectionView.updateSilhouetteTexture(newTexture);
+    silhouettePass.onTextureResized = (newTexture) async {
+      await edgeDetectionPass.updateSilhouetteTexture(newTexture);
     };
 
-    await edgeDetectionView.setBlendMode(BlendMode.transparent);
+    await edgeDetectionPass.view.setBlendMode(BlendMode.transparent);
 
-    final manager = FFIHighlightOverlayManager._(app, silhouetteView: silhouetteView, overlayView: edgeDetectionView);
+    final manager = FFIHighlightOverlayManager._(
+      silhouettePass: silhouettePass,
+      edgeDetectionPass: edgeDetectionPass,
+      app: app,
+    );
 
     manager._logger.info("Highlight overlay manager initialized");
 
@@ -168,14 +184,14 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
   /// Set the camera for the silhouette view.
   @override
   Future<void> setCamera(Camera? camera) async {
-    await silhouetteView.setCamera(camera);
+    await _silhouettePass.setCamera(camera);
   }
 
   /// Update viewport size for both views.
   @override
   Future<void> setViewport(int width, int height) async {
-    await silhouetteView.setViewport(width, height);
-    await overlayView.setViewport(width, height);
+    await _silhouettePass.setViewport(width, height);
+    await _edgeDetectionPass.setViewport(width, height);
   }
 
   /// Add a highlight for an entity.
@@ -187,7 +203,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     double b = 0.0,
   }) async {
     // ALWAYS update outline params (even if already highlighted)
-    await overlayView.setOutlineParams(width: outlineWidth, r: r, g: g, b: b);
+    await _edgeDetectionPass.setOutlineParams(width: outlineWidth, r: r, g: g, b: b);
 
     // Only add silhouette if not already tracked
     if (_highlightedEntities.contains(target)) {
@@ -200,7 +216,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     }
 
     // Add silhouette to first pass
-    await silhouetteView.addHighlight(target: target);
+    await _silhouettePass.addHighlight(target: target);
 
     _highlightedEntities.add(target);
   }
@@ -211,7 +227,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
       return;
     }
 
-    await silhouetteView.removeHighlight(target);
+    await _silhouettePass.removeHighlight(target);
     _highlightedEntities.remove(target);
   }
 
@@ -233,12 +249,12 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     _logger.info("Cleared highlights");
 
     // Destroy EdgeDetectionView FIRST (destroys material instance, releases texture bindings)
-    await overlayView.destroy();
+    await _edgeDetectionPass.destroy();
 
     _logger.info("Destroyed overlay view");
 
     // NOW safe to destroy SilhouetteView (which destroys the silhouette texture)
-    await silhouetteView.destroy();
+    await _silhouettePass.destroy();
 
     if (_swapChain != null) {
       _swapChain = null;
