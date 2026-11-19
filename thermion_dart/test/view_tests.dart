@@ -1801,7 +1801,7 @@ void main() async {
           TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
           if (!viewAMSAA) TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
         },
-        textureFormat: TextureFormat.DEPTH24_STENCIL8,
+        textureFormat: platformIsWindows ? TextureFormat.DEPTH32F_STENCIL8 : TextureFormat.DEPTH24_STENCIL8,
       );
       final sharedRt = await app.createRenderTarget(width, height, color: colorTex, depth: depthTex);
 
@@ -1996,7 +1996,7 @@ void main() async {
                   TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
                   TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
                 },
-                textureFormat: TextureFormat.DEPTH24_STENCIL8,
+                textureFormat: platformIsWindows ? TextureFormat.DEPTH32F_STENCIL8 : TextureFormat.DEPTH24_STENCIL8,
               );
               final rt = await app.createRenderTarget(width, height, color: colorTex, depth: depthTex);
 
@@ -2100,7 +2100,7 @@ void main() async {
                   size,
                   size,
                   flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT, TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT},
-                  textureFormat: TextureFormat.DEPTH24_STENCIL8,
+                  textureFormat: platformIsWindows ? TextureFormat.DEPTH32F_STENCIL8 : TextureFormat.DEPTH24_STENCIL8,
                 );
                 final rt = await app.createRenderTarget(size, size, color: color, depth: depth);
                 return (rt, color, depth);
