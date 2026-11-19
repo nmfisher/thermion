@@ -437,7 +437,8 @@ class NativeTextureSurfaceManager {
     int height,
   ) async {
     final options = _options();
-    final useExternalImage = Platform.isWindows || options.backend == Backend.VULKAN;
+    final useExternalImage =
+        Platform.isWindows || options.backend == Backend.VULKAN;
     final app = FilamentApp.instance;
     if (app == null) {
       throw StateError('Cannot bind a texture after Filament shutdown');
