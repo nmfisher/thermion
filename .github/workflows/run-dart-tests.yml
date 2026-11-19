@@ -677,23 +677,23 @@ jobs:
           - name: Linux
             artifact: dart-test-output-Linux
             baseline_asset: dart-test-output-Linux.zip
-            baseline_sha256: 3d39f49022db9bd7934bdadf72b32c3976cf0039e08444df99cba24d7b6146af
+            baseline_sha256: b945703739670a81dc555fc6f3610ab6be0bad20bf598ee68cc0daade4f1f8a6
           - name: Windows
             artifact: dart-test-output-Windows
             baseline_asset: dart-test-output-Windows.zip
-            baseline_sha256: a4b895bb057ceaade2b7fe79ea37445275bb0eb3b02b468028a281af3a4ab361
+            baseline_sha256: 51b600f1db7c2c6b63cc42f92edfbcad4d608b25762fb0944e317cd2dfd631a2
           - name: macOS
             artifact: dart-test-output-macOS
             baseline_asset: dart-test-output-macOS.zip
-            baseline_sha256: c0893efe51fbd7053a2b250cd8d9f8fb29e627c32ec3797a14b31b09c6167c60
+            baseline_sha256: 5f3f00eade62747cf14dc23ecfa39130be94d2f22f9bdc2fb6db330d1830c996
           - name: Linux opengl-only
             artifact: dart-material-output-Linux opengl-only
             baseline_asset: dart-material-output-Linux-opengl-only.zip
-            baseline_sha256: 1e49bec4db471f011966a4f72a15cd65ed64103cc5664ce631ae844087fd9c0b
+            baseline_sha256: d56293460b1baaa388d2d1ed35523e54a52dc520178f7617c418e952cdcb6728
           - name: Windows vulkan-only
             artifact: dart-material-output-Windows vulkan-only
             baseline_asset: dart-material-output-Windows-vulkan-only.zip
-            baseline_sha256: 70e87623f8a4bfe17508fa41cec60e749856dba86c6bb5cc0f7970ee3b5eb299
+            baseline_sha256: 91abd9fac57c9cd2c7d3165b7492304fff7d8367ba9065be2b386a62f7cc9e47
     steps:
       - uses: actions/checkout@v4
         with:
@@ -707,22 +707,20 @@ jobs:
 
       - name: Download reviewed platform baseline
         env:
-          GH_TOKEN: ${{ github.token }}
-          # Reviewed PNGs live in release assets. Provenance is recorded
-          # in baseline-review.json in the matching release. To refresh,
-          # review captures, publish a new release, then update this tag
-          # and the per-platform SHA-256 values above.
-          BASELINE_TAG: render-baselines-2026-11-06-instance-highlight
+          # Reviewed PNGs live on Cloudflare R2 under render-baselines/<id>/.
+          # Provenance is recorded in baseline-review.json at the same prefix.
+          # To refresh, review captures, upload the zips to R2 under a new
+          # prefix, then update BASELINE_ID and the per-platform SHA-256 values.
+          BASELINE_BASE_URL: https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/render-baselines
+          BASELINE_ID: 2026-11-19-overlay-translucent
           BASELINE_ASSET: ${{ matrix.baseline_asset }}
           BASELINE_SHA256: ${{ matrix.baseline_sha256 }}
         run: |
           set -euo pipefail
           baseline_dir="$RUNNER_TEMP/thermion-golden-baseline"
           mkdir -p "$baseline_dir"
-          gh release download "$BASELINE_TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --pattern "$BASELINE_ASSET" \
-            --dir "$baseline_dir"
+          curl -fL "${BASELINE_BASE_URL}/${BASELINE_ID}/${BASELINE_ASSET}" \
+            -o "$baseline_dir/$BASELINE_ASSET"
           printf '%s  %s\n' "$BASELINE_SHA256" "$baseline_dir/$BASELINE_ASSET" | sha256sum --check --strict
           python -m zipfile -e "$baseline_dir/$BASELINE_ASSET" thermion_dart/test/golden-baseline
 
