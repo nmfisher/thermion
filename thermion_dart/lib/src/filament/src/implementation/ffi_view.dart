@@ -108,9 +108,9 @@ class FFIView extends View<Pointer<TView>> {
       return;
     }
 
-    // The overlay composites this view's final image. Route the
-    // platform-owned target through the overlay so its edge-detection pass
-    // (not this view) binds it, including when clearing it with null.
+    // Keep both this view and the overlay's edge-detection view targeting the
+    // same platform-owned target (or swapchain when null) so the overlay blends
+    // directly onto this view's output and both release it before destruction.
     await overlay.setRenderTarget(this, renderTarget);
   }
 

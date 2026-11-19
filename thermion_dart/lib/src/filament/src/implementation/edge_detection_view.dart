@@ -25,11 +25,6 @@ class EdgeDetectionView extends FFIView {
   double _outlineG = 0.5;
   double _outlineB = 0.0;
 
-  // When true, outputs edges with alpha transparency instead of compositing
-  // the main scene texture. Used on web where the main scene is already
-  // rendered to the swapchain.
-  bool _overlayOnly = false;
-
   // Material (owned by this class)
   final FFIMaterial _edgeMaterial;
 
@@ -51,10 +46,6 @@ class EdgeDetectionView extends FFIView {
   /// The silhouette texture being sampled for edge detection
   Texture get silhouetteTexture => _silhouetteTexture;
 
-  // Main scene texture for compositing
-  Texture _mainSceneTexture;
-  FFITextureSampler _mainSceneSampler;
-
   // Linear color grading to avoid double tone-mapping (owned by this class)
   final ColorGrading _linearColorGrading;
   final ToneMapper _linearToneMapper;
@@ -74,14 +65,10 @@ class EdgeDetectionView extends FFIView {
     required ThermionEntity fullscreenQuadEntity,
     required FFITextureSampler edgeSampler,
     required Texture silhouetteTexture,
-    required Texture mainSceneTexture,
-    required FFITextureSampler mainSceneSampler,
     required ColorGrading linearColorGrading,
     required ToneMapper linearToneMapper,
   }) : _app = app,
        _silhouetteTexture = silhouetteTexture,
-       _mainSceneTexture = mainSceneTexture,
-       _mainSceneSampler = mainSceneSampler,
        _edgeMaterial = material,
        _edgeScene = scene,
        _skybox = skybox,
@@ -164,31 +151,6 @@ class EdgeDetectionView extends FFIView {
             )
             as FFITextureSampler;
 
-    // Create default 1x1 main scene texture (will be replaced when
-    // setMainSceneTexture is called). This ensures the shader has a valid
-    // texture to sample before initialization completes
-    final defaultMainSceneTexture =
-        await app.createTexture(
-              1,
-              1,
-              flags: {TextureUsage.TEXTURE_USAGE_SAMPLEABLE},
-              textureFormat: TextureFormat.RGBA8,
-            )
-            as FFITexture;
-
-    // Use NEAREST filtering for pixel-perfect compositing - the main scene
-    // texture is at the same resolution as the output, so LINEAR filtering
-    // would blur anti-aliased features (like grid lines) making them appear
-    // thicker.
-    final mainSceneSampler =
-        await app.createTextureSampler(
-              minFilter: TextureMinFilter.NEAREST,
-              magFilter: TextureMagFilter.NEAREST,
-              wrapS: TextureWrapMode.CLAMP_TO_EDGE,
-              wrapT: TextureWrapMode.CLAMP_TO_EDGE,
-            )
-            as FFITextureSampler;
-
     // Create fullscreen quad entity
     final fullscreenQuadEntity = await app.createEntity();
 
@@ -233,8 +195,6 @@ class EdgeDetectionView extends FFIView {
       fullscreenQuadEntity: fullscreenQuadEntity,
       edgeSampler: edgeSampler,
       silhouetteTexture: silhouetteTexture,
-      mainSceneTexture: defaultMainSceneTexture,
-      mainSceneSampler: mainSceneSampler,
       linearColorGrading: linearColorGrading,
       linearToneMapper: linearToneMapper,
     );
@@ -244,10 +204,9 @@ class EdgeDetectionView extends FFIView {
     await edgeDetectionView._setCamera(camera);
     await edgeDetectionView.setViewport(width, height);
 
-    // Disable post-processing entirely: the main scene texture is already
-    // fully processed (tone-mapped, gamma-corrected), so any additional
-    // post-processing would corrupt the colors. The shader outputs sRGB
-    // colors directly which go straight to the render target.
+    // Disable post-processing entirely: the main view already ran its own
+    // tone-mapping/post-processing into the target, and the edge shader writes
+    // premultiplied alpha directly onto it.
     await edgeDetectionView._setPostProcessingInternal(false);
 
     await edgeDetectionView.setShadowsEnabled(false);
@@ -322,26 +281,6 @@ class EdgeDetectionView extends FFIView {
     _logger.info("Updated silhouette texture reference");
   }
 
-  /// Set the main scene texture.
-  ///
-  /// The edge detection view samples both the silhouette and main scene
-  /// textures, compositing edges on top of the scene.
-  Future<void> setMainSceneTexture(Texture texture) async {
-    _mainSceneTexture = texture;
-    await _updateEdgeMaterialParams();
-    _logger.info("Set main scene texture");
-  }
-
-  /// Enable overlay-only mode (edges with alpha, no main scene compositing).
-  ///
-  /// Used on web where the main scene already renders to the swapchain
-  /// and the edge detection view just needs to overlay edges on top.
-  Future<void> setOverlayOnly(bool value) async {
-    _overlayOnly = value;
-    await _updateEdgeMaterialParams();
-    _logger.info("Overlay-only mode: $value");
-  }
-
   /// Update viewport size.
   @override
   Future setViewport(int width, int height) async {
@@ -399,19 +338,11 @@ class EdgeDetectionView extends FFIView {
     // Set silhouette texture
     await _edgeMaterialInstance.setParameterTexture('silhouette', _silhouetteTexture as FFITexture, _edgeSampler);
 
-    // Set main scene texture (only needed in composite mode)
-    if (!_overlayOnly) {
-      await _edgeMaterialInstance.setParameterTexture('mainScene', _mainSceneTexture as FFITexture, _mainSceneSampler);
-    }
-
     // Set texel size (1/width, 1/height)
     await _edgeMaterialInstance.setParameterFloat2('texelSize', 1.0 / vp.width, 1.0 / vp.height);
 
     // Set outline color and width
     await _edgeMaterialInstance.setParameterFloat3('outlineColor', _outlineR, _outlineG, _outlineB);
     await _edgeMaterialInstance.setParameterFloat('outlineWidth', _outlineWidth);
-
-    // Set overlay-only mode
-    await _edgeMaterialInstance.setParameterInt('overlayOnly', _overlayOnly ? 1 : 0);
   }
 }
