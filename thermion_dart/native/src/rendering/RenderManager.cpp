@@ -82,9 +82,9 @@ namespace thermion
     }
 
     for (auto &va : mViewAttachments) {
-      for (int i = 0; i < numViewAttachments; i++) {
-        if (va.views[i] == view) {
-          va.materialOverrides[i] = materialInstance;
+      for (auto &slot : va.views) {
+        if (slot.view == view) {
+          slot.materialOverride = materialInstance;
         }
       }
     }
@@ -193,20 +193,21 @@ namespace thermion
     }
 
     // Update views
-    for (int i = 0; i < numViewAttachments; i++)
+    attachment->views.clear();
+    if (views && numViews > 0)
     {
-      if(i < numViews) {
-        attachment->views[i] = views[i];
-        attachment->materialOverrides[i] = findMaterialOverrideLocked(views[i]);
-        if(!views[i]) {
-          LOG_ERROR("View attachment at %d is nullptr, this is not expected", i);  
+      attachment->views.reserve(numViews);
+      for (size_t i = 0; i < numViews; i++)
+      {
+        if (!views[i])
+        {
+          LOG_ERROR("View attachment at %zu is nullptr, this is not expected", i);
+          continue;
         }
-      } else { 
-        attachment->views[i] = nullptr;
-        attachment->materialOverrides[i] = nullptr;
+        attachment->views.push_back({views[i], findMaterialOverrideLocked(views[i])});
       }
     }
-    TRACE("Set %d view attachments for swapchain", numViews);
+    TRACE("Set %u view attachments for swapchain", numViews);
   }
 
   void RenderManager::updateAnimationsAndPlugins(uint64_t frameTimeInNanos)
@@ -243,16 +244,7 @@ namespace thermion
     // state machine as a real frame, opening a window for the
     // SwapChain validity assertion at endFrame:490 to trip during
     // dispose / mount transitions.
-    bool hasAnyView = false;
-    for (int i = 0; i < numViewAttachments; i++)
-    {
-      if (attachment.views[i])
-      {
-        hasAnyView = true;
-        break;
-      }
-    }
-    if (!hasAnyView)
+    if (attachment.views.empty())
     {
       return false;
     }
@@ -284,14 +276,14 @@ namespace thermion
     TRACE("Beginning frame for swapchain %zu (%.3f ms since last endFrame())", index, sinceLastMs);
 
     int numRendered = 0;
-    for (int i = 0; i < numViewAttachments; i++)
+    for (const auto &slot : attachment.views)
     {
-      if (!attachment.views[i]) break;
+      if (!slot.view) continue;
       numRendered++;
-      if (attachment.materialOverrides[i]) {
-        renderViewWithMaterialOverrideLocked(attachment.views[i], attachment.materialOverrides[i], false);
+      if (slot.materialOverride) {
+        renderViewWithMaterialOverrideLocked(slot.view, slot.materialOverride, false);
       } else {
-        mRenderer->render(attachment.views[i]);
+        mRenderer->render(slot.view);
       }
     }
 

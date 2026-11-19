@@ -77,9 +77,44 @@ abstract class RenderManager<T> extends NativeHandle<T> {
   /// set its state before attachment. This method does not modify the view's
   /// render target or take ownership of either object.
   ///
-  /// The current native manager submits at most eight renderable views per
-  /// swapchain; additional renderable attachments are not rendered.
+  /// The current native manager supports at most 255 renderable views per
+  /// swapchain; synchronizing more than 255 renderable views on a single
+  /// swapchain throws a [RangeError].
   Future attach(View view, SwapChain swapChain, {int renderOrder = 0});
+
+  /// Replaces every view attachment on [swapChain] in one atomic state update.
+  ///
+  /// Any views currently attached to [swapChain] that are omitted from
+  /// [attachments] are detached from [swapChain] (while retaining their
+  /// per-view renderability settings and attachments to other swapchains). All
+  /// entries in [attachments] are ordered by ascending `order` (preserving
+  /// list order for equal `order` values; if a view appears more than once, the
+  /// last entry wins) and synchronized with the render thread in a single
+  /// update without intermediate detached states.
+  ///
+  /// Synchronizing more than 255 renderable views on [swapChain] throws a
+  /// [RangeError].
+  Future setAttachments(SwapChain swapChain, List<({View view, int order})> attachments);
+
+  /// Atomically applies a batch of attachment additions/reorders and
+  /// detachments on [swapChain] in one state update.
+  ///
+  /// Unlike [setAttachments], existing attachments on [swapChain] that are not
+  /// listed in [attach] or [detach] remain untouched. Entries in [detach] are
+  /// removed from [swapChain] before [attach] entries are applied, retaining
+  /// per-view renderability settings and any attachments on other swapchains.
+  /// All changes become visible to synchronous readers such as
+  /// [getViewAttachments] and are synchronized with the render thread together,
+  /// avoiding intermediate states where views are temporarily missing or
+  /// reordered.
+  ///
+  /// Synchronizing more than 255 renderable views on [swapChain] throws a
+  /// [RangeError].
+  Future updateAttachments(
+    SwapChain swapChain, {
+    Iterable<({View view, int order})> attach = const [],
+    Iterable<View> detach = const [],
+  });
 
   /// Includes or excludes [view] from frame submission.
   ///
