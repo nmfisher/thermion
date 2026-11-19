@@ -85,17 +85,6 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setRenderTarget(RenderTarget? renderTarget) async {
-    // When highlight overlay is enabled, the main view renders to an internal
-    // render target. Flutter-provided render targets go to EdgeDetectionView.
-    if (_highlightOverlayManager != null && renderTarget != null) {
-      final isInternalRT = _highlightOverlayManager!.isInternalRenderTarget(renderTarget);
-      if (!isInternalRT) {
-        // This is a Flutter RT - redirect to EdgeDetectionView
-        await _highlightOverlayManager!.setRenderTarget(this, renderTarget as FFIRenderTarget);
-        return;
-      }
-    }
-
     if (renderTarget != null) {
       await withVoidCallback(
         (requestId, cb) =>
@@ -108,6 +97,20 @@ class FFIView extends View<Pointer<TView>> {
       );
       this.renderTarget = null;
     }
+  }
+
+  @override
+  Future setPresentationRenderTarget(RenderTarget? renderTarget) async {
+    final overlay = _highlightOverlayManager;
+    if (overlay == null) {
+      await setRenderTarget(renderTarget);
+      return;
+    }
+
+    // The overlay composites this view's final image. Route the
+    // platform-owned target through the overlay so its edge-detection pass
+    // (not this view) binds it, including when clearing it with null.
+    await overlay.setRenderTarget(this, renderTarget);
   }
 
   @override
@@ -608,8 +611,9 @@ class FFIView extends View<Pointer<TView>> {
     await rm.detach(_highlightOverlayManager!.silhouetteView);
     await rm.detach(_highlightOverlayManager!.overlayView);
 
-    // Set to null BEFORE calling destroy to prevent the setRenderTarget
-    // interceptor from redirecting to the already-destroyed EdgeDetectionView
+    // Set to null BEFORE calling destroy so a concurrent
+    // setPresentationRenderTarget cannot route to the already-destroyed
+    // EdgeDetectionView
     final manager = _highlightOverlayManager;
     _highlightOverlayManager = null;
     await manager!.destroy();

@@ -5,6 +5,7 @@ export 'src/interface/engine.dart';
 export 'src/interface/layers.dart';
 export 'src/interface/light_manager.dart';
 export 'src/interface/light_options.dart';
+export 'src/interface/render_manager.dart';
 export 'src/interface/renderable_manager.dart';
 export 'src/interface/transform_manager.dart';
 export 'src/interface/axis.dart';

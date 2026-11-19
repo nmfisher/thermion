@@ -1,5 +1,4 @@
 import 'package:thermion_dart/src/filament/src/interface/animation_manager.dart';
-import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
@@ -424,12 +423,26 @@ abstract class FilamentApp<T> {
   //
   Future setParent(ThermionEntity child, ThermionEntity? parent, {bool preserveScaling});
 
-  //
-  // Returns pixel buffer(s) for [view] (or, if null, all views associated
-  // with [swapChain] by calling [register]).
-  //
-  // Pixel buffers will be returned in RGBA float32 format.
-  //
+  /// Returns pixel buffer(s) for [view], or, when [view] is null, for the
+  /// renderable views attached to [swapChain] (in attachment order).
+  ///
+  /// When [view] is provided it is captured even if it is not attached to
+  /// [swapChain], and even if its attachment is currently non-renderable:
+  /// an explicit request renders that view when [render] is true. When
+  /// [view] is null, non-renderable attachments are skipped entirely (no
+  /// [beforeRender] callback, no render, no readback), because their targets
+  /// hold stale contents and swapchain-bound views would return duplicate
+  /// pixels.
+  ///
+  /// [beforeRender] is awaited once per captured view before its render (when
+  /// [render] is true) and readback. When [render] is false, the current
+  /// contents are read back without rendering: the view's render target if it
+  /// has one, otherwise the swapchain's framebuffer.
+  ///
+  /// Each view reads from its own render target when it has one, otherwise
+  /// from [swapChain]'s framebuffer.
+  ///
+  /// Pixel buffers will be returned in RGBA float32 format.
   Future<List<(View, Uint8List)>> capture(
     SwapChain? swapChain, {
     View? view,
