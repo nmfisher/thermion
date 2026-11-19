@@ -68,6 +68,16 @@ namespace thermion
         /// without drawing an intermediate frame.
         void flushCommands();
 
+        /// Registers [materialInstance] to temporarily override every
+        /// non-skybox renderable primitive in [view]'s scene while [view]
+        /// renders, restoring original materials immediately afterward.
+        /// Pass nullptr to clear any registered override for [view].
+        void setMaterialOverride(View *view, MaterialInstance *materialInstance);
+
+        /// Renders [view] using this manager's renderer, applying any
+        /// material override registered for [view].
+        void renderView(View *view, bool standalone = false);
+
 #ifdef __EMSCRIPTEN__
         // Called on the engine's thread when the manager is attached/detached.
         // Main-thread web mode renders explicitly and does not start a loop.
@@ -120,19 +130,31 @@ namespace thermion
         struct ViewAttachment
         {
             SwapChain *swapChain = nullptr;
-            View *views[numViewAttachments];
+            View *views[numViewAttachments] = {nullptr};
+            MaterialInstance *materialOverrides[numViewAttachments] = {nullptr};
+        };
+
+        struct SavedMaterial
+        {
+            RenderableManager::Instance instance;
+            size_t primitiveIndex;
+            MaterialInstance *original;
         };
 
         // Factored out of render() so tick() can invoke them piecewise.
-        // Both assume mMutex is held by the caller.
+        // All assume mMutex is held by the caller.
         void updateAnimationsAndPlugins(uint64_t frameTimeInNanos);
         bool renderSwapChainAt(size_t index, uint64_t frameTimeInNanos);
+        MaterialInstance *findMaterialOverrideLocked(const View *view) const;
+        void renderViewWithMaterialOverrideLocked(View *view, MaterialInstance *materialOverride, bool standalone);
 
         std::mutex mMutex;
         Engine *mEngine = nullptr;
         Renderer *mRenderer = nullptr;
         std::vector<AnimationManager *> mAnimationManagers;
         std::vector<ViewAttachment> mViewAttachments;
+        std::vector<std::pair<View *, MaterialInstance *>> mMaterialOverrides;
+        std::vector<SavedMaterial> mSavedMaterials;
         std::chrono::high_resolution_clock::time_point mLastRender;
 
         // Web: when true, tick() short-circuits animations + swapchain render.

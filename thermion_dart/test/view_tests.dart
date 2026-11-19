@@ -7,7 +7,6 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
@@ -524,7 +523,18 @@ void main() async {
       await FilamentApp.instance!.setClearOptions(1, 1, 1, 0, clear: true, discard: false);
       await FilamentApp.instance!.render();
 
-      await testHelper.capture(null, "stencil_highlight_5px_orange", render: true, captureRenderTarget: true);
+      final orangeCaptures = await testHelper.capture(
+        null,
+        "stencil_highlight_5px_orange",
+        render: true,
+        captureRenderTarget: true,
+      );
+      final orangeBuf = orangeCaptures[manager!.overlayView]!;
+      expect(
+        _countMatchingPixels(orangeBuf, (r, g, b, a) => r > 0.8 && g > 0.3 && g < 0.7 && b < 0.15),
+        greaterThan(100),
+        reason: "5px orange stencil highlight should produce visible orange outline pixels",
+      );
 
       // Test with thin outline (1 pixel) and blue color
       await result.viewer.view.removeStencilHighlight(cube);
@@ -532,14 +542,48 @@ void main() async {
 
       await FilamentApp.instance!.render();
 
-      await testHelper.capture(null, "stencil_highlight_1px_blue", captureRenderTarget: true, render: false);
+      final blueCaptures = await testHelper.capture(
+        null,
+        "stencil_highlight_1px_blue",
+        captureRenderTarget: true,
+        render: false,
+      );
+      final blueBuf = blueCaptures[manager.overlayView]!;
+      expect(
+        _countMatchingPixels(blueBuf, (r, g, b, a) => r < 0.15 && g > 0.3 && g < 0.7 && b > 0.8),
+        greaterThan(20),
+        reason: "1px blue stencil highlight should produce visible blue outline pixels",
+      );
+      expect(
+        _countMatchingPixels(blueBuf, (r, g, b, a) => r > 0.8 && g > 0.3 && g < 0.7 && b < 0.15),
+        equals(0),
+        reason: "Previous orange outline should no longer be drawn after switching to blue",
+      );
 
       // Test that highlight follows object translation
       await cube.setTransform(Matrix4.translation(Vector3(2, 0, 0)));
 
       await FilamentApp.instance!.render();
 
-      await testHelper.capture(null, "stencil_highlight_after_translate", captureRenderTarget: true, render: false);
+      final translatedCaptures = await testHelper.capture(
+        null,
+        "stencil_highlight_after_translate",
+        captureRenderTarget: true,
+        render: false,
+      );
+      final translatedStats = _pixelStats(
+        translatedCaptures[manager.overlayView]!,
+        512,
+        512,
+        (r, g, b, a) => r < 0.15 && g > 0.3 && g < 0.7 && b > 0.8,
+      );
+      final untranslatedStats = _pixelStats(
+        blueBuf,
+        512,
+        512,
+        (r, g, b, a) => r < 0.15 && g > 0.3 && g < 0.7 && b > 0.8,
+      );
+      expect(translatedStats.meanX, greaterThan(untranslatedStats.meanX + 40));
 
       // Test that highlight follows object rotation
       await cube.setTransform(Matrix4.translation(Vector3(-2, 1, 0)) * Matrix4.rotationZ(0.5));
@@ -567,11 +611,18 @@ void main() async {
 
       await FilamentApp.instance!.render();
 
-      await testHelper.capture(
+      final disabledCaptures = await testHelper.capture(
         null,
         "stencil_highlight_after_overlay_disabled",
         captureRenderTarget: true,
         render: false,
+      );
+      expect(
+        _countMatchingPixels(
+          disabledCaptures[result.viewer.view]!,
+          (r, g, b, a) => r < 0.15 && g > 0.3 && g < 0.7 && b > 0.8,
+        ),
+        equals(0),
       );
     });
   });
@@ -579,6 +630,7 @@ void main() async {
   test('consecutive setStencilHighlight with different colors updates correctly', () async {
     await ViewerBuilder(testHelper).setRenderTargetEnabled(true).setStencilBufferEnabled(true).execute((result) async {
       await result.viewer.view.setHighlightOverlayEnabled(true);
+      final manager = result.viewer.view.getHighlightOverlay()!;
 
       var cube = await FilamentApp.instance!.createGeometry(GeometryUtils.cube(flipUvs: true));
       await result.viewer.addToScene(cube);
@@ -587,11 +639,18 @@ void main() async {
       await result.viewer.view.setStencilHighlight(cube, r: 1.0, g: 0.5, b: 0.0, outlineWidth: 5.0);
       await FilamentApp.instance!.render();
 
-      await testHelper.capture(
+      final firstCaptures = await testHelper.capture(
         null,
         "consecutive_highlight_first_color_orange",
         render: true,
         captureRenderTarget: true,
+      );
+      expect(
+        _countMatchingPixels(
+          firstCaptures[manager.overlayView]!,
+          (r, g, b, a) => r > 0.8 && g > 0.3 && g < 0.7 && b < 0.15,
+        ),
+        greaterThan(100),
       );
 
       // Change to blue - this should now work correctly
@@ -599,13 +658,19 @@ void main() async {
 
       await FilamentApp.instance!.render();
 
-      await testHelper.capture(
+      final secondCaptures = await testHelper.capture(
         null,
         "consecutive_highlight_second_color_blue",
         captureRenderTarget: true,
         render: false,
       );
       // Should now be blue, not orange!
+      final secondBuf = secondCaptures[manager.overlayView]!;
+      expect(
+        _countMatchingPixels(secondBuf, (r, g, b, a) => r < 0.15 && g > 0.3 && g < 0.7 && b > 0.8),
+        greaterThan(100),
+      );
+      expect(_countMatchingPixels(secondBuf, (r, g, b, a) => r > 0.8 && g > 0.3 && g < 0.7 && b < 0.15), equals(0));
 
       await result.viewer.view.removeStencilHighlight(cube);
       await result.viewer.view.setHighlightOverlayEnabled(false);
@@ -615,6 +680,7 @@ void main() async {
   test('stencil highlight visible on plane from both sides', () async {
     await ViewerBuilder(testHelper).setRenderTargetEnabled(true).setStencilBufferEnabled(true).execute((result) async {
       await result.viewer.view.setHighlightOverlayEnabled(true);
+      final manager = result.viewer.view.getHighlightOverlay()!;
 
       var materialInstance = await FilamentApp.instance!.createUbershaderMaterialInstance(unlit: true);
       await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 1);
@@ -632,13 +698,39 @@ void main() async {
       await camera.lookAt(Vector3(0, 5, 0.1), focus: Vector3(0, 0, 0));
       await FilamentApp.instance!.render();
 
-      await testHelper.capture(null, "stencil_highlight_plane_front", render: true, captureRenderTarget: true);
+      final frontCaptures = await testHelper.capture(
+        null,
+        "stencil_highlight_plane_front",
+        render: true,
+        captureRenderTarget: true,
+      );
+      expect(
+        _countMatchingPixels(
+          frontCaptures[manager.overlayView]!,
+          (r, g, b, a) => r > 0.8 && g > 0.3 && g < 0.7 && b < 0.15,
+        ),
+        greaterThan(100),
+        reason: "Front side of plane should render an orange outline",
+      );
 
       // View from below (back face) - highlight should still be visible
       await camera.lookAt(Vector3(0, -5, 0.1), focus: Vector3(0, 0, 0));
       await FilamentApp.instance!.render();
 
-      await testHelper.capture(null, "stencil_highlight_plane_back", captureRenderTarget: true, render: false);
+      final backCaptures = await testHelper.capture(
+        null,
+        "stencil_highlight_plane_back",
+        captureRenderTarget: true,
+        render: false,
+      );
+      expect(
+        _countMatchingPixels(
+          backCaptures[manager.overlayView]!,
+          (r, g, b, a) => r > 0.8 && g > 0.3 && g < 0.7 && b < 0.15,
+        ),
+        greaterThan(100),
+        reason: "Back side of single-sided plane should still render an orange outline",
+      );
 
       await result.viewer.view.removeStencilHighlight(plane);
       await result.viewer.view.setHighlightOverlayEnabled(false);
@@ -649,14 +741,9 @@ void main() async {
     await ViewerBuilder(testHelper).setRenderTargetEnabled(true).setStencilBufferEnabled(true).execute((result) async {
       await result.viewer.view.setHighlightOverlayEnabled(true);
 
-      // Load FlightHelmet, a multi-mesh glTF asset
-      final asset = await result.viewer.loadGltf(
-        p.join(testHelper.assetsDir, "FlightHelmet", "FlightHelmet.gltf"),
-        requiredGeometryCapabilities: const {SceneAssetGeometryCapability.accessibleGeometryBuffers},
-      );
+      // Load FlightHelmet, a multi-mesh glTF asset, without accessibleGeometryBuffers
+      final asset = await result.viewer.loadGltf(p.join(testHelper.assetsDir, "FlightHelmet", "FlightHelmet.gltf"));
       expect(asset, isNotNull);
-
-      final ffiAsset = asset as FFIAsset;
 
       // Get all child entities
       final childEntities = await asset.getChildEntities();
@@ -689,11 +776,15 @@ void main() async {
       expect(manager, isNotNull);
       expect(manager!.highlightedEntities, contains(firstChild));
 
-      await testHelper.capture(
+      final firstChildCaptures = await testHelper.capture(
         null,
         "stencil_highlight_multi_mesh_first_child",
         render: false,
         captureRenderTarget: true,
+      );
+      expect(
+        _countMatchingPixels(firstChildCaptures[manager.overlayView]!, (r, g, b, a) => r > 0.8 && g < 0.15 && b < 0.15),
+        greaterThan(20),
       );
 
       // Remove it and highlight a different child
@@ -716,37 +807,18 @@ void main() async {
         expect(manager.highlightedEntities, contains(secondChild));
         expect(manager.highlightedEntities, isNot(contains(firstChild)));
 
-        // Bug-catcher for entity-only mode: setStencilHighlight should have
-        // called asset.getPrimitiveOffsetForEntity(secondChild) and used that
-        // entity's preserved buffers — not silently fallen back to primitive 0.
-        // Verify by comparing the recorded indexCount to primitive 0's
-        // indexCount (they must differ because secondChild's primitive offset
-        // is > 0 in FlightHelmet).
-        final secondChildOffset = await ffiAsset.getPrimitiveOffsetForEntity(secondChild);
-        expect(secondChildOffset, greaterThan(0), reason: "Test relies on secondChild not being at offset 0");
-
-        // Get the primitive count for secondChild
-        final secondChildPrimCount = await FilamentApp.instance!.getPrimitiveCount(secondChild);
-
-        // Verify that we can access the buffers at the correct offset
-        for (int i = 0; i < secondChildPrimCount; i++) {
-          final flatIndex = secondChildOffset + i;
-          final vb = asset.getVertexBuffer(primitiveIndex: flatIndex);
-          final ib = SceneAsset_getIndexBuffer(ffiAsset.asset, flatIndex);
-
-          // At least one primitive should have valid buffers
-          // (some might be null placeholders for non-triangle primitives)
-          if (vb != null && ib != nullptr) {
-            expect(vb, isA<FFIVertexBuffer>());
-            break;
-          }
-        }
-
-        await testHelper.capture(
+        final secondChildCaptures = await testHelper.capture(
           null,
           "stencil_highlight_multi_mesh_second_child",
           render: false,
           captureRenderTarget: true,
+        );
+        expect(
+          _countMatchingPixels(
+            secondChildCaptures[manager.overlayView]!,
+            (r, g, b, a) => r < 0.15 && g < 0.15 && b > 0.8,
+          ),
+          greaterThan(20),
         );
 
         await result.viewer.view.removeStencilHighlight(asset);
@@ -1355,6 +1427,427 @@ void main() async {
           await result.viewer.removeFromScene(plane);
         });
   });
+
+  test('multi-scene entity membership survives removal from one scene', () async {
+    final app = FilamentApp.instance!;
+    const width = 128;
+    const height = 128;
+    final swapChain = await app.createHeadlessSwapChain(width, height);
+    final sceneA = await app.createScene();
+    final sceneB = await app.createScene();
+    final skyboxA = await app.createColoredSkybox(r: 0, g: 0, b: 0, a: 1);
+    final skyboxB = await app.createColoredSkybox(r: 0, g: 0, b: 0, a: 1);
+    await sceneA.setSkybox(skyboxA);
+    await sceneB.setSkybox(skyboxB);
+
+    final camera = await app.createCamera();
+    await camera.setLensProjection();
+    await camera.lookAt(Vector3(0, 0, 5));
+
+    final viewA = await app.createView();
+    final viewB = await app.createView();
+    final rtColorA = await app.createTexture(
+      width,
+      height,
+      flags: {
+        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+        TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+      },
+      textureFormat: TextureFormat.RGBA32F,
+    );
+    final rtColorB = await app.createTexture(
+      width,
+      height,
+      flags: {
+        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+        TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+      },
+      textureFormat: TextureFormat.RGBA32F,
+    );
+    final rtA = await app.createRenderTarget(width, height, color: rtColorA);
+    final rtB = await app.createRenderTarget(width, height, color: rtColorB);
+
+    for (final (view, scene, rt) in [(viewA, sceneA, rtA), (viewB, sceneB, rtB)]) {
+      await view.setScene(scene);
+      await view.setCamera(camera);
+      await view.setViewport(width, height);
+      await view.setFrustumCullingEnabled(false);
+      await view.setPostProcessing(false);
+      await view.setRenderTarget(rt);
+      await app.renderManager.attach(view, swapChain);
+    }
+
+    final red = await app.createUnlitMaterialInstance();
+    await red.setParameterFloat4("baseColorFactor", 1, 0, 0, 1);
+    final cube = await app.createGeometry(GeometryUtils.cube(flipUvs: true), materialInstances: [red]);
+
+    try {
+      await sceneA.addEntity(cube.entity);
+      await sceneB.addEntity(cube.entity);
+
+      final beforeA = (await testHelper.capture(
+        viewA,
+        null,
+        swapChain: swapChain,
+        captureRenderTarget: true,
+      )).values.single;
+      final beforeB = (await testHelper.capture(
+        viewB,
+        null,
+        swapChain: swapChain,
+        captureRenderTarget: true,
+      )).values.single;
+      final centerIdx = ((height ~/ 2) * width + (width ~/ 2)) * 4;
+      final pxBeforeA = Float32List.view(beforeA.buffer, beforeA.offsetInBytes);
+      final pxBeforeB = Float32List.view(beforeB.buffer, beforeB.offsetInBytes);
+      expect(pxBeforeA[centerIdx], greaterThan(0.8));
+      expect(pxBeforeB[centerIdx], greaterThan(0.8));
+
+      await sceneB.removeEntity(cube.entity);
+
+      final afterA = (await testHelper.capture(
+        viewA,
+        null,
+        swapChain: swapChain,
+        captureRenderTarget: true,
+      )).values.single;
+      final afterB = (await testHelper.capture(
+        viewB,
+        null,
+        swapChain: swapChain,
+        captureRenderTarget: true,
+      )).values.single;
+      final pxAfterA = Float32List.view(afterA.buffer, afterA.offsetInBytes);
+      final pxAfterB = Float32List.view(afterB.buffer, afterB.offsetInBytes);
+      expect(
+        pxAfterA[centerIdx],
+        greaterThan(0.8),
+        reason: 'Entity must remain visible in sceneA after removal from sceneB',
+      );
+      expect(pxAfterB[centerIdx], lessThan(0.05), reason: 'Entity must no longer render in sceneB after removal');
+    } finally {
+      await sceneA.removeEntity(cube.entity);
+      await app.destroyAsset(cube);
+      await red.destroy();
+      await app.renderManager.detach(viewA);
+      await app.renderManager.detach(viewB);
+      await app.destroyView(viewA);
+      await app.destroyView(viewB);
+      await rtA.destroy();
+      await rtB.destroy();
+      await rtColorA.destroy();
+      await rtColorB.destroy();
+      await camera.destroy();
+      await sceneA.setSkybox(null);
+      await sceneB.setSkybox(null);
+      await skyboxA.destroy();
+      await skyboxB.destroy();
+      await app.destroyScene(sceneA);
+      await app.destroyScene(sceneB);
+      await app.destroySwapChain(swapChain);
+    }
+  });
+
+  test('color-only render target without depth attachment renders cleanly', () async {
+    final app = FilamentApp.instance!;
+    const width = 128;
+    const height = 128;
+    final swapChain = await app.createHeadlessSwapChain(width, height);
+    final scene = await app.createScene();
+    final skybox = await app.createColoredSkybox(r: 0, g: 0, b: 0, a: 0);
+    await scene.setSkybox(skybox);
+    final camera = await app.createCamera();
+    await camera.setLensProjection();
+    await camera.lookAt(Vector3(0, 0, 5));
+
+    final colorTex = await app.createTexture(
+      width,
+      height,
+      flags: {
+        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+        TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+      },
+      textureFormat: TextureFormat.RGBA8,
+    );
+    final colorOnlyRt = await app.createRenderTarget(width, height, color: colorTex, createDepth: false);
+
+    final view = await app.createView();
+    await view.setScene(scene);
+    await view.setCamera(camera);
+    await view.setViewport(width, height);
+    await view.setFrustumCullingEnabled(false);
+    await view.setPostProcessing(false);
+    await view.setShadowsEnabled(false);
+    await view.setBlendMode(BlendMode.transparent);
+    await view.setRenderTarget(colorOnlyRt);
+    await app.renderManager.attach(view, swapChain);
+
+    final mi = await app.createUnlitMaterialInstance();
+    await mi.setParameterFloat4("baseColorFactor", 1, 1, 1, 1);
+    final cube = await app.createGeometry(GeometryUtils.cube(flipUvs: true), materialInstances: [mi]);
+
+    try {
+      await scene.addEntity(cube.entity);
+      final centerIdx = ((height ~/ 2) * width + (width ~/ 2)) * 4;
+      await app.setClearOptions(0, 0, 0, 0, clear: true, discard: false);
+      final bufDefault = (await testHelper.capture(
+        view,
+        null,
+        swapChain: swapChain,
+        captureRenderTarget: true,
+        pixelDataType: PixelDataType.UBYTE,
+      )).values.single;
+      final bufSecond = (await testHelper.capture(
+        view,
+        null,
+        swapChain: swapChain,
+        captureRenderTarget: true,
+        pixelDataType: PixelDataType.UBYTE,
+      )).values.single;
+
+      expect(bufDefault[centerIdx + 0], equals(255));
+      expect(bufDefault[centerIdx + 3], equals(255));
+      expect(bufDefault[3], equals(0));
+      expect(bufSecond[centerIdx + 0], equals(255));
+      expect(bufSecond[centerIdx + 3], equals(255));
+      expect(bufSecond[3], equals(0));
+    } finally {
+      await scene.removeEntity(cube.entity);
+      await app.destroyAsset(cube);
+      await mi.destroy();
+      await app.renderManager.detach(view);
+      await app.destroyView(view);
+      await colorOnlyRt.destroy();
+      await colorTex.destroy();
+      await camera.destroy();
+      await scene.setSkybox(null);
+      await skybox.destroy();
+      await app.destroyScene(scene);
+      await app.destroySwapChain(swapChain);
+    }
+  });
+
+  test('stencil highlight on translucent (AlphaMode.BLEND) entity renders full-strength outline', () async {
+    await ViewerBuilder(testHelper).setRenderTargetEnabled(true).setStencilBufferEnabled(true).execute((result) async {
+      await result.viewer.view.setHighlightOverlayEnabled(true);
+      final manager = result.viewer.view.getHighlightOverlay()!;
+
+      final alphaMi = await FilamentApp.instance!.createUbershaderMaterialInstance(
+        unlit: true,
+        alphaMode: AlphaMode.BLEND,
+      );
+      await alphaMi.setParameterFloat4("baseColorFactor", 1, 1, 1, 0.25);
+      final alphaCube = await FilamentApp.instance!.createGeometry(
+        GeometryUtils.cube(flipUvs: true),
+        materialInstances: [alphaMi],
+      );
+      await result.viewer.addToScene(alphaCube);
+
+      await result.viewer.view.setStencilHighlight(alphaCube, r: 1.0, g: 0.0, b: 0.0, outlineWidth: 5.0);
+      await FilamentApp.instance!.render();
+
+      final captures = await testHelper.capture(
+        null,
+        "stencil_highlight_translucent_entity",
+        captureRenderTarget: true,
+        render: false,
+      );
+      final overlayBuf = captures[manager.overlayView]!;
+      expect(
+        _countMatchingPixels(overlayBuf, (r, g, b, a) => r > 0.9 && g < 0.1 && b < 0.1),
+        greaterThan(100),
+        reason: "Translucent entity silhouette must not be alpha-attenuated",
+      );
+
+      await result.viewer.view.removeStencilHighlight(alphaCube);
+      await result.viewer.view.setHighlightOverlayEnabled(false);
+      await result.viewer.removeFromScene(alphaCube);
+      await FilamentApp.instance!.destroyAsset(alphaCube);
+      await alphaMi.destroy();
+    });
+  });
+
+  test('stencil highlight follows skinned bone and morph deformations without accessibleGeometryBuffers', () async {
+    await ViewerBuilder(
+      testHelper,
+      cameraPosition: Vector3(0, 0, 12),
+    ).setRenderTargetEnabled(true).setStencilBufferEnabled(true).addSun().execute((result) async {
+      final app = FilamentApp.instance!;
+      final viewer = result.viewer;
+      await viewer.view.setHighlightOverlayEnabled(true);
+      final manager = viewer.view.getHighlightOverlay()!;
+
+      final cube = await viewer.loadGltf(p.join(testHelper.assetsDir, "cube_with_morph_targets.glb"), addToScene: true);
+      expect(cube.geometryCapabilities, isEmpty);
+
+      final renderableManager = app.renderableManager;
+      final meshEntity = (await cube.getChildEntities()).firstWhere(renderableManager.isRenderable);
+
+      bool isGreenOutline(double r, double g, double b, double a) => r < 0.15 && g > 0.8 && b < 0.15;
+
+      await viewer.view.setStencilHighlight(cube, r: 0.0, g: 1.0, b: 0.0, outlineWidth: 4.0);
+      await app.render();
+      final restCaptures = await testHelper.capture(
+        null,
+        "stencil_highlight_skinned_rest",
+        captureRenderTarget: true,
+        render: false,
+      );
+      final restBuf = restCaptures[manager.overlayView]!;
+      final restStats = _pixelStats(restBuf, 512, 512, isGreenOutline);
+      final restMaxX = _maxX(restBuf, 512, 512, isGreenOutline);
+      expect(restStats.count, greaterThan(50));
+
+      // Translate only via the GPU bone skinning matrix (not entity TransformManager).
+      await renderableManager.setBonesFromMat4(meshEntity, [Matrix4.translation(Vector3(3.0, 0.0, 0.0))]);
+      await app.render();
+      final boneCaptures = await testHelper.capture(
+        null,
+        "stencil_highlight_skinned_bone_moved",
+        captureRenderTarget: true,
+        render: false,
+      );
+      final boneBuf = boneCaptures[manager.overlayView]!;
+      final boneStats = _pixelStats(boneBuf, 512, 512, isGreenOutline);
+      final boneMaxX = _maxX(boneBuf, 512, 512, isGreenOutline);
+      expect(boneStats.count, greaterThan(50));
+      expect(
+        boneStats.meanX,
+        greaterThan(restStats.meanX + 25),
+        reason: "Green outline centroid must shift right with deformed bone mesh",
+      );
+      expect(
+        boneMaxX,
+        greaterThan(restMaxX + 40),
+        reason: "Deformed bone silhouette rightmost extent must shift right with bone translation",
+      );
+      // Verify the outline extended into the newly deformed right region where no rest outline existed.
+      expect(_countMatchingPixelsInBox(restBuf, 512, 512, minX: restMaxX + 5, maxX: 512, isGreenOutline), equals(0));
+      expect(
+        _countMatchingPixelsInBox(boneBuf, 512, 512, minX: restMaxX + 5, maxX: 512, isGreenOutline),
+        greaterThan(50),
+      );
+
+      // Reset bone to identity and apply morph target deformation.
+      await renderableManager.setBonesFromMat4(meshEntity, [Matrix4.identity()]);
+      await app.render();
+      final preMorphCaptures = await testHelper.capture(null, null, captureRenderTarget: true, render: false);
+      final preMorphMask = _matchingMask(preMorphCaptures[manager.overlayView]!, isGreenOutline);
+
+      expect(renderableManager.getMorphTargetCount(meshEntity), greaterThan(0));
+      await renderableManager.setMorphWeightAt(meshEntity, 0, 1.0);
+      await app.render();
+      final morphCaptures = await testHelper.capture(
+        null,
+        "stencil_highlight_morphed",
+        captureRenderTarget: true,
+        render: false,
+      );
+      final morphBuf = morphCaptures[manager.overlayView]!;
+      final morphStats = _pixelStats(morphBuf, 512, 512, isGreenOutline);
+      expect(morphStats.count, greaterThan(50));
+      final morphMask = _matchingMask(morphBuf, isGreenOutline);
+      var diffCount = 0;
+      for (int i = 0; i < preMorphMask.length; i++) {
+        if (preMorphMask[i] != morphMask[i]) diffCount++;
+      }
+      expect(
+        diffCount,
+        greaterThan(50),
+        reason: "Outline silhouette pixels must change when morph target weights deform the mesh",
+      );
+
+      await viewer.view.removeStencilHighlight(cube);
+      await viewer.view.setHighlightOverlayEnabled(false);
+    });
+  });
+}
+
+int _maxX(
+  Uint8List rgbaFloatBytes,
+  int width,
+  int height,
+  bool Function(double r, double g, double b, double a) predicate,
+) {
+  final floats = Float32List.view(rgbaFloatBytes.buffer, rgbaFloatBytes.offsetInBytes);
+  int maxX = -1;
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      final i = (y * width + x) * 4;
+      if (predicate(floats[i], floats[i + 1], floats[i + 2], floats[i + 3])) {
+        if (x > maxX) maxX = x;
+      }
+    }
+  }
+  return maxX;
+}
+
+int _countMatchingPixels(Uint8List rgbaFloatBytes, bool Function(double r, double g, double b, double a) predicate) {
+  final floats = Float32List.view(rgbaFloatBytes.buffer, rgbaFloatBytes.offsetInBytes);
+  int count = 0;
+  for (int i = 0; i < floats.length; i += 4) {
+    if (predicate(floats[i], floats[i + 1], floats[i + 2], floats[i + 3])) {
+      count++;
+    }
+  }
+  return count;
+}
+
+int _countMatchingPixelsInBox(
+  Uint8List rgbaFloatBytes,
+  int width,
+  int height,
+  bool Function(double r, double g, double b, double a) predicate, {
+  required int minX,
+  required int maxX,
+}) {
+  final floats = Float32List.view(rgbaFloatBytes.buffer, rgbaFloatBytes.offsetInBytes);
+  int count = 0;
+  for (int y = 0; y < height; y++) {
+    for (int x = minX; x < maxX; x++) {
+      final i = (y * width + x) * 4;
+      if (predicate(floats[i], floats[i + 1], floats[i + 2], floats[i + 3])) {
+        count++;
+      }
+    }
+  }
+  return count;
+}
+
+({int count, double meanX, double meanY}) _pixelStats(
+  Uint8List rgbaFloatBytes,
+  int width,
+  int height,
+  bool Function(double r, double g, double b, double a) predicate,
+) {
+  final floats = Float32List.view(rgbaFloatBytes.buffer, rgbaFloatBytes.offsetInBytes);
+  int count = 0;
+  double sumX = 0;
+  double sumY = 0;
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      final i = (y * width + x) * 4;
+      if (predicate(floats[i], floats[i + 1], floats[i + 2], floats[i + 3])) {
+        count++;
+        sumX += x;
+        sumY += y;
+      }
+    }
+  }
+  return (count: count, meanX: count == 0 ? 0.0 : sumX / count, meanY: count == 0 ? 0.0 : sumY / count);
+}
+
+List<bool> _matchingMask(Uint8List rgbaFloatBytes, bool Function(double r, double g, double b, double a) predicate) {
+  final floats = Float32List.view(rgbaFloatBytes.buffer, rgbaFloatBytes.offsetInBytes);
+  final mask = List<bool>.filled(floats.length ~/ 4, false);
+  for (int p = 0; p < mask.length; p++) {
+    final i = p * 4;
+    mask[p] = predicate(floats[i], floats[i + 1], floats[i + 2], floats[i + 3]);
+  }
+  return mask;
 }
 // manually construct two views with stencil buffer
 // final viewportDimensions = (width: 500, height: 500);

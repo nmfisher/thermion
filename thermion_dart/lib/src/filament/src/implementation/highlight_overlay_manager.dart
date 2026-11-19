@@ -18,9 +18,6 @@ abstract class HighlightOverlayManager {
 
   Future<void> addHighlight({
     required ThermionEntity target,
-    required VertexBuffer vertexBuffer,
-    required IndexBuffer indexBuffer,
-    required int indexCount,
     double outlineWidth = 3.0,
     double r = 1.0,
     double g = 0.0,
@@ -44,9 +41,9 @@ abstract class HighlightOverlayManager {
 /// When [create] is called:
 /// 1. **SilhouetteView** is created, which OWNS:
 ///    - `_colorTexture` (RGBA8, sampleable) - the silhouette render output
-///    - `_depthTexture` (DEPTH32F)
-///    - `_renderTarget` combining the above
-///    - `_silhouetteMaterial` and per-entity material instances
+///    - `_renderTarget` backed by `_colorTexture` (color-only)
+///    - `_silhouetteMaterial` and a single shared `_silhouetteMaterialInstance`
+///      registered as a view material override
 ///
 /// 2. **EdgeDetectionView** is created, which OWNS:
 ///    - `_edgeMaterial` and `_edgeMaterialInstance`
@@ -205,9 +202,9 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     final actualWidth = width > 0 ? width : 1;
     final actualHeight = height > 0 ? height : 1;
 
-    // Create silhouette view (first pass)
+    // Create silhouette view (first pass) — opaque so the black skybox clears background pixels
     final silhouetteView = await SilhouetteView.create(app, width: actualWidth, height: actualHeight);
-    await silhouetteView.setBlendMode(BlendMode.transparent);
+    await silhouetteView.setBlendMode(BlendMode.opaque);
 
     // Create edge detection view (second pass)
     final edgeDetectionView = await EdgeDetectionView.create(
@@ -329,12 +326,9 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     }
   }
 
-  /// Add a highlight for an entity with the specified geometry.
+  /// Add a highlight for an entity.
   Future<void> addHighlight({
     required ThermionEntity target,
-    required VertexBuffer vertexBuffer,
-    required IndexBuffer indexBuffer,
-    required int indexCount,
     double outlineWidth = 3.0,
     double r = 1.0,
     double g = 0.0,
@@ -348,13 +342,13 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
       return;
     }
 
+    if (!_app.renderableManager.hasComponent(target)) {
+      _logger.warning('Entity $target is not renderable');
+      return;
+    }
+
     // Add silhouette to first pass
-    await silhouetteView.addHighlight(
-      target: target,
-      vertexBuffer: vertexBuffer,
-      indexBuffer: indexBuffer,
-      indexCount: indexCount,
-    );
+    await silhouetteView.addHighlight(target: target);
 
     _highlightedEntities.add(target);
   }

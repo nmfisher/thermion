@@ -1569,6 +1569,32 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _RenderManager_renderView(
+    Pointer<TRenderManager> tRenderManager,
+    Pointer<TView> tView,
+    bool standalone,
+  );
+  external void _RenderManager_renderViewJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TRenderManager> tRenderManager,
+    Pointer<TView> tView,
+    bool standalone,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _RenderManager_setMaterialOverride(
+    Pointer<TRenderManager> tRenderManager,
+    Pointer<TView> tView,
+    Pointer<TMaterialInstance> tMaterialInstance,
+  );
+  external void _RenderManager_setMaterialOverrideJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TRenderManager> tRenderManager,
+    Pointer<TView> tView,
+    Pointer<TMaterialInstance> tMaterialInstance,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _RenderManager_setPaused(Pointer<TRenderManager> tRenderer, bool paused);
   external void _RenderManager_setRenderable(
     Pointer<TRenderManager> tRenderer,
@@ -6841,6 +6867,62 @@ void RenderManager_renderJobThread(
     jobThread.cast(),
     tRenderManager.cast(),
     frameTimeInNanos.toJSBigInt,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+void RenderManager_renderView(Pointer<TRenderManager> tRenderManager, Pointer<TView> tView, bool standalone) {
+  final result = GeneratedBindings.instance._RenderManager_renderView(tRenderManager.cast(), tView.cast(), standalone);
+  return result;
+}
+
+void RenderManager_renderViewJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TRenderManager> tRenderManager,
+  Pointer<TView> tView,
+  bool standalone,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._RenderManager_renderViewJobThread(
+    jobThread.cast(),
+    tRenderManager.cast(),
+    tView.cast(),
+    standalone,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+void RenderManager_setMaterialOverride(
+  Pointer<TRenderManager> tRenderManager,
+  Pointer<TView> tView,
+  Pointer<TMaterialInstance> tMaterialInstance,
+) {
+  final result = GeneratedBindings.instance._RenderManager_setMaterialOverride(
+    tRenderManager.cast(),
+    tView.cast(),
+    tMaterialInstance.cast(),
+  );
+  return result;
+}
+
+void RenderManager_setMaterialOverrideJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TRenderManager> tRenderManager,
+  Pointer<TView> tView,
+  Pointer<TMaterialInstance> tMaterialInstance,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._RenderManager_setMaterialOverrideJobThread(
+    jobThread.cast(),
+    tRenderManager.cast(),
+    tView.cast(),
+    tMaterialInstance.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );

@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'package:thermion_dart/src/bindings/string_buffer.dart';
 import 'package:logging/logging.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/highlight_overlay_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
@@ -25,6 +22,7 @@ class FFIView extends View<Pointer<TView>> {
   // Finish the whole read before renaming or destroying its source view.
   Future<void> _nameOperations = Future.value();
   bool _destroyRequested = false;
+  bool _hasMaterialOverride = false;
 
   Future<T> _serializeNameOperation<T>(Future<T> Function() operation) {
     if (_destroyRequested) return Future.error(StateError('View destruction has started'));
@@ -63,6 +61,9 @@ class FFIView extends View<Pointer<TView>> {
     _destroyRequested = true;
     _pickRequests.fillRange(0, _pickRequests.length, null);
     await _nameOperations;
+    if (_hasMaterialOverride) {
+      await setMaterialOverride(null);
+    }
     await withVoidCallback(
       (requestId, cb) => Engine_destroyViewJobThread(_app.jobThreadHandle, _app.engine, view, requestId, cb),
     );
@@ -664,41 +665,16 @@ class FFIView extends View<Pointer<TView>> {
     // silent no-op.
     final targets = entity != null ? <int>[entity] : <int>[asset.entity, ...await asset.getChildEntities()];
 
-    // Use geometrySource for vertex/index buffers when provided (e.g. for
-    // instances where the root asset has the preserved geometry data).
-    final geoAsset = geometrySource ?? asset;
-    final ffiGeoAsset = geoAsset as FFIAsset;
-
-    // The silhouette pass reuses the asset's vertex and index buffers but only
-    // consumes POSITION. It therefore needs accessible geometry buffers, not the
-    // barycentric coordinates used by wireframe and flat-shading features.
-    if (!ffiGeoAsset.geometryCapabilities.contains(SceneAssetGeometryCapability.accessibleGeometryBuffers)) {
-      throw StateError(
-        "setStencilHighlight requires accessible geometry buffers. "
-        "Load the asset with requiredGeometryCapabilities containing "
-        "accessibleGeometryBuffers.",
-      );
-    }
-
     if (_highlightOverlayManager == null) {
       await setHighlightOverlayEnabled(true);
     }
 
     for (final target in targets) {
-      await _addEntityHighlight(
-        ffiGeoAsset,
-        target,
-        warnIfMissing: entity != null,
-        outlineWidth: outlineWidth,
-        r: r,
-        g: g,
-        b: b,
-      );
+      await _addEntityHighlight(target, warnIfMissing: entity != null, outlineWidth: outlineWidth, r: r, g: g, b: b);
     }
   }
 
   Future<void> _addEntityHighlight(
-    FFIAsset ffiGeoAsset,
     int entity, {
     required bool warnIfMissing,
     required double outlineWidth,
@@ -706,61 +682,13 @@ class FFIView extends View<Pointer<TView>> {
     required double g,
     required double b,
   }) async {
-    final geoAsset = ffiGeoAsset;
-    // Get the starting primitive offset for this entity. For an instance entity
-    // the native side resolves the owner entity at the same index.
-    final offset = await ffiGeoAsset.getPrimitiveOffsetForEntity(entity);
-    if (offset < 0) {
-      // The asset has preserved geometry, but this particular entity has no
-      // rebuilt buffers (e.g. its primitives are all lines/points) or it is
-      // not renderable.
+    if (!_app.renderableManager.hasComponent(entity)) {
       if (!warnIfMissing) return;
-      _logger.warning(
-        "Stencil highlight: no accessible geometry buffers for entity $entity "
-        "(its primitives are all non-triangles and have no rebuilt buffers).",
-      );
+      _logger.warning("Stencil highlight: entity $entity is not renderable.");
       return;
     }
 
-    // Get the primitive count for this entity
-    final primCount = await _app.getPrimitiveCount(entity);
-
-    // Iterate all primitives for this entity and create silhouettes
-    for (int i = 0; i < primCount; i++) {
-      final flatPrimIndex = offset + i;
-
-      // Get geometry for this primitive
-      final vertexBuffer = geoAsset.getVertexBuffer(primitiveIndex: flatPrimIndex);
-      final indexBuffer = SceneAsset_getIndexBuffer(ffiGeoAsset.asset, flatPrimIndex);
-
-      // Skip non-triangle primitives (null buffers)
-      if (vertexBuffer == null || indexBuffer == nullptr) {
-        continue;
-      }
-
-      if (vertexBuffer is! FFIVertexBuffer) {
-        _logger.warning(
-          "Stencil highlight: unexpected vertex buffer type for entity $entity "
-          "primitive $i",
-        );
-        continue;
-      }
-
-      final indexCount = IndexBuffer_getIndexCount(indexBuffer);
-      final ffiIndexBuffer = FFIIndexBuffer(indexBuffer, _app.engine, _app.jobThreadHandle);
-
-      // Create silhouette for this primitive
-      await _highlightOverlayManager!.addHighlight(
-        target: entity,
-        vertexBuffer: vertexBuffer,
-        indexBuffer: ffiIndexBuffer,
-        indexCount: indexCount,
-        outlineWidth: outlineWidth,
-        r: r,
-        g: g,
-        b: b,
-      );
-    }
+    await _highlightOverlayManager!.addHighlight(target: entity, outlineWidth: outlineWidth, r: r, g: g, b: b);
 
     _logger.info("Added stencil highlight for entity $entity");
   }
@@ -798,6 +726,21 @@ class FFIView extends View<Pointer<TView>> {
       );
     });
   });
+
+  @override
+  Future setMaterialOverride(MaterialInstance? materialInstance) async {
+    _hasMaterialOverride = materialInstance != null;
+    await withVoidCallback(
+      (requestId, cb) => RenderManager_setMaterialOverrideJobThread(
+        _app.jobThreadHandle,
+        _app.renderManager.getNativeHandle(),
+        getNativeHandle(),
+        materialInstance == null ? nullptr : materialInstance.getNativeHandle(),
+        requestId,
+        cb,
+      ),
+    );
+  }
 
   Future setTransparentPickingEnabled(bool enabled) async {
     await withVoidCallback(

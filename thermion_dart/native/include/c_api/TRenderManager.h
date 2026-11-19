@@ -16,6 +16,8 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void RenderManager_render(TRenderManager *tRenderer, uint64_t frameTimeInNanos);
 	EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderable(TRenderManager *tRenderer, TSwapChain *swapChain, TView **views, uint8_t numViews);
 	EMSCRIPTEN_KEEPALIVE void RenderManager_removeSwapChain(TRenderManager *tRenderer, TSwapChain *swapChain);
+	EMSCRIPTEN_KEEPALIVE void RenderManager_setMaterialOverride(TRenderManager *tRenderManager, TView *tView, TMaterialInstance *tMaterialInstance);
+	EMSCRIPTEN_KEEPALIVE void RenderManager_renderView(TRenderManager *tRenderManager, TView *tView, bool standalone);
 
 	// Web worker attachment and pause controls. Dart calls these only on web;
 	// drawing is driven by the worker's animation frames, without frame requests.

@@ -1542,6 +1542,30 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void RenderManager_setMaterialOverrideJobThread(TJobThread *jobThread, TRenderManager *tRenderManager, TView *tView, TMaterialInstance *tMaterialInstance, uint32_t requestId, VoidCallback onComplete)
+  {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
+    std::packaged_task<void()> lambda(
+        [=]
+        {
+          RenderManager_setMaterialOverride(tRenderManager, tView, tMaterialInstance);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderManager_renderViewJobThread(TJobThread *jobThread, TRenderManager *tRenderManager, TView *tView, bool standalone, uint32_t requestId, VoidCallback onComplete)
+  {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
+    std::packaged_task<void()> lambda(
+        [=]
+        {
+          RenderManager_renderView(tRenderManager, tView, standalone);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPoseJobThread(TJobThread *jobThread, TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete) {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(

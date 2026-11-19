@@ -81,8 +81,22 @@ abstract class FilamentApp<T> {
   /// Throws [StateError] if destruction has already started for the asset or its owner.
   Future destroyAsset(covariant ThermionAsset asset);
 
-  //
-  Future<RenderTarget> createRenderTarget(int width, int height, {covariant Texture? color, covariant Texture? depth});
+  /// Creates a [RenderTarget] of size [width] x [height].
+  ///
+  /// If [color] is omitted, an `RGBA8` color attachment texture is allocated
+  /// automatically with sampleable, color-attachment, and blit-source usage.
+  ///
+  /// If [depth] is omitted and [createDepth] is `true` (the default), a
+  /// `DEPTH32F` depth attachment texture is allocated automatically. Pass
+  /// `createDepth: false` (with `depth: null`) to create a color-only render
+  /// target without a depth attachment.
+  Future<RenderTarget> createRenderTarget(
+    int width,
+    int height, {
+    covariant Texture? color,
+    covariant Texture? depth,
+    bool createDepth = true,
+  });
 
   //
   Future<Texture> createTexture(

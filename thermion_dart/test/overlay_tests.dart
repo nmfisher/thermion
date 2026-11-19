@@ -356,11 +356,8 @@ void main() async {
     }, postProcessing: true);
   });
 
-  test('highlighting requires accessible buffers while flat shading requires unwelded geometry', () async {
+  test('highlighting works without accessible buffers while flat shading requires unwelded geometry', () async {
     await testHelper.withViewer((viewer) async {
-      final accessibleGeometryMatcher = throwsA(
-        isA<StateError>().having((e) => e.toString(), 'message', contains('requires accessible geometry buffers')),
-      );
       final unweldedMatcher = throwsA(
         isA<StateError>().having(
           (e) => e.toString(),
@@ -370,7 +367,9 @@ void main() async {
       );
 
       final original = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", addToScene: true);
-      await expectLater(viewer.view.setStencilHighlight(original), accessibleGeometryMatcher);
+      expect(original.geometryCapabilities, isEmpty);
+      await viewer.view.setStencilHighlight(original);
+      await viewer.view.removeStencilHighlight(original);
       await expectLater(original.setFlatShading(true), unweldedMatcher);
 
       await expectLater(

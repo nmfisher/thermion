@@ -76,4 +76,19 @@ EMSCRIPTEN_KEEPALIVE void RenderManager_removeSwapChain(TRenderManager *tRendere
     renderManager->removeSwapChain(swapChain);
 }
 
+EMSCRIPTEN_KEEPALIVE void RenderManager_setMaterialOverride(TRenderManager *tRenderManager, TView *tView, TMaterialInstance *tMaterialInstance) {
+    THERMION_ENGINE_API_GUARD;
+    auto *renderManager = reinterpret_cast<RenderManager *>(tRenderManager);
+    auto *view = reinterpret_cast<filament::View *>(tView);
+    auto *materialInstance = reinterpret_cast<filament::MaterialInstance *>(tMaterialInstance);
+    renderManager->setMaterialOverride(view, materialInstance);
+}
+
+EMSCRIPTEN_KEEPALIVE void RenderManager_renderView(TRenderManager *tRenderManager, TView *tView, bool standalone) {
+    THERMION_ENGINE_API_GUARD;
+    auto *renderManager = reinterpret_cast<RenderManager *>(tRenderManager);
+    auto *view = reinterpret_cast<filament::View *>(tView);
+    renderManager->renderView(view, standalone);
+}
+
 }

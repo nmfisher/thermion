@@ -493,13 +493,11 @@ abstract class View<T> extends NativeHandle<T> {
   /// The outline width is specified in pixels via [outlineWidth] and remains
   /// constant regardless of camera distance (screen-space expansion).
   ///
-  /// Uses a stencil-based two-pass rendering approach for clean, flicker-free
-  /// outlines.
+  /// Uses a two-pass silhouette and edge-detection rendering approach for clean,
+  /// flicker-free outlines.
   ///
-  /// Throws if the asset (or [geometrySource]) does not provide
-  /// [SceneAssetGeometryCapability.accessibleGeometryBuffers].
-  ///
-  /// The [scale] parameter is deprecated and ignored; use [outlineWidth] instead.
+  /// The [scale] and [geometrySource] parameters are deprecated and ignored;
+  /// use [outlineWidth] instead.
   Future setStencilHighlight(
     ThermionAsset asset, {
     double r = 1.0,
@@ -547,4 +545,11 @@ abstract class View<T> extends NativeHandle<T> {
   /// [x] and [y] must be in local logical coordinates (i.e. where 0,0 is at top-left of the viewport).
   ///
   Future pick(int x, int y, void Function(PickResult) resultHandler);
+
+  /// Registers [materialInstance] to temporarily override every non-skybox
+  /// renderable primitive in this view's scene while this view renders,
+  /// restoring original materials immediately afterward.
+  ///
+  /// Pass `null` to clear any registered override.
+  Future setMaterialOverride(MaterialInstance? materialInstance);
 }

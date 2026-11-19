@@ -3127,6 +3127,60 @@ external void RenderManager_renderJobThread(
   VoidCallback onComplete,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+external void RenderManager_renderView(
+  ffi.Pointer<TRenderManager> tRenderManager,
+  ffi.Pointer<TView> tView,
+  bool standalone,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TRenderManager>,
+    ffi.Pointer<TView>,
+    ffi.Bool,
+    ffi.Uint32,
+    VoidCallback,
+  )
+>(isLeaf: true)
+external void RenderManager_renderViewJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TRenderManager> tRenderManager,
+  ffi.Pointer<TView> tView,
+  bool standalone,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Pointer<TView>, ffi.Pointer<TMaterialInstance>)>(
+  isLeaf: true,
+)
+external void RenderManager_setMaterialOverride(
+  ffi.Pointer<TRenderManager> tRenderManager,
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TMaterialInstance> tMaterialInstance,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TRenderManager>,
+    ffi.Pointer<TView>,
+    ffi.Pointer<TMaterialInstance>,
+    ffi.Uint32,
+    VoidCallback,
+  )
+>(isLeaf: true)
+external void RenderManager_setMaterialOverrideJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TRenderManager> tRenderManager,
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TMaterialInstance> tMaterialInstance,
+  int requestId,
+  VoidCallback onComplete,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Bool)>(isLeaf: true)
 external void RenderManager_setPaused(ffi.Pointer<TRenderManager> tRenderer, bool paused);
 
