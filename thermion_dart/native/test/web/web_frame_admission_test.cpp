@@ -54,9 +54,24 @@ void Renderer::endFrame() {
     renderer.submissions.push_back(renderer.active);
     renderer.active = nullptr;
 }
+void Renderer::renderStandaloneView(View const*) {}
 void Engine::execute() { ++static_cast<test::Engine&>(*this).executions; }
 void Engine::flush() {}
 void Engine::pumpMessageQueues() { ++static_cast<test::Engine&>(*this).pumps; }
+RenderableManager& Engine::getRenderableManager() noexcept {
+    static RenderableManager* stub = nullptr;
+    return *stub;
+}
+Scene* View::getScene() noexcept { return nullptr; }
+void Scene::forEach(utils::Invocable<void(utils::Entity)>&&) const noexcept {}
+bool RenderableManager::hasComponent(utils::Entity) const noexcept { return false; }
+RenderableManager::Instance RenderableManager::getInstance(utils::Entity) const noexcept { return {}; }
+size_t RenderableManager::getPrimitiveCount(Instance) const noexcept { return 0; }
+MaterialInstance* RenderableManager::getMaterialInstanceAt(Instance, size_t) const noexcept { return nullptr; }
+void RenderableManager::setMaterialInstanceAt(Instance, size_t, MaterialInstance const*) {}
+void RenderableManager::clearMaterialInstanceAt(Instance, size_t) {}
+Material const* MaterialInstance::getMaterial() const noexcept { return nullptr; }
+const char* Material::getName() const noexcept { return ""; }
 }
 
 namespace thermion {
