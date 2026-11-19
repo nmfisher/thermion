@@ -2493,9 +2493,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int pixelDataType,
     Pointer<NativeFunction<void Function(bool)>> onComplete,
   );
-  external int _Thermion_createGLContext(Pointer<Char> canvasSelector);
+  external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext(Pointer<Char> canvasSelector);
   external void _Thermion_destroyCanvas(Pointer<Char> canvasSelector);
-  external int _Thermion_getGLContext();
+  external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_getGLContext();
   external void _Thermion_setCanvasElementSize(Pointer<Char> name, int width, int height);
   external Pointer<TToneMapper> _ToneMapper_createACES(Pointer<TEngine> tEngine);
   external void _ToneMapper_createACESJobThread(
@@ -2697,7 +2697,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _TransformPipeline_removeKeyBindingsForKey(int logicalKey);
   external void _TransformPipeline_removeMouseButtonBindings(int mouseButton);
   external void _TransformPipeline_setEngine(Pointer<Void> enginePtr);
-  external void _TransformPipeline_setInvertMouseY(int invert);
+  external void _TransformPipeline_setInvertMouseY(bool invert);
   external void _TransformPipeline_setMouseSensitivity(double sensitivity);
   external void _TransformPipeline_unregisterPipelineStage(Pointer<Void> pipelineStageHandle);
   external void _TransformPipeline_update(double deltaTime);
@@ -9299,7 +9299,7 @@ void Texture_setImageJobThread(
   return result;
 }
 
-int Thermion_createGLContext(Pointer<Char> canvasSelector) {
+DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext(Pointer<Char> canvasSelector) {
   final result = GeneratedBindings.instance._Thermion_createGLContext(canvasSelector);
   return result;
 }
@@ -9309,7 +9309,7 @@ void Thermion_destroyCanvas(Pointer<Char> canvasSelector) {
   return result;
 }
 
-int Thermion_getGLContext() {
+DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_getGLContext() {
   final result = GeneratedBindings.instance._Thermion_getGLContext();
   return result;
 }
@@ -9879,7 +9879,7 @@ void TransformPipeline_setEngine(Pointer<Void> enginePtr) {
   return result;
 }
 
-void TransformPipeline_setInvertMouseY(int invert) {
+void TransformPipeline_setInvertMouseY(bool invert) {
   final result = GeneratedBindings.instance._TransformPipeline_setInvertMouseY(invert);
   return result;
 }
@@ -10879,6 +10879,8 @@ final class Aabb3 extends Struct {
   }
 }
 
+typedef EMSCRIPTEN_WEBGL_CONTEXT_HANDLE = int;
+typedef DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE = int;
 typedef EntityId = int;
 typedef DartEntityId = int;
 typedef FrameTickCallback = Pointer<NativeFunction<FrameTickCallbackFunction>>;
