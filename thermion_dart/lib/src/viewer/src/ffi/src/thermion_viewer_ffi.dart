@@ -122,8 +122,14 @@ class ThermionViewerFFI extends ThermionViewer {
       );
 
       await withVoidCallback(
-        (requestId, cb) =>
-            Renderer_renderJobThread(_app.jobThreadHandle, _app.renderer, view.getNativeHandle(), requestId, cb),
+        (requestId, cb) => RenderManager_renderViewJobThread(
+          _app.jobThreadHandle,
+          _app.renderManager.getNativeHandle(),
+          view.getNativeHandle(),
+          false,
+          requestId,
+          cb,
+        ),
       );
       await withVoidCallback(
         (requestId, cb) => Renderer_endFrameJobThread(_app.jobThreadHandle, _app.renderer, requestId, cb),

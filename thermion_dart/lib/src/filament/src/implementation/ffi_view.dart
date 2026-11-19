@@ -22,6 +22,7 @@ class FFIView extends View<Pointer<TView>> {
   // Finish the whole read before renaming or destroying its source view.
   Future<void> _nameOperations = Future.value();
   bool _destroyRequested = false;
+  bool _hasMaterialOverride = false;
 
   Future<T> _serializeNameOperation<T>(Future<T> Function() operation) {
     if (_destroyRequested) return Future.error(StateError('View destruction has started'));
@@ -60,6 +61,9 @@ class FFIView extends View<Pointer<TView>> {
     _destroyRequested = true;
     _pickRequests.fillRange(0, _pickRequests.length, null);
     await _nameOperations;
+    if (_hasMaterialOverride) {
+      await setMaterialOverride(null);
+    }
     await withVoidCallback(
       (requestId, cb) => Engine_destroyViewJobThread(_app.jobThreadHandle, _app.engine, view, requestId, cb),
     );
@@ -725,11 +729,12 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setMaterialOverride(MaterialInstance? materialInstance) async {
+    _hasMaterialOverride = materialInstance != null;
     await withVoidCallback(
-      (requestId, cb) => View_setMaterialOverrideJobThread(
+      (requestId, cb) => RenderManager_setMaterialOverrideJobThread(
         _app.jobThreadHandle,
+        _app.renderManager.getNativeHandle(),
         getNativeHandle(),
-        _app.engine,
         materialInstance == null ? nullptr : materialInstance.getNativeHandle(),
         requestId,
         cb,

@@ -33,6 +33,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstring>
 #include <map>
 
 #include "Log.hpp"
@@ -48,11 +49,115 @@ namespace thermion
 
   using std::string;
 
-  std::atomic<RenderManager::RenderViewFn> RenderManager::sRenderViewHook{nullptr};
-
-  void RenderManager::setRenderViewHook(RenderViewFn hook)
+  MaterialInstance *RenderManager::findMaterialOverrideLocked(const View *view) const
   {
-    sRenderViewHook.store(hook, std::memory_order_release);
+    if (!view || mMaterialOverrides.empty()) {
+      return nullptr;
+    }
+    for (const auto &entry : mMaterialOverrides) {
+      if (entry.first == view) {
+        return entry.second;
+      }
+    }
+    return nullptr;
+  }
+
+  void RenderManager::setMaterialOverride(View *view, MaterialInstance *materialInstance)
+  {
+    if (!view) {
+      return;
+    }
+    std::lock_guard lock(mMutex);
+    auto it = std::find_if(mMaterialOverrides.begin(), mMaterialOverrides.end(),
+                           [view](const std::pair<View *, MaterialInstance *> &entry)
+                           { return entry.first == view; });
+    if (materialInstance) {
+      if (it != mMaterialOverrides.end()) {
+        it->second = materialInstance;
+      } else {
+        mMaterialOverrides.emplace_back(view, materialInstance);
+      }
+    } else if (it != mMaterialOverrides.end()) {
+      mMaterialOverrides.erase(it);
+    }
+
+    for (auto &va : mViewAttachments) {
+      for (int i = 0; i < numViewAttachments; i++) {
+        if (va.views[i] == view) {
+          va.materialOverrides[i] = materialInstance;
+        }
+      }
+    }
+  }
+
+  void RenderManager::renderViewWithMaterialOverrideLocked(
+      View *view,
+      MaterialInstance *materialOverride,
+      bool standalone)
+  {
+    Scene *scene = view ? view->getScene() : nullptr;
+    if (!mEngine || !mRenderer || !view || !scene || !materialOverride) {
+      if (mRenderer && view) {
+        if (standalone) {
+          mRenderer->renderStandaloneView(view);
+        } else {
+          mRenderer->render(view);
+        }
+      }
+      return;
+    }
+
+    auto &rm = mEngine->getRenderableManager();
+    mSavedMaterials.clear();
+
+    scene->forEach([&](utils::Entity entity) {
+      if (!rm.hasComponent(entity)) {
+        return;
+      }
+      auto ri = rm.getInstance(entity);
+      if (!ri) {
+        return;
+      }
+      const size_t primitiveCount = rm.getPrimitiveCount(ri);
+      for (size_t p = 0; p < primitiveCount; ++p) {
+        auto *original = rm.getMaterialInstanceAt(ri, p);
+        if (original && std::strcmp(original->getMaterial()->getName(), "Skybox") == 0) {
+          continue;
+        }
+        mSavedMaterials.push_back({ri, p, original});
+        rm.setMaterialInstanceAt(ri, p, materialOverride);
+      }
+    });
+
+    if (standalone) {
+      mRenderer->renderStandaloneView(view);
+    } else {
+      mRenderer->render(view);
+    }
+
+    for (const auto &s : mSavedMaterials) {
+      if (s.original) {
+        rm.setMaterialInstanceAt(s.instance, s.primitiveIndex, s.original);
+      } else {
+        rm.clearMaterialInstanceAt(s.instance, s.primitiveIndex);
+      }
+    }
+    mSavedMaterials.clear();
+  }
+
+  void RenderManager::renderView(View *view, bool standalone)
+  {
+    if (!mRenderer || !view) {
+      return;
+    }
+    std::lock_guard lock(mMutex);
+    if (auto *overrideMaterial = findMaterialOverrideLocked(view)) {
+      renderViewWithMaterialOverrideLocked(view, overrideMaterial, standalone);
+    } else if (standalone) {
+      mRenderer->renderStandaloneView(view);
+    } else {
+      mRenderer->render(view);
+    }
   }
 
   void RenderManager::removeSwapChain(SwapChain *swapChain)
@@ -92,11 +197,13 @@ namespace thermion
     {
       if(i < numViews) {
         attachment->views[i] = views[i];
+        attachment->materialOverrides[i] = findMaterialOverrideLocked(views[i]);
         if(!views[i]) {
           LOG_ERROR("View attachment at %d is nullptr, this is not expected", i);  
         }
       } else { 
         attachment->views[i] = nullptr;
+        attachment->materialOverrides[i] = nullptr;
       }
     }
     TRACE("Set %d view attachments for swapchain", numViews);
@@ -181,8 +288,8 @@ namespace thermion
     {
       if (!attachment.views[i]) break;
       numRendered++;
-      if (auto hook = sRenderViewHook.load(std::memory_order_acquire)) {
-        hook(mRenderer, attachment.views[i]);
+      if (attachment.materialOverrides[i]) {
+        renderViewWithMaterialOverrideLocked(attachment.views[i], attachment.materialOverrides[i], false);
       } else {
         mRenderer->render(attachment.views[i]);
       }

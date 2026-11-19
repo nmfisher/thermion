@@ -7,7 +7,6 @@
 
 #include "c_api/TEngine.h"
 #include "c_api/TMaterialPackage.h"
-#include "rendering/ViewMaterialOverride.hpp"
 
 #include <filament/Camera.h>
 #include <backend/DriverEnums.h>
@@ -205,7 +204,6 @@ namespace thermion
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *view = reinterpret_cast<View *>(tView);
-            thermion::unregisterViewMaterialOverride(view);
             engine->destroy(view);
         }
 

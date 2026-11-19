@@ -1280,7 +1280,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
         if (render) {
           await withVoidCallback((requestId, cb) {
-            Renderer_renderJobThread(jobThreadHandle, renderer, view.getNativeHandle(), requestId, cb);
+            RenderManager_renderViewJobThread(
+              jobThreadHandle,
+              renderManager.getNativeHandle(),
+              view.getNativeHandle(),
+              false,
+              requestId,
+              cb,
+            );
           });
         }
 
@@ -1330,7 +1337,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         );
         for (final attachment in renderAttachments) {
           await withVoidCallback((requestId, cb) {
-            Renderer_renderJobThread(jobThreadHandle, renderer, attachment.view.getNativeHandle(), requestId, cb);
+            RenderManager_renderViewJobThread(
+              jobThreadHandle,
+              renderManager.getNativeHandle(),
+              attachment.view.getNativeHandle(),
+              false,
+              requestId,
+              cb,
+            );
           });
         }
         await withVoidCallback((requestId, cb) {

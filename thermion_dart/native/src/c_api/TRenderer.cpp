@@ -19,7 +19,6 @@
 #include <math/mat4.h>
 
 #include "c_api/TTexture.h"
-#include "rendering/ViewMaterialOverride.hpp"
 
 #ifdef __cplusplus
 namespace thermion
@@ -59,14 +58,14 @@ EMSCRIPTEN_KEEPALIVE void Renderer_render(TRenderer *tRenderer, TView *tView) {
     THERMION_ENGINE_API_GUARD;
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     auto *view = reinterpret_cast<filament::View *>(tView);
-    thermion::renderViewWithMaterialOverride(renderer, view);
+    renderer->render(view);
 }
 
 EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneView(TRenderer *tRenderer, TView *tView) {
     THERMION_ENGINE_API_GUARD;
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     auto *view = reinterpret_cast<filament::View *>(tView);
-    thermion::renderStandaloneViewWithMaterialOverride(renderer, view);
+    renderer->renderStandaloneView(view);
 }
 
 EMSCRIPTEN_KEEPALIVE void Renderer_setFrameRateOptions(

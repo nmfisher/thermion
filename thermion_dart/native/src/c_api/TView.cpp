@@ -7,10 +7,8 @@
 #include <filament/ToneMapper.h>
 #include <filament/ColorGrading.h>
 #include <filament/Camera.h>
-#include <filament/MaterialInstance.h>
 
 #include "c_api/TView.h"
-#include "rendering/ViewMaterialOverride.hpp"
 #include "Log.hpp"
 
 #ifdef __cplusplus
@@ -756,14 +754,6 @@ namespace thermion
             THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             return view->isTransparentPickingEnabled();
-        }
-
-        EMSCRIPTEN_KEEPALIVE void View_setMaterialOverride(TView *tView, TEngine *tEngine, TMaterialInstance *tMaterialInstance) {
-            THERMION_ENGINE_API_GUARD;
-            auto *view = reinterpret_cast<View *>(tView);
-            auto *engine = reinterpret_cast<Engine *>(tEngine);
-            auto *materialInstance = reinterpret_cast<MaterialInstance *>(tMaterialInstance);
-            thermion::registerViewMaterialOverride(view, engine, materialInstance);
         }
 
 #ifdef __cplusplus

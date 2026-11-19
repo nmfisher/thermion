@@ -256,7 +256,6 @@ typedef void (*PickCallback)(uint32_t requestId, EntityId entityId, float depth,
 EMSCRIPTEN_KEEPALIVE void View_pick(TView* tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback);
 EMSCRIPTEN_KEEPALIVE void View_setName(TView* tView, const char *name);
 EMSCRIPTEN_KEEPALIVE const char *View_getName(TView* tView);
-EMSCRIPTEN_KEEPALIVE void View_setMaterialOverride(TView *tView, TEngine *tEngine, TMaterialInstance *tMaterialInstance);
 
 #ifdef __cplusplus
 }
