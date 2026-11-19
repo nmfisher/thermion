@@ -17,9 +17,25 @@ PIN_B = "fedcba9876543210" * 4
 
 class WindowsFilamentHeadersTest(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="thermion-headers-")
-        self.addCleanup(self.temporary.cleanup)
-        root = Path(self.temporary.name)
+        # MSBuild's FileTracker excludes %TEMP%/%LOCALAPPDATA% from .tlog
+        # dependency tracking, so pin rotation inside a tempfile.TemporaryDirectory
+        # under %TEMP% leaves consumer.obj stale on Windows. Host the fixture in
+        # the workspace (the job's checkout drive) instead.
+        if os.name == "nt":
+            base = Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir()))
+            if base == Path(tempfile.gettempdir()) or Path(tempfile.gettempdir()) in base.parents:
+                base = Path(__file__).resolve().parents[4]
+            self.root = base / f"thermion-headers-{os.urandom(6).hex()}"
+            self.root.mkdir(parents=True)
+            self.temporary = None
+        else:
+            self.temporary = tempfile.TemporaryDirectory(prefix="thermion-headers-")
+            self.root = Path(self.temporary.name)
+        if self.temporary is not None:
+            self.addCleanup(self.temporary.cleanup)
+        else:
+            self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        root = self.root
         self.app = root / "app"
         self.package = root / "packages" / "thermion_dart"
         self.build = self.app / "build"
@@ -192,7 +208,7 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         }))
 
     def test_percent_encoded_file_uri_with_spaces_and_escaped_percent(self):
-        spaced = Path(self.temporary.name) / "Jane Doe (Local)" / "dir%20lit" / "thermion_dart"
+        spaced = self.root / "Jane Doe (Local)" / "dir%20lit" / "thermion_dart"
         (spaced / "lib").mkdir(parents=True)
         self.package = spaced
         self.write_version()
@@ -203,7 +219,7 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         self.build_and_run()
 
     def test_percent_encoded_relative_uri_with_spaces(self):
-        spaced = Path(self.temporary.name) / "my packages (1)" / "thermion_dart"
+        spaced = self.root / "my packages (1)" / "thermion_dart"
         (spaced / "lib").mkdir(parents=True)
         self.package = spaced
         self.write_version()
@@ -214,7 +230,7 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         self.build_and_run()
 
     def test_partial_clean_generated_headers_warns_only_for_stale_paths(self):
-        isolated = Path(self.temporary.name) / "isolated_thermion_flutter"
+        isolated = self.root / "isolated_thermion_flutter"
         shutil.copytree(WINDOWS.parent / "windows", isolated / "windows")
         shutil.copytree(WINDOWS.parent / "cmake", isolated / "cmake")
         (isolated / ".dart_tool").mkdir()

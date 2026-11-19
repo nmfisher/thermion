@@ -64,7 +64,8 @@ function(thermion_resolve_package_root output search_start plugin_dir)
 
   set(_td_root "")
   if(_pkg_config)
-    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_pkg_config}")
+    thermion_escape_for_generator(_pkg_config_dep "${_pkg_config}")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_pkg_config_dep}")
     file(READ "${_pkg_config}" _pkg_json)
     string(JSON _pkg_len ERROR_VARIABLE _json_err LENGTH "${_pkg_json}" packages)
     if(NOT _json_err AND _pkg_len GREATER 0)
@@ -144,8 +145,10 @@ function(thermion_filament_headers output package_root platform)
       message(WARNING "thermion_flutter: invalid ${_pin_file}; using legacy artifact paths")
     endif()
   endif()
+  thermion_escape_for_generator(_version_file_dep "${_version_file}")
+  thermion_escape_for_generator(_pin_file_dep "${_pin_file}")
   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-    "${_version_file}" "${_pin_file}")
+    "${_version_file_dep}" "${_pin_file_dep}")
 
   # The hook defaults to release even for a Flutter Debug build. Headers are
   # mode-independent, so include both resolved paths and let the hook populate
@@ -214,6 +217,22 @@ function(_thermion_canonical_key output path)
     string(TOLOWER "${_cur}" _cur)
   endif()
   set(${output} "${_cur}" PARENT_SCOPE)
+endfunction()
+
+# MSBuild (Visual Studio generator) unescapes %XX sequences in project XML
+# metadata, so a literal '%' in an include dir or custom-build dependency
+# (e.g. a pub-cache path containing 'dir%20lit') is corrupted to 'dir lit'
+# unless it is written as '%25'. CMake's own file()/EXISTS checks must keep
+# the unescaped path, so apply this only where paths are handed to the
+# generator: target_include_directories and CMAKE_CONFIGURE_DEPENDS.
+# No-op for Ninja/Makefile generators and POSIX hosts.
+function(thermion_escape_for_generator output path)
+  if(CMAKE_GENERATOR MATCHES "Visual Studio" AND path MATCHES "%")
+    string(REPLACE "%" "%25" _escaped "${path}")
+    set(${output} "${_escaped}" PARENT_SCOPE)
+  else()
+    set(${output} "${path}" PARENT_SCOPE)
+  endif()
 endfunction()
 
 # Filters DART_PKG_HEADERS from generated_headers.cmake:

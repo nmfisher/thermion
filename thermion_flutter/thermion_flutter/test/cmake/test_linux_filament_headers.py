@@ -17,9 +17,27 @@ PIN_B = "fedcba9876543210" * 4
 
 class LinuxFilamentHeadersTest(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="thermion-linux-headers-")
-        self.addCleanup(self.temporary.cleanup)
-        root = Path(self.temporary.name)
+        # MSBuild's FileTracker excludes %TEMP%/%LOCALAPPDATA% from .tlog
+        # dependency tracking, so pin rotation inside a tempfile.TemporaryDirectory
+        # under %TEMP% leaves consumer.obj stale on Windows. Host the fixture in
+        # the workspace (the job's checkout drive) instead.
+        if os.name == "nt":
+            base = Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir()))
+            if Path(tempfile.gettempdir()) in base.parents or base == Path(tempfile.gettempdir()):
+                # RUNNER_TEMP is D:\a\_temp on GitHub runners; fall back to the
+                # repo dir if we somehow still resolve under %TEMP%.
+                base = Path(__file__).resolve().parents[4]
+            self.root = Path(base) / f"thermion-linux-headers-{os.urandom(6).hex()}"
+            self.root.mkdir(parents=True)
+            self.temporary = None
+        else:
+            self.temporary = tempfile.TemporaryDirectory(prefix="thermion-linux-headers-")
+            self.root = Path(self.temporary.name)
+        root = self.root
+        if self.temporary is not None:
+            self.addCleanup(self.temporary.cleanup)
+        else:
+            self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
         self.app = root / "app"
         self.package = root / "packages" / "thermion_dart"
         self.build = self.app / "build"
@@ -179,7 +197,7 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         self.assertTrue(old.exists())
 
     def test_percent_encoded_file_uri_with_spaces(self):
-        spaced = Path(self.temporary.name) / "Linux User (Dev)" / "dir%20lit" / "thermion_dart"
+        spaced = self.root / "Linux User (Dev)" / "dir%20lit" / "thermion_dart"
         (spaced / "lib").mkdir(parents=True)
         self.package = spaced
         self.write_version()
@@ -201,7 +219,7 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         ninja = shutil.which("ninja") or shutil.which("ninja-build")
         if not ninja:
             self.skipTest("ninja is not installed")
-        real_pkg = Path(self.temporary.name) / "real_thermion_flutter"
+        real_pkg = self.root / "real_thermion_flutter"
         shutil.copytree(LINUX.parent / "linux", real_pkg / "linux")
         shutil.copytree(LINUX.parent / "cmake", real_pkg / "cmake")
         (real_pkg / ".dart_tool").mkdir()
@@ -235,7 +253,7 @@ int main() { return fixture_value() == EXPECTED_MARKER ? 0 : 1; }
         self.build_and_run()
 
     def test_partial_clean_generated_headers_does_not_warn_for_expected_path(self):
-        isolated = Path(self.temporary.name) / "isolated_thermion_flutter"
+        isolated = self.root / "isolated_thermion_flutter"
         shutil.copytree(LINUX.parent / "linux", isolated / "linux")
         shutil.copytree(LINUX.parent / "cmake", isolated / "cmake")
         (isolated / ".dart_tool").mkdir()
