@@ -118,16 +118,7 @@ class SilhouetteView extends FFIView {
 
     // Register native per-view material override so shared entities render with
     // the double-sided opaque silhouette material without duplicating geometry.
-    await withVoidCallback(
-      (requestId, cb) => View_setSilhouetteMaterialOverrideJobThread(
-        app.jobThreadHandle,
-        silhouetteView.getNativeHandle(),
-        app.engine,
-        silhouetteMaterialInstance.getNativeHandle(),
-        requestId,
-        cb,
-      ),
-    );
+    await silhouetteView.setMaterialOverride(silhouetteMaterialInstance);
 
     await silhouetteView.setName("highlight_silhouette");
 
@@ -246,16 +237,7 @@ class SilhouetteView extends FFIView {
     }
 
     // Clear the native override before destroying the material instance/view
-    await withVoidCallback(
-      (requestId, cb) => View_setSilhouetteMaterialOverrideJobThread(
-        _app.jobThreadHandle,
-        getNativeHandle(),
-        _app.engine,
-        nullptr,
-        requestId,
-        cb,
-      ),
-    );
+    await setMaterialOverride(null);
 
     // Destroy skybox
     await _skybox.destroy();

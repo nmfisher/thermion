@@ -723,6 +723,20 @@ class FFIView extends View<Pointer<TView>> {
     });
   });
 
+  @override
+  Future setMaterialOverride(MaterialInstance? materialInstance) async {
+    await withVoidCallback(
+      (requestId, cb) => View_setMaterialOverrideJobThread(
+        _app.jobThreadHandle,
+        getNativeHandle(),
+        _app.engine,
+        materialInstance == null ? nullptr : materialInstance.getNativeHandle(),
+        requestId,
+        cb,
+      ),
+    );
+  }
+
   Future setTransparentPickingEnabled(bool enabled) async {
     await withVoidCallback(
       (requestId, cb) =>

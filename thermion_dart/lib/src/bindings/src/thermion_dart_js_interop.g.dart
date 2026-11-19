@@ -2445,9 +2445,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int pixelDataType,
     Pointer<NativeFunction<void Function(bool)>> onComplete,
   );
-  external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext(Pointer<Char> canvasSelector);
+  external int _Thermion_createGLContext(Pointer<Char> canvasSelector);
   external void _Thermion_destroyCanvas(Pointer<Char> canvasSelector);
-  external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_getGLContext();
+  external int _Thermion_getGLContext();
   external void _Thermion_setCanvasElementSize(Pointer<Char> name, int width, int height);
   external Pointer<TToneMapper> _ToneMapper_createACES(Pointer<TEngine> tEngine);
   external void _ToneMapper_createACESJobThread(
@@ -2649,7 +2649,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _TransformPipeline_removeKeyBindingsForKey(int logicalKey);
   external void _TransformPipeline_removeMouseButtonBindings(int mouseButton);
   external void _TransformPipeline_setEngine(Pointer<Void> enginePtr);
-  external void _TransformPipeline_setInvertMouseY(bool invert);
+  external void _TransformPipeline_setInvertMouseY(int invert);
   external void _TransformPipeline_setMouseSensitivity(double sensitivity);
   external void _TransformPipeline_unregisterPipelineStage(Pointer<Void> pipelineStageHandle);
   external void _TransformPipeline_update(double deltaTime);
@@ -2847,6 +2847,19 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _View_setMaterialOverride(
+    Pointer<TView> tView,
+    Pointer<TEngine> tEngine,
+    Pointer<TMaterialInstance> tMaterialInstance,
+  );
+  external void _View_setMaterialOverrideJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TView> tView,
+    Pointer<TEngine> tEngine,
+    Pointer<TMaterialInstance> tMaterialInstance,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _View_setName(Pointer<TView> tView, Pointer<Char> name);
   external void _View_setNameJobThread(
     Pointer<TJobThread> jobThread,
@@ -2900,19 +2913,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     bool enabled,
-    int requestId,
-    VoidCallback onComplete,
-  );
-  external void _View_setSilhouetteMaterialOverride(
-    Pointer<TView> tView,
-    Pointer<TEngine> tEngine,
-    Pointer<TMaterialInstance> tMaterialInstance,
-  );
-  external void _View_setSilhouetteMaterialOverrideJobThread(
-    Pointer<TJobThread> jobThread,
-    Pointer<TView> tView,
-    Pointer<TEngine> tEngine,
-    Pointer<TMaterialInstance> tMaterialInstance,
     int requestId,
     VoidCallback onComplete,
   );
@@ -9149,7 +9149,7 @@ void Texture_setImageJobThread(
   return result;
 }
 
-DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext(Pointer<Char> canvasSelector) {
+int Thermion_createGLContext(Pointer<Char> canvasSelector) {
   final result = GeneratedBindings.instance._Thermion_createGLContext(canvasSelector);
   return result;
 }
@@ -9159,7 +9159,7 @@ void Thermion_destroyCanvas(Pointer<Char> canvasSelector) {
   return result;
 }
 
-DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_getGLContext() {
+int Thermion_getGLContext() {
   final result = GeneratedBindings.instance._Thermion_getGLContext();
   return result;
 }
@@ -9729,7 +9729,7 @@ void TransformPipeline_setEngine(Pointer<Void> enginePtr) {
   return result;
 }
 
-void TransformPipeline_setInvertMouseY(bool invert) {
+void TransformPipeline_setInvertMouseY(int invert) {
   final result = GeneratedBindings.instance._TransformPipeline_setInvertMouseY(invert);
   return result;
 }
@@ -10314,6 +10314,38 @@ void View_setLayerEnabledJobThread(
   return result;
 }
 
+void View_setMaterialOverride(
+  Pointer<TView> tView,
+  Pointer<TEngine> tEngine,
+  Pointer<TMaterialInstance> tMaterialInstance,
+) {
+  final result = GeneratedBindings.instance._View_setMaterialOverride(
+    tView.cast(),
+    tEngine.cast(),
+    tMaterialInstance.cast(),
+  );
+  return result;
+}
+
+void View_setMaterialOverrideJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TView> tView,
+  Pointer<TEngine> tEngine,
+  Pointer<TMaterialInstance> tMaterialInstance,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._View_setMaterialOverrideJobThread(
+    jobThread.cast(),
+    tView.cast(),
+    tEngine.cast(),
+    tMaterialInstance.cast(),
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
 void View_setName(Pointer<TView> tView, Pointer<Char> name) {
   final result = GeneratedBindings.instance._View_setName(tView.cast(), name);
   return result;
@@ -10462,38 +10494,6 @@ void View_setShadowsEnabledJobThread(
     jobThread.cast(),
     tView.cast(),
     enabled,
-    requestId,
-    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
-  );
-  return result;
-}
-
-void View_setSilhouetteMaterialOverride(
-  Pointer<TView> tView,
-  Pointer<TEngine> tEngine,
-  Pointer<TMaterialInstance> tMaterialInstance,
-) {
-  final result = GeneratedBindings.instance._View_setSilhouetteMaterialOverride(
-    tView.cast(),
-    tEngine.cast(),
-    tMaterialInstance.cast(),
-  );
-  return result;
-}
-
-void View_setSilhouetteMaterialOverrideJobThread(
-  Pointer<TJobThread> jobThread,
-  Pointer<TView> tView,
-  Pointer<TEngine> tEngine,
-  Pointer<TMaterialInstance> tMaterialInstance,
-  int requestId,
-  DartVoidCallback onComplete,
-) {
-  final result = GeneratedBindings.instance._View_setSilhouetteMaterialOverrideJobThread(
-    jobThread.cast(),
-    tView.cast(),
-    tEngine.cast(),
-    tMaterialInstance.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );
@@ -10761,8 +10761,6 @@ final class Aabb3 extends Struct {
   }
 }
 
-typedef EMSCRIPTEN_WEBGL_CONTEXT_HANDLE = int;
-typedef DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE = int;
 typedef EntityId = int;
 typedef DartEntityId = int;
 typedef FrameTickCallback = Pointer<NativeFunction<FrameTickCallbackFunction>>;

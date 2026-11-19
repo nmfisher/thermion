@@ -631,7 +631,7 @@ namespace thermion
             uint32_t requestId,
             VoidCallback onComplete
         );
-        EMSCRIPTEN_KEEPALIVE void View_setSilhouetteMaterialOverrideJobThread(TJobThread *jobThread,
+        EMSCRIPTEN_KEEPALIVE void View_setMaterialOverrideJobThread(TJobThread *jobThread,
             TView *tView,
             TEngine *tEngine,
             TMaterialInstance *tMaterialInstance,

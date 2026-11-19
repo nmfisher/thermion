@@ -1,4 +1,4 @@
-#include "rendering/SilhouetteOverride.hpp"
+#include "rendering/ViewMaterialOverride.hpp"
 #include "rendering/RenderManager.hpp"
 
 #include <mutex>
@@ -19,13 +19,13 @@ namespace thermion {
 
 namespace {
 
-struct SilhouetteViewOverride {
+struct ViewMaterialOverrideEntry {
     filament::Engine *engine = nullptr;
     filament::MaterialInstance *materialInstance = nullptr;
 };
 
 std::mutex sOverrideMutex;
-std::unordered_map<const filament::View *, SilhouetteViewOverride> sOverrides;
+std::unordered_map<const filament::View *, ViewMaterialOverrideEntry> sOverrides;
 
 void renderWithOverride(
     filament::Renderer *renderer,
@@ -35,7 +35,7 @@ void renderWithOverride(
         return;
     }
 
-    SilhouetteViewOverride entry;
+    ViewMaterialOverrideEntry entry;
     {
         std::lock_guard<std::mutex> lock(sOverrideMutex);
         auto it = sOverrides.find(view);
@@ -110,7 +110,7 @@ void renderWithOverride(
 
 } // namespace
 
-void registerSilhouetteMaterialOverride(
+void registerViewMaterialOverride(
     filament::View *view,
     filament::Engine *engine,
     filament::MaterialInstance *materialInstance) {
@@ -118,15 +118,15 @@ void registerSilhouetteMaterialOverride(
         return;
     }
     if (!engine || !materialInstance) {
-        unregisterSilhouetteMaterialOverride(view);
+        unregisterViewMaterialOverride(view);
         return;
     }
-    RenderManager::setRenderViewHook(&renderViewWithSilhouetteOverride);
+    RenderManager::setRenderViewHook(&renderViewWithMaterialOverride);
     std::lock_guard<std::mutex> lock(sOverrideMutex);
-    sOverrides[view] = SilhouetteViewOverride{engine, materialInstance};
+    sOverrides[view] = ViewMaterialOverrideEntry{engine, materialInstance};
 }
 
-void unregisterSilhouetteMaterialOverride(const filament::View *view) {
+void unregisterViewMaterialOverride(const filament::View *view) {
     if (!view) {
         return;
     }
@@ -134,13 +134,13 @@ void unregisterSilhouetteMaterialOverride(const filament::View *view) {
     sOverrides.erase(view);
 }
 
-void renderViewWithSilhouetteOverride(
+void renderViewWithMaterialOverride(
     filament::Renderer *renderer,
     filament::View *view) {
     renderWithOverride(renderer, view, false);
 }
 
-void renderStandaloneViewWithSilhouetteOverride(
+void renderStandaloneViewWithMaterialOverride(
     filament::Renderer *renderer,
     filament::View *view) {
     renderWithOverride(renderer, view, true);
