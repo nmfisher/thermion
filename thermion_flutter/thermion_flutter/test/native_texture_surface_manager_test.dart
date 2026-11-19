@@ -615,6 +615,27 @@ class _FakeRenderManager extends RenderManager<Pointer<TRenderManager>> {
   }
 
   @override
+  Future setAttachments(
+    SwapChain swapChain,
+    List<({View view, int order})> attachments,
+  ) async {
+    _state.setAttachments(swapChain.getNativeHandle(), attachments);
+  }
+
+  @override
+  Future updateAttachments(
+    SwapChain swapChain, {
+    Iterable<({View view, int order})> attach = const [],
+    Iterable<View> detach = const [],
+  }) async {
+    _state.updateAttachments(
+      swapChain.getNativeHandle(),
+      attach: attach,
+      detach: detach,
+    );
+  }
+
+  @override
   Future detach(View view, {SwapChain? swapChain}) async {
     _state.detach(view, swapChain: swapChain?.getNativeHandle());
   }
