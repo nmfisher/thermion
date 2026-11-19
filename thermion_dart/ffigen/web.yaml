@@ -14,6 +14,7 @@ compiler-opts:
 structs:
   dependency-only: opaque
   include:
+    - 'TCaptureViewRequest'
     - 'TFrameInfo'
 unions:
   dependency-only: opaque

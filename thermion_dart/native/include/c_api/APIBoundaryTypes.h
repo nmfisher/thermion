@@ -22,6 +22,7 @@ extern "C"
 	typedef struct TSceneManager TSceneManager;
 	typedef struct TLightManager TLightManager;
 	typedef struct TRenderManager TRenderManager;
+	typedef struct TCaptureResult TCaptureResult;
 	typedef struct TRenderer TRenderer;
 	typedef struct TFence TFence;
 	typedef struct TRenderTarget TRenderTarget;

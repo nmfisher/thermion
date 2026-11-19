@@ -26,6 +26,34 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void RenderManager_setPaused(TRenderManager *tRenderer, bool paused);
 	EMSCRIPTEN_KEEPALIVE void RenderManager_setTargetFps(TRenderManager *tRenderManager, int fps);
 
+	struct TCaptureViewRequest {
+		TView *view;
+		TRenderTarget *renderTarget;
+		uint32_t width;
+		uint32_t height;
+		uint32_t format;
+		uint32_t type;
+	};
+	typedef struct TCaptureViewRequest TCaptureViewRequest;
+
+	// Atomically runs beginFrame -> render(views) -> readPixels(views) -> endFrame
+	// while holding the render manager mutex. Native owns readback buffers until
+	// Filament invokes each PixelBufferDescriptor callback, then passes a
+	// TCaptureResult* (or NULL if validation/beginFrame failed) to onComplete.
+	// Non-null results must be released with CaptureResult_destroy.
+	EMSCRIPTEN_KEEPALIVE void RenderManager_capture(
+		TRenderManager *tRenderManager,
+		TSwapChain *tSwapChain,
+		uint64_t frameTimeInNanos,
+		bool render,
+		const TCaptureViewRequest *requests,
+		uint32_t viewCount,
+		void (*onComplete)(TCaptureResult *)
+	);
+	EMSCRIPTEN_KEEPALIVE uint8_t *CaptureResult_getPixels(TCaptureResult *tCaptureResult, uint32_t index);
+	EMSCRIPTEN_KEEPALIVE uint32_t CaptureResult_getByteLength(TCaptureResult *tCaptureResult, uint32_t index);
+	EMSCRIPTEN_KEEPALIVE void CaptureResult_destroy(TCaptureResult *tCaptureResult);
+
 #ifdef __cplusplus
 }
 #endif

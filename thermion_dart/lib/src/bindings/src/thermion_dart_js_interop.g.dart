@@ -306,6 +306,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     bool horizontal,
   );
   external void _Camera_setProjectionMatrix(Pointer<TCamera> camera, Pointer<Float64> matrix, double near, double far);
+  external void _CaptureResult_destroy(Pointer<TCaptureResult> tCaptureResult);
+  external int _CaptureResult_getByteLength(Pointer<TCaptureResult> tCaptureResult, int index);
+  external Pointer<Uint8> _CaptureResult_getPixels(Pointer<TCaptureResult> tCaptureResult, int index);
   external Pointer<TColorGrading> _ColorGradingBuilder_build(
     Pointer<TColorGradingBuilder> builder,
     Pointer<TEngine> engine,
@@ -1530,6 +1533,25 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     VoidCallback onComplete,
   );
   external void _RenderManager_attachToJobThread(Pointer<TJobThread> jobThread, Pointer<TRenderManager> tRenderer);
+  external void _RenderManager_capture(
+    Pointer<TRenderManager> tRenderManager,
+    Pointer<TSwapChain> tSwapChain,
+    JSBigInt frameTimeInNanos,
+    bool render,
+    Pointer<TCaptureViewRequest> requests,
+    int viewCount,
+    Pointer<NativeFunction<void Function(PointerClass<TCaptureResult>)>> onComplete,
+  );
+  external void _RenderManager_captureJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TRenderManager> tRenderManager,
+    Pointer<TSwapChain> tSwapChain,
+    JSBigInt frameTimeInNanos,
+    bool render,
+    Pointer<TCaptureViewRequest> requests,
+    int viewCount,
+    Pointer<NativeFunction<void Function(PointerClass<TCaptureResult>)>> onComplete,
+  );
   external Pointer<TRenderManager> _RenderManager_create(Pointer<TEngine> tEngine, Pointer<TRenderer> tRenderer);
   external void _RenderManager_destroy(Pointer<TRenderManager> tRenderer);
   external void _RenderManager_destroyJobThread(
@@ -3736,6 +3758,21 @@ void Camera_setProjectionFromFov(
 void Camera_setProjectionMatrix(Pointer<TCamera> camera, Pointer<Float64> matrix, double near, double far) {
   final result = GeneratedBindings.instance._Camera_setProjectionMatrix(camera.cast(), matrix, near, far);
   return result;
+}
+
+void CaptureResult_destroy(Pointer<TCaptureResult> tCaptureResult) {
+  final result = GeneratedBindings.instance._CaptureResult_destroy(tCaptureResult.cast());
+  return result;
+}
+
+int CaptureResult_getByteLength(Pointer<TCaptureResult> tCaptureResult, int index) {
+  final result = GeneratedBindings.instance._CaptureResult_getByteLength(tCaptureResult.cast(), index);
+  return result;
+}
+
+Pointer<Uint8> CaptureResult_getPixels(Pointer<TCaptureResult> tCaptureResult, int index) {
+  final result = GeneratedBindings.instance._CaptureResult_getPixels(tCaptureResult.cast(), index);
+  return Pointer<Uint8>(result);
 }
 
 Pointer<TColorGrading> ColorGradingBuilder_build(Pointer<TColorGradingBuilder> builder, Pointer<TEngine> engine) {
@@ -6768,6 +6805,50 @@ void RenderManager_addAnimationManagerJobThread(
 
 void RenderManager_attachToJobThread(Pointer<TJobThread> jobThread, Pointer<TRenderManager> tRenderer) {
   final result = GeneratedBindings.instance._RenderManager_attachToJobThread(jobThread.cast(), tRenderer.cast());
+  return result;
+}
+
+void RenderManager_capture(
+  Pointer<TRenderManager> tRenderManager,
+  Pointer<TSwapChain> tSwapChain,
+  BigInt frameTimeInNanos,
+  bool render,
+  Pointer<TCaptureViewRequest> requests,
+  int viewCount,
+  Pointer<NativeFunction<void Function(Pointer<TCaptureResult>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._RenderManager_capture(
+    tRenderManager.cast(),
+    tSwapChain.cast(),
+    frameTimeInNanos.toJSBigInt,
+    render,
+    requests.cast(),
+    viewCount,
+    onComplete.cast(),
+  );
+  return result;
+}
+
+void RenderManager_captureJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TRenderManager> tRenderManager,
+  Pointer<TSwapChain> tSwapChain,
+  BigInt frameTimeInNanos,
+  bool render,
+  Pointer<TCaptureViewRequest> requests,
+  int viewCount,
+  Pointer<NativeFunction<void Function(Pointer<TCaptureResult>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._RenderManager_captureJobThread(
+    jobThread.cast(),
+    tRenderManager.cast(),
+    tSwapChain.cast(),
+    frameTimeInNanos.toJSBigInt,
+    render,
+    requests.cast(),
+    viewCount,
+    onComplete.cast(),
+  );
   return result;
 }
 
@@ -11225,6 +11306,161 @@ final class TCamera extends Struct {
   }
 }
 
+extension TCaptureResultExt on Pointer<TCaptureResult> {
+  TCaptureResult toDart() {
+    return TCaptureResult(this);
+  }
+}
+
+final class TCaptureResult extends Struct {
+  Pointer<TCaptureResult> get address => super.address.cast();
+  TCaptureResult(super.address);
+
+  static Pointer<TCaptureResult> stackAlloc() {
+    return Pointer<TCaptureResult>(NativeLibrary.instance.stackAlloc<TCaptureResult>(0));
+  }
+}
+
+extension TCaptureViewRequestExt on Pointer<TCaptureViewRequest> {
+  TCaptureViewRequest toDart() {
+    return TCaptureViewRequest(this);
+  }
+
+  TCaptureViewRequest operator [](int index) {
+    return TCaptureViewRequest(Pointer<TCaptureViewRequest>(addr + index * TCaptureViewRequest.byteSize));
+  }
+}
+
+final class TCaptureViewRequest extends Struct {
+  Pointer<TCaptureViewRequest> get address => super.address.cast();
+  static const int byteSize = 24;
+  Pointer<TView> get view {
+    final addr = Pointer<TCaptureViewRequest>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return Pointer<TView>(data.getUint32(addr.addr, Endian.little));
+    }
+    final value = NativeLibrary.instance.getValue(addr, '*');
+    return Pointer<TView>(value.toDartInt);
+  }
+
+  set view(Pointer<TView> val) {
+    final addr = Pointer<TCaptureViewRequest>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val.addr, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, '*');
+  }
+
+  Pointer<TRenderTarget> get renderTarget {
+    final addr = Pointer<TCaptureViewRequest>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return Pointer<TRenderTarget>(data.getUint32(addr.addr, Endian.little));
+    }
+    final value = NativeLibrary.instance.getValue(addr, '*');
+    return Pointer<TRenderTarget>(value.toDartInt);
+  }
+
+  set renderTarget(Pointer<TRenderTarget> val) {
+    final addr = Pointer<TCaptureViewRequest>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val.addr, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, '*');
+  }
+
+  int get width {
+    final addr = Pointer<TCaptureViewRequest>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getUint32(addr.addr, Endian.little);
+    }
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set width(int val) {
+    final addr = Pointer<TCaptureViewRequest>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
+  }
+
+  int get height {
+    final addr = Pointer<TCaptureViewRequest>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getUint32(addr.addr, Endian.little);
+    }
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set height(int val) {
+    final addr = Pointer<TCaptureViewRequest>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
+  }
+
+  int get format {
+    final addr = Pointer<TCaptureViewRequest>(this.address.addr + 16);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getUint32(addr.addr, Endian.little);
+    }
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set format(int val) {
+    final addr = Pointer<TCaptureViewRequest>(this.address.addr + 16);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
+  }
+
+  int get type {
+    final addr = Pointer<TCaptureViewRequest>(this.address.addr + 20);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getUint32(addr.addr, Endian.little);
+    }
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set type(int val) {
+    final addr = Pointer<TCaptureViewRequest>(this.address.addr + 20);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
+  }
+
+  TCaptureViewRequest(super.address);
+
+  static Pointer<TCaptureViewRequest> stackAlloc() {
+    return Pointer<TCaptureViewRequest>(NativeLibrary.instance.stackAlloc<TCaptureViewRequest>(24));
+  }
+}
+
 extension TColorGradingExt on Pointer<TColorGrading> {
   TColorGrading toDart() {
     return TColorGrading(this);
@@ -14100,6 +14336,7 @@ typedef Dartsize_t = int;
 int sizeOf<T extends NativeType>() {
   if (T == Aabb3) return Aabb3.byteSize;
   if (T == TAmbientOcclusionOptions) return TAmbientOcclusionOptions.byteSize;
+  if (T == TCaptureViewRequest) return TCaptureViewRequest.byteSize;
   if (T == TFogOptions) return TFogOptions.byteSize;
   if (T == TFrameInfo) return TFrameInfo.byteSize;
   if (T == TGtao) return TGtao.byteSize;
@@ -14133,6 +14370,12 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TCamera:
         final ptr = TCamera.stackAlloc();
+        return ptr.toDart() as T;
+      case TCaptureResult:
+        final ptr = TCaptureResult.stackAlloc();
+        return ptr.toDart() as T;
+      case TCaptureViewRequest:
+        final ptr = TCaptureViewRequest.stackAlloc();
         return ptr.toDart() as T;
       case TColorGrading:
         final ptr = TColorGrading.stackAlloc();

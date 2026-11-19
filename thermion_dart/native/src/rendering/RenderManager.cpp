@@ -34,7 +34,11 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <map>
+
+#include <backend/CallbackHandler.h>
+#include <backend/PixelBufferDescriptor.h>
 
 #include "Log.hpp"
 #include "rendering/RenderManager.hpp"
@@ -159,6 +163,64 @@ namespace thermion
       mRenderer->render(view);
     }
   }
+
+  namespace
+  {
+    struct CaptureCompletionState
+    {
+      std::unique_ptr<RenderManager::CaptureResult> result;
+      std::atomic<size_t> remaining{0};
+      std::function<void(std::unique_ptr<RenderManager::CaptureResult>)> onComplete;
+      std::shared_ptr<RenderManager::CapturePumpState> pumpState;
+    };
+
+    class CaptureReadbackHandler final : public filament::backend::CallbackHandler
+    {
+    public:
+      explicit CaptureReadbackHandler(std::shared_ptr<CaptureCompletionState> state)
+          : mState(std::move(state))
+      {
+      }
+
+      ~CaptureReadbackHandler() override = default;
+
+      void post(void *user, Callback callback) override
+      {
+        callback(user);
+      }
+
+      static void onBufferReady(void *, size_t, void *user)
+      {
+        std::shared_ptr<CaptureCompletionState> state;
+        {
+          std::unique_ptr<CaptureReadbackHandler> self(
+              static_cast<CaptureReadbackHandler *>(user));
+          if (self)
+          {
+            state = std::move(self->mState);
+          }
+        }
+        if (!state)
+        {
+          return;
+        }
+        if (state->pumpState)
+        {
+          state->pumpState->pendingReadbacks.fetch_sub(1, std::memory_order_acq_rel);
+        }
+        if (state->remaining.fetch_sub(1, std::memory_order_acq_rel) == 1)
+        {
+          if (state->onComplete)
+          {
+            state->onComplete(std::move(state->result));
+          }
+        }
+      }
+
+    private:
+      std::shared_ptr<CaptureCompletionState> mState;
+    };
+  } // namespace
 
   void RenderManager::removeSwapChain(SwapChain *swapChain)
   {
@@ -441,9 +503,151 @@ namespace thermion
     }
   }
 
+  bool RenderManager::capture(
+      SwapChain *swapChain,
+      uint64_t frameTimeInNanos,
+      bool render,
+      const std::vector<CaptureViewRequest> &views,
+      std::function<void(std::unique_ptr<CaptureResult>)> onComplete)
+  {
+    if (!mEngine || !mRenderer || !swapChain || views.empty())
+    {
+      return false;
+    }
+
+    std::vector<size_t> byteSizes;
+    byteSizes.reserve(views.size());
+    for (const auto &req : views)
+    {
+      if (!req.view || req.width == 0 || req.height == 0)
+      {
+        return false;
+      }
+      const size_t bpp = Texture::PixelBufferDescriptor::computePixelSize(req.format, req.type);
+      if (bpp == 0)
+      {
+        return false;
+      }
+      const size_t w = static_cast<size_t>(req.width);
+      const size_t h = static_cast<size_t>(req.height);
+      if (w > std::numeric_limits<size_t>::max() / h)
+      {
+        return false;
+      }
+      const size_t pixelCount = w * h;
+      if (pixelCount > std::numeric_limits<size_t>::max() / bpp)
+      {
+        return false;
+      }
+      const size_t totalBytes = pixelCount * bpp;
+      if (totalBytes > std::numeric_limits<uint32_t>::max())
+      {
+        return false;
+      }
+      byteSizes.push_back(totalBytes);
+    }
+
+    auto state = std::make_shared<CaptureCompletionState>();
+    state->result = std::make_unique<CaptureResult>();
+    state->result->buffers.resize(views.size());
+    for (size_t i = 0; i < views.size(); ++i)
+    {
+      state->result->buffers[i].resize(byteSizes[i]);
+    }
+    // Keep one extra count until after unlock() and initial pump so synchronous
+    // readPixels completion cannot invoke onComplete while mMutex is held.
+    state->remaining.store(views.size() + 1, std::memory_order_release);
+    state->onComplete = std::move(onComplete);
+    state->pumpState = mCapturePumpState;
+
+    std::unique_lock<std::mutex> lock(mMutex);
+
+    bool beginFrame = mRenderer->beginFrame(swapChain, frameTimeInNanos);
+#ifdef __EMSCRIPTEN__
+    if (!beginFrame)
+    {
+      beginFrame = mRenderer->beginFrame(swapChain, frameTimeInNanos);
+    }
+#endif
+    if (!beginFrame)
+    {
+      return false;
+    }
+
+    mCapturePumpState->pendingReadbacks.fetch_add(
+        static_cast<uint32_t>(views.size()), std::memory_order_acq_rel);
+
+    for (size_t i = 0; i < views.size(); ++i)
+    {
+      const auto &req = views[i];
+      if (render)
+      {
+        if (auto *overrideMaterial = findMaterialOverrideLocked(req.view))
+        {
+          renderViewWithMaterialOverrideLocked(req.view, overrideMaterial, false);
+        }
+        else
+        {
+          mRenderer->render(req.view);
+        }
+      }
+
+      auto *handler = new CaptureReadbackHandler(state);
+      auto pbd = Texture::PixelBufferDescriptor(
+          state->result->buffers[i].data(),
+          state->result->buffers[i].size(),
+          req.format,
+          req.type,
+          1,
+          0,
+          0,
+          0,
+          handler,
+          &CaptureReadbackHandler::onBufferReady,
+          handler);
+
+      if (req.renderTarget)
+      {
+        mRenderer->readPixels(req.renderTarget, 0, 0, req.width, req.height, std::move(pbd));
+      }
+      else
+      {
+        mRenderer->readPixels(0, 0, req.width, req.height, std::move(pbd));
+      }
+    }
+
+    mRenderer->endFrame();
+    mLastRender = std::chrono::high_resolution_clock::now();
+    lock.unlock();
+
+#ifdef __EMSCRIPTEN__
+    mEngine->flush();
+    mEngine->execute();
+    mEngine->pumpMessageQueues();
+#endif
+
+    if (state->remaining.fetch_sub(1, std::memory_order_acq_rel) == 1)
+    {
+      if (state->onComplete)
+      {
+        state->onComplete(std::move(state->result));
+      }
+    }
+#ifdef __EMSCRIPTEN__
+    else if (mCapturePumpState->pendingReadbacks.load(std::memory_order_acquire) > 0)
+    {
+      scheduleCapturePump(0.0);
+    }
+#endif
+
+    return true;
+  }
+
   RenderManager::~RenderManager() {
+    mCapturePumpState->alive.store(false, std::memory_order_release);
 #ifdef __EMSCRIPTEN__
     stopFrameLoop();
+    stopCapturePump();
 #endif
   }
 

@@ -562,6 +562,15 @@ external void Camera_setProjectionMatrix(
   double far,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCaptureResult>)>(isLeaf: true)
+external void CaptureResult_destroy(ffi.Pointer<TCaptureResult> tCaptureResult);
+
+@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TCaptureResult>, ffi.Uint32)>(isLeaf: true)
+external int CaptureResult_getByteLength(ffi.Pointer<TCaptureResult> tCaptureResult, int index);
+
+@ffi.Native<ffi.Pointer<ffi.Uint8> Function(ffi.Pointer<TCaptureResult>, ffi.Uint32)>(isLeaf: true)
+external ffi.Pointer<ffi.Uint8> CaptureResult_getPixels(ffi.Pointer<TCaptureResult> tCaptureResult, int index);
+
 @ffi.Native<ffi.Pointer<TColorGrading> Function(ffi.Pointer<TColorGradingBuilder>, ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TColorGrading> ColorGradingBuilder_build(
   ffi.Pointer<TColorGradingBuilder> builder,
@@ -3044,6 +3053,50 @@ external void RenderManager_addAnimationManagerJobThread(
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TRenderManager>)>(isLeaf: true)
 external void RenderManager_attachToJobThread(ffi.Pointer<TJobThread> jobThread, ffi.Pointer<TRenderManager> tRenderer);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TRenderManager>,
+    ffi.Pointer<TSwapChain>,
+    ffi.Uint64,
+    ffi.Bool,
+    ffi.Pointer<TCaptureViewRequest>,
+    ffi.Uint32,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TCaptureResult>)>>,
+  )
+>(isLeaf: true)
+external void RenderManager_capture(
+  ffi.Pointer<TRenderManager> tRenderManager,
+  ffi.Pointer<TSwapChain> tSwapChain,
+  int frameTimeInNanos,
+  bool render,
+  ffi.Pointer<TCaptureViewRequest> requests,
+  int viewCount,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TCaptureResult>)>> onComplete,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TRenderManager>,
+    ffi.Pointer<TSwapChain>,
+    ffi.Uint64,
+    ffi.Bool,
+    ffi.Pointer<TCaptureViewRequest>,
+    ffi.Uint32,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TCaptureResult>)>>,
+  )
+>(isLeaf: true)
+external void RenderManager_captureJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TRenderManager> tRenderManager,
+  ffi.Pointer<TSwapChain> tSwapChain,
+  int frameTimeInNanos,
+  bool render,
+  ffi.Pointer<TCaptureViewRequest> requests,
+  int viewCount,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TCaptureResult>)>> onComplete,
+);
 
 @ffi.Native<ffi.Pointer<TRenderManager> Function(ffi.Pointer<TEngine>, ffi.Pointer<TRenderer>)>(isLeaf: true)
 external ffi.Pointer<TRenderManager> RenderManager_create(
@@ -6103,6 +6156,26 @@ final class TBufferObject extends ffi.Opaque {}
 final class TBufferObjectBuilder extends ffi.Opaque {}
 
 final class TCamera extends ffi.Opaque {}
+
+final class TCaptureResult extends ffi.Opaque {}
+
+final class TCaptureViewRequest extends ffi.Struct {
+  external ffi.Pointer<TView> view;
+
+  external ffi.Pointer<TRenderTarget> renderTarget;
+
+  @ffi.Uint32()
+  external int width;
+
+  @ffi.Uint32()
+  external int height;
+
+  @ffi.Uint32()
+  external int format;
+
+  @ffi.Uint32()
+  external int type;
+}
 
 final class TColorGrading extends ffi.Opaque {}
 

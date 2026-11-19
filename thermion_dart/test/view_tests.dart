@@ -2174,6 +2174,195 @@ void main() async {
       },
     );
   });
+
+  group('atomic capture regression', () {
+    test('throwing beforeRender does not wedge subsequent render or capture', () async {
+      final app = FilamentApp.instance!;
+      final swapChain = await app.createHeadlessSwapChain(64, 64);
+      final scene = await app.createScene();
+      final camera = await app.createCamera();
+      await camera.setLensProjection();
+      final view = await app.createView();
+      await view.setScene(scene);
+      await view.setCamera(camera);
+      await view.setViewport(64, 64);
+      await app.renderManager.attach(view, swapChain);
+      await app.setClearOptions(1, 0, 0, 1);
+
+      try {
+        await expectLater(
+          app.capture(
+            swapChain,
+            view: view,
+            beforeRender: (_) async {
+              throw StateError('boom');
+            },
+          ),
+          throwsA(isA<StateError>()),
+        );
+
+        await app.render();
+        final captured = await app.capture(
+          swapChain,
+          view: view,
+          pixelDataFormat: PixelDataFormat.RGBA,
+          pixelDataType: PixelDataType.UBYTE,
+        );
+        expect(captured, hasLength(1));
+        expect(captured.first.$2.lengthInBytes, 64 * 64 * 4);
+        expect(captured.first.$2[0], greaterThan(200));
+        expect(captured.first.$2[3], greaterThan(200));
+      } finally {
+        await app.destroyView(view);
+        await app.destroyScene(scene);
+        await app.destroySwapChain(swapChain);
+      }
+    });
+
+    test('0x0 viewport throws without wedging subsequent render or capture', () async {
+      final app = FilamentApp.instance!;
+      final swapChain = await app.createHeadlessSwapChain(64, 64);
+      final scene = await app.createScene();
+      final camera = await app.createCamera();
+      await camera.setLensProjection();
+      final view = await app.createView();
+      await view.setScene(scene);
+      await view.setCamera(camera);
+      await view.setViewport(0, 0);
+      await app.renderManager.attach(view, swapChain);
+      await app.setClearOptions(1, 0, 0, 1);
+
+      try {
+        await expectLater(app.capture(swapChain, view: view), throwsA(anything));
+
+        await view.setViewport(64, 64);
+        await app.render();
+        await expectLater(
+          app.capture(
+            swapChain,
+            view: view,
+            beforeRender: (v) async {
+              await v.setViewport(0, 0);
+            },
+          ),
+          throwsA(anything),
+        );
+
+        await view.setViewport(64, 64);
+        await app.render();
+        final captured = await app.capture(
+          swapChain,
+          view: view,
+          pixelDataFormat: PixelDataFormat.RGBA,
+          pixelDataType: PixelDataType.UBYTE,
+        );
+        expect(captured, hasLength(1));
+        expect(captured.first.$2.lengthInBytes, 64 * 64 * 4);
+        expect(captured.first.$2[0], greaterThan(200));
+        expect(captured.first.$2[3], greaterThan(200));
+      } finally {
+        await app.destroyView(view);
+        await app.destroyScene(scene);
+        await app.destroySwapChain(swapChain);
+      }
+    });
+
+    test('concurrent render loop and 20 capture calls with async beforeRender', () async {
+      final app = FilamentApp.instance!;
+      final swapChain = await app.createHeadlessSwapChain(64, 64);
+      final scene = await app.createScene();
+      final camera = await app.createCamera();
+      await camera.setLensProjection();
+      final view = await app.createView();
+      await view.setScene(scene);
+      await view.setCamera(camera);
+      await view.setViewport(64, 64);
+      await app.renderManager.attach(view, swapChain);
+      await app.setClearOptions(1, 0, 0, 1);
+
+      var running = true;
+      final renderLoop = () async {
+        while (running) {
+          await app.render();
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+      }();
+
+      try {
+        for (var i = 0; i < 20; i++) {
+          final captured = await app.capture(
+            swapChain,
+            view: view,
+            pixelDataFormat: PixelDataFormat.RGBA,
+            pixelDataType: PixelDataType.UBYTE,
+            beforeRender: (_) async {
+              await Future<void>.delayed(const Duration(milliseconds: 2));
+            },
+          );
+          expect(captured, hasLength(1));
+          expect(captured.first.$2.lengthInBytes, 64 * 64 * 4);
+          expect(captured.first.$2[0], greaterThan(200));
+          expect(captured.first.$2[3], greaterThan(200));
+        }
+      } finally {
+        running = false;
+        await renderLoop;
+        await app.destroyView(view);
+        await app.destroyScene(scene);
+        await app.destroySwapChain(swapChain);
+      }
+    });
+
+    test('captured buffer ownership is independent across captures and formats', () async {
+      final app = FilamentApp.instance!;
+      final swapChain = await app.createHeadlessSwapChain(32, 32);
+      final scene = await app.createScene();
+      final camera = await app.createCamera();
+      await camera.setLensProjection();
+      final view = await app.createView();
+      await view.setScene(scene);
+      await view.setCamera(camera);
+      await view.setViewport(32, 32);
+      await app.renderManager.attach(view, swapChain);
+
+      try {
+        await app.setClearOptions(1, 0, 0, 1);
+        final first = await app.capture(
+          swapChain,
+          view: view,
+          pixelDataFormat: PixelDataFormat.RGBA,
+          pixelDataType: PixelDataType.UBYTE,
+        );
+        expect(first.first.$2.lengthInBytes, 32 * 32 * 4);
+        final firstBytes = first.first.$2;
+        expect(firstBytes[0], greaterThan(200));
+        firstBytes[0] = 0;
+
+        await app.setClearOptions(0, 1, 0, 1);
+        final second = await app.capture(
+          swapChain,
+          view: view,
+          pixelDataFormat: PixelDataFormat.RGBA,
+          pixelDataType: PixelDataType.UBYTE,
+        );
+        expect(second.first.$2.lengthInBytes, 32 * 32 * 4);
+        expect(second.first.$2[1], greaterThan(200));
+        expect(firstBytes[0], 0);
+
+        final floatCapture = await app.capture(
+          swapChain,
+          view: view,
+          pixelDataFormat: PixelDataFormat.RGBA,
+          pixelDataType: PixelDataType.FLOAT,
+        );
+        expect(floatCapture.first.$2.lengthInBytes, 32 * 32 * 16);
+      } finally {
+        await app.destroyView(view);
+        await app.destroyScene(scene);
+        await app.destroySwapChain(swapChain);
+      }
+    });
+  });
 }
 
 int _maxX(

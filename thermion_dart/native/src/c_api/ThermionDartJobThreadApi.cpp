@@ -210,6 +210,73 @@ extern "C"
 #endif
   }
 
+  EMSCRIPTEN_KEEPALIVE void RenderManager_captureJobThread(
+    TJobThread *jobThread,
+    TRenderManager *tRenderManager,
+    TSwapChain *tSwapChain,
+    uint64_t frameTimeInNanos,
+    bool render,
+    const TCaptureViewRequest *tRequests,
+    uint32_t viewCount,
+    void (*onComplete)(TCaptureResult *))
+  {
+    if (!onComplete) {
+      return;
+    }
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
+    if (!rt) {
+#ifdef __EMSCRIPTEN__
+      onComplete(nullptr);
+#else
+      ::thermion::deferDartCallback([onComplete]() { onComplete(nullptr); });
+#endif
+      return;
+    }
+    // Copy caller-owned request structs synchronously so Dart can free them
+    // immediately after queuing without dangling pointers.
+    std::vector<RenderManager::CaptureViewRequest> requests;
+    if (tRequests && viewCount > 0) {
+      requests.reserve(viewCount);
+      for (uint32_t i = 0; i < viewCount; ++i) {
+        requests.push_back(RenderManager::CaptureViewRequest{
+            reinterpret_cast<filament::View *>(tRequests[i].view),
+            reinterpret_cast<filament::RenderTarget *>(tRequests[i].renderTarget),
+            tRequests[i].width,
+            tRequests[i].height,
+            static_cast<filament::backend::PixelDataFormat>(tRequests[i].format),
+            static_cast<filament::backend::PixelDataType>(tRequests[i].type),
+        });
+      }
+    }
+#ifdef __EMSCRIPTEN__
+    const pthread_t callerThread = rt->callerThread();
+    auto dispatch = [callerThread, onComplete](std::unique_ptr<RenderManager::CaptureResult> result) {
+      auto *raw = reinterpret_cast<TCaptureResult *>(result.release());
+      WebJobThread::dispatchCallbackTo(callerThread, [onComplete, raw]() {
+        onComplete(raw);
+      });
+    };
+#else
+    auto dispatch = [onComplete](std::unique_ptr<RenderManager::CaptureResult> result) {
+      auto *raw = reinterpret_cast<TCaptureResult *>(result.release());
+      ::thermion::deferDartCallback([onComplete, raw]() {
+        onComplete(raw);
+      });
+    };
+#endif
+    if (rt->isStopping() || !tRenderManager || !tSwapChain || requests.empty()) {
+      dispatch(nullptr);
+      return;
+    }
+    rt->addDetachedTask([tRenderManager, tSwapChain, frameTimeInNanos, render, requests = std::move(requests), dispatch = std::move(dispatch)]() mutable {
+      auto *renderManager = reinterpret_cast<RenderManager *>(tRenderManager);
+      auto *swapChain = reinterpret_cast<filament::SwapChain *>(tSwapChain);
+      if (!renderManager->capture(swapChain, frameTimeInNanos, render, requests, dispatch)) {
+        dispatch(nullptr);
+      }
+    });
+  }
+
   EMSCRIPTEN_KEEPALIVE void RenderManager_addAnimationManagerJobThread(TJobThread *jobThread,
     TRenderManager *tRenderManager,
     TAnimationManager *tAnimationManager,
