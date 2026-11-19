@@ -2228,25 +2228,13 @@ void main() async {
       final view = await app.createView();
       await view.setScene(scene);
       await view.setCamera(camera);
-      await view.setViewport(0, 0);
+      // Freshly created views start with a 0x0 viewport (calling
+      // setViewport(0, 0) trips Filament's debug assert width > 0).
       await app.renderManager.attach(view, swapChain);
       await app.setClearOptions(1, 0, 0, 1);
 
       try {
         await expectLater(app.capture(swapChain, view: view), throwsA(anything));
-
-        await view.setViewport(64, 64);
-        await app.render();
-        await expectLater(
-          app.capture(
-            swapChain,
-            view: view,
-            beforeRender: (v) async {
-              await v.setViewport(0, 0);
-            },
-          ),
-          throwsA(anything),
-        );
 
         await view.setViewport(64, 64);
         await app.render();
