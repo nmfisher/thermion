@@ -647,11 +647,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     );
     if (FILAMENT_WASM && material.compiledOnDemand) {
       final response = await http.get(Uri.parse('thermion_materials/${material.key}.filamat'));
-      if (response.statusCode == 404 || response.headers['content-type']?.startsWith('text/html') == true) {
+      if (response.statusCode == 404) {
         throw unavailable;
       }
       if (response.statusCode != 200) {
         throw StateError('Could not load ${material.key}.filamat (HTTP ${response.statusCode}).');
+      }
+      if (response.headers['content-type']?.startsWith('text/html') == true) {
+        throw unavailable;
       }
       return _createMaterial(response.bodyBytes, builtIn: material);
     }

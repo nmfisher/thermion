@@ -84,15 +84,20 @@ void main(List<String> args) async {
     }
 
     final rawMaterialsDefine = input.userDefines['materials'];
+    if (rawMaterialsDefine != null && rawMaterialsDefine is! Map<String, dynamic>) {
+      throw MaterialToolsError('materials must be a map in pubspec.yaml.');
+    }
     final materialConfig = rawMaterialsDefine is Map<String, dynamic> ? rawMaterialsDefine : const <String, dynamic>{};
     final knownMaterialKeys = {
       'backends',
       'include_defaults',
       ...BuiltInMaterial.values.map((material) => material.key),
     };
-    for (final key in materialConfig.keys) {
+    for (final MapEntry(:key, :value) in materialConfig.entries) {
       if (!knownMaterialKeys.contains(key)) {
         logger.warning('Unknown key materials.$key in pubspec.yaml.');
+      } else if (key != 'backends' && value is! bool) {
+        throw MaterialToolsError('materials.$key must be true or false (an unquoted YAML boolean).');
       }
     }
     final optInMaterials = [
@@ -102,8 +107,18 @@ void main(List<String> args) async {
 
     if (!input.config.buildCodeAssets) {
       logger.info("buildCodeAssets is false, assumed to be building for web");
-      await _publishWebMaterials(input, output, optInMaterials, logger);
-      await _downloadWebArtifacts(input, logger);
+      final webDir = _findWebDirectory(input, logger);
+      if (webDir == null) {
+        if (optInMaterials.isNotEmpty) {
+          throw MaterialToolsError(
+            'Could not locate the app’s web/ directory. Set web_directory under '
+            'hooks.user_defines.thermion_dart in the workspace pubspec.yaml.',
+          );
+        }
+        return;
+      }
+      await _publishWebMaterials(input, output, webDir, optInMaterials, logger);
+      await _downloadWebArtifacts(input, webDir, logger);
       return;
     }
 
@@ -1010,7 +1025,27 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
 // R2 base URL for the web engine artifacts lives in
 // lib/src/hooks/web_artifacts.dart (webR2BaseUrl), shared with its tests.
 
-Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
+Directory? _findWebDirectory(BuildInput input, Logger logger) {
+  final configuredPath = input.userDefines['web_directory'];
+  if (configuredPath != null) {
+    final uri = input.userDefines.path('web_directory');
+    if (configuredPath is! String || configuredPath.trim().isEmpty || uri == null || uri.scheme != 'file') {
+      throw MaterialToolsError('web_directory must be a path to the app’s existing web/ directory.');
+    }
+    final directory = Directory.fromUri(uri);
+    if (!directory.existsSync()) {
+      throw MaterialToolsError('web_directory does not exist: ${directory.path}');
+    }
+    return directory;
+  }
+
+  final root = _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
+  if (root == null) return null;
+  final directory = Directory(path.join(root, 'web'));
+  return directory.existsSync() ? directory : null;
+}
+
+Future<void> _downloadWebArtifacts(BuildInput input, Directory webDir, Logger logger) async {
   final packageRoot = input.packageRoot.toFilePath(windows: Platform.isWindows);
 
   // The "web_variant" user define selects which prebuilt engine to fetch:
@@ -1048,16 +1083,6 @@ Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
       );
       return;
     }
-    final consumingPackageRoot = _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
-    if (consumingPackageRoot == null) {
-      logger.warning('Could not determine consuming package root');
-      return;
-    }
-    final webDir = Directory(path.join(consumingPackageRoot, 'web'));
-    if (!webDir.existsSync()) {
-      logger.info('No web/ directory at ${webDir.path}; skipping');
-      return;
-    }
     for (final name in ['thermion_dart.js', 'thermion_dart.wasm']) {
       final src = File(path.join(localOut.path, name));
       if (!src.existsSync()) {
@@ -1082,12 +1107,6 @@ Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
   }
   logger.info('Web artifact version: $version');
 
-  final consumingPackageRoot = _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
-  if (consumingPackageRoot == null) {
-    logger.warning('Could not determine consuming package root; skipping web artifact copy');
-    return;
-  }
-
   // Variant-scoped cache: the default and main-thread engines must never
   // share a directory — the success token would otherwise mask the wrong
   // contents when switching variants.
@@ -1102,11 +1121,6 @@ Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
     return;
   }
 
-  final webDir = Directory(path.join(consumingPackageRoot, 'web'));
-  if (!webDir.existsSync()) {
-    logger.info('No web/ directory at ${webDir.path}; skipping artifact copy');
-    return;
-  }
   for (final name in ['thermion_dart.js', 'thermion_dart.wasm']) {
     final src = File(path.join(cacheDir.path, name));
     if (!src.existsSync()) {
@@ -1344,20 +1358,10 @@ Future<Directory> _compileBuiltInMaterials(
 Future<void> _publishWebMaterials(
   BuildInput input,
   BuildOutputBuilder output,
+  Directory webDir,
   List<BuiltInMaterial> materials,
   Logger logger,
 ) async {
-  final appRoot = _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
-  if (appRoot == null) {
-    if (materials.isEmpty) return;
-    throw MaterialToolsError('Could not locate the consuming app to publish web material packages.');
-  }
-  final webDir = Directory(path.join(appRoot, 'web'));
-  if (!webDir.existsSync()) {
-    if (materials.isEmpty) return;
-    throw MaterialToolsError('Create the app’s web/ directory before building optional web materials.');
-  }
-
   final deployDir = Directory(path.join(webDir.path, 'thermion_materials'));
   final compiled = materials.isEmpty
       ? null
