@@ -92,6 +92,8 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSilhouetteMaterial(TEngine *tEngine);
 	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createEdgeOutlineMaterial(TEngine *tEngine);
 	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createWireframeMaterial(TEngine *tEngine);
+	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createNormalColorMaterial(TEngine *tEngine);
+	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createNormalColorMaterial(TEngine *tEngine);
 	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createTranslationAxisMaterial(TEngine *tEngine);
 	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createBoneOverlayMaterial(TEngine *tEngine);
 	EMSCRIPTEN_KEEPALIVE bool Material_hasParameter(TMaterial *tMaterial, const char *propertyName);

@@ -949,6 +949,16 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return WireframeMaterialInstance(mi);
   }
 
+  @override
+  Future<NormalColorMaterialInstance>
+      createNormalColorMaterialInstance() async {
+    final material = FFIMaterial(await withPointerCallback<TMaterial>((cb) {
+      Material_createNormalColorMaterialJobThread(jobThreadHandle, engine, cb);
+    }));
+    final mi = await material.createInstance();
+    return NormalColorMaterialInstance(mi);
+  }
+
   //
   Future<MaterialInstance> getMaterialInstanceAt(ThermionEntity entity, int index) async {
     final instance = await renderableManager.getMaterialInstanceAt(entity, index);

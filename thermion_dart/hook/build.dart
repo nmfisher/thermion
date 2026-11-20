@@ -6,11 +6,6 @@ import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
-import '../lib/filament_version.dart';
-import '../lib/src/hooks/filament_artifacts.dart';
-import '../lib/src/hooks/material_backend_resolution.dart';
-import '../lib/src/hooks/material_tools.dart';
-import '../lib/src/hooks/web_artifacts.dart';
 import '../lib/src/logging/log.dart';
 
 void main(List<String> args) async {
@@ -301,6 +296,7 @@ outputDirectory : ${outputDirectory.path}
       'edge_outline': materialPath('edge_outline', materialSuffix),
       'wireframe': materialPath('wireframe', materialSuffix),
       'translation_axis': materialPath('translation_axis', materialSuffix),
+      'normal_color': materialPath('normal_color', materialSuffix),
       // Renamed from gizmo.c to avoid a case-insensitive .obj collision
       // with scene/Gizmo.cpp on Windows.
       'gizmo': materialPath('gizmo_material', materialSuffix),
