@@ -2,6 +2,7 @@
 #import <QuartzCore/CADisplayLink.h>
 #import <QuartzCore/CAMediaTiming.h>
 #import <dispatch/dispatch.h>
+#import <math.h>
 #include "rendering/CADisplayLinkWrapper.h"
 
 @interface ThermionDisplayLinkHelper : NSObject {
@@ -32,7 +33,11 @@
     if (@available(iOS 15.0, *)) {
         if (fps > 0) {
             const float rate = (float)fps;
-            _displayLink.preferredFrameRateRange = CAFrameRateRangeMake(rate, rate, rate);
+            // Flexible minimum: a rigid min == preferred == max range forces
+            // ProMotion to hold the preferred rate even under thermal load
+            // or for non-divisor rates; letting the system downshift to the
+            // floor (capped at 30) keeps frame delivery smooth instead.
+            _displayLink.preferredFrameRateRange = CAFrameRateRangeMake(fminf(30.0f, rate), rate, rate);
         } else {
             _displayLink.preferredFrameRateRange = CAFrameRateRangeDefault;
         }
@@ -51,8 +56,11 @@
 }
 
 - (void)displayLinkFired:(CADisplayLink*)link {
-    // Convert timestamp (seconds since system boot) to nanoseconds
-    uint64_t nanos = (uint64_t)(link.timestamp * 1.0e9);
+    // targetTimestamp is the vsync this callback is preparing a frame for;
+    // `timestamp` is the previous displayed frame and lags a full interval,
+    // so poses evaluated against it consistently miss scanout by one frame.
+    // Convert seconds since system boot to nanoseconds.
+    uint64_t nanos = (uint64_t)(link.targetTimestamp * 1.0e9);
     _callback(nanos, _context);
 }
 

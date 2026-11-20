@@ -16,19 +16,27 @@
 namespace thermion {
 
 // Maps a platform frame time using a pair of nearby clock samples. Frame age
-// is approximate: preemption between the samples adds conversion error. An
-// unavailable, future, or unrepresentable frame time falls back to delivery
-// time, like TimerFrameScheduler. Keep output nondecreasing when recovering
-// from missing timing data or when the sampled clock offset changes.
-// Owned by one source callback context; reset only after that context stops.
+// is approximate: preemption between the samples adds conversion error. A
+// frame time slightly in the future is extrapolated with the same offset —
+// CADisplayLink's targetTimestamp (what the callback is preparing a frame
+// for) is typically a fraction of one refresh interval ahead of delivery. An
+// unavailable, far-future, or unrepresentable frame time falls back to
+// delivery time, like TimerFrameScheduler. Keep output nondecreasing when
+// recovering from missing timing data or when the sampled clock offset
+// changes. Owned by one source callback context; reset only after that
+// context stops.
 class FrameTimeMapper {
 public:
     uint64_t map(std::optional<uint64_t> sourceFrame, uint64_t sourceNow,
                  uint64_t steadyNow) {
         uint64_t mapped = steadyNow;
-        if (sourceFrame && *sourceFrame <= sourceNow) {
-            const uint64_t age = sourceNow - *sourceFrame;
-            if (age <= steadyNow) mapped -= age;
+        if (sourceFrame) {
+            if (*sourceFrame <= sourceNow) {
+                const uint64_t age = sourceNow - *sourceFrame;
+                if (age <= steadyNow) mapped -= age;
+            } else if (*sourceFrame - sourceNow <= kMaxFutureNanos) {
+                mapped += *sourceFrame - sourceNow;
+            }
         }
         _last = std::max(_last, mapped);
         return _last;
@@ -37,6 +45,9 @@ public:
     void reset() { _last = 0; }
 
 private:
+    // Beyond one refresh interval at the lowest practical frame rate the
+    // timestamp is unusable metadata, not a prediction to extrapolate.
+    static constexpr uint64_t kMaxFutureNanos = 100000000ULL;
     uint64_t _last = 0;
 };
 

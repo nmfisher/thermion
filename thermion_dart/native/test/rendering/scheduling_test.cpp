@@ -59,11 +59,17 @@ static void testFrameTime() {
             "clock conversion lost frame age");
     require(mapper.map(std::nullopt, 11000000, 5001000000) == 5001000000,
             "missing frame did not use delivery time");
-    require(mapper.map(13000000, 12000000, 5002000000) == 5002000000,
-            "future frame escaped delivery-time fallback");
+    // A near-future frame (CADisplayLink targetTimestamp) extrapolates the
+    // same offset instead of falling back to delivery time.
+    require(mapper.map(13000000, 12000000, 5002000000) == 5003000000,
+            "near-future frame did not extrapolate");
+    // A far-future timestamp is unusable metadata: delivery time is used and
+    // frame time still never moves backwards.
+    require(mapper.map(130000000, 12000000, 5002000000) == 5003000000,
+            "far-future frame escaped delivery-time fallback");
     // Recovery can produce an older estimate than the previous delivery-time
     // fallback. Neither rate admission nor animation time may move backwards.
-    require(mapper.map(11500000, 12500000, 5002500000) == 5002000000,
+    require(mapper.map(11500000, 12500000, 5002500000) == 5003000000,
             "recovery moved frame time backwards");
     mapper.reset();
     require(mapper.map(0, 20, 10) == 10, "frame age underflowed steady time");
