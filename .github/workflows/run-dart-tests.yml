@@ -712,7 +712,7 @@ jobs:
           # To refresh, review captures, upload the zips to R2 under a new
           # prefix, then update BASELINE_ID and the per-platform SHA-256 values.
           BASELINE_BASE_URL: https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/render-baselines
-          BASELINE_ID: 2026-11-19-overlay-translucent
+          BASELINE_ID: 2026-11-20-atomic-capture
           BASELINE_ASSET: ${{ matrix.baseline_asset }}
           BASELINE_SHA256: ${{ matrix.baseline_sha256 }}
         run: |
