@@ -613,7 +613,7 @@ void main() async {
       await viewer.view.pick(centerX, centerY, completer.complete);
 
       for (int i = 0; i < 10; i++) {
-        await testHelper.capture(viewer.view, "bone_empty_pick_$i");
+        await testHelper.capture(viewer.view, i == 0 ? "bone_empty_pick_0" : null);
         if (completer.isCompleted) break;
       }
 
