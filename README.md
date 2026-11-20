@@ -132,6 +132,29 @@ startup or from a background isolate.
 A live web demo — a GLSL editor that compiles and applies materials in the
 browser — is in `examples/dart/material_editor`.
 
+#### Debug/visualization materials (opt-in)
+
+`normal_color` and `sharp_edge` are unlit materials for geometry inspection —
+world-space normals rendered as RGB, and dihedral-angle edge detection
+(edges above ~30° highlighted via a per-triangle mask computed by
+`rebuildVertexBuffers`). They are **not compiled into the default native
+library**; enable them like any other optional material:
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      materials:
+        normal_color: true
+        sharp_edge: true
+```
+
+Then create them at runtime via
+`FilamentApp.instance!.createNormalColorMaterialInstance()` /
+`createSharpEdgeMaterialInstance()`. Calling either in a build without the
+material enabled fails on the FFI symbol lookup (the native entry points are
+`#ifdef`-guarded out).
+
 ### Quickstart (Flutter)
 
 From the command line:

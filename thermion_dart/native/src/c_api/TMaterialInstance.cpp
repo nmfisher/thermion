@@ -111,6 +111,7 @@ namespace thermion
             return reinterpret_cast<TMaterial *>(material);
         }
 
+        #ifdef NORMAL_COLOR_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createNormalColorMaterial(TEngine *tEngine) {
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -119,7 +120,9 @@ namespace thermion
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
+        #endif
 
+        #ifdef SHARP_EDGE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSharpEdgeMaterial(TEngine *tEngine) {
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -128,6 +131,7 @@ namespace thermion
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
+        #endif
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createTranslationAxisMaterial(TEngine *tEngine) {
             THERMION_ENGINE_API_GUARD;

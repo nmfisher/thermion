@@ -857,6 +857,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  #ifdef NORMAL_COLOR_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createNormalColorMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
@@ -869,7 +870,9 @@ extern "C"
         });
     auto fut = rt->addTask(lambda);
   }
+  #endif
 
+  #ifdef SHARP_EDGE_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createSharpEdgeMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
@@ -882,6 +885,7 @@ extern "C"
         });
     auto fut = rt->addTask(lambda);
   }
+  #endif
 
   EMSCRIPTEN_KEEPALIVE void Material_createTranslationAxisMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {

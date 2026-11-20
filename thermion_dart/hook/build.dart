@@ -1299,6 +1299,14 @@ Future<void> _processDeclarativePlugins(
 //
 // Material configuration processing functions
 //
+// Debug/visualization materials that are NOT linked into the default native
+// build. They exist for geometry-inspection workflows (normal-color view,
+// sharp-edge view) and are compiled in only when explicitly enabled under
+// hooks.user_defines.thermion_dart.materials, like any other opt-in material.
+const Set<String> _optInMaterials = {
+  'normal_color',
+  'sharp_edge',
+};
 
 void _processMaterials(
   Map<String, dynamic>? materialConfig,
@@ -1310,8 +1318,11 @@ void _processMaterials(
 ) {
   // If no config provided, include all materials (default)
   if (materialConfig == null) {
-    logger.info("No materials config specified, including all materials");
+    logger.info("No materials config specified, including all default materials");
     for (final materialName in materialSources.keys) {
+      if (_optInMaterials.contains(materialName)) {
+        continue;
+      }
       _includeMaterial(materialName, materialSources, sources, defines, logger, pkgRootFilePath);
     }
     return;
