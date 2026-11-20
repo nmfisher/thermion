@@ -185,8 +185,26 @@ engine raises a `StateError` that names its pubspec key.
 
 The build hook compiles enabled `normal_color` and `sharp_edge` shaders from
 source using the cached Filament tools. It links them on native builds and puts
-their `.filamat` files in `web/thermion_materials/` for web builds. You can use
-them with the slim web engine.
+their `.filamat` files in `web/thermion_materials/` for `flutter run -d chrome`
+and `flutter build web`. The slim web engine can load these files.
+
+For a Flutter app inside a pub workspace, set `web_directory: apps/viewer/web`
+alongside `materials` under `hooks.user_defines.thermion_dart` in the workspace
+pubspec. The path is relative to that pubspec.
+
+For plain Dart web apps, `dart compile js` only compiles the Dart entrypoint.
+Use `dart run thermion_dart:download_web` to fetch the engine and compile each
+enabled shader separately with `matc` from the Filament release pinned by
+Thermion. Run these example commands from the app directory with
+`THERMION_PACKAGE` pointing at the `thermion_dart` package directory.
+
+```sh
+mkdir -p web/thermion_materials
+matc -a opengl -a webgpu -o web/thermion_materials/normal_color.filamat \
+  "$THERMION_PACKAGE/hook/materials/normal_color.mat"
+```
+
+Use `sharp_edge` in both filenames to enable that shader.
 
 On native, each standard helper can be selected individually. Selecting a standard
 helper on web downloads the prebuilt engine containing all 11 standard helpers
