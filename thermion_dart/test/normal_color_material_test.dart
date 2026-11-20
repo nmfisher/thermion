@@ -40,7 +40,42 @@ void main() async {
       final normalColor = await FilamentApp.instance!.createNormalColorMaterialInstance();
 
       await asset.setMaterialInstanceForAll(normalColor.materialInstance);
-      await testHelper.capture(result.viewer.view, "cube_normal_color");
+      final reference = (await testHelper.capture(result.viewer.view, "cube_normal_color")).values.single;
+      final pixels = Float32List.fromList(
+        reference.buffer.asFloat32List(reference.offsetInBytes, reference.lengthInBytes ~/ 4),
+      );
+      var visiblePixels = 0;
+      for (var i = 0; i < pixels.length; i += 4) {
+        if (pixels[i] > 0.45) visiblePixels++;
+      }
+      expect(visiblePixels, greaterThan(100));
+
+      // cube.glb has 24 authored vertices and 36 indices, with hard normal seams.
+      await result.viewer.removeFromScene(asset);
+      for (final capability in [
+        SceneAssetGeometryCapability.preservedTopology,
+        SceneAssetGeometryCapability.barycentrics,
+      ]) {
+        final rebuilt = await result.viewer.loadGltf(
+          "file://${testHelper.assetsDir}/cube.glb",
+          requiredGeometryCapabilities: {capability},
+          addToScene: true,
+        );
+        expect(
+          rebuilt.getVertexBuffer()!.getVertexCount(),
+          capability == SceneAssetGeometryCapability.preservedTopology ? 24 : 36,
+        );
+        await rebuilt.setMaterialInstanceForAll(normalColor.materialInstance);
+        final frame = (await testHelper.capture(result.viewer.view, null)).values.single;
+        final actual = frame.buffer.asFloat32List(frame.offsetInBytes, frame.lengthInBytes ~/ 4);
+        var error = 0.0;
+        for (var i = 0; i < pixels.length; ++i) {
+          error += (pixels[i] - actual[i]).abs();
+        }
+        expect(error / pixels.length, lessThan(0.01), reason: 'Rebuilding must preserve authored normal seams');
+        await result.viewer.destroyAsset(rebuilt);
+      }
+      await result.viewer.addToScene(asset);
 
       await normalColor.setUseAbsoluteValue(true);
       await testHelper.capture(result.viewer.view, "cube_normal_color_absolute");

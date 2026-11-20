@@ -130,6 +130,9 @@ namespace thermion
             auto *material = filament::Material::Builder()
                 .package(NORMAL_COLOR_NORMAL_COLOR_DATA, NORMAL_COLOR_NORMAL_COLOR_SIZE)
                 .build(*engine);
+            if (material) {
+                material->setDefaultParameter("opacity", 1.0f);
+            }
             return reinterpret_cast<TMaterial *>(material);
         }
 #endif
@@ -141,6 +144,11 @@ namespace thermion
             auto *material = filament::Material::Builder()
                 .package(SHARP_EDGE_SHARP_EDGE_DATA, SHARP_EDGE_SHARP_EDGE_SIZE)
                 .build(*engine);
+            if (material) {
+                material->setDefaultParameter("edgeColor", filament::math::float4{1, 1, 1, 1});
+                material->setDefaultParameter("baseColor", filament::math::float4{0.1f, 0.1f, 0.1f, 1});
+                material->setDefaultParameter("edgeWidth", 1.0f);
+            }
             return reinterpret_cast<TMaterial *>(material);
         }
 #endif

@@ -426,6 +426,7 @@ jobs:
 
       - name: Select web engine and disable unused native build
         run: |
+          sed -i '/^hooks:/,$d' thermion_dart/pubspec.yaml
           cat >> thermion_dart/pubspec.yaml <<'EOF'
           hooks:
             user_defines:

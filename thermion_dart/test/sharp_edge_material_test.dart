@@ -56,12 +56,17 @@ void main() async {
       await testHelper.capture(result.viewer.view, "cube_before");
 
       final sharpEdge = await FilamentApp.instance!.createSharpEdgeMaterialInstance();
-      await sharpEdge.setEdgeColor(1.0, 1.0, 1.0, 1.0);
-      await sharpEdge.setBaseColor(0.1, 0.1, 0.1, 1.0);
-      await sharpEdge.setEdgeWidth(1.5);
-
       await asset.setMaterialInstanceForAll(sharpEdge.materialInstance);
-      await testHelper.capture(result.viewer.view, "cube_sharp_edge");
+      final frame = (await testHelper.capture(result.viewer.view, "cube_sharp_edge")).values.single;
+      final pixels = frame.buffer.asFloat32List(frame.offsetInBytes, frame.lengthInBytes ~/ 4);
+      var brightEdges = 0;
+      var darkFaces = 0;
+      for (var i = 0; i < pixels.length; i += 4) {
+        if (pixels[i] > 0.8) brightEdges++;
+        if (pixels[i] > 0.05 && pixels[i] < 0.2) darkFaces++;
+      }
+      expect(brightEdges, greaterThan(100));
+      expect(darkFaces, greaterThan(brightEdges));
 
       await result.viewer.removeFromScene(asset);
     });
