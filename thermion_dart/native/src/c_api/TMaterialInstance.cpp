@@ -21,6 +21,7 @@
 #include "material/wireframe.h"
 #include "material/bone_overlay.h"
 #include "material/normal_color.h"
+#include "material/sharp_edge.h"
 
 #include "c_api/TMaterialInstance.h"
 
@@ -114,6 +115,14 @@ namespace thermion
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
                 .package(NORMAL_COLOR_NORMAL_COLOR_DATA, NORMAL_COLOR_NORMAL_COLOR_SIZE)
+                .build(*engine);
+            return reinterpret_cast<TMaterial *>(material);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSharpEdgeMaterial(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *material = filament::Material::Builder()
+                .package(SHARP_EDGE_SHARP_EDGE_DATA, SHARP_EDGE_SHARP_EDGE_SIZE)
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }

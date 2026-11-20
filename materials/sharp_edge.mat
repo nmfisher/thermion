@@ -1,0 +1,77 @@
+material {
+    name : SharpEdge,
+    requires : [
+        custom0
+    ],
+    parameters : [
+        {
+            type: float4,
+            name: edgeColor,
+            default: [1.0, 1.0, 1.0, 1.0]
+        },
+        {
+            type: float4,
+            name: baseColor,
+            default: [0.1, 0.1, 0.1, 1.0]
+        },
+        {
+            type: float,
+            name: edgeWidth,
+            default: 1.0
+        }
+    ],
+    variables : [
+        barycentrics
+    ],
+    depthWrite : true,
+    depthCulling : true,
+    doubleSided : false,
+    shadingModel : unlit,
+    blending : transparent,
+    culling : back
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.barycentrics = getCustom0();
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec3 bary = variable_barycentrics.xyz;
+        float sharpMask = variable_barycentrics.w;
+
+        // Decode 3-bit sharp edge mask from CUSTOM0.w.
+        // Bit 0 = edge 0 (opposite v0), bit 1 = edge 1, bit 2 = edge 2.
+        float m = sharpMask;
+        float s0 = mod(floor(m), 2.0);
+        float s1 = mod(floor(m / 2.0), 2.0);
+        float s2 = mod(floor(m / 4.0), 2.0);
+
+        // Anti-aliased edge distance (same technique as wireframe material)
+        vec3 dx = dFdx(bary);
+        vec3 dy = dFdy(bary);
+        vec3 fw = sqrt(dx * dx + dy * dy);
+
+        float lineWidth = materialParams.edgeWidth;
+        vec3 edgeStart = fw * (lineWidth - 0.5);
+        vec3 edgeEnd   = fw * (lineWidth + 0.5);
+        vec3 edgeDist = smoothstep(edgeStart, edgeEnd, bary);
+
+        // Mask out non-sharp edges (set to 1.0 = fully interior)
+        edgeDist.x = mix(1.0, edgeDist.x, s0);
+        edgeDist.y = mix(1.0, edgeDist.y, s1);
+        edgeDist.z = mix(1.0, edgeDist.z, s2);
+
+        float interior = min(min(edgeDist.x, edgeDist.y), edgeDist.z);
+
+        vec4 eCol = materialParams.edgeColor;
+        vec4 bCol = materialParams.baseColor;
+
+        material.baseColor = mix(eCol, bCol, interior);
+        material.baseColor.rgb *= material.baseColor.a;
+    }
+}

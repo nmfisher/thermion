@@ -2936,6 +2936,24 @@ external void Material_createNormalColorMaterialJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
 );
 
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TMaterial> Material_createSharpEdgeMaterial(
+  ffi.Pointer<TEngine> tEngine,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>,
+  )
+>(isLeaf: true)
+external void Material_createSharpEdgeMaterialJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
+);
+
 @ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TMaterial>)>(isLeaf: true)
 external int Material_getBlendingMode(ffi.Pointer<TMaterial> material);
 

@@ -959,6 +959,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return NormalColorMaterialInstance(mi);
   }
 
+  @override
+  Future<SharpEdgeMaterialInstance> createSharpEdgeMaterialInstance() async {
+    final material = FFIMaterial(await withPointerCallback<TMaterial>((cb) {
+      Material_createSharpEdgeMaterialJobThread(jobThreadHandle, engine, cb);
+    }));
+    final mi = await material.createInstance();
+    return SharpEdgeMaterialInstance(mi);
+  }
+
   //
   Future<MaterialInstance> getMaterialInstanceAt(ThermionEntity entity, int index) async {
     final instance = await renderableManager.getMaterialInstanceAt(entity, index);

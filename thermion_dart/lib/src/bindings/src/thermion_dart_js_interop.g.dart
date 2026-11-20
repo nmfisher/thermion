@@ -1475,6 +1475,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
   );
+  external Pointer<TMaterial> _Material_createSharpEdgeMaterial(Pointer<TEngine> tEngine);
+  external void _Material_createSharpEdgeMaterialJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
+  );
   external int _Material_getBlendingMode(Pointer<TMaterial> material);
   external int _Material_getFeatureLevel(Pointer<TMaterial> tMaterial);
 
@@ -6622,6 +6628,24 @@ void Material_createNormalColorMaterialJobThread(
   Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Material_createNormalColorMaterialJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
+  return result;
+}
+
+Pointer<TMaterial> Material_createSharpEdgeMaterial(Pointer<TEngine> tEngine) {
+  final result = GeneratedBindings.instance._Material_createSharpEdgeMaterial(tEngine.cast());
+  return result;
+}
+
+void Material_createSharpEdgeMaterialJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._Material_createSharpEdgeMaterialJobThread(
     jobThread.cast(),
     tEngine.cast(),
     onComplete.cast(),
