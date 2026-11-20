@@ -146,8 +146,14 @@ hooks:
         sharp_edge: true
 ```
 
-This native configuration selects exactly the listed helpers. For a custom web
-build, configure CMake with `-DTHERMION_MATERIALS="normal_color;sharp_edge"`.
+The build hook compiles only the debug shaders you enable. It downloads and caches
+the matching Filament tools on first use. Native builds link the generated shader
+for the selected graphics backend. Web builds publish `.filamat` files under
+`web/thermion_materials/` for the prebuilt engine to load.
+
+In native builds the entries override the defaults individually. For example,
+`grid: false` removes the grid and `include_defaults: false` starts from an
+empty list.
 For a triangle with corners A, B, C, mask values 1, 2, and 4 select edges BC,
 CA, and AB respectively. Combine them with bitwise OR. This example draws only AB.
 The existing geometry helper supplies the barycentric coordinates in the first

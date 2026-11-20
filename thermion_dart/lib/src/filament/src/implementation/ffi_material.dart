@@ -29,14 +29,28 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
 
   final FilamentApp _app;
 
-  FFIMaterial(this.pointer, this._app);
+  final BuiltInMaterial? builtIn;
+
+  FFIMaterial(this.pointer, this._app, {this.builtIn});
 
   @override
   Future<MaterialInstance> createInstance() async {
     var ptr = await withPointerCallback<TMaterialInstance>((cb) {
       Material_createInstanceJobThread((_app as FFIFilamentApp).jobThreadHandle, pointer, cb);
     });
-    return FFIMaterialInstance(ptr, _app);
+    final instance = FFIMaterialInstance(ptr, _app);
+    switch (builtIn) {
+      case BuiltInMaterial.normalColor:
+        await NormalColorMaterialInstance(instance).setOpacity(1.0);
+      case BuiltInMaterial.sharpEdge:
+        final edges = SharpEdgeMaterialInstance(instance);
+        await edges.setEdgeColor(1, 1, 1, 1);
+        await edges.setBaseColor(0.1, 0.1, 0.1, 1);
+        await edges.setEdgeWidth(1);
+      default:
+        break;
+    }
+    return instance;
   }
 
   Future destroy() async {

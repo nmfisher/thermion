@@ -2,7 +2,7 @@ import '../../../bindings/src/thermion_dart_ffi.g.dart'
     if (dart.library.js_interop) '../../../bindings/src/thermion_dart_js_interop.g.dart'
     show TBuiltInMaterial;
 
-/// Helper materials that can be embedded by the build.
+/// Helper materials available through the build configuration.
 enum BuiltInMaterial {
   image(TBuiltInMaterial.BUILT_IN_IMAGE, 'image'),
   grid(TBuiltInMaterial.BUILT_IN_GRID, 'grid'),
@@ -25,4 +25,7 @@ enum BuiltInMaterial {
 
   /// Key under hooks.user_defines.thermion_dart.materials.
   final String key;
+
+  /// Whether the build hook compiles this material from its packaged source.
+  bool get compiledOnDemand => this == normalColor || this == sharpEdge;
 }

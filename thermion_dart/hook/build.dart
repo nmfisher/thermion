@@ -83,8 +83,16 @@ void main(List<String> args) async {
       output.dependencies.add(File(path.join(pkgRootFilePath, filamentPinFileName)).uri);
     }
 
+    final rawMaterialsDefine = input.userDefines['materials'];
+    final materialConfig = rawMaterialsDefine is Map<String, dynamic> ? rawMaterialsDefine : const <String, dynamic>{};
+    final optInMaterials = [
+      for (final material in BuiltInMaterial.values)
+        if (material.compiledOnDemand && materialConfig[material.key] == true) material,
+    ];
+
     if (!input.config.buildCodeAssets) {
       logger.info("buildCodeAssets is false, assumed to be building for web");
+      await _publishWebMaterials(input, output, optInMaterials, logger);
       await _downloadWebArtifacts(input, logger);
       return;
     }
@@ -256,7 +264,6 @@ outputDirectory : ${outputDirectory.path}
     //  - else the target OS default (Apple = Metal, Android = Vulkan+GL,
     //    desktop Linux/Windows = Vulkan+GL — both GL-capable platforms keep
     //    runtime backend selection working).
-    final rawMaterialsDefine = input.userDefines["materials"];
     final backendsConfig = rawMaterialsDefine is Map<String, dynamic>
         ? rawMaterialsDefine["backends"] as Map<String, dynamic>?
         : null;
@@ -294,9 +301,13 @@ outputDirectory : ${outputDirectory.path}
 
     final materialSources = <String, String>{
       for (final material in BuiltInMaterial.values)
-        // Renamed from gizmo.c to avoid a case-insensitive .obj collision
-        // with scene/Gizmo.cpp on Windows.
-        material.key: materialPath(material == BuiltInMaterial.gizmo ? 'gizmo_material' : material.key, materialSuffix),
+        if (!material.compiledOnDemand)
+          // Renamed from gizmo.c to avoid a case-insensitive .obj collision
+          // with scene/Gizmo.cpp on Windows.
+          material.key: materialPath(
+            material == BuiltInMaterial.gizmo ? 'gizmo_material' : material.key,
+            materialSuffix,
+          ),
     };
 
     // Add Dart API DL for port-based frame scheduling (hot restart safe)
@@ -445,17 +456,31 @@ outputDirectory : ${outputDirectory.path}
       );
     }
 
-    // Process materials configuration. Strip the "backends" key (consumed by
-    // resolveMaterialBackend above) so it isn't treated as a material name.
-    // An empty remainder means "no selective config" — pass null so
-    // _processMaterials includes all materials (a map, even empty, means
-    // "only materials explicitly set to true").
-    Map<String, dynamic>? materialConfigs;
-    if (rawMaterialsDefine is Map<String, dynamic>) {
-      final stripped = Map<String, dynamic>.from(rawMaterialsDefine)..remove("backends");
-      materialConfigs = stripped.isEmpty ? null : stripped;
+    final includeDefaults = materialConfig['include_defaults'] != false;
+    for (final entry in materialSources.entries) {
+      if ((materialConfig[entry.key] ?? includeDefaults) != true) continue;
+      sources.add(path.join(pkgRootFilePath, entry.value));
+      defines['${entry.key.toUpperCase()}_ENABLED'] = '1';
     }
-    _processMaterials(materialConfigs, materialSources, sources, defines, logger, pkgRootFilePath);
+    if (optInMaterials.isNotEmpty) {
+      final builtIns = await _compileBuiltInMaterials(input, output, optInMaterials, switch (materialSuffix) {
+        '_apple' => ['metal'],
+        '_opengl' || '_web_webgl' => ['opengl'],
+        '_vulkan' => ['vulkan'],
+        '_webgpu' => ['webgpu'],
+        '_web_combined' => ['opengl', 'webgpu'],
+        _ => ['opengl', 'vulkan'],
+      }, logger);
+      linkGeneratedIntoNativeBuild(
+        sources: sources,
+        includeDirs: includeDirs,
+        linkedSources: optInMaterials.map((material) => File(path.join(builtIns.path, '${material.key}.c'))).toList(),
+        outputDir: builtIns,
+      );
+      for (final material in optInMaterials) {
+        defines['${material.key.toUpperCase()}_ENABLED'] = '1';
+      }
+    }
 
     // link_generated: compile the user's generated material .c files into
     // libthermion_dart too — the exact same mechanism as thermion's own
@@ -1147,18 +1172,8 @@ String? _extractConsumingPackageRoot(String outputDirUri, Logger logger) {
       final pubspecFile = File(path.join(currentPath, 'pubspec.yaml'));
 
       if (pubspecFile.existsSync()) {
-        logger.info("Found pubspec.yaml at: ${pubspecFile.path}");
-
-        // Verify this is a consuming package (not thermion_dart itself)
-        final pubspecContent = pubspecFile.readAsStringSync();
-
-        // Check if this is thermion_dart package itself (avoid self-detection)
-        if (pubspecContent.contains('name: thermion_dart')) {
-          logger.info("Skipping thermion_dart package itself");
-        } else if (pubspecContent.contains('thermion_dart')) {
-          logger.info("Found consuming package root: $currentPath");
-          return currentPath;
-        }
+        logger.info("Found consuming pubspec.yaml at: ${pubspecFile.path}");
+        return currentPath;
       }
 
       // Move up one directory level
@@ -1286,60 +1301,71 @@ Future<void> _processDeclarativePlugins(
   }
 }
 
-//
-// Material configuration processing functions
-//
-// Debug/visualization materials that are NOT linked into the default native
-// build. They exist for geometry-inspection workflows (normal-color view,
-// sharp-edge view) and are compiled in only when explicitly enabled under
-// hooks.user_defines.thermion_dart.materials, like any other opt-in material.
-const Set<String> _optInMaterials = {'normal_color', 'sharp_edge'};
-
-void _processMaterials(
-  Map<String, dynamic>? materialConfig,
-  Map<String, String> materialSources,
-  List<String> sources,
-  Map<String, String?> defines,
+Future<Directory> _compileBuiltInMaterials(
+  BuildInput input,
+  BuildOutputBuilder output,
+  List<BuiltInMaterial> materials,
+  List<String> backends,
   Logger logger,
-  String pkgRootFilePath,
-) {
-  // If no config provided, include all materials (default)
-  if (materialConfig == null) {
-    logger.info("No materials config specified, including all default materials");
-    for (final materialName in materialSources.keys) {
-      if (_optInMaterials.contains(materialName)) {
-        continue;
-      }
-      _includeMaterial(materialName, materialSources, sources, defines, logger, pkgRootFilePath);
-    }
-    return;
-  }
-
-  // Otherwise, only include materials explicitly set to true
-  for (final entry in materialConfig.entries) {
-    final materialName = entry.key;
-    final shouldInclude = entry.value;
-
-    if (shouldInclude == true) {
-      if (materialSources.containsKey(materialName)) {
-        _includeMaterial(materialName, materialSources, sources, defines, logger, pkgRootFilePath);
-      } else {
-        logger.warning("Unknown material: $materialName");
-      }
-    }
-  }
+) async {
+  final root = Directory.fromUri(input.packageRoot);
+  final result = await compileUserMaterials(
+    appRoot: root,
+    config: MaterialCompilationConfig(
+      inputs: [for (final material in materials) 'hook/materials/${material.key}.mat'],
+      output: input.outputDirectory.resolve('built_in_materials/').toFilePath(),
+      backends: backends,
+      resgen: input.config.buildCodeAssets,
+    ),
+    filamentVersion: filamentVersion,
+    packageVersion: await readPubspecVersion(root),
+    hostOS: Platform.operatingSystem,
+    hostArch: await detectHostArchitecture() ?? 'x64',
+    toolsPin: _loadFilamentPin(input.packageRoot, logger),
+    download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
+    onLog: logger.info,
+  );
+  output.dependencies.addAll(result.dependencies);
+  output.dependencies.add(input.packageRoot.resolve('pubspec.yaml'));
+  output.dependencies.add(input.packageRoot.resolve(filamentPinFileName));
+  return result.outputDir;
 }
 
-void _includeMaterial(
-  String materialName,
-  Map<String, String> materialSources,
-  List<String> sources,
-  Map<String, String?> defines,
+Future<void> _publishWebMaterials(
+  BuildInput input,
+  BuildOutputBuilder output,
+  List<BuiltInMaterial> materials,
   Logger logger,
-  String pkgRootFilePath,
-) {
-  final sourcePath = path.join(pkgRootFilePath, materialSources[materialName]!);
-  sources.add(sourcePath);
-  defines["${materialName.toUpperCase()}_ENABLED"] = "1";
-  logger.info("Included material: $materialName");
+) async {
+  final appRoot = _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
+  if (appRoot == null) {
+    if (materials.isEmpty) return;
+    throw MaterialToolsError('Could not locate the consuming app to publish web material packages.');
+  }
+  final webDir = Directory(path.join(appRoot, 'web'));
+  if (!webDir.existsSync()) {
+    if (materials.isEmpty) return;
+    throw MaterialToolsError('Create the app’s web/ directory before building optional web materials.');
+  }
+
+  final deployDir = Directory(path.join(webDir.path, 'thermion_materials'));
+  final compiled = materials.isEmpty
+      ? null
+      : await _compileBuiltInMaterials(input, output, materials, ['opengl', 'webgpu'], logger);
+  if (compiled != null) deployDir.createSync(recursive: true);
+  for (final material in BuiltInMaterial.values.where((material) => material.compiledOnDemand)) {
+    final name = '${material.key}.filamat';
+    final destination = File(path.join(deployDir.path, name));
+    if (compiled != null && materials.contains(material)) {
+      final source = File(path.join(compiled.path, name));
+      if (!destination.existsSync() ||
+          sha256.convert(source.readAsBytesSync()) != sha256.convert(destination.readAsBytesSync())) {
+        source.copySync(destination.path);
+      }
+      output.dependencies.add(destination.uri);
+    } else if (destination.existsSync()) {
+      destination.deleteSync();
+    }
+  }
+  output.dependencies.add(deployDir.existsSync() ? deployDir.uri : webDir.uri);
 }
