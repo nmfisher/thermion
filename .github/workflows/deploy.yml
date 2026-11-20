@@ -30,10 +30,6 @@ concurrency:
 jobs:
   deploy:
     name: Build & deploy site
-    # Any standard runner works: the web-artifact download step runs
-    # `dart run thermion_dart:download_web` with `skip_native_build` set (see
-    # examples/dart/web_gallery/pubspec.yaml + thermion_dart/hook/build.dart), so
-    # it does no host C++ compile and needs no C++ toolchain.
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -75,16 +71,15 @@ jobs:
           (cd thermion_dart && dart pub get)
           (cd examples/dart/examples_lib && dart pub get)
           (cd examples/dart/web_gallery && dart pub get)
-      - name: Download thermion web artifacts (thermion_dart.js/wasm)
-        # Run from the gallery so thermion_dart's build hook picks up the
-        # `skip_native_build` userDefine (declared under hooks.user_defines in
-        # examples/dart/web_gallery/pubspec.yaml). That makes the hook no-op its
-        # host C++ build: download_web.dart only fetches prebuilt artifacts over
-        # HTTP, so no native compile — and no C++ toolchain on the runner — is
-        # needed. (The later `dart compile wasm` step is unaffected: the hook's
-        # buildCodeAssets branch runs before the skip and still downloads for web.)
-        working-directory: examples/dart/web_gallery
-        run: dart run thermion_dart:download_web -o web
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '6.0.4'
+          actions-cache-folder: 'emsdk-cache'
+      - name: Build gallery engine with ReactPhysics3D
+        run: |
+          make -j2 wasm-physics
+          cp thermion_dart/native/web/build/physics/build/out/thermion_dart.{js,wasm} examples/dart/web_gallery/web/
       - name: Copy shared assets
         run: cp -r examples/assets examples/dart/web_gallery/web/assets
       - name: Compile gallery to WASM

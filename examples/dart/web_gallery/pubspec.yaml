@@ -14,6 +14,10 @@ dependencies:
   logging: ^1.3.0
   web: ^1.0.0
 
+# Use Thermion’s ffigen_js version for both sets of generated bindings.
+dependency_overrides:
+  ffigen_js: ^0.1.3
+
 # This package only ever builds for the web (compiled to WASM), so it never
 # needs a host native build. Setting skip_native_build lets us run Thermion's
 # pure-Dart tooling here — notably `dart run thermion_dart:download_web`, which

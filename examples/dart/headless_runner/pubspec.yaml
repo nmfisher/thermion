@@ -11,3 +11,7 @@ dependencies:
     path: ../../../thermion_dart
   thermion_examples_lib:
     path: ../examples_lib
+
+# Use Thermion’s ffigen_js version for both sets of generated bindings.
+dependency_overrides:
+  ffigen_js: ^0.1.3
