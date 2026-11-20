@@ -302,6 +302,7 @@ outputDirectory : ${outputDirectory.path}
       'wireframe': materialPath('wireframe', materialSuffix),
       'translation_axis': materialPath('translation_axis', materialSuffix),
       'normal_color': materialPath('normal_color', materialSuffix),
+      'sharp_edge': materialPath('sharp_edge', materialSuffix),
       // Renamed from gizmo.c to avoid a case-insensitive .obj collision
       // with scene/Gizmo.cpp on Windows.
       'gizmo': materialPath('gizmo_material', materialSuffix),

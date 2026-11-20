@@ -112,6 +112,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createNormalColorMaterial(TEngine *tEngine) {
+            THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
                 .package(NORMAL_COLOR_NORMAL_COLOR_DATA, NORMAL_COLOR_NORMAL_COLOR_SIZE)
@@ -120,6 +121,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSharpEdgeMaterial(TEngine *tEngine) {
+            THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
                 .package(SHARP_EDGE_SHARP_EDGE_DATA, SHARP_EDGE_SHARP_EDGE_SIZE)
