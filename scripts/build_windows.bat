@@ -99,7 +99,7 @@ call git checkout %FILAMENT_VERSION% || (
   exit /b 1
 )
 
-REM Build WebGPU-capable host tools separately from the runtime libraries.
+REM Build native runtime host tools with the same backend configuration as the runtime.
 REM Export only Release tools so Debug runtime builds reuse those executables
 REM without globally remapping unrelated imported targets such as Python.
 call git apply "%SCRIPT_DIR%filament-no-exceptions.patch" || exit /b 1
@@ -111,9 +111,16 @@ call git apply "%SCRIPT_DIR%filament-smolv-combined.patch" || exit /b 1
 REM Build matp (the material parser behind matc) into the runtime archives and
 REM install its include-resolution headers, for runtime material compilation.
 call git apply "%SCRIPT_DIR%filament-matp-runtime.patch" || exit /b 1
-REM MSVC v142 crashes compiling Tint array_length_from.cc (C1001).
-cmake -S . -B out/host-tools -DCMAKE_CONFIGURATION_TYPES=Release -G "Visual Studio 17 2022" -T v143 -DUSE_STATIC_CRT=OFF -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_SUPPORTS_WEBGPU=ON -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=ON -DFILAMENT_EXPORT_PREBUILT_EXECUTABLES_DIR=out/host-tools "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=%FILAMENT_BASE_DIR%\out\host-tools\bin" || exit /b 1
-cmake --build out/host-tools --config Release --target matc cmgen filamesh mipgen resgen uberz glslminifier || exit /b 1
+REM The shipped compiler needs WebGPU for app materials. Build only the
+REM shader tools here to avoid enabling WebGPU for Filament's own shaders.
+REM Tint also requires v143 because the v142 compiler crashes building it.
+cmake -S . -B out/webgpu-host-tools -DCMAKE_CONFIGURATION_TYPES=Release -G "Visual Studio 17 2022" -T v143 -DUSE_STATIC_CRT=OFF -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_SUPPORTS_WEBGPU=ON -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=ON "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=%FILAMENT_BASE_DIR%\out\webgpu-host-tools\bin" || exit /b 1
+cmake --build out/webgpu-host-tools --config Release --target matc resgen || exit /b 1
+
+REM Export the regular tools for the OpenGL/Vulkan runtime builds. Other
+REM targets, such as filamesh, can also compile Filament's internal materials.
+cmake -S . -B out/native-host-tools -DCMAKE_CONFIGURATION_TYPES=Release -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_SUPPORTS_WEBGPU=OFF -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=ON -DFILAMENT_EXPORT_PREBUILT_EXECUTABLES_DIR=out/native-host-tools || exit /b 1
+cmake --build out/native-host-tools --config Release --target matc cmgen filamesh mipgen resgen uberz glslminifier || exit /b 1
 
 REM Patch FFilamentAsset.h to allow overriding GLTFIO_USE_FILESYSTEM at compile time
 echo Patching FFilamentAsset.h to disable GLTFIO_USE_FILESYSTEM...
@@ -130,7 +137,7 @@ cd /d "%FILAMENT_BASE_DIR%\out\runtime" || exit /b 1
 
 REM Run CMake configuration
 echo Configuring Filament for Windows...
-cmake -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_SUPPORTS_VULKAN=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SHORTEN_MSVC_COMPILATION=OFF -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=OFF -DFILAMENT_IMPORT_PREBUILT_EXECUTABLES_DIR=out/host-tools ../.. || (
+cmake -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_SUPPORTS_VULKAN=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SHORTEN_MSVC_COMPILATION=OFF -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=OFF -DFILAMENT_IMPORT_PREBUILT_EXECUTABLES_DIR=out/native-host-tools ../.. || (
   echo Error: CMake configuration failed
   exit /b 1
 )
@@ -390,7 +397,7 @@ set "TOOLS_TARGET=%TARGET_RELEASE_DIR%\bin"
 if "!BUILD_RELEASE!"=="false" set "TOOLS_TARGET=%TARGET_DEBUG_DIR%\bin"
 if not exist "%TOOLS_TARGET%" mkdir "%TOOLS_TARGET%" || exit /b 1
 for %%T in (matc resgen) do (
-  copy /Y "%FILAMENT_BASE_DIR%\out\host-tools\bin\%%T.exe" "%TOOLS_TARGET%\" >nul || exit /b 1
+  copy /Y "%FILAMENT_BASE_DIR%\out\webgpu-host-tools\bin\%%T.exe" "%TOOLS_TARGET%\" >nul || exit /b 1
 )
 
 REM Create zip files (using PowerShell)
