@@ -118,6 +118,16 @@ namespace thermion
         // Main-thread web mode renders explicitly and does not start a loop.
         void startFrameLoop();
         void stopFrameLoop();
+
+        /// Worker mode: installs a callback drained synchronously at the start
+        /// of every animation frame, before rendering. Wired to the owning
+        /// JobThread so pending pre-frame state updates are applied atomically
+        /// with the frame that renders them. Cleared on detach.
+#if defined(__EMSCRIPTEN__) && !defined(THERMION_WEB_MAIN_THREAD)
+        void setPreRenderDrain(std::function<void()> drain) {
+            mPreRenderDrain = std::move(drain);
+        }
+#endif
 #endif
 
         /// Web worker mode: called by this manager's browser animation callback.
@@ -165,6 +175,8 @@ namespace thermion
         bool mFrameLoopRunning = false;
         bool mFrameLoopUsesTimeout = false;
         double mNextFrameTimeMs = 0;
+        // Engine's thread only: drains queued JobThread work before each frame.
+        std::function<void()> mPreRenderDrain;
 #endif
         std::shared_ptr<CapturePumpState> mCapturePumpState = std::make_shared<CapturePumpState>();
         std::atomic<int> mTargetFps{0};
