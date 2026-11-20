@@ -111,7 +111,7 @@ endif()
 message(STATUS "Material variant: ${THERMION_MATERIAL_VARIANT}")
 
 # Select helper packages separately from the graphics backend.
-set(THERMION_MATERIALS "capture_uv;grid;image;linear_depth;unlit_fixed_size;silhouette;edge_outline;wireframe;translation_axis;bone_overlay;gizmo"
+set(THERMION_MATERIALS ""
     CACHE STRING "Semicolon-separated helper materials to embed")
 set(MATERIAL_SOURCES)
 foreach(material IN LISTS THERMION_MATERIALS)

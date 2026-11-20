@@ -455,16 +455,10 @@ outputDirectory : ${outputDirectory.path}
       );
     }
 
-    // Process materials configuration. Strip the "backends" key (consumed by
-    // resolveMaterialBackend above) so it isn't treated as a material name.
-    // An empty remainder means "no selective config" — pass null so
-    // _processMaterials includes all materials (a map, even empty, means
-    // "only materials explicitly set to true").
-    Map<String, dynamic>? materialConfigs;
-    if (rawMaterialsDefine is Map<String, dynamic>) {
-      final stripped = Map<String, dynamic>.from(rawMaterialsDefine)..remove("backends");
-      materialConfigs = stripped.isEmpty ? null : stripped;
-    }
+    // Backend selection alone does not request any helper packages.
+    final materialConfigs = rawMaterialsDefine is Map<String, dynamic>
+        ? (Map<String, dynamic>.of(rawMaterialsDefine)..remove("backends"))
+        : <String, dynamic>{};
     _processMaterials(materialConfigs, materialSources, sources, defines, logger, pkgRootFilePath);
 
     // link_generated: compile the user's generated material .c files into
@@ -1045,6 +1039,7 @@ Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
     return;
   }
 
+  final downloadVariant = withHelperMaterials(variant, input.userDefines["materials"]);
   final versionFile = File(path.join(packageRoot, 'native', 'web', 'web.version'));
   if (!versionFile.existsSync()) {
     logger.warning('web.version not found at ${versionFile.path}; skipping web artifact download');
@@ -1067,11 +1062,11 @@ Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
   // share a directory — the success token would otherwise mask the wrong
   // contents when switching variants.
   final cacheDir = Directory(
-    path.join(packageRoot, '.dart_tool', 'thermion_dart', 'web', '$version${variant.cacheSuffix}'),
+    path.join(packageRoot, '.dart_tool', 'thermion_dart', 'web', '$version${downloadVariant.cacheSuffix}'),
   );
 
   try {
-    await _fetchWebZip(version, variant.zipSuffix, cacheDir, logger);
+    await _fetchWebZip(version, downloadVariant.zipSuffix, cacheDir, logger);
   } catch (e) {
     logger.warning('Failed to download web artifacts: $e');
     return;
@@ -1299,33 +1294,14 @@ Future<void> _processDeclarativePlugins(
 //
 // Material configuration processing functions
 //
-// Debug/visualization materials that are NOT linked into the default native
-// build. They exist for geometry-inspection workflows (normal-color view,
-// sharp-edge view) and are compiled in only when explicitly enabled under
-// hooks.user_defines.thermion_dart.materials, like any other opt-in material.
-const Set<String> _optInMaterials = {'normal_color', 'sharp_edge'};
-
 void _processMaterials(
-  Map<String, dynamic>? materialConfig,
+  Map<String, dynamic> materialConfig,
   Map<String, String> materialSources,
   List<String> sources,
   Map<String, String?> defines,
   Logger logger,
   String pkgRootFilePath,
 ) {
-  // If no config provided, include all materials (default)
-  if (materialConfig == null) {
-    logger.info("No materials config specified, including all default materials");
-    for (final materialName in materialSources.keys) {
-      if (_optInMaterials.contains(materialName)) {
-        continue;
-      }
-      _includeMaterial(materialName, materialSources, sources, defines, logger, pkgRootFilePath);
-    }
-    return;
-  }
-
-  // Otherwise, only include materials explicitly set to true
   for (final entry in materialConfig.entries) {
     final materialName = entry.key;
     final shouldInclude = entry.value;

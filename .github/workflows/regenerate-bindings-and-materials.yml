@@ -430,6 +430,24 @@ jobs:
             -DTHERMION_ENABLE_RUNTIME_MATERIALS=ON
           cmake --build thermion_dart/native/web/build-main-thread-runtime-materials --parallel 2
 
+      - name: Compile web engines with optional helper materials
+        if: steps.changes.outputs.native-changed == 'true'
+        run: |
+          root=thermion_dart/native/web
+          helpers='bone_overlay;capture_uv;edge_outline;gizmo;grid;image;linear_depth;normal_color;sharp_edge;silhouette;translation_axis;unlit_fixed_size;wireframe'
+          for suffix in "" "-main-thread" "-runtime-materials" "-main-thread-runtime-materials"; do
+            main_thread=OFF
+            runtime_materials=OFF
+            if [[ "$suffix" == *main-thread* ]]; then main_thread=ON; fi
+            if [[ "$suffix" == *runtime-materials* ]]; then runtime_materials=ON; fi
+            build_dir="$root/build${suffix}-helpers"
+            emcmake cmake -S "$root" -B "$build_dir" -DCMAKE_BUILD_TYPE=Release \
+              -DTHERMION_WEB_MAIN_THREAD="$main_thread" \
+              -DTHERMION_ENABLE_RUNTIME_MATERIALS="$runtime_materials" \
+              -DTHERMION_MATERIALS="$helpers"
+            cmake --build "$build_dir" --parallel 2
+          done
+
       - name: Test web uploads without visible frames
         if: steps.changes.outputs.native-changed == 'true'
         run: |
@@ -454,7 +472,9 @@ jobs:
           SHORT_SHA=$(git rev-parse --short HEAD)
           WEB_ROOT="$GITHUB_WORKSPACE/thermion_dart/native/web"
           variants=("" "-main-thread" "-runtime-materials" "-main-thread-runtime-materials")
-          build_dirs=("build" "build-main-thread" "build-runtime-materials" "build-main-thread-runtime-materials")
+          for variant in "${variants[@]}"; do variants+=("${variant}-helpers"); done
+          build_dirs=()
+          for variant in "${variants[@]}"; do build_dirs+=("build$variant"); done
           # Check the complete set before uploading or changing web.version.
           for build_dir in "${build_dirs[@]}"; do
             for file in thermion_dart.js thermion_dart.wasm; do
@@ -474,7 +494,7 @@ jobs:
                 --endpoint-url "$R2_ENDPOINT" --region auto
             )
           done
-          # Publish the pointer only after all four uploads succeeded.
+          # Publish the pointer only after all uploads succeeded.
           echo "$SHORT_SHA" > "$WEB_ROOT/web.version"
 
       - name: Commit web.version

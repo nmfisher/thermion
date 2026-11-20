@@ -101,6 +101,10 @@ void main() {
       const cliVariants = {
         'default': '',
         'worker': '',
+        'helpers': '-helpers',
+        'main-thread-helpers': '-main-thread-helpers',
+        'runtime-materials-helpers': '-runtime-materials-helpers',
+        'main-thread-runtime-materials-helpers': '-main-thread-runtime-materials-helpers',
         'main_thread': '-main-thread',
         'runtime-materials': '-runtime-materials',
         'main-thread-runtime-materials': '-main-thread-runtime-materials',
@@ -116,6 +120,28 @@ void main() {
       final keyCount = mapBody.split('\n').where((l) => l.trim().startsWith("'")).length;
       expect(keyCount, cliVariants.length);
     });
+  });
+
+  test('helper selection is independent of runtime compilation and thread mode', () {
+    for (final thread in [null, 'main_thread']) {
+      for (final runtime in [true, false]) {
+        final base = withRuntimeMaterials(resolveWebVariant(thread), runtime);
+        for (final config in [
+          null,
+          {},
+          {'grid': false},
+          {'unknown': true},
+          {
+            'backends': {'android': 'vulkan'},
+          },
+        ]) {
+          expect(withHelperMaterials(base, config), base);
+        }
+        final helpers = withHelperMaterials(base, {'wireframe': true});
+        expect(helpers.zipSuffix, '${base.zipSuffix}-helpers');
+        expect(helpers.cacheSuffix, helpers.zipSuffix);
+      }
+    }
   });
 
   group('withRuntimeMaterials', () {

@@ -13,6 +13,10 @@ const _r2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
 const _variants = {
   'default': '',
   'worker': '',
+  'helpers': '-helpers',
+  'main-thread-helpers': '-main-thread-helpers',
+  'runtime-materials-helpers': '-runtime-materials-helpers',
+  'main-thread-runtime-materials-helpers': '-main-thread-runtime-materials-helpers',
   'main_thread': '-main-thread',
   'runtime-materials': '-runtime-materials',
   'main-thread-runtime-materials': '-main-thread-runtime-materials',

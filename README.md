@@ -132,32 +132,41 @@ startup or from a background isolate.
 A live web demo — a GLSL editor that compiles and applies materials in the
 browser — is in `examples/dart/material_editor`.
 
-#### Debug/visualization materials (opt-in)
+#### Optional helper materials
 
-`normal_color` and `sharp_edge` are unlit materials for geometry inspection —
-world-space normals rendered as RGB, and dihedral-angle edge detection
-(edges above ~30° highlighted via a per-triangle mask computed by
-`rebuildVertexBuffers`). They are **not compiled into the default native
-library**; enable them like any other optional material:
+The default viewer loads glTF assets, renders them with their authored materials,
+and displays skyboxes and solid backgrounds with zero embedded helper packages.
+Apps using the following features must enable their helpers in the root pubspec.
+
+| Feature | Material keys |
+| --- | --- |
+| Textured quads and background images | `image` |
+| Grid, transform gizmo, translation axis, skeleton overlay | `grid`, `gizmo`, `translation_axis`, `bone_overlay`, respectively |
+| Selection highlights | Both `silhouette` and `edge_outline` |
+| Wireframes, world-space normal colors, creases over 30 degrees | `wireframe`, `normal_color`, `sharp_edge`, respectively |
+| Embedded packages for UV capture, linear depth, fixed-size unlit geometry | `capture_uv`, `linear_depth`, `unlit_fixed_size`, respectively |
+
+For example, an app using the sharp-edge view needs one entry:
 
 ```yaml
 hooks:
   user_defines:
     thermion_dart:
       materials:
-        normal_color: true
         sharp_edge: true
 ```
 
-This native configuration selects exactly the listed helpers. For a custom web
-build, configure CMake with `-DTHERMION_MATERIALS="normal_color;sharp_edge"`.
-Load sharp-edge meshes with `SceneAssetGeometryCapability.barycentrics`.
+Load the glTF asset with `SceneAssetGeometryCapability.barycentrics` and apply
+the material returned by `createSharpEdgeMaterialInstance()`. Normal-color
+visualization uses `createNormalColorMaterialInstance()` on meshes with tangents.
+A missing native helper factory raises an FFI symbol lookup error.
 
-Then create them at runtime via
-`FilamentApp.instance!.createNormalColorMaterialInstance()` /
-`createSharpEdgeMaterialInstance()`. Calling either in a build without the
-material enabled fails on the FFI symbol lookup (the native entry points are
-`#ifdef`-guarded out).
+Native builds embed exactly the selected packages. Selecting any helper on web
+downloads the helper-enabled prebuilt engine for the chosen thread and runtime
+compiler settings. The standalone downloader accepts `--variant helpers` for
+the worker engine. To embed individual helpers in a custom web build, configure
+CMake with, for example, `-DTHERMION_MATERIALS="sharp_edge;normal_color"` and
+select that local engine with `web_local: true`.
 
 ### Quickstart (Flutter)
 

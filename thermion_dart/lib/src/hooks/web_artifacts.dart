@@ -5,6 +5,8 @@
 /// hook/build.dart via a relative path.
 library;
 
+import 'material_tools.dart' show reservedResgenPrefixes;
+
 /// R2 base for all prebuilt artifacts (Filament libs and web engine zips).
 const String webR2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
 
@@ -102,6 +104,19 @@ WebVariantResolution withRuntimeMaterials(WebVariantResolution variant, Object? 
   return (
     zipSuffix: '${variant.zipSuffix}-runtime-materials',
     cacheSuffix: '${variant.cacheSuffix}-runtime-materials',
+    warnings: variant.warnings,
+  );
+}
+
+/// Published engines bundle all helper packages when a consumer selects one.
+/// Custom web builds can choose individual helpers through THERMION_MATERIALS.
+WebVariantResolution withHelperMaterials(WebVariantResolution variant, Object? materials) {
+  if (materials is! Map || !reservedResgenPrefixes.any((name) => materials[name] == true)) {
+    return variant;
+  }
+  return (
+    zipSuffix: '${variant.zipSuffix}-helpers',
+    cacheSuffix: '${variant.cacheSuffix}-helpers',
     warnings: variant.warnings,
   );
 }
