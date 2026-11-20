@@ -1,20 +1,22 @@
-// Generated from materials/built_in_materials.json by make bindings.
+import '../../../bindings/src/thermion_dart_ffi.g.dart'
+    if (dart.library.js_interop) '../../../bindings/src/thermion_dart_js_interop.g.dart'
+    show TBuiltInMaterial;
 
 /// Helper materials that can be embedded by the build.
 enum BuiltInMaterial {
-  image(1, 'image'),
-  grid(2, 'grid'),
-  gizmo(3, 'gizmo'),
-  translationAxis(4, 'translation_axis'),
-  boneOverlay(5, 'bone_overlay'),
-  silhouette(6, 'silhouette'),
-  edgeOutline(7, 'edge_outline'),
-  wireframe(8, 'wireframe'),
-  normalColor(9, 'normal_color'),
-  sharpEdge(10, 'sharp_edge'),
-  captureUv(11, 'capture_uv'),
-  linearDepth(12, 'linear_depth'),
-  unlitFixedSize(13, 'unlit_fixed_size');
+  image(TBuiltInMaterial.BUILT_IN_IMAGE, 'image'),
+  grid(TBuiltInMaterial.BUILT_IN_GRID, 'grid'),
+  gizmo(TBuiltInMaterial.BUILT_IN_GIZMO, 'gizmo'),
+  translationAxis(TBuiltInMaterial.BUILT_IN_TRANSLATION_AXIS, 'translation_axis'),
+  boneOverlay(TBuiltInMaterial.BUILT_IN_BONE_OVERLAY, 'bone_overlay'),
+  silhouette(TBuiltInMaterial.BUILT_IN_SILHOUETTE, 'silhouette'),
+  edgeOutline(TBuiltInMaterial.BUILT_IN_EDGE_OUTLINE, 'edge_outline'),
+  wireframe(TBuiltInMaterial.BUILT_IN_WIREFRAME, 'wireframe'),
+  normalColor(TBuiltInMaterial.BUILT_IN_NORMAL_COLOR, 'normal_color'),
+  sharpEdge(TBuiltInMaterial.BUILT_IN_SHARP_EDGE, 'sharp_edge'),
+  captureUv(TBuiltInMaterial.BUILT_IN_CAPTURE_UV, 'capture_uv'),
+  linearDepth(TBuiltInMaterial.BUILT_IN_LINEAR_DEPTH, 'linear_depth'),
+  unlitFixedSize(TBuiltInMaterial.BUILT_IN_UNLIT_FIXED_SIZE, 'unlit_fixed_size');
 
   const BuiltInMaterial(this.nativeId, this.key);
 
