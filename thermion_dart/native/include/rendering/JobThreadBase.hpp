@@ -9,6 +9,13 @@
 
 namespace thermion {
 
+// One queued unit of work. [isLifecycle] marks destruction/detachment work
+// that a pre-render drain must skip (see JobThreadBase::addLifecycleTask).
+struct TaskEntry {
+    std::function<void()> fn;
+    bool isLifecycle = false;
+};
+
 // Shared job submission and queue storage. Each platform controls scheduling,
 // its stop flag and worker destruction. Concrete workers are final so their
 // virtual hooks stay fixed during worker startup and shutdown.
@@ -28,15 +35,43 @@ public:
         enqueue(std::function<void()>(std::forward<Fn>(fn)));
     }
 
+    /// Submits work that destroys or detaches objects the render loop may be
+    /// using (engine, renderer, swapchains, views, animation managers).
+    /// Platforms that can drain pending work synchronously with an in-flight
+    /// animation callback (the web worker's pre-render drain) keep this work
+    /// out of that drain; everywhere else it behaves exactly like
+    /// [addDetachedTask]. Both kinds share one FIFO deque: lifecycle and
+    /// ordinary tasks must never reorder against each other.
+    template <class Rt>
+    auto addLifecycleTask(std::packaged_task<Rt()>& task) -> std::future<Rt> {
+        auto result = task.get_future();
+        addDetachedLifecycleTask([task = std::make_shared<std::packaged_task<Rt()>>(std::move(task))] {
+            (*task)();
+        });
+        return result;
+    }
+
+    template <class Fn>
+    void addDetachedLifecycleTask(Fn&& fn) {
+        enqueueLifecycle(std::function<void()>(std::forward<Fn>(fn)));
+    }
+
     virtual bool isStopping() const = 0;
 
 protected:
     // Own the concrete type. Web destroy() must drain work before deletion.
     virtual ~JobThreadBase() = default;
     virtual void enqueue(std::function<void()> task) = 0;
+    // Single-queue workers run lifecycle work through the normal queue.
+    virtual void enqueueLifecycle(std::function<void()> task) {
+        enqueue(std::move(task));
+    }
 
     std::mutex _taskMutex;
-    std::deque<std::function<void()>> _tasks;
+    // Single FIFO deque for ordinary and lifecycle work; entries carry the
+    // lifecycle flag so a drain can stop at the next lifecycle barrier
+    // without reordering anything queued behind it.
+    std::deque<TaskEntry> _tasks;
 };
 
 } // namespace thermion

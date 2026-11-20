@@ -98,9 +98,7 @@ class NativeRenderingLifecycleController with WidgetsBindingObserver {
     _pauseReasons.add(_RenderingPauseReason.textureMutation);
     FrameScheduler.instance.pause();
     try {
-      while (FrameScheduler.instance.isRendering) {
-        await Future<void>.delayed(const Duration(milliseconds: 1));
-      }
+      await FrameScheduler.instance.whenIdle();
       final app = FilamentApp.instance;
       if (app is FFIFilamentApp) {
         await app.drainRequestFrameHooks();

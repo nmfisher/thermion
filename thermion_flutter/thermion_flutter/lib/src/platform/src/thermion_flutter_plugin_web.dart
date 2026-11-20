@@ -244,6 +244,10 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     return asset.buffer.asUint8List(asset.offsetInBytes, asset.lengthInBytes);
   }
 
+  /// Cached JS trampoline: building `_tick.toJS` on every rAF allocates a new
+  /// closure per frame.
+  static late final JSFunction _tickJS = _tick.toJS;
+
   static void _tick(JSNumber timestamp) {
     if (_stackPtr != null) {
       js.NativeLibrary.instance.stackRestore(_stackPtr!);
@@ -255,9 +259,12 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     final targetFps = apps.isEmpty ? 0 : apps.first.targetFramerate;
     final rendered = _shouldRender(timestamp.toDartDouble, targetFps);
     if (rendered) {
-      // One rAF loop drives every engine.
+      // One rAF loop drives every engine. Forward the rAF (vsync) timestamp
+      // so request-frame hooks receive the compositor's frame time and a
+      // jitter-free delta instead of a steady-clock fallback sampled late.
+      final frameTimeNanos = (timestamp.toDartDouble * 1e6).toInt();
       for (final app in apps) {
-        app.render();
+        app.render(frameTimeInNanos: frameTimeNanos);
       }
 
       // RenderManager still executes its backend task queue while paused, but
@@ -266,7 +273,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
         _textureDescriptorRegistry.markFrameAvailable();
       }
     }
-    _frameRequestId = window.requestAnimationFrame(_tick.toJS);
+    _frameRequestId = window.requestAnimationFrame(_tickJS);
   }
 
   static bool _shouldRender(double timestampMs, int targetFps) {
@@ -300,7 +307,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
   }
 
   static void _ensureFrameLoopRunning() {
-    _frameRequestId ??= window.requestAnimationFrame(_tick.toJS);
+    _frameRequestId ??= window.requestAnimationFrame(_tickJS);
   }
 
   static void _resetWebState() {
