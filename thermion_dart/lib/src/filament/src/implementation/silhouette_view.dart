@@ -69,10 +69,7 @@ class SilhouetteView {
     final view = await FFIView.create(app) as FFIView;
 
     // Create silhouette material and a single shared override instance
-    final materialPtr = await withPointerCallback<TMaterial>(
-      (cb) => Material_createSilhouetteMaterialJobThread(app.jobThreadHandle, app.engine, cb),
-    );
-    final silhouetteMaterial = FFIMaterial(materialPtr, app);
+    final silhouetteMaterial = await app.createBuiltInMaterial(BuiltInMaterial.silhouette);
     final silhouetteMaterialInstance = await silhouetteMaterial.createInstance() as FFIMaterialInstance;
 
     // Create color-only texture and render target (no persistent depth attachment needed;

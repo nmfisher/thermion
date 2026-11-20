@@ -38,6 +38,7 @@
 #include "c_api/TBufferObject.h"
 #include "c_api/ThermionDartJobThreadApi.h"
 
+#include "material/BuiltInMaterialPackage.hpp"
 #include "rendering/JobThread.hpp"
 #include "rendering/EngineApiLock.hpp"
 #include "rendering/RenderManager.hpp"
@@ -792,138 +793,64 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-#ifdef IMAGE_ENABLED
-  EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE bool Material_createBuiltInJobThread(TJobThread *jobThread, TEngine *engine, TBuiltInMaterial id, void (*onComplete)(TMaterial *))
   {
+    const auto package = builtInMaterialPackage(id);
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *instance = Material_createImageMaterial(tEngine);
+    rt->addDetachedTask([=]() {
+      auto *material = buildBuiltInMaterial(engine, package);
+      PROXY(onComplete(material));
+    });
+    return package.data != nullptr;
+  }
 
-          PROXY(onComplete(instance));
-        });
-    auto fut = rt->addTask(lambda);
+  // Compatibility exports for existing native callers.
+#ifdef IMAGE_ENABLED
+  EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialJobThread(TJobThread *jobThread, TEngine *engine, void (*onComplete)(TMaterial *))
+  {
+    Material_createBuiltInJobThread(jobThread, engine, BUILT_IN_IMAGE, onComplete);
   }
 #endif
 
 #ifdef GIZMO_ENABLED
-  EMSCRIPTEN_KEEPALIVE void Material_createGizmoMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createGizmoMaterialJobThread(TJobThread *jobThread, TEngine *engine, void (*onComplete)(TMaterial *))
   {
-    auto *rt = reinterpret_cast<JobThread*>(jobThread);
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *instance = Material_createGizmoMaterial(tEngine);
-
-          PROXY(onComplete(instance));
-        });
-    auto fut = rt->addTask(lambda);
+    Material_createBuiltInJobThread(jobThread, engine, BUILT_IN_GIZMO, onComplete);
   }
 #endif
 
 #ifdef SILHOUETTE_ENABLED
-  EMSCRIPTEN_KEEPALIVE void Material_createSilhouetteMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createSilhouetteMaterialJobThread(TJobThread *jobThread, TEngine *engine, void (*onComplete)(TMaterial *))
   {
-    auto *rt = reinterpret_cast<JobThread*>(jobThread);
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *instance = Material_createSilhouetteMaterial(tEngine);
-
-          PROXY(onComplete(instance));
-        });
-    auto fut = rt->addTask(lambda);
+    Material_createBuiltInJobThread(jobThread, engine, BUILT_IN_SILHOUETTE, onComplete);
   }
 #endif
 
 #ifdef EDGE_OUTLINE_ENABLED
-  EMSCRIPTEN_KEEPALIVE void Material_createEdgeOutlineMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createEdgeOutlineMaterialJobThread(TJobThread *jobThread, TEngine *engine, void (*onComplete)(TMaterial *))
   {
-    auto *rt = reinterpret_cast<JobThread*>(jobThread);
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *instance = Material_createEdgeOutlineMaterial(tEngine);
-
-          PROXY(onComplete(instance));
-        });
-    auto fut = rt->addTask(lambda);
+    Material_createBuiltInJobThread(jobThread, engine, BUILT_IN_EDGE_OUTLINE, onComplete);
   }
 #endif
 
 #ifdef WIREFRAME_ENABLED
-  EMSCRIPTEN_KEEPALIVE void Material_createWireframeMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createWireframeMaterialJobThread(TJobThread *jobThread, TEngine *engine, void (*onComplete)(TMaterial *))
   {
-    auto *rt = reinterpret_cast<JobThread*>(jobThread);
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *instance = Material_createWireframeMaterial(tEngine);
-
-          PROXY(onComplete(instance));
-        });
-    auto fut = rt->addTask(lambda);
-  }
-#endif
-
-#ifdef NORMAL_COLOR_ENABLED
-  EMSCRIPTEN_KEEPALIVE void Material_createNormalColorMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
-  {
-    auto *rt = reinterpret_cast<JobThread*>(jobThread);
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *instance = Material_createNormalColorMaterial(tEngine);
-
-          PROXY(onComplete(instance));
-        });
-    auto fut = rt->addTask(lambda);
-  }
-#endif
-
-#ifdef SHARP_EDGE_ENABLED
-  EMSCRIPTEN_KEEPALIVE void Material_createSharpEdgeMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
-  {
-    auto *rt = reinterpret_cast<JobThread*>(jobThread);
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *instance = Material_createSharpEdgeMaterial(tEngine);
-
-          PROXY(onComplete(instance));
-        });
-    auto fut = rt->addTask(lambda);
+    Material_createBuiltInJobThread(jobThread, engine, BUILT_IN_WIREFRAME, onComplete);
   }
 #endif
 
 #ifdef TRANSLATION_AXIS_ENABLED
-  EMSCRIPTEN_KEEPALIVE void Material_createTranslationAxisMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createTranslationAxisMaterialJobThread(TJobThread *jobThread, TEngine *engine, void (*onComplete)(TMaterial *))
   {
-    auto *rt = reinterpret_cast<JobThread*>(jobThread);
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *instance = Material_createTranslationAxisMaterial(tEngine);
-
-          PROXY(onComplete(instance));
-        });
-    auto fut = rt->addTask(lambda);
+    Material_createBuiltInJobThread(jobThread, engine, BUILT_IN_TRANSLATION_AXIS, onComplete);
   }
 #endif
 
 #ifdef BONE_OVERLAY_ENABLED
-  EMSCRIPTEN_KEEPALIVE void Material_createBoneOverlayMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
+  EMSCRIPTEN_KEEPALIVE void Material_createBoneOverlayMaterialJobThread(TJobThread *jobThread, TEngine *engine, void (*onComplete)(TMaterial *))
   {
-    auto *rt = reinterpret_cast<JobThread*>(jobThread);
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *instance = Material_createBoneOverlayMaterial(tEngine);
-
-          PROXY(onComplete(instance));
-        });
-    auto fut = rt->addTask(lambda);
+    Material_createBuiltInJobThread(jobThread, engine, BUILT_IN_BONE_OVERLAY, onComplete);
   }
 #endif
 

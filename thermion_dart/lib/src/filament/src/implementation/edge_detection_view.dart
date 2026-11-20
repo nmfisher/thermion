@@ -95,10 +95,7 @@ class EdgeDetectionView {
     final view = await FFIView.create(app) as FFIView;
 
     // Create edge material
-    final materialPtr = await withPointerCallback<TMaterial>(
-      (cb) => Material_createEdgeOutlineMaterialJobThread(app.jobThreadHandle, app.engine, cb),
-    );
-    final edgeMaterial = FFIMaterial(materialPtr, app);
+    final edgeMaterial = await app.createBuiltInMaterial(BuiltInMaterial.edgeOutline);
 
     // Create scene with transparent skybox
     final edgeScene = await app.createScene();

@@ -393,6 +393,7 @@ jobs:
           dart pub get
           ${{ matrix.name == 'Linux' && 'xvfb-run' || '' }} dart test -j1 \
             test/runtime_material_${{ matrix.enabled && 'enabled' || 'disabled' }}_test.dart \
+            test/omitted_built_in_material_tests.dart \
             test/material_package_test.dart \
             ${{ matrix.enabled && 'test/runtime_material_metadata_test.dart test/runtime_material_diagnostics_test.dart' || '' }} \
             --concurrency=1

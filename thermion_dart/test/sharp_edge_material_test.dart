@@ -19,7 +19,10 @@ void main() async {
 
       await testHelper.capture(result.viewer.view, "before_sharp_edge");
 
-      final sharpEdge = await FilamentApp.instance!.createSharpEdgeMaterialInstance();
+      final material = await FilamentApp.instance!.createBuiltInMaterial(BuiltInMaterial.sharpEdge);
+      addTearDown(material.destroy);
+      final sharpEdge = SharpEdgeMaterialInstance(await material.createInstance());
+      addTearDown(sharpEdge.materialInstance.destroy);
       await sharpEdge.setDoubleSided(true);
       await sharpEdge.setEdgeColor(1.0, 1.0, 1.0, 1.0);
       await sharpEdge.setBaseColor(0.1, 0.1, 0.1, 1.0);
@@ -55,7 +58,10 @@ void main() async {
 
       await testHelper.capture(result.viewer.view, "cube_before");
 
-      final sharpEdge = await FilamentApp.instance!.createSharpEdgeMaterialInstance();
+      final material = await FilamentApp.instance!.createBuiltInMaterial(BuiltInMaterial.sharpEdge);
+      addTearDown(material.destroy);
+      final sharpEdge = SharpEdgeMaterialInstance(await material.createInstance());
+      addTearDown(sharpEdge.materialInstance.destroy);
       await asset.setMaterialInstanceForAll(sharpEdge.materialInstance);
       final frame = (await testHelper.capture(result.viewer.view, "cube_sharp_edge")).values.single;
       final pixels = frame.buffer.asFloat32List(frame.offsetInBytes, frame.lengthInBytes ~/ 4);

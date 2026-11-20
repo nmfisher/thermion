@@ -35,6 +35,7 @@ swift-bindings:
 	swiftc -c thermion_flutter/thermion_flutter/darwin/classes/MetalTextureWrapper.swift -module-name thermion_flutter -emit-library -o thermion_flutter/thermion_flutter/test/generated/libMetalTextureWrapper.dylib
 	swiftc -c thermion_flutter/thermion_flutter/darwin/SwiftThermionFlutterPluginObjCAPI_Stub.swift -module-name thermion_flutter -emit-objc-header-path thermion_flutter/thermion_flutter/darwin/include/generated/SwiftThermionFlutterPluginObjCAPI.h
 dart-bindings:
+	python3 scripts/generate-built-in-materials.py
 	cd thermion_dart/ && dart pub get
 	cd thermion_dart/ && dart run ffigen --config ffigen/native.yaml
 	cd thermion_dart/ && dart run ffigen_js --config ffigen/web.yaml --compiler-opts "$(FFIGEN_JS_COMPILER_OPTS)"

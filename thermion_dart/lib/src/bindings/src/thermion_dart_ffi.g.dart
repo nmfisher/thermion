@@ -2803,6 +2803,21 @@ external void Material_createBoneOverlayMaterialJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
 );
 
+@ffi.Native<
+  ffi.Bool Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TEngine>,
+    ffi.UnsignedInt,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>,
+  )
+>(isLeaf: true)
+external bool Material_createBuiltInJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TEngine> engine,
+  int id,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
+);
+
 @ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TMaterial> Material_createEdgeOutlineMaterial(ffi.Pointer<TEngine> tEngine);
 
@@ -2868,38 +2883,6 @@ external void Material_createInstanceJobThread(
   ffi.Pointer<TJobThread> jobThread,
   ffi.Pointer<TMaterial> tMaterial,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>> onComplete,
-);
-
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
-external ffi.Pointer<TMaterial> Material_createNormalColorMaterial(ffi.Pointer<TEngine> tEngine);
-
-@ffi.Native<
-  ffi.Void Function(
-    ffi.Pointer<TJobThread>,
-    ffi.Pointer<TEngine>,
-    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>,
-  )
->(isLeaf: true)
-external void Material_createNormalColorMaterialJobThread(
-  ffi.Pointer<TJobThread> jobThread,
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
-);
-
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
-external ffi.Pointer<TMaterial> Material_createSharpEdgeMaterial(ffi.Pointer<TEngine> tEngine);
-
-@ffi.Native<
-  ffi.Void Function(
-    ffi.Pointer<TJobThread>,
-    ffi.Pointer<TEngine>,
-    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>,
-  )
->(isLeaf: true)
-external void Material_createSharpEdgeMaterialJobThread(
-  ffi.Pointer<TJobThread> jobThread,
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
 );
 
 @ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
@@ -6124,6 +6107,22 @@ sealed class TBlendingMode {
 final class TBufferObject extends ffi.Opaque {}
 
 final class TBufferObjectBuilder extends ffi.Opaque {}
+
+sealed class TBuiltInMaterial {
+  static const BUILT_IN_IMAGE = 1;
+  static const BUILT_IN_GRID = 2;
+  static const BUILT_IN_GIZMO = 3;
+  static const BUILT_IN_TRANSLATION_AXIS = 4;
+  static const BUILT_IN_BONE_OVERLAY = 5;
+  static const BUILT_IN_SILHOUETTE = 6;
+  static const BUILT_IN_EDGE_OUTLINE = 7;
+  static const BUILT_IN_WIREFRAME = 8;
+  static const BUILT_IN_NORMAL_COLOR = 9;
+  static const BUILT_IN_SHARP_EDGE = 10;
+  static const BUILT_IN_CAPTURE_UV = 11;
+  static const BUILT_IN_LINEAR_DEPTH = 12;
+  static const BUILT_IN_UNLIT_FIXED_SIZE = 13;
+}
 
 final class TCamera extends ffi.Opaque {}
 

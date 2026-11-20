@@ -625,12 +625,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   @override
   Future<Material> createGizmoMaterial() async {
-    _gizmoMaterial ??= FFIMaterial(
-      await withPointerCallback<TMaterial>((cb) {
-        Material_createGizmoMaterialJobThread(jobThreadHandle, engine, cb);
-      }),
-      this,
-    );
+    _gizmoMaterial ??= await createBuiltInMaterial(BuiltInMaterial.gizmo);
     return _gizmoMaterial!;
   }
 
@@ -640,13 +635,23 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   @override
   Future<Material> createBoneOverlayMaterial() async {
-    _boneOverlayMaterial ??= FFIMaterial(
-      await withPointerCallback<TMaterial>((cb) {
-        Material_createBoneOverlayMaterialJobThread(jobThreadHandle, engine, cb);
-      }),
-      this,
-    );
+    _boneOverlayMaterial ??= await createBuiltInMaterial(BuiltInMaterial.boneOverlay);
     return _boneOverlayMaterial!;
+  }
+
+  @override
+  Future<FFIMaterial> createBuiltInMaterial(BuiltInMaterial material) async {
+    late final bool included;
+    final ptr = await withPointerCallback<TMaterial>((cb) {
+      included = Material_createBuiltInJobThread(jobThreadHandle, engine, material.nativeId, cb);
+    });
+    if (!included) {
+      throw StateError('BuiltInMaterial.${material.name} requires materials.${material.key}: true in this build.');
+    }
+    if (ptr == nullptr) {
+      throw StateError('Filament could not build the ${material.key} material.');
+    }
+    return FFIMaterial(ptr, this);
   }
 
   @override
@@ -939,38 +944,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   @override
   Future<WireframeMaterialInstance> createWireframeMaterialInstance() async {
-    final material = FFIMaterial(
-      await withPointerCallback<TMaterial>((cb) {
-        Material_createWireframeMaterialJobThread(jobThreadHandle, engine, cb);
-      }),
-      this,
-    );
-    final mi = await material.createInstance();
-    return WireframeMaterialInstance(mi);
-  }
-
-  @override
-  Future<NormalColorMaterialInstance> createNormalColorMaterialInstance() async {
-    final material = FFIMaterial(
-      await withPointerCallback<TMaterial>((cb) {
-        Material_createNormalColorMaterialJobThread(jobThreadHandle, engine, cb);
-      }),
-      this,
-    );
-    final mi = await material.createInstance();
-    return NormalColorMaterialInstance(mi);
-  }
-
-  @override
-  Future<SharpEdgeMaterialInstance> createSharpEdgeMaterialInstance() async {
-    final material = FFIMaterial(
-      await withPointerCallback<TMaterial>((cb) {
-        Material_createSharpEdgeMaterialJobThread(jobThreadHandle, engine, cb);
-      }),
-      this,
-    );
-    final mi = await material.createInstance();
-    return SharpEdgeMaterialInstance(mi);
+    final material = await createBuiltInMaterial(BuiltInMaterial.wireframe);
+    return WireframeMaterialInstance(await material.createInstance());
   }
 
   //
@@ -1972,12 +1947,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   @override
   Future<TexturedQuad> createTexturedQuad() async {
-    if (_imageMaterial == null) {
-      var ptr = await withPointerCallback<TMaterial>(
-        (cb) => Material_createImageMaterialJobThread(jobThreadHandle, engine, cb),
-      );
-      _imageMaterial = FFIMaterial(ptr, this);
-    }
+    _imageMaterial ??= await createBuiltInMaterial(BuiltInMaterial.image);
     var mi = await _imageMaterial!.createInstance() as FFIMaterialInstance;
 
     var quad = await createGeometry(GeometryUtils.fullscreenQuad());

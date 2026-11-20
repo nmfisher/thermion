@@ -15,7 +15,10 @@ void main() async {
 
       await testHelper.capture(result.viewer.view, "before_normal_color");
 
-      final normalColor = await FilamentApp.instance!.createNormalColorMaterialInstance();
+      final material = await FilamentApp.instance!.createBuiltInMaterial(BuiltInMaterial.normalColor);
+      addTearDown(material.destroy);
+      final normalColor = NormalColorMaterialInstance(await material.createInstance());
+      addTearDown(normalColor.materialInstance.destroy);
       await normalColor.setDoubleSided(true);
 
       await asset.setMaterialInstanceForAll(normalColor.materialInstance);
@@ -37,7 +40,10 @@ void main() async {
     await ViewerBuilder(testHelper).setCameraPosition(Vector3(2, 2, 2)).execute((result) async {
       final asset = await result.viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", addToScene: true);
 
-      final normalColor = await FilamentApp.instance!.createNormalColorMaterialInstance();
+      final material = await FilamentApp.instance!.createBuiltInMaterial(BuiltInMaterial.normalColor);
+      addTearDown(material.destroy);
+      final normalColor = NormalColorMaterialInstance(await material.createInstance());
+      addTearDown(normalColor.materialInstance.destroy);
 
       await asset.setMaterialInstanceForAll(normalColor.materialInstance);
       final reference = (await testHelper.capture(result.viewer.view, "cube_normal_color")).values.single;

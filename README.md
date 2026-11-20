@@ -151,13 +151,19 @@ hooks:
 
 This native configuration selects exactly the listed helpers. For a custom web
 build, configure CMake with `-DTHERMION_MATERIALS="normal_color;sharp_edge"`.
-Load sharp-edge meshes with `SceneAssetGeometryCapability.barycentrics`.
+For glTF, request `SceneAssetGeometryCapability.barycentrics` when loading the mesh.
+Procedural triangle meshes can supply barycentric coordinates and an edge mask through `Geometry.attribute0`.
 
-Then create them at runtime via
-`FilamentApp.instance!.createNormalColorMaterialInstance()` /
-`createSharpEdgeMaterialInstance()`. Calling either in a build without the
-material enabled fails on the FFI symbol lookup (the native entry points are
-`#ifdef`-guarded out).
+Use the same built-in material enum for all embedded helpers:
+
+```dart
+final material = await app.createBuiltInMaterial(BuiltInMaterial.sharpEdge);
+final edges = SharpEdgeMaterialInstance(await material.createInstance());
+```
+
+The caller owns the material and instance. Destroy the instance before destroying
+the material after removing its renderables. An omitted helper raises a
+`StateError` naming the pubspec key needed to enable it.
 
 ### Quickstart (Flutter)
 
