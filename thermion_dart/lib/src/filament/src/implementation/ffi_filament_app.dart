@@ -21,7 +21,6 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_textured_quad.
 import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_gizmo.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
@@ -1579,11 +1578,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await withVoidCallback(
       (requestId, cb) => Engine_destroySceneJobThread(jobThreadHandle, engine, scene.scene, requestId, cb),
     );
-  }
-
-  //
-  Future<GizmoAsset> createGizmo(View view, GizmoType gizmoType) async {
-    return FFIGizmo.create(this, view, gizmoType);
   }
 
   //

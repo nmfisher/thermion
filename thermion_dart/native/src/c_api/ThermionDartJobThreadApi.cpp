@@ -23,7 +23,6 @@
 #include "c_api/TEngine.h"
 #include "c_api/TRenderableManager.h"
 #include "c_api/TTransformManager.h"
-#include "c_api/TGizmo.h"
 #include "c_api/TGltfAssetLoader.h"
 #include "c_api/TGltfResourceLoader.h"
 #include "c_api/TRenderer.h"
@@ -2458,27 +2457,6 @@ extern "C"
         {
           Scene_setIndirectLight(tScene, tIndirectLight);
           PROXY(onComplete(requestId));
-        });
-    auto fut = rt->addTask(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Gizmo_createJobThread(TJobThread *jobThread,
-      TEngine *tEngine,
-      TGltfAssetLoader *tAssetLoader,
-      TGltfResourceLoader *tGltfResourceLoader,
-      TNameComponentManager *tNameComponentManager,
-      TView *tView,
-      TMaterial *tMaterial,
-      TGizmoType tGizmoType,
-      void (*callback)(TGizmo *))
-  {
-    auto *rt = reinterpret_cast<JobThread*>(jobThread);
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *gizmo = Gizmo_create(tEngine, tAssetLoader, tGltfResourceLoader, tNameComponentManager, tView, tMaterial, tGizmoType);
-
-          PROXY(callback(gizmo));
         });
     auto fut = rt->addTask(lambda);
   }

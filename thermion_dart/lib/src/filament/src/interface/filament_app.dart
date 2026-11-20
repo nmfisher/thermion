@@ -494,9 +494,6 @@ abstract class FilamentApp<T> {
   });
 
   //
-  Future<GizmoAsset> createGizmo(View view, GizmoType type);
-
-  //
   Future<ThermionAsset> createGeometry(Geometry geometry, {List<MaterialInstance>? materialInstances});
 
   //

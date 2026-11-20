@@ -28,7 +28,6 @@ extern "C"
 	typedef struct TRenderTarget TRenderTarget;
 	typedef struct TSwapChain TSwapChain;
 	typedef struct TView TView;
-	typedef struct TGizmo TGizmo;
 	typedef struct TScene TScene;
 	typedef struct TSkybox TSkybox;
 	typedef struct TIndirectLight TIndirectLight;
@@ -105,12 +104,6 @@ extern "C"
     };
 
     typedef struct Aabb3 Aabb3;
-
-	enum TGizmoType {
-		GIZMO_TYPE_TRANSLATION,
-		GIZMO_TYPE_ROTATION
-	};
-	typedef enum TGizmoType TGizmoType;
 
 	enum TSceneAssetType {
 		SCENE_ASSET_TYPE_GLTF = 0,

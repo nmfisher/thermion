@@ -1484,64 +1484,6 @@ external int FrameScheduler_steadyClockUs();
 external void FrameScheduler_stop();
 
 @ffi.Native<
-  ffi.Pointer<TGizmo> Function(
-    ffi.Pointer<TEngine>,
-    ffi.Pointer<TGltfAssetLoader>,
-    ffi.Pointer<TGltfResourceLoader>,
-    ffi.Pointer<TNameComponentManager>,
-    ffi.Pointer<TView>,
-    ffi.Pointer<TMaterial>,
-    ffi.UnsignedInt,
-  )
->(isLeaf: true)
-external ffi.Pointer<TGizmo> Gizmo_create(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<TGltfAssetLoader> assetLoader,
-  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
-  ffi.Pointer<TNameComponentManager> tNameComponentManager,
-  ffi.Pointer<TView> tView,
-  ffi.Pointer<TMaterial> tMaterial,
-  int tGizmoType,
-);
-
-@ffi.Native<
-  ffi.Void Function(
-    ffi.Pointer<TJobThread>,
-    ffi.Pointer<TEngine>,
-    ffi.Pointer<TGltfAssetLoader>,
-    ffi.Pointer<TGltfResourceLoader>,
-    ffi.Pointer<TNameComponentManager>,
-    ffi.Pointer<TView>,
-    ffi.Pointer<TMaterial>,
-    ffi.UnsignedInt,
-    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGizmo>)>>,
-  )
->(isLeaf: true)
-external void Gizmo_createJobThread(
-  ffi.Pointer<TJobThread> jobThread,
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<TGltfAssetLoader> tAssetLoader,
-  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
-  ffi.Pointer<TNameComponentManager> tNameComponentManager,
-  ffi.Pointer<TView> tView,
-  ffi.Pointer<TMaterial> tMaterial,
-  int tGizmoType,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGizmo>)>> callback,
-);
-
-@ffi.Native<ffi.Void Function(ffi.UnsignedInt)>(isLeaf: true)
-external void Gizmo_dummy(int t);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TGizmo>, ffi.UnsignedInt)>(isLeaf: true)
-external void Gizmo_highlight(ffi.Pointer<TGizmo> tGizmo, int axis);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TGizmo>, ffi.Uint32, ffi.Uint32, GizmoPickCallback)>(isLeaf: true)
-external void Gizmo_pick(ffi.Pointer<TGizmo> tGizmo, int x, int y, GizmoPickCallback callback);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TGizmo>)>(isLeaf: true)
-external void Gizmo_unhighlight(ffi.Pointer<TGizmo> tGizmo);
-
-@ffi.Native<
   ffi.Pointer<TGltfAssetLoader> Function(
     ffi.Pointer<TEngine>,
     ffi.Pointer<TMaterialProvider>,
@@ -6021,10 +5963,6 @@ typedef DartFilamentRenderCallbackFunction = void Function(ffi.Pointer<ffi.Void>
 typedef FrameTickCallback = ffi.Pointer<ffi.NativeFunction<FrameTickCallbackFunction>>;
 typedef FrameTickCallbackFunction = ffi.Void Function(ffi.Uint64 frameTimeNanos);
 typedef DartFrameTickCallbackFunction = void Function(int frameTimeNanos);
-typedef GizmoPickCallback = ffi.Pointer<ffi.NativeFunction<GizmoPickCallbackFunction>>;
-typedef GizmoPickCallbackFunction =
-    ffi.Void Function(ffi.UnsignedInt resultType, ffi.Float x, ffi.Float y, ffi.Float z);
-typedef DartGizmoPickCallbackFunction = void Function(int resultType, double x, double y, double z);
 
 const int JUMP_INTENT_MASK = 4;
 
@@ -6277,27 +6215,6 @@ final class TFrameInfo extends ffi.Struct {
 
   @ffi.Int64()
   external int gpuFrameComplete;
-}
-
-final class TGizmo extends ffi.Opaque {}
-
-sealed class TGizmoAxis {
-  static const X = 0;
-  static const Y = 1;
-  static const Z = 2;
-}
-
-sealed class TGizmoPickResultType {
-  static const AxisX = 0;
-  static const AxisY = 1;
-  static const AxisZ = 2;
-  static const Parent = 3;
-  static const None = 4;
-}
-
-sealed class TGizmoType {
-  static const GIZMO_TYPE_TRANSLATION = 0;
-  static const GIZMO_TYPE_ROTATION = 1;
 }
 
 final class TGltfAssetLoader extends ffi.Opaque {}

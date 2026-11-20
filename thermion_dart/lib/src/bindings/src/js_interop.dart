@@ -48,13 +48,6 @@ extension DPCF on DartPickCallbackFunction {
   }
 }
 
-extension GPFBP on void Function(int, double, double, double) {
-  CallbackHolder<GizmoPickCallbackFunction> asCallback() {
-    final ptr = addFunction<GizmoPickCallbackFunction>(this.toJS, "viddd");
-    return CallbackHolder(ptr);
-  }
-}
-
 extension VFCB on void Function() {
   CallbackHolder<void Function()> asCallback() {
     final ptr = addFunction<void Function()>(this.toJS, "v");

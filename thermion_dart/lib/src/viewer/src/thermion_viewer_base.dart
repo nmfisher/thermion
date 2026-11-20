@@ -293,10 +293,6 @@ abstract class ThermionViewer {
   //
   Future<ThermionAsset> createGeometry(Geometry geometry, {List<MaterialInstance>? materialInstances});
 
-  // Returns a gizmo for translating/rotating objects.
-  // Only one gizmo can be visible at any given time for this viewer.
-  Future<GizmoAsset> getGizmo(GizmoType type);
-
   /// Register cleanup to run during disposal, before cameras, scene and view
   /// are destroyed. Register callbacks before disposal starts.
   ///
