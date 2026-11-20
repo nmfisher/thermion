@@ -617,6 +617,9 @@ jobs:
             exit 1
           fi
 
+      - name: Verify packaged Windows shader tools
+        run: python scripts/verify-material-host-tools.py "output/filament-${{ env.FILAMENT_VERSION }}-windows-release.zip"
+
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
