@@ -99,7 +99,7 @@ call git checkout %FILAMENT_VERSION% || (
   exit /b 1
 )
 
-REM Build host tools separately; only runtime libraries are packaged below.
+REM Build WebGPU-capable host tools separately from the runtime libraries.
 REM Export only Release tools so Debug runtime builds reuse those executables
 REM without globally remapping unrelated imported targets such as Python.
 call git apply "%SCRIPT_DIR%filament-no-exceptions.patch" || exit /b 1
@@ -111,7 +111,7 @@ call git apply "%SCRIPT_DIR%filament-smolv-combined.patch" || exit /b 1
 REM Build matp (the material parser behind matc) into the runtime archives and
 REM install its include-resolution headers, for runtime material compilation.
 call git apply "%SCRIPT_DIR%filament-matp-runtime.patch" || exit /b 1
-cmake -S . -B out/host-tools -DCMAKE_CONFIGURATION_TYPES=Release -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=ON -DFILAMENT_EXPORT_PREBUILT_EXECUTABLES_DIR=out/host-tools || exit /b 1
+cmake -S . -B out/host-tools -DCMAKE_CONFIGURATION_TYPES=Release -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_SUPPORTS_WEBGPU=ON -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=ON -DFILAMENT_EXPORT_PREBUILT_EXECUTABLES_DIR=out/host-tools "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=%FILAMENT_BASE_DIR%\out\host-tools\bin" || exit /b 1
 cmake --build out/host-tools --config Release --target matc cmgen filamesh mipgen resgen uberz glslminifier || exit /b 1
 
 REM Patch FFilamentAsset.h to allow overriding GLTFIO_USE_FILESYSTEM at compile time
@@ -381,6 +381,15 @@ if "!BUILD_RELEASE!"=="true" (
 if "!BUILD_DEBUG!"=="true" (
   copy /Y "%OUTPUT_BASE_DIR%\vulkan-1.lib" "%TARGET_DEBUG_DIR%\vulkan-1.lib" >nul
   echo Copied vulkan-1.lib to debug directory
+)
+
+REM Include version-matched shader tools in the release ZIP. A debug-only
+REM build still ships the Release tool binaries alongside its runtime.
+set "TOOLS_TARGET=%TARGET_RELEASE_DIR%\bin"
+if "!BUILD_RELEASE!"=="false" set "TOOLS_TARGET=%TARGET_DEBUG_DIR%\bin"
+if not exist "%TOOLS_TARGET%" mkdir "%TOOLS_TARGET%" || exit /b 1
+for %%T in (matc resgen) do (
+  copy /Y "%FILAMENT_BASE_DIR%\out\host-tools\bin\%%T.exe" "%TOOLS_TARGET%\" >nul || exit /b 1
 )
 
 REM Create zip files (using PowerShell)
