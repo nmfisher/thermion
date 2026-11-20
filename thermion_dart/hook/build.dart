@@ -85,6 +85,16 @@ void main(List<String> args) async {
 
     final rawMaterialsDefine = input.userDefines['materials'];
     final materialConfig = rawMaterialsDefine is Map<String, dynamic> ? rawMaterialsDefine : const <String, dynamic>{};
+    final knownMaterialKeys = {
+      'backends',
+      'include_defaults',
+      ...BuiltInMaterial.values.map((material) => material.key),
+    };
+    for (final key in materialConfig.keys) {
+      if (!knownMaterialKeys.contains(key)) {
+        logger.warning('Unknown key materials.$key in pubspec.yaml.');
+      }
+    }
     final optInMaterials = [
       for (final material in BuiltInMaterial.values)
         if (material.compiledOnDemand && materialConfig[material.key] == true) material,
@@ -1367,5 +1377,5 @@ Future<void> _publishWebMaterials(
       destination.deleteSync();
     }
   }
-  output.dependencies.add(deployDir.existsSync() ? deployDir.uri : webDir.uri);
+  if (deployDir.existsSync()) output.dependencies.add(deployDir.uri);
 }

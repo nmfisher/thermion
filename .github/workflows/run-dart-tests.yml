@@ -104,13 +104,11 @@ jobs:
         uses: ./.github/actions/setup-windows-env
 
       - name: Enable debug mode for tests
+        working-directory: thermion_dart
         shell: bash
         run: |
-          awk '
-            /^      materials:$/ { print "      mode: debug" }
-            { print }
-          ' thermion_dart/pubspec.yaml > thermion_dart/pubspec.yaml.tmp
-          mv thermion_dart/pubspec.yaml.tmp thermion_dart/pubspec.yaml
+          dart pub get
+          dart --packages=.dart_tool/package_config.json tool/configure_material_tests.dart
 
       - name: Clean cached Filament libraries
         shell: bash
@@ -267,13 +265,11 @@ jobs:
         uses: dart-lang/setup-dart@v1
 
       - name: Enable debug mode for tests
+        working-directory: thermion_dart
         shell: bash
         run: |
-          awk '
-            /^      materials:$/ { print "      mode: debug" }
-            { print }
-          ' thermion_dart/pubspec.yaml > thermion_dart/pubspec.yaml.tmp
-          mv thermion_dart/pubspec.yaml.tmp thermion_dart/pubspec.yaml
+          dart pub get
+          dart --packages=.dart_tool/package_config.json tool/configure_material_tests.dart
 
       - name: Clean cached Filament libraries
         shell: bash
@@ -587,17 +583,11 @@ jobs:
         uses: ./.github/actions/setup-windows-env
 
       - name: Select material backend variant
+        working-directory: thermion_dart
         shell: bash
         run: |
-          awk '
-            /^      materials:$/ { print "      mode: debug" }
-            { print }
-            /^      materials:$/ {
-              print "        backends:"
-              print "          ${{ matrix.os-key }}: ${{ matrix.backends }}"
-            }
-          ' thermion_dart/pubspec.yaml > thermion_dart/pubspec.yaml.tmp
-          mv thermion_dart/pubspec.yaml.tmp thermion_dart/pubspec.yaml
+          dart pub get
+          dart --packages=.dart_tool/package_config.json tool/configure_material_tests.dart "${{ matrix.os-key }}" "${{ matrix.backends }}"
 
       - name: Clean cached Filament libraries
         shell: bash
