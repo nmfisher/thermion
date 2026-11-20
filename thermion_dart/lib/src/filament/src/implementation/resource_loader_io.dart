@@ -6,5 +6,3 @@ Future<Uint8List> defaultResourceLoader(String path) {
   print("Loading file $path");
   return File(path).readAsBytes();
 }
-
-Uri resolveWebResourceUri(String path) => throw UnsupportedError('Web resources require a browser.');
