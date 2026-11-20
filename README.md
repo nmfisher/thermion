@@ -134,11 +134,8 @@ browser — is in `examples/dart/material_editor`.
 
 #### Debug/visualization materials (opt-in)
 
-`normal_color` and `sharp_edge` are unlit materials for geometry inspection —
-world-space normals rendered as RGB, and dihedral-angle edge detection
-(edges above ~30° highlighted via a per-triangle mask computed by
-`rebuildVertexBuffers`). They are **not compiled into the default native
-library**; enable them like any other optional material:
+`normal_color` shows world-space normals as RGB. `sharp_edge` draws the triangle
+edges selected by a per-triangle mask. Enable either helper in the root pubspec.
 
 ```yaml
 hooks:
@@ -151,14 +148,24 @@ hooks:
 
 This native configuration selects exactly the listed helpers. For a custom web
 build, configure CMake with `-DTHERMION_MATERIALS="normal_color;sharp_edge"`.
-For glTF, request `SceneAssetGeometryCapability.barycentrics` when loading the mesh.
-Procedural triangle meshes can supply barycentric coordinates and an edge mask through `Geometry.attribute0`.
-
-Use the same built-in material enum for all embedded helpers:
+For a triangle with corners A, B, C, mask values 1, 2, and 4 select edges BC,
+CA, and AB respectively. Combine them with bitwise OR. This example draws only AB.
+The existing geometry helper supplies the barycentric coordinates in the first
+three components of `attribute0`. Write the same mask into the fourth component
+at each corner before uploading the geometry.
 
 ```dart
+final geometry = GeometryUtils.duplicateVerticesWithBarycentrics(
+  Float32List.fromList([-1, -1, 0, 1, -1, 0, 0, 1, 0]), // A, B, C
+  [0, 1, 2],
+);
+for (var corner = 0; corner < 3; corner++) {
+  geometry.attribute0[4 * corner + 3] = 4; // AB
+}
 final material = await app.createBuiltInMaterial(BuiltInMaterial.sharpEdge);
-final edges = SharpEdgeMaterialInstance(await material.createInstance());
+final instance = await material.createInstance();
+final asset = await viewer.createGeometry(geometry, materialInstances: [instance]);
+await viewer.addToScene(asset);
 ```
 
 The caller owns the material and instance. Destroy the instance before destroying

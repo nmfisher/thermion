@@ -2,10 +2,13 @@ import 'material.dart';
 
 /// A typed wrapper around a sharp-edge [MaterialInstance].
 ///
-/// Draws the edges selected by a triangle mesh’s `CUSTOM0.w` mask using
-/// its barycentric coordinates in `CUSTOM0.xyz`.
+/// For a triangle with corners A, B, C, set `CUSTOM0.xyz` to (1,0,0),
+/// (0,1,0), (0,0,1) respectively. Set `CUSTOM0.w` to the same mask at
+/// all three corners. Combine 1 for BC, 2 for CA, and 4 for AB.
+/// For example, a mask of 5 draws BC and AB. Use 0 for no edges or 7 for all.
 ///
-/// Delegates all calls to the wrapped [MaterialInstance]; does not own it.
+/// With Dart Geometry, supply these four floats per corner through
+/// `attribute0`. The caller owns the wrapped material instance.
 class SharpEdgeMaterialInstance {
   final MaterialInstance _mi;
 
