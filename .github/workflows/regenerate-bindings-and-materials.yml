@@ -434,7 +434,7 @@ jobs:
         if: steps.changes.outputs.native-changed == 'true'
         run: |
           root=thermion_dart/native/web
-          helpers='bone_overlay;capture_uv;edge_outline;gizmo;grid;image;linear_depth;normal_color;sharp_edge;silhouette;translation_axis;unlit_fixed_size;wireframe'
+          helpers='bone_overlay;capture_uv;edge_outline;gizmo;grid;image;linear_depth;silhouette;translation_axis;unlit_fixed_size;wireframe'
           for suffix in "" "-main-thread" "-runtime-materials" "-main-thread-runtime-materials"; do
             main_thread=OFF
             runtime_materials=OFF

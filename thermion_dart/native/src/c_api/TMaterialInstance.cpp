@@ -21,30 +21,23 @@
 #include "material/silhouette.h"
 #include "material/edge_outline.h"
 #include "material/wireframe.h"
-#include "material/normal_color.h"
-#include "material/sharp_edge.h"
 #include "material/capture_uv.h"
 #include "material/linear_depth.h"
 #include "material/unlit_fixed_size.h"
 
+// The Dart build hook emits these headers for the selected target backend.
+#ifdef NORMAL_COLOR_ENABLED
+#include "normal_color.h"
+#endif
+#ifdef SHARP_EDGE_ENABLED
+#include "sharp_edge.h"
+#endif
+
 namespace thermion {
-static TMaterial* buildBuiltInMaterial(TEngine* tEngine, TBuiltInMaterial id, const uint8_t* data, size_t size) {
+static TMaterial* buildBuiltInMaterial(TEngine* tEngine, const uint8_t* data, size_t size) {
     THERMION_ENGINE_API_GUARD;
     auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
     auto* material = filament::Material::Builder().package(data, size).build(*engine);
-    if (!material) return nullptr;
-#ifdef NORMAL_COLOR_ENABLED
-    if (id == BUILT_IN_NORMAL_COLOR) {
-        material->setDefaultParameter("opacity", 1.0f);
-    }
-#endif
-#ifdef SHARP_EDGE_ENABLED
-    if (id == BUILT_IN_SHARP_EDGE) {
-        material->setDefaultParameter("edgeColor", filament::math::float4{1, 1, 1, 1});
-        material->setDefaultParameter("baseColor", filament::math::float4{0.1f, 0.1f, 0.1f, 1});
-        material->setDefaultParameter("edgeWidth", 1.0f);
-    }
-#endif
     return reinterpret_cast<TMaterial*>(material);
 }
 
@@ -52,7 +45,7 @@ static TMaterial* buildBuiltInMaterial(TEngine* tEngine, TBuiltInMaterial id, co
 #define RESGEN_FACTORY(name) \
     case BUILT_IN_##name: \
         return [](TEngine* engine) { \
-            return buildBuiltInMaterial(engine, BUILT_IN_##name, name##_##name##_DATA, name##_##name##_SIZE); \
+            return buildBuiltInMaterial(engine, name##_##name##_DATA, name##_##name##_SIZE); \
         }
 
 BuiltInMaterialFactory builtInMaterialFactory(TBuiltInMaterial id) {

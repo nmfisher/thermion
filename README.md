@@ -138,6 +138,9 @@ The default viewer loads glTF assets, renders them with their authored materials
 and displays skyboxes and solid backgrounds with zero embedded helper packages.
 Apps using the following features must enable their helpers in the root pubspec.
 
+Set `include_defaults: true` under `materials` to include all 11 standard helpers.
+Individual keys override that setting on native builds.
+
 | Feature | Material keys |
 | --- | --- |
 | Textured quads and background images | `image` |
@@ -180,11 +183,16 @@ The caller owns the material and its instances. Remove their renderables, destro
 the instances, then destroy the material. Requesting a helper omitted from the
 engine raises a `StateError` that names its pubspec key.
 
-Native builds embed exactly the selected packages. Selecting any helper on web
-downloads the prebuilt engine containing all 13 helpers for the chosen thread and
-runtime compiler settings. The standalone downloader accepts `--variant helpers`
+The build hook compiles enabled `normal_color` and `sharp_edge` shaders from
+source using the cached Filament tools. It links them on native builds and puts
+their `.filamat` files in `web/thermion_materials/` for web builds. You can use
+them with the slim web engine.
+
+On native, each standard helper can be selected individually. Selecting a standard
+helper on web downloads the prebuilt engine containing all 11 standard helpers
+for the chosen thread and runtime compiler settings. The standalone downloader accepts `--variant helpers`
 for the worker engine. For an exact subset on web, configure CMake with, for
-example, `-DTHERMION_MATERIALS="sharp_edge"` and select the local engine with
+example, `-DTHERMION_MATERIALS="grid"` and select the local engine with
 `web_local: true`.
 
 ### Quickstart (Flutter)

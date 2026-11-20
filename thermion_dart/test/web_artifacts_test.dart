@@ -137,6 +137,8 @@ void main() {
         ]) {
           expect(withHelperMaterials(base, config), base);
         }
+        expect(withHelperMaterials(base, {'normal_color': true, 'sharp_edge': true}), base);
+        expect(withHelperMaterials(base, {'include_defaults': true}).zipSuffix, '${base.zipSuffix}-helpers');
         final helpers = withHelperMaterials(base, {'wireframe': true});
         expect(helpers.zipSuffix, '${base.zipSuffix}-helpers');
         expect(helpers.cacheSuffix, helpers.zipSuffix);
