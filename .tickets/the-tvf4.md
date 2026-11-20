@@ -36,4 +36,3 @@ Create a Dart sample (thermion example) showing basic physics. Use reactphysics3
 3. Works in the browser (WASM build), verified by building/running it.
 4. Code follows existing example style and passes `flutter analyze` /
    `dart analyze` where applicable.
-

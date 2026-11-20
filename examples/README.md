@@ -13,11 +13,19 @@ cd dart/headless_runner
 dart run bin/run_example.dart <name> [width] [height]   # PNG lands in output/
 ```
 
-`physics_basics` (ReactPhysics3D simulation rendered with Thermion) also runs
-in the WASM web gallery as the `physics` scene (`?example=physics`):
-ReactPhysics3D is compiled into the same `thermion_dart.wasm` as Thermion
-itself -- see `scripts/download_reactphysics3d.sh` and
-`docs/research/web-physics-scope.md`.
+Run `physics_basics` in the headless runner or open `?example=physics` in the
+web gallery. The pinned physics dependency provides native libraries for Apple
+Silicon macOS and for x86-64 and arm64 Linux. The gallery build links ReactPhysics3D into a dedicated Thermion
+Wasm engine. To build that engine locally, activate Emscripten 6.0.4 and run:
+
+```sh
+(cd examples/dart/web_gallery && dart pub get)
+make wasm-physics
+cp thermion_dart/native/web/build/physics/build/out/thermion_dart.{js,wasm} examples/dart/web_gallery/web/
+```
+
+The build uses the same ReactPhysics3D source revision resolved by the Dart
+gallery. See the gallery’s existing instructions for compiling and serving it.
 
 ## flutter_zero
 

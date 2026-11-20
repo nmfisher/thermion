@@ -31,10 +31,8 @@ import 'shadows.dart';
 import 'skybox_and_background.dart';
 
 /// A scene-setup function: configures a scene on a ready [ThermionViewer].
-typedef ExampleSetup = Future<void> Function(
-  ThermionViewer viewer, {
-  required String assetsDir,
-});
+typedef ExampleSetup =
+    Future<void> Function(ThermionViewer viewer, {required String assetsDir});
 
 /// Maps an example name (used as the `?example=` query parameter on the web
 /// gallery) to its setup function.
@@ -76,9 +74,6 @@ final Map<String, ExampleSetup> galleryScenes = {
   'materials_and_lighting': setupMaterialsAndLighting,
   'animation': setupAnimation,
   'effects': setupEffects,
-  // ReactPhysics3D is compiled into the same thermion_dart WASM (linked via
-  // the EXTERNAL_PROJECTS hook in native/web/CMakeLists.txt), so the module
-  // that NativeLibrary.initBindings points at exports the _rp3d_* C API
-  // alongside the _Thermion_* one. See docs/research/web-physics-scope.md.
+  // The gallery uses the engine built by make wasm-physics.
   'physics': setupPhysicsBasics,
 };

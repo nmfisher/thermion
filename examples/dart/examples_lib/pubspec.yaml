@@ -16,16 +16,8 @@ dependencies:
   reactphysics3d_dart:
     git:
       url: https://github.com/nmfisher/reactphysics3d_dart.git
-      ref: 52eec72e06b322080d395415bc1dfaffd8c45d2f
+      ref: aaa4d304eae647749f0dc108b76a10d1c2ec0db8
 
-# TEMPORARY: reactphysics3d_dart (at the ref above) still pins ffigen_js
-# 0.0.5-pre, which conflicts with thermion_dart's ffigen_js ^0.0.14-pre, so
-# version solving fails without this override. The web path no longer depends
-# on it -- ReactPhysics3D is linked into the single thermion_dart WASM (see
-# scripts/download_reactphysics3d.sh) -- but the *generated* web bindings in
-# reactphysics3d_dart are still 0.0.5-era, so struct field access would throw
-# at runtime until that package regenerates them under 0.0.14. When it does:
-# bump the git ref above and delete this override (and the mirrors in
-# headless_runner/ and web_gallery/).
+# Use Thermion’s ffigen_js version for both sets of generated bindings.
 dependency_overrides:
-  ffigen_js: ^0.0.14-pre
+  ffigen_js: ^0.1.3
