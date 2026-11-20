@@ -1451,6 +1451,18 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TMaterial> tMaterial,
     Pointer<NativeFunction<void Function(PointerClass<TMaterialInstance>)>> onComplete,
   );
+  external Pointer<TMaterial> _Material_createNormalColorMaterial(Pointer<TEngine> tEngine);
+  external void _Material_createNormalColorMaterialJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
+  );
+  external Pointer<TMaterial> _Material_createSharpEdgeMaterial(Pointer<TEngine> tEngine);
+  external void _Material_createSharpEdgeMaterialJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
+  );
   external Pointer<TMaterial> _Material_createSilhouetteMaterial(Pointer<TEngine> tEngine);
   external void _Material_createSilhouetteMaterialJobThread(
     Pointer<TJobThread> jobThread,
@@ -1465,18 +1477,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external Pointer<TMaterial> _Material_createWireframeMaterial(Pointer<TEngine> tEngine);
   external void _Material_createWireframeMaterialJobThread(
-    Pointer<TJobThread> jobThread,
-    Pointer<TEngine> tEngine,
-    Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
-  );
-  external Pointer<TMaterial> _Material_createNormalColorMaterial(Pointer<TEngine> tEngine);
-  external void _Material_createNormalColorMaterialJobThread(
-    Pointer<TJobThread> jobThread,
-    Pointer<TEngine> tEngine,
-    Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
-  );
-  external Pointer<TMaterial> _Material_createSharpEdgeMaterial(Pointer<TEngine> tEngine);
-  external void _Material_createSharpEdgeMaterialJobThread(
     Pointer<TJobThread> jobThread,
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
@@ -6563,6 +6563,42 @@ void Material_createInstanceJobThread(
   return result;
 }
 
+Pointer<TMaterial> Material_createNormalColorMaterial(Pointer<TEngine> tEngine) {
+  final result = GeneratedBindings.instance._Material_createNormalColorMaterial(tEngine.cast());
+  return Pointer<TMaterial>(result);
+}
+
+void Material_createNormalColorMaterialJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._Material_createNormalColorMaterialJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
+  return result;
+}
+
+Pointer<TMaterial> Material_createSharpEdgeMaterial(Pointer<TEngine> tEngine) {
+  final result = GeneratedBindings.instance._Material_createSharpEdgeMaterial(tEngine.cast());
+  return Pointer<TMaterial>(result);
+}
+
+void Material_createSharpEdgeMaterialJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._Material_createSharpEdgeMaterialJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
+  return result;
+}
+
 Pointer<TMaterial> Material_createSilhouetteMaterial(Pointer<TEngine> tEngine) {
   final result = GeneratedBindings.instance._Material_createSilhouetteMaterial(tEngine.cast());
   return Pointer<TMaterial>(result);
@@ -6610,42 +6646,6 @@ void Material_createWireframeMaterialJobThread(
   Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Material_createWireframeMaterialJobThread(
-    jobThread.cast(),
-    tEngine.cast(),
-    onComplete.cast(),
-  );
-  return result;
-}
-
-Pointer<TMaterial> Material_createNormalColorMaterial(Pointer<TEngine> tEngine) {
-  final result = GeneratedBindings.instance._Material_createNormalColorMaterial(tEngine.cast());
-  return result;
-}
-
-void Material_createNormalColorMaterialJobThread(
-  Pointer<TJobThread> jobThread,
-  Pointer<TEngine> tEngine,
-  Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
-) {
-  final result = GeneratedBindings.instance._Material_createNormalColorMaterialJobThread(
-    jobThread.cast(),
-    tEngine.cast(),
-    onComplete.cast(),
-  );
-  return result;
-}
-
-Pointer<TMaterial> Material_createSharpEdgeMaterial(Pointer<TEngine> tEngine) {
-  final result = GeneratedBindings.instance._Material_createSharpEdgeMaterial(tEngine.cast());
-  return result;
-}
-
-void Material_createSharpEdgeMaterialJobThread(
-  Pointer<TJobThread> jobThread,
-  Pointer<TEngine> tEngine,
-  Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
-) {
-  final result = GeneratedBindings.instance._Material_createSharpEdgeMaterialJobThread(
     jobThread.cast(),
     tEngine.cast(),
     onComplete.cast(),

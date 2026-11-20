@@ -2871,6 +2871,38 @@ external void Material_createInstanceJobThread(
 );
 
 @ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TMaterial> Material_createNormalColorMaterial(ffi.Pointer<TEngine> tEngine);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>,
+  )
+>(isLeaf: true)
+external void Material_createNormalColorMaterialJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
+);
+
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TMaterial> Material_createSharpEdgeMaterial(ffi.Pointer<TEngine> tEngine);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>,
+  )
+>(isLeaf: true)
+external void Material_createSharpEdgeMaterialJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
+);
+
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TMaterial> Material_createSilhouetteMaterial(ffi.Pointer<TEngine> tEngine);
 
 @ffi.Native<
@@ -2905,11 +2937,6 @@ external void Material_createTranslationAxisMaterialJobThread(
 @ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TMaterial> Material_createWireframeMaterial(ffi.Pointer<TEngine> tEngine);
 
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
-external ffi.Pointer<TMaterial> Material_createNormalColorMaterial(
-  ffi.Pointer<TEngine> tEngine,
-);
-
 @ffi.Native<
   ffi.Void Function(
     ffi.Pointer<TJobThread>,
@@ -2918,37 +2945,6 @@ external ffi.Pointer<TMaterial> Material_createNormalColorMaterial(
   )
 >(isLeaf: true)
 external void Material_createWireframeMaterialJobThread(
-  ffi.Pointer<TJobThread> jobThread,
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
-);
-
-@ffi.Native<
-  ffi.Void Function(
-    ffi.Pointer<TJobThread>,
-    ffi.Pointer<TEngine>,
-    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>,
-  )
->(isLeaf: true)
-external void Material_createNormalColorMaterialJobThread(
-  ffi.Pointer<TJobThread> jobThread,
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,
-);
-
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
-external ffi.Pointer<TMaterial> Material_createSharpEdgeMaterial(
-  ffi.Pointer<TEngine> tEngine,
-);
-
-@ffi.Native<
-  ffi.Void Function(
-    ffi.Pointer<TJobThread>,
-    ffi.Pointer<TEngine>,
-    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>,
-  )
->(isLeaf: true)
-external void Material_createSharpEdgeMaterialJobThread(
   ffi.Pointer<TJobThread> jobThread,
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>> onComplete,

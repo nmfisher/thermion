@@ -1,3 +1,4 @@
+#include "sharp_edge_opengl.h"
 #include <stdint.h>
 const uint8_t SHARP_EDGE_PACKAGE[] = {
 // SHARP_EDGE

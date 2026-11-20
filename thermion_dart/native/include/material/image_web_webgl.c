@@ -1,3 +1,4 @@
+#include "image_web_webgl.h"
 #include <stdint.h>
 const uint8_t IMAGE_PACKAGE[] = {
 // IMAGE

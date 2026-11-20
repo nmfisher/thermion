@@ -15,11 +15,9 @@ class NormalColorMaterialInstance {
   MaterialInstance get materialInstance => _mi;
 
   /// When true, uses abs(normal) so both +X and -X show as red, etc.
-  Future setUseAbsoluteValue(bool value) =>
-      _mi.setParameterInt('useAbsoluteValue', value ? 1 : 0);
+  Future setUseAbsoluteValue(bool value) => _mi.setParameterInt('useAbsoluteValue', value ? 1 : 0);
 
-  Future setOpacity(double value) =>
-      _mi.setParameterFloat('opacity', value);
+  Future setOpacity(double value) => _mi.setParameterFloat('opacity', value);
 
   Future setDoubleSided(bool value) => _mi.setDoubleSided(value);
 }

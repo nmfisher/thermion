@@ -950,8 +950,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   @override
-  Future<NormalColorMaterialInstance>
-      createNormalColorMaterialInstance() async {
+  Future<NormalColorMaterialInstance> createNormalColorMaterialInstance() async {
     final material = FFIMaterial(
       await withPointerCallback<TMaterial>((cb) {
         Material_createNormalColorMaterialJobThread(jobThreadHandle, engine, cb);

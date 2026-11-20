@@ -15,15 +15,12 @@ class SharpEdgeMaterialInstance {
   /// The underlying [MaterialInstance] for advanced usage.
   MaterialInstance get materialInstance => _mi;
 
-  Future setEdgeColor(double r, double g, double b, double a) =>
-      _mi.setParameterFloat4('edgeColor', r, g, b, a);
+  Future setEdgeColor(double r, double g, double b, double a) => _mi.setParameterFloat4('edgeColor', r, g, b, a);
 
-  Future setBaseColor(double r, double g, double b, double a) =>
-      _mi.setParameterFloat4('baseColor', r, g, b, a);
+  Future setBaseColor(double r, double g, double b, double a) => _mi.setParameterFloat4('baseColor', r, g, b, a);
 
   /// Width of edge lines in pixels. Default 1.0.
-  Future setEdgeWidth(double pixels) =>
-      _mi.setParameterFloat('edgeWidth', pixels);
+  Future setEdgeWidth(double pixels) => _mi.setParameterFloat('edgeWidth', pixels);
 
   Future setDoubleSided(bool value) => _mi.setDoubleSided(value);
 }

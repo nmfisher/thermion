@@ -7,22 +7,19 @@ void main() async {
   await testHelper.setup();
 
   test('apply normal color material to glTF asset', () async {
-    await ViewerBuilder(testHelper)
-        .addSun()
-        .setCameraPosition(Vector3(0, 1, 1.5))
-        .execute((result) async {
+    await ViewerBuilder(testHelper).addSun().setCameraPosition(Vector3(0, 1, 1.5)).execute((result) async {
       final asset = await result.viewer.loadGltf(
-          "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
-          requiredGeometryCapabilities: const {
-            SceneAssetGeometryCapability.barycentrics,
-            SceneAssetGeometryCapability.uniqueTriangleCorners,
-          },
-          addToScene: true);
+        "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
+        requiredGeometryCapabilities: const {
+          SceneAssetGeometryCapability.barycentrics,
+          SceneAssetGeometryCapability.uniqueTriangleCorners,
+        },
+        addToScene: true,
+      );
 
       await testHelper.capture(result.viewer.view, "before_normal_color");
 
-      final normalColor =
-          await FilamentApp.instance!.createNormalColorMaterialInstance();
+      final normalColor = await FilamentApp.instance!.createNormalColorMaterialInstance();
       await normalColor.setDoubleSided(true);
 
       await asset.setMaterialInstanceForAll(normalColor.materialInstance);
@@ -30,39 +27,34 @@ void main() async {
 
       // Switch to absolute value mode
       await normalColor.setUseAbsoluteValue(true);
-      await testHelper.capture(
-          result.viewer.view, "normal_color_absolute_value");
+      await testHelper.capture(result.viewer.view, "normal_color_absolute_value");
 
       // Test opacity
       await normalColor.setOpacity(0.5);
-      await testHelper.capture(
-          result.viewer.view, "normal_color_half_opacity");
+      await testHelper.capture(result.viewer.view, "normal_color_half_opacity");
 
       await result.viewer.removeFromScene(asset);
     });
   });
 
   test('apply normal color material to cube', () async {
-    await ViewerBuilder(testHelper)
-        .setCameraPosition(Vector3(2, 2, 2))
-        .execute((result) async {
+    await ViewerBuilder(testHelper).setCameraPosition(Vector3(2, 2, 2)).execute((result) async {
       final asset = await result.viewer.loadGltf(
-          "file://${testHelper.assetsDir}/cube.glb",
-          requiredGeometryCapabilities: const {
-            SceneAssetGeometryCapability.barycentrics,
-            SceneAssetGeometryCapability.uniqueTriangleCorners,
-          },
-          addToScene: true);
+        "file://${testHelper.assetsDir}/cube.glb",
+        requiredGeometryCapabilities: const {
+          SceneAssetGeometryCapability.barycentrics,
+          SceneAssetGeometryCapability.uniqueTriangleCorners,
+        },
+        addToScene: true,
+      );
 
-      final normalColor =
-          await FilamentApp.instance!.createNormalColorMaterialInstance();
+      final normalColor = await FilamentApp.instance!.createNormalColorMaterialInstance();
 
       await asset.setMaterialInstanceForAll(normalColor.materialInstance);
       await testHelper.capture(result.viewer.view, "cube_normal_color");
 
       await normalColor.setUseAbsoluteValue(true);
-      await testHelper.capture(
-          result.viewer.view, "cube_normal_color_absolute");
+      await testHelper.capture(result.viewer.view, "cube_normal_color_absolute");
 
       await result.viewer.removeFromScene(asset);
     });

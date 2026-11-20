@@ -1,3 +1,4 @@
+#include "normal_color_android.h"
 #include <stdint.h>
 const uint8_t NORMAL_COLOR_PACKAGE[] = {
 // NORMAL_COLOR

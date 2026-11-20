@@ -1303,10 +1303,7 @@ Future<void> _processDeclarativePlugins(
 // build. They exist for geometry-inspection workflows (normal-color view,
 // sharp-edge view) and are compiled in only when explicitly enabled under
 // hooks.user_defines.thermion_dart.materials, like any other opt-in material.
-const Set<String> _optInMaterials = {
-  'normal_color',
-  'sharp_edge',
-};
+const Set<String> _optInMaterials = {'normal_color', 'sharp_edge'};
 
 void _processMaterials(
   Map<String, dynamic>? materialConfig,
