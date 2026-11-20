@@ -27,16 +27,21 @@ dev_dependencies:
   ffigen: ^18.1.0
   test: ^1.28.0
   mockito: ^5.0.0
-  build_runner: ^2.16.2
+  build_runner: ^2.0.0
 
-# Development-only build configuration: the normal_color/sharp_edge
-# visualization materials are opt-in for apps, but the package's own test
-# suite exercises them, so they are enabled for the dev build of this
-# package. Downstream consumers read their own pubspec, unaffected. CI strips
-# this block before appending its own; see run-dart-tests.yml.
+# Material factories exercised by this package's native integration tests.
+# Consuming applications select their own helpers in their root pubspec.
 hooks:
   user_defines:
     thermion_dart:
       materials:
+        image: true
+        grid: true
+        gizmo: true
+        silhouette: true
+        edge_outline: true
+        wireframe: true
+        translation_axis: true
+        bone_overlay: true
         normal_color: true
         sharp_edge: true

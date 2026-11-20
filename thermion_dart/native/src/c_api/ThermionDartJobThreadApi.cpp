@@ -792,6 +792,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+#ifdef IMAGE_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
@@ -804,7 +805,9 @@ extern "C"
         });
     auto fut = rt->addTask(lambda);
   }
+#endif
 
+#ifdef GIZMO_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createGizmoMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
@@ -817,7 +820,9 @@ extern "C"
         });
     auto fut = rt->addTask(lambda);
   }
+#endif
 
+#ifdef SILHOUETTE_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createSilhouetteMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
@@ -830,7 +835,9 @@ extern "C"
         });
     auto fut = rt->addTask(lambda);
   }
+#endif
 
+#ifdef EDGE_OUTLINE_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createEdgeOutlineMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
@@ -843,7 +850,9 @@ extern "C"
         });
     auto fut = rt->addTask(lambda);
   }
+#endif
 
+#ifdef WIREFRAME_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createWireframeMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
@@ -856,8 +865,9 @@ extern "C"
         });
     auto fut = rt->addTask(lambda);
   }
+#endif
 
-  #ifdef NORMAL_COLOR_ENABLED
+#ifdef NORMAL_COLOR_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createNormalColorMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
@@ -870,9 +880,9 @@ extern "C"
         });
     auto fut = rt->addTask(lambda);
   }
-  #endif
+#endif
 
-  #ifdef SHARP_EDGE_ENABLED
+#ifdef SHARP_EDGE_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createSharpEdgeMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
@@ -885,8 +895,9 @@ extern "C"
         });
     auto fut = rt->addTask(lambda);
   }
-  #endif
+#endif
 
+#ifdef TRANSLATION_AXIS_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createTranslationAxisMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
@@ -899,7 +910,9 @@ extern "C"
         });
     auto fut = rt->addTask(lambda);
   }
+#endif
 
+#ifdef BONE_OVERLAY_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createBoneOverlayMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
@@ -912,6 +925,7 @@ extern "C"
         });
     auto fut = rt->addTask(lambda);
   }
+#endif
 
   EMSCRIPTEN_KEEPALIVE void Material_createInstanceJobThread(TJobThread *jobThread, TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *))
   {

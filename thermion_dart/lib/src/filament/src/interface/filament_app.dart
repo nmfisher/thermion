@@ -367,14 +367,12 @@ abstract class FilamentApp<T> {
   Future<WireframeMaterialInstance> createWireframeMaterialInstance();
 
   /// Creates a normal-color material instance that colors faces based on their
-  /// world-space normal direction. Requires assets loaded with
-  /// [rebuildVertices: true] to have tangent data available.
+  /// world-space normal direction. Requires a tangent frame on the mesh.
   Future<NormalColorMaterialInstance> createNormalColorMaterialInstance();
 
   /// Creates a sharp-edge material instance that highlights hard edges and
-  /// creases by detecting normal discontinuities. Adjust [threshold] and
-  /// [softness] on the returned [SharpEdgeMaterialInstance] to control
-  /// sensitivity.
+  /// creases steeper than 30 degrees. Load glTF assets with
+  /// [SceneAssetGeometryCapability.barycentrics] to generate edge masks.
   Future<SharpEdgeMaterialInstance> createSharpEdgeMaterialInstance();
 
   //

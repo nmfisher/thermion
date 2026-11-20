@@ -10,10 +10,6 @@ void main() async {
     await ViewerBuilder(testHelper).addSun().setCameraPosition(Vector3(0, 1, 1.5)).execute((result) async {
       final asset = await result.viewer.loadGltf(
         "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
-        requiredGeometryCapabilities: const {
-          SceneAssetGeometryCapability.barycentrics,
-          SceneAssetGeometryCapability.uniqueTriangleCorners,
-        },
         addToScene: true,
       );
 
@@ -41,10 +37,6 @@ void main() async {
     await ViewerBuilder(testHelper).setCameraPosition(Vector3(2, 2, 2)).execute((result) async {
       final asset = await result.viewer.loadGltf(
         "file://${testHelper.assetsDir}/cube.glb",
-        requiredGeometryCapabilities: const {
-          SceneAssetGeometryCapability.barycentrics,
-          SceneAssetGeometryCapability.uniqueTriangleCorners,
-        },
         addToScene: true,
       );
 

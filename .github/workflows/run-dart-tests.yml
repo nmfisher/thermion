@@ -106,26 +106,11 @@ jobs:
       - name: Enable debug mode for tests
         shell: bash
         run: |
-          # pubspec.yaml ships a local-only hooks.user_defines block (the
-          # WebGPU/Dawn toggle). Strip any existing block before appending:
-          # appending on top of it leaves two top-level `hooks:` keys, and
-          # `dart pub get` then fails with "Duplicate mapping key".
-          # CI runs the native backend, so the local WebGPU override must go.
           awk '
-            /^hooks:/ { skip=1; next }
-            skip && /^[^[:space:]#]/ { skip=0 }
-            !skip { print }
+            /^      materials:$/ { print "      mode: debug" }
+            { print }
           ' thermion_dart/pubspec.yaml > thermion_dart/pubspec.yaml.tmp
           mv thermion_dart/pubspec.yaml.tmp thermion_dart/pubspec.yaml
-          cat >> thermion_dart/pubspec.yaml <<'EOF'
-          hooks:
-            user_defines:
-              thermion_dart:
-                mode: debug
-                materials:
-                  normal_color: true
-                  sharp_edge: true
-          EOF
 
       - name: Clean cached Filament libraries
         shell: bash
@@ -284,24 +269,11 @@ jobs:
       - name: Enable debug mode for tests
         shell: bash
         run: |
-          # See the equivalent step in dart-tests: strip the local-only
-          # hooks.user_defines block before appending, so the file never
-          # carries two top-level `hooks:` keys.
           awk '
-            /^hooks:/ { skip=1; next }
-            skip && /^[^[:space:]#]/ { skip=0 }
-            !skip { print }
+            /^      materials:$/ { print "      mode: debug" }
+            { print }
           ' thermion_dart/pubspec.yaml > thermion_dart/pubspec.yaml.tmp
           mv thermion_dart/pubspec.yaml.tmp thermion_dart/pubspec.yaml
-          cat >> thermion_dart/pubspec.yaml <<'EOF'
-          hooks:
-            user_defines:
-              thermion_dart:
-                mode: debug
-                materials:
-                  normal_color: true
-                  sharp_edge: true
-          EOF
 
       - name: Clean cached Filament libraries
         shell: bash
@@ -615,26 +587,15 @@ jobs:
       - name: Select material backend variant
         shell: bash
         run: |
-          # Same strip-then-append pattern as the other jobs (avoids a
-          # duplicate top-level `hooks:` key), adding materials.backends on
-          # top of mode: debug.
           awk '
-            /^hooks:/ { skip=1; next }
-            skip && /^[^[:space:]#]/ { skip=0 }
-            !skip { print }
+            /^      materials:$/ { print "      mode: debug" }
+            { print }
+            /^      materials:$/ {
+              print "        backends:"
+              print "          ${{ matrix.os-key }}: ${{ matrix.backends }}"
+            }
           ' thermion_dart/pubspec.yaml > thermion_dart/pubspec.yaml.tmp
           mv thermion_dart/pubspec.yaml.tmp thermion_dart/pubspec.yaml
-          cat >> thermion_dart/pubspec.yaml <<'EOF'
-          hooks:
-            user_defines:
-              thermion_dart:
-                mode: debug
-                materials:
-                  normal_color: true
-                  sharp_edge: true
-                  backends:
-                    ${{ matrix.os-key }}: ${{ matrix.backends }}
-          EOF
 
       - name: Clean cached Filament libraries
         shell: bash

@@ -56,6 +56,7 @@ namespace thermion
             }
         }
 
+#ifdef IMAGE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createImageMaterial(TEngine *tEngine) {
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -65,7 +66,9 @@ namespace thermion
             
             return reinterpret_cast<TMaterial *>(material);
         }
+#endif
 
+#ifdef GRID_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGridMaterial(TEngine *tEngine) {
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -74,7 +77,9 @@ namespace thermion
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
+#endif
 
+#ifdef GIZMO_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGizmoMaterial(TEngine *tEngine) {
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -83,7 +88,9 @@ namespace thermion
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
+#endif
 
+#ifdef SILHOUETTE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSilhouetteMaterial(TEngine *tEngine) {
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -92,7 +99,9 @@ namespace thermion
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
+#endif
 
+#ifdef EDGE_OUTLINE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createEdgeOutlineMaterial(TEngine *tEngine) {
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -101,7 +110,9 @@ namespace thermion
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
+#endif
 
+#ifdef WIREFRAME_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createWireframeMaterial(TEngine *tEngine) {
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -110,8 +121,9 @@ namespace thermion
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
+#endif
 
-        #ifdef NORMAL_COLOR_ENABLED
+#ifdef NORMAL_COLOR_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createNormalColorMaterial(TEngine *tEngine) {
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -120,9 +132,9 @@ namespace thermion
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
-        #endif
+#endif
 
-        #ifdef SHARP_EDGE_ENABLED
+#ifdef SHARP_EDGE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSharpEdgeMaterial(TEngine *tEngine) {
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -131,8 +143,9 @@ namespace thermion
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
-        #endif
+#endif
 
+#ifdef TRANSLATION_AXIS_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createTranslationAxisMaterial(TEngine *tEngine) {
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -141,7 +154,9 @@ namespace thermion
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
+#endif
 
+#ifdef BONE_OVERLAY_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createBoneOverlayMaterial(TEngine *tEngine) {
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -150,6 +165,7 @@ namespace thermion
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
+#endif
 
         EMSCRIPTEN_KEEPALIVE bool Material_hasParameter(TMaterial *tMaterial, const char *propertyName) {
             THERMION_ENGINE_API_GUARD;

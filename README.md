@@ -149,6 +149,10 @@ hooks:
         sharp_edge: true
 ```
 
+This native configuration selects exactly the listed helpers. For a custom web
+build, configure CMake with `-DTHERMION_MATERIALS="normal_color;sharp_edge"`.
+Load sharp-edge meshes with `SceneAssetGeometryCapability.barycentrics`.
+
 Then create them at runtime via
 `FilamentApp.instance!.createNormalColorMaterialInstance()` /
 `createSharpEdgeMaterialInstance()`. Calling either in a build without the

@@ -473,6 +473,8 @@ const List<String> reservedResgenPrefixes = [
   'grid',
   'image',
   'linear_depth',
+  'normal_color',
+  'sharp_edge',
   'silhouette',
   'translation_axis',
   'unlit_fixed_size',

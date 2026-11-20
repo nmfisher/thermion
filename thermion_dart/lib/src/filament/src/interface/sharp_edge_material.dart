@@ -4,7 +4,7 @@ import 'material.dart';
 ///
 /// Highlights only sharp edges (high dihedral angle) using barycentric
 /// coordinates and a precomputed sharp-edge mask. Requires the asset to
-/// be loaded with [rebuildVertices: true].
+/// be loaded with `SceneAssetGeometryCapability.barycentrics`.
 ///
 /// Delegates all calls to the wrapped [MaterialInstance]; does not own it.
 class SharpEdgeMaterialInstance {

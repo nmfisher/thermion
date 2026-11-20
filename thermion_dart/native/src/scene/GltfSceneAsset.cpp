@@ -4,13 +4,15 @@
 #include "gltfio/FilamentInstance.h"
 #include "Log.hpp"
 
+#ifdef SHARP_EDGE_ENABLED
+#include <algorithm>
+#include <array>
+#include <map>
+#endif
 #include <memory>
 #include <vector>
-#include <unordered_map>
-#include <tuple>
 #include <cstdlib>
 #include <cstring>
-#include <cmath>
 
 #include <filament/BufferObject.h>
 #include <filament/Engine.h>
@@ -35,6 +37,52 @@
 
 namespace thermion
 {
+
+#ifdef SHARP_EDGE_ENABLED
+    // Unwelded vertices have distinct indices. Match edge endpoints by position
+    // so a normal or UV seam does not turn a coplanar edge into a boundary.
+    static void writeSharpEdgeMasks(const std::vector<float>& positions,
+                                    const std::vector<float>& flatNormals,
+                                    std::vector<float>& barycentrics)
+    {
+        using Position = std::array<float, 3>;
+        using Edge = std::pair<Position, Position>;
+        struct Corner {
+            size_t triangle;
+            int opposite;
+        };
+        std::map<Edge, std::vector<Corner>> edges;
+        const size_t triangleCount = positions.size() / 9;
+        for (size_t triangle = 0; triangle < triangleCount; ++triangle) {
+            auto position = [&](int corner) -> Position {
+                const auto i = triangle * 9 + corner * 3;
+                return {positions[i], positions[i + 1], positions[i + 2]};
+            };
+            for (int corner = 0; corner < 3; ++corner) {
+                auto a = position((corner + 1) % 3);
+                auto b = position((corner + 2) % 3);
+                edges[std::minmax(a, b)].push_back({triangle, corner});
+            }
+        }
+
+        // Boundary and non-manifold edges are visible. For two adjacent
+        // triangles, draw only creases steeper than 30 degrees.
+        constexpr float cosThreshold = 0.8660254f;
+        for (const auto& entry : edges) {
+            const auto& corners = entry.second;
+            if (corners.size() == 2) {
+                const float* a = &flatNormals[corners[0].triangle * 9];
+                const float* b = &flatNormals[corners[1].triangle * 9];
+                if (a[0] * b[0] + a[1] * b[1] + a[2] * b[2] >= cosThreshold) continue;
+            }
+            for (const auto& corner : corners) {
+                for (int v = 0; v < 3; ++v) {
+                    barycentrics[(corner.triangle * 3 + v) * 4 + 3] += 1 << corner.opposite;
+                }
+            }
+        }
+    }
+#endif
 
     GltfSceneAsset::GltfSceneAsset(
         gltfio::FilamentAsset *asset,
@@ -721,127 +769,6 @@ namespace thermion
                     }
                 }
 
-                // --- Compute face normals and sharp edge mask ---
-                // Face normals are used for smooth normal averaging, flat tangent
-                // computation, and edge adjacency (sharp edge detection).
-                const float kQuantScale = 1e4f;
-                struct PosKeyHash {
-                    size_t operator()(const std::tuple<int,int,int>& k) const {
-                        size_t h = std::hash<int>{}(std::get<0>(k));
-                        h ^= std::hash<int>{}(std::get<1>(k)) + 0x9e3779b9 + (h << 6) + (h >> 2);
-                        h ^= std::hash<int>{}(std::get<2>(k)) + 0x9e3779b9 + (h << 6) + (h >> 2);
-                        return h;
-                    }
-                };
-
-                auto quantizePos = [&](uint32_t vtxIdx) {
-                    return std::make_tuple(
-                        (int)roundf(newPositions[vtxIdx * 3 + 0] * kQuantScale),
-                        (int)roundf(newPositions[vtxIdx * 3 + 1] * kQuantScale),
-                        (int)roundf(newPositions[vtxIdx * 3 + 2] * kQuantScale));
-                };
-
-                // Compute normalized face normals
-                std::vector<filament::math::float3> faceNormals(triangleCount);
-                for (uint32_t t = 0; t < triangleCount; t++)
-                {
-                    uint32_t i0 = t * 3, i1 = t * 3 + 1, i2 = t * 3 + 2;
-                    filament::math::float3 p0 = {newPositions[i0 * 3], newPositions[i0 * 3 + 1], newPositions[i0 * 3 + 2]};
-                    filament::math::float3 p1 = {newPositions[i1 * 3], newPositions[i1 * 3 + 1], newPositions[i1 * 3 + 2]};
-                    filament::math::float3 p2 = {newPositions[i2 * 3], newPositions[i2 * 3 + 1], newPositions[i2 * 3 + 2]};
-                    auto c = cross(p1 - p0, p2 - p0);
-                    float len = std::sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
-                    faceNormals[t] = (len > 1e-8f) ? c / len : filament::math::float3{0, 1, 0};
-                }
-
-                // --- Smooth normals: average face normals at coincident positions ---
-                {
-                    std::unordered_map<std::tuple<int,int,int>, filament::math::float3, PosKeyHash> normalAccum;
-                    for (uint32_t t = 0; t < triangleCount; t++)
-                    {
-                        for (int v = 0; v < 3; v++)
-                        {
-                            normalAccum[quantizePos(t * 3 + v)] += faceNormals[t];
-                        }
-                    }
-                    for (uint32_t idx = 0; idx < newVertexCount; idx++)
-                    {
-                        auto avg = normalAccum[quantizePos(idx)];
-                        float len = std::sqrt(avg.x * avg.x + avg.y * avg.y + avg.z * avg.z);
-                        if (len > 1e-8f) avg /= len;
-                        newNormals[idx * 3 + 0] = avg.x;
-                        newNormals[idx * 3 + 1] = avg.y;
-                        newNormals[idx * 3 + 2] = avg.z;
-                    }
-                }
-
-                // --- Sharp edge detection via edge adjacency ---
-                // An edge is "sharp" when the dihedral angle between adjacent
-                // faces exceeds ~30° (dot product of normals < cos(30°) ≈ 0.866).
-                // Boundary edges (only one triangle) are always sharp.
-                // The 3-bit mask is stored in CUSTOM0.w per triangle:
-                //   bit 0 = edge 0 (opposite vertex 0, between v1-v2)
-                //   bit 1 = edge 1 (opposite vertex 1, between v0-v2)
-                //   bit 2 = edge 2 (opposite vertex 2, between v0-v1)
-                {
-                    typedef std::pair<std::tuple<int,int,int>, std::tuple<int,int,int>> EdgeKey;
-                    struct EdgeKeyHash {
-                        PosKeyHash ph;
-                        size_t operator()(const EdgeKey& k) const {
-                            size_t h1 = ph(k.first);
-                            size_t h2 = ph(k.second);
-                            return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
-                        }
-                    };
-
-                    // Map each edge (sorted position pair) to the triangles sharing it
-                    std::unordered_map<EdgeKey, std::vector<std::pair<uint32_t, int>>, EdgeKeyHash> edgeMap;
-                    for (uint32_t t = 0; t < triangleCount; t++)
-                    {
-                        // Edge e is opposite vertex e
-                        const int edgeVerts[3][2] = {{1,2}, {0,2}, {0,1}};
-                        for (int e = 0; e < 3; e++)
-                        {
-                            auto a = quantizePos(t * 3 + edgeVerts[e][0]);
-                            auto b = quantizePos(t * 3 + edgeVerts[e][1]);
-                            EdgeKey key = (a < b) ? std::make_pair(a, b) : std::make_pair(b, a);
-                            edgeMap[key].push_back({t, e});
-                        }
-                    }
-
-                    const float cosThreshold = 0.866f; // cos(30°)
-                    std::vector<uint8_t> sharpMask(triangleCount, 0);
-
-                    for (auto& [key, tris] : edgeMap)
-                    {
-                        if (tris.size() == 1)
-                        {
-                            // Boundary edge — always sharp
-                            sharpMask[tris[0].first] |= (1 << tris[0].second);
-                        }
-                        else if (tris.size() >= 2)
-                        {
-                            float d = dot(faceNormals[tris[0].first], faceNormals[tris[1].first]);
-                            if (d < cosThreshold)
-                            {
-                                for (auto& [tri, edge] : tris)
-                                {
-                                    sharpMask[tri] |= (1 << edge);
-                                }
-                            }
-                        }
-                    }
-
-                    // Encode sharp mask in CUSTOM0.w (same value for all 3 vertices of a triangle)
-                    for (uint32_t t = 0; t < triangleCount; t++)
-                    {
-                        for (int v = 0; v < 3; v++)
-                        {
-                            newBarycentrics[(t * 3 + v) * 4 + 3] = (float)sharpMask[t];
-                        }
-                    }
-                }
-
                 // --- Build smooth tangent quaternions ---
                 // tris must outlive orientBuilder.build() since the builder stores a pointer
                 std::vector<filament::math::uint3> tris;
@@ -888,15 +815,23 @@ namespace thermion
                     std::vector<float> flatNormals(newVertexCount * 3);
                     for (uint32_t t = 0; t < triangleCount; t++)
                     {
+                        uint32_t i0 = t * 3 + 0, i1 = t * 3 + 1, i2 = t * 3 + 2;
+                        filament::math::float3 p0 = {newPositions[i0 * 3], newPositions[i0 * 3 + 1], newPositions[i0 * 3 + 2]};
+                        filament::math::float3 p1 = {newPositions[i1 * 3], newPositions[i1 * 3 + 1], newPositions[i1 * 3 + 2]};
+                        filament::math::float3 p2 = {newPositions[i2 * 3], newPositions[i2 * 3 + 1], newPositions[i2 * 3 + 2]};
+                        filament::math::float3 fn = normalize(cross(p1 - p0, p2 - p0));
                         for (int v = 0; v < 3; v++)
                         {
                             uint32_t di = t * 3 + v;
-                            flatNormals[di * 3 + 0] = faceNormals[t].x;
-                            flatNormals[di * 3 + 1] = faceNormals[t].y;
-                            flatNormals[di * 3 + 2] = faceNormals[t].z;
+                            flatNormals[di * 3 + 0] = fn.x;
+                            flatNormals[di * 3 + 1] = fn.y;
+                            flatNormals[di * 3 + 2] = fn.z;
                         }
                     }
 
+#ifdef SHARP_EDGE_ENABLED
+                    writeSharpEdgeMasks(newPositions, flatNormals, newBarycentrics);
+#endif
                     // For flat normals, no tangent data from glTF is meaningful, so always recompute from geometry
                     std::vector<filament::math::uint3> flatTris(triangleCount);
                     for (uint32_t i = 0; i < newVertexCount; i += 3)
