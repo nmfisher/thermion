@@ -38,7 +38,7 @@
 #include "c_api/TBufferObject.h"
 #include "c_api/ThermionDartJobThreadApi.h"
 
-#include "material/BuiltInMaterialPackage.hpp"
+#include "c_api/TMaterialInstance.h"
 #include "rendering/JobThread.hpp"
 #include "rendering/EngineApiLock.hpp"
 #include "rendering/RenderManager.hpp"
@@ -795,13 +795,13 @@ extern "C"
 
   EMSCRIPTEN_KEEPALIVE bool Material_createBuiltInJobThread(TJobThread *jobThread, TEngine *engine, TBuiltInMaterial id, void (*onComplete)(TMaterial *))
   {
-    const auto package = builtInMaterialPackage(id);
+    const auto factory = builtInMaterialFactory(id);
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
     rt->addDetachedTask([=]() {
-      auto *material = buildBuiltInMaterial(engine, package);
+      auto *material = factory ? factory(engine) : nullptr;
       PROXY(onComplete(material));
     });
-    return package.data != nullptr;
+    return factory != nullptr;
   }
 
   // Compatibility exports for existing native callers.
