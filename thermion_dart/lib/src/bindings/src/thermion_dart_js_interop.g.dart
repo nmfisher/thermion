@@ -1426,6 +1426,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
   );
+  external int _Material_createBuiltInJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TEngine> engine,
+    int id,
+    Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
+  );
   external Pointer<TMaterial> _Material_createEdgeOutlineMaterial(Pointer<TEngine> tEngine);
   external void _Material_createEdgeOutlineMaterialJobThread(
     Pointer<TJobThread> jobThread,
@@ -1450,18 +1456,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TJobThread> jobThread,
     Pointer<TMaterial> tMaterial,
     Pointer<NativeFunction<void Function(PointerClass<TMaterialInstance>)>> onComplete,
-  );
-  external Pointer<TMaterial> _Material_createNormalColorMaterial(Pointer<TEngine> tEngine);
-  external void _Material_createNormalColorMaterialJobThread(
-    Pointer<TJobThread> jobThread,
-    Pointer<TEngine> tEngine,
-    Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
-  );
-  external Pointer<TMaterial> _Material_createSharpEdgeMaterial(Pointer<TEngine> tEngine);
-  external void _Material_createSharpEdgeMaterialJobThread(
-    Pointer<TJobThread> jobThread,
-    Pointer<TEngine> tEngine,
-    Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
   );
   external Pointer<TMaterial> _Material_createSilhouetteMaterial(Pointer<TEngine> tEngine);
   external void _Material_createSilhouetteMaterialJobThread(
@@ -6486,6 +6480,21 @@ void Material_createBoneOverlayMaterialJobThread(
   return result;
 }
 
+bool Material_createBuiltInJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> engine,
+  int id,
+  Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._Material_createBuiltInJobThread(
+    jobThread.cast(),
+    engine.cast(),
+    id,
+    onComplete.cast(),
+  );
+  return result == 1;
+}
+
 Pointer<TMaterial> Material_createEdgeOutlineMaterial(Pointer<TEngine> tEngine) {
   final result = GeneratedBindings.instance._Material_createEdgeOutlineMaterial(tEngine.cast());
   return Pointer<TMaterial>(result);
@@ -6558,42 +6567,6 @@ void Material_createInstanceJobThread(
   final result = GeneratedBindings.instance._Material_createInstanceJobThread(
     jobThread.cast(),
     tMaterial.cast(),
-    onComplete.cast(),
-  );
-  return result;
-}
-
-Pointer<TMaterial> Material_createNormalColorMaterial(Pointer<TEngine> tEngine) {
-  final result = GeneratedBindings.instance._Material_createNormalColorMaterial(tEngine.cast());
-  return Pointer<TMaterial>(result);
-}
-
-void Material_createNormalColorMaterialJobThread(
-  Pointer<TJobThread> jobThread,
-  Pointer<TEngine> tEngine,
-  Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
-) {
-  final result = GeneratedBindings.instance._Material_createNormalColorMaterialJobThread(
-    jobThread.cast(),
-    tEngine.cast(),
-    onComplete.cast(),
-  );
-  return result;
-}
-
-Pointer<TMaterial> Material_createSharpEdgeMaterial(Pointer<TEngine> tEngine) {
-  final result = GeneratedBindings.instance._Material_createSharpEdgeMaterial(tEngine.cast());
-  return Pointer<TMaterial>(result);
-}
-
-void Material_createSharpEdgeMaterialJobThread(
-  Pointer<TJobThread> jobThread,
-  Pointer<TEngine> tEngine,
-  Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
-) {
-  final result = GeneratedBindings.instance._Material_createSharpEdgeMaterialJobThread(
-    jobThread.cast(),
-    tEngine.cast(),
     onComplete.cast(),
   );
   return result;
@@ -11240,6 +11213,22 @@ final class TBufferObjectBuilder extends Struct {
   }
 }
 
+sealed class TBuiltInMaterial {
+  static const BUILT_IN_IMAGE = 1;
+  static const BUILT_IN_GRID = 2;
+  static const BUILT_IN_GIZMO = 3;
+  static const BUILT_IN_TRANSLATION_AXIS = 4;
+  static const BUILT_IN_BONE_OVERLAY = 5;
+  static const BUILT_IN_SILHOUETTE = 6;
+  static const BUILT_IN_EDGE_OUTLINE = 7;
+  static const BUILT_IN_WIREFRAME = 8;
+  static const BUILT_IN_NORMAL_COLOR = 9;
+  static const BUILT_IN_SHARP_EDGE = 10;
+  static const BUILT_IN_CAPTURE_UV = 11;
+  static const BUILT_IN_LINEAR_DEPTH = 12;
+  static const BUILT_IN_UNLIT_FIXED_SIZE = 13;
+}
+
 extension TCameraExt on Pointer<TCamera> {
   TCamera toDart() {
     return TCamera(this);
@@ -14108,8 +14097,6 @@ typedef VoidCallback = Pointer<NativeFunction<VoidCallbackFunction>>;
 typedef DartVoidCallback = Pointer<NativeFunction<VoidCallbackFunction>>;
 typedef VoidCallbackFunction = void Function(int requestId);
 typedef DartVoidCallbackFunction = void Function(int requestId);
-
-const int __bool_true_false_are_defined = 1;
 
 extension double3Ext on Pointer<double3> {
   double3 toDart() {

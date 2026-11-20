@@ -41,6 +41,8 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import '../filament/src/interface/built_in_material.dart';
+
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
@@ -465,21 +467,7 @@ Map<File, String> checkOutputStems(List<File> inputs) {
   return stems;
 }
 
-const List<String> reservedResgenPrefixes = [
-  'bone_overlay',
-  'capture_uv',
-  'edge_outline',
-  'gizmo',
-  'grid',
-  'image',
-  'linear_depth',
-  'normal_color',
-  'sharp_edge',
-  'silhouette',
-  'translation_axis',
-  'unlit_fixed_size',
-  'wireframe',
-];
+final reservedResgenPrefixes = Set<String>.unmodifiable(BuiltInMaterial.values.map((material) => material.key));
 
 /// The resgen symbol prefix an input compiles with: the explicit
 /// `resgen_prefixes` override keyed by stem (or file stem), else the
@@ -1077,7 +1065,7 @@ MaterialCompilePlan planMaterialCompilation({
   checkResgenPrefixes(
     inputs,
     resgenPrefixes: resgenPrefixes,
-    reserved: linkGenerated ? reservedResgenPrefixes.toSet() : const <String>{},
+    reserved: linkGenerated ? reservedResgenPrefixes : const <String>{},
   );
   final owners = <String, File>{};
   for (final input in inputs) {

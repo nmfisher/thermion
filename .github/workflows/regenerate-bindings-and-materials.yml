@@ -322,6 +322,7 @@ jobs:
           # discarded anyway).
           git add -f thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart || true
           git add -f thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart || true
+          git add thermion_dart/native/include/c_api/TBuiltInMaterial.h thermion_dart/native/include/material/BuiltInMaterialPackage.hpp
           git add -f thermion_dart/native/include/material/*.h || true
           git add -f thermion_dart/native/include/material/*.c || true
           # Only .h/.c are committed: the .S/.apple.S/.bin resgen outputs are
@@ -434,7 +435,7 @@ jobs:
         if: steps.changes.outputs.native-changed == 'true'
         run: |
           root=thermion_dart/native/web
-          helpers='bone_overlay;capture_uv;edge_outline;gizmo;grid;image;linear_depth;normal_color;sharp_edge;silhouette;translation_axis;unlit_fixed_size;wireframe'
+          helpers=$(python3 -c 'import json; print(";".join(json.load(open("materials/built_in_materials.json"))))')
           for suffix in "" "-main-thread" "-runtime-materials" "-main-thread-runtime-materials"; do
             main_thread=OFF
             runtime_materials=OFF

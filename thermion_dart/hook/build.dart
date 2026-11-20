@@ -7,6 +7,7 @@ import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import '../lib/filament_version.dart';
+import '../lib/src/filament/src/interface/built_in_material.dart';
 import '../lib/src/hooks/filament_artifacts.dart';
 import '../lib/src/hooks/material_backend_resolution.dart';
 import '../lib/src/hooks/material_tools.dart';
@@ -292,21 +293,8 @@ outputDirectory : ${outputDirectory.path}
     }
 
     final materialSources = <String, String>{
-      'capture_uv': materialPath('capture_uv', materialSuffix),
-      'grid': materialPath('grid', materialSuffix),
-      'image': materialPath('image', materialSuffix),
-      'linear_depth': materialPath('linear_depth', materialSuffix),
-      'unlit_fixed_size': materialPath('unlit_fixed_size', materialSuffix),
-      'silhouette': materialPath('silhouette', materialSuffix),
-      'edge_outline': materialPath('edge_outline', materialSuffix),
-      'wireframe': materialPath('wireframe', materialSuffix),
-      'translation_axis': materialPath('translation_axis', materialSuffix),
-      'normal_color': materialPath('normal_color', materialSuffix),
-      'sharp_edge': materialPath('sharp_edge', materialSuffix),
-      // Renamed from gizmo.c to avoid a case-insensitive .obj collision
-      // with scene/Gizmo.cpp on Windows.
-      'gizmo': materialPath('gizmo_material', materialSuffix),
-      'bone_overlay': materialPath('bone_overlay', materialSuffix),
+      for (final material in BuiltInMaterial.values)
+        material.key: materialPath(material == BuiltInMaterial.gizmo ? 'gizmo_material' : material.key, materialSuffix),
     };
 
     // Add Dart API DL for port-based frame scheduling (hot restart safe)

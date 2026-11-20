@@ -38,9 +38,9 @@ fi
 MATC="${FILAMENT_PATH}/matc"
 RESGEN="${FILAMENT_PATH}/resgen"
 MATERIAL_DIR="thermion_dart/native/include/material"
-MATERIALS=(image unlit_fixed_size grid linear_depth silhouette edge_outline wireframe translation_axis bone_overlay capture_uv normal_color sharp_edge)
-# capture_uv is now in the main list; gizmo handled separately below
-GIZMO_NAME="gizmo"
+# Gizmo has a separate output filename on Windows and is built below.
+material_keys=$(python3 -c 'import json; print(" ".join(json.load(open("materials/built_in_materials.json"))))')
+read -ra MATERIALS <<< "$material_keys"
 EXAMPLE_MATERIALS=(customattributes solidcolor viewspace proceduralquad)
 
 # -------------------------------------------------------------------
@@ -141,6 +141,7 @@ EOF
 # Build all variants for the main materials list
 # -------------------------------------------------------------------
 for material in "${MATERIALS[@]}"; do
+    [[ "$material" == gizmo ]] && continue
     upper=$(echo "${material}" | tr '[:lower:]' '[:upper:]')
     echo "=== $material ==="
 

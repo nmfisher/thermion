@@ -11,19 +11,31 @@
 #include "Log.hpp"
 #include "MathUtils.hpp"
 
-#include "material/image.h"
-#include "material/grid.h"
-#include "material/unlit_fixed_size.h"
-#include "material/silhouette.h"
-#include "material/edge_outline.h"
-#include "material/translation_axis.h"
-#include "material/gizmo.h"
-#include "material/wireframe.h"
-#include "material/bone_overlay.h"
-#include "material/normal_color.h"
-#include "material/sharp_edge.h"
-
+#include "material/BuiltInMaterialPackage.hpp"
 #include "c_api/TMaterialInstance.h"
+
+namespace thermion {
+TMaterial* buildBuiltInMaterial(TEngine* tEngine, BuiltInMaterialPackage package) {
+    if (!package.data) return nullptr;
+    THERMION_ENGINE_API_GUARD;
+    auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
+    auto* material = filament::Material::Builder().package(package.data, package.size).build(*engine);
+    if (!material) return nullptr;
+#ifdef NORMAL_COLOR_ENABLED
+    if (package.id == BUILT_IN_NORMAL_COLOR) {
+        material->setDefaultParameter("opacity", 1.0f);
+    }
+#endif
+#ifdef SHARP_EDGE_ENABLED
+    if (package.id == BUILT_IN_SHARP_EDGE) {
+        material->setDefaultParameter("edgeColor", filament::math::float4{1, 1, 1, 1});
+        material->setDefaultParameter("baseColor", filament::math::float4{0.1f, 0.1f, 0.1f, 1});
+        material->setDefaultParameter("edgeWidth", 1.0f);
+    }
+#endif
+    return reinterpret_cast<TMaterial*>(material);
+}
+} // namespace thermion
 
 #ifdef __cplusplus
 namespace thermion
@@ -56,122 +68,52 @@ namespace thermion
             }
         }
 
+        // Compatibility exports for existing native callers.
 #ifdef IMAGE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createImageMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-            .package(IMAGE_IMAGE_DATA, IMAGE_IMAGE_SIZE)
-            .build(*engine);
-            
-            return reinterpret_cast<TMaterial *>(material);
+            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_IMAGE));
         }
 #endif
 
 #ifdef GRID_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGridMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(GRID_GRID_DATA, GRID_GRID_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
+            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_GRID));
         }
 #endif
 
 #ifdef GIZMO_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGizmoMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
+            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_GIZMO));
         }
 #endif
 
 #ifdef SILHOUETTE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSilhouetteMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(SILHOUETTE_SILHOUETTE_DATA, SILHOUETTE_SILHOUETTE_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
+            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_SILHOUETTE));
         }
 #endif
 
 #ifdef EDGE_OUTLINE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createEdgeOutlineMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(EDGE_OUTLINE_EDGE_OUTLINE_DATA, EDGE_OUTLINE_EDGE_OUTLINE_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
+            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_EDGE_OUTLINE));
         }
 #endif
 
 #ifdef WIREFRAME_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createWireframeMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(WIREFRAME_WIREFRAME_DATA, WIREFRAME_WIREFRAME_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
-        }
-#endif
-
-#ifdef NORMAL_COLOR_ENABLED
-        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createNormalColorMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(NORMAL_COLOR_NORMAL_COLOR_DATA, NORMAL_COLOR_NORMAL_COLOR_SIZE)
-                .build(*engine);
-            if (material) {
-                material->setDefaultParameter("opacity", 1.0f);
-            }
-            return reinterpret_cast<TMaterial *>(material);
-        }
-#endif
-
-#ifdef SHARP_EDGE_ENABLED
-        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSharpEdgeMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(SHARP_EDGE_SHARP_EDGE_DATA, SHARP_EDGE_SHARP_EDGE_SIZE)
-                .build(*engine);
-            if (material) {
-                material->setDefaultParameter("edgeColor", filament::math::float4{1, 1, 1, 1});
-                material->setDefaultParameter("baseColor", filament::math::float4{0.1f, 0.1f, 0.1f, 1});
-                material->setDefaultParameter("edgeWidth", 1.0f);
-            }
-            return reinterpret_cast<TMaterial *>(material);
+            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_WIREFRAME));
         }
 #endif
 
 #ifdef TRANSLATION_AXIS_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createTranslationAxisMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(TRANSLATION_AXIS_TRANSLATION_AXIS_DATA, TRANSLATION_AXIS_TRANSLATION_AXIS_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
+            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_TRANSLATION_AXIS));
         }
 #endif
 
 #ifdef BONE_OVERLAY_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createBoneOverlayMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(BONE_OVERLAY_BONE_OVERLAY_DATA, BONE_OVERLAY_BONE_OVERLAY_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
+            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_BONE_OVERLAY));
         }
 #endif
 

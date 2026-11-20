@@ -2,9 +2,8 @@ import 'material.dart';
 
 /// A typed wrapper around a sharp-edge [MaterialInstance].
 ///
-/// Highlights only sharp edges (high dihedral angle) using barycentric
-/// coordinates and a precomputed sharp-edge mask. Requires the asset to
-/// be loaded with `SceneAssetGeometryCapability.barycentrics`.
+/// Draws the edges selected by a triangle mesh’s `CUSTOM0.w` mask using
+/// its barycentric coordinates in `CUSTOM0.xyz`.
 ///
 /// Delegates all calls to the wrapped [MaterialInstance]; does not own it.
 class SharpEdgeMaterialInstance {

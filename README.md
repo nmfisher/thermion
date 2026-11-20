@@ -143,7 +143,7 @@ Apps using the following features must enable their helpers in the root pubspec.
 | Textured quads and background images | `image` |
 | Grid, transform gizmo, translation axis, skeleton overlay | `grid`, `gizmo`, `translation_axis`, `bone_overlay`, respectively |
 | Selection highlights | Both `silhouette` and `edge_outline` |
-| Wireframes, world-space normal colors, creases over 30 degrees | `wireframe`, `normal_color`, `sharp_edge`, respectively |
+| Wireframes, world-space normal colors, selected triangle edges | `wireframe`, `normal_color`, `sharp_edge`, respectively |
 | Embedded packages for UV capture, linear depth, fixed-size unlit geometry | `capture_uv`, `linear_depth`, `unlit_fixed_size`, respectively |
 
 For example, an app using the sharp-edge view needs one entry:
@@ -156,17 +156,26 @@ hooks:
         sharp_edge: true
 ```
 
-Load the glTF asset with `SceneAssetGeometryCapability.barycentrics` and apply
-the material returned by `createSharpEdgeMaterialInstance()`. Normal-color
-visualization uses `createNormalColorMaterialInstance()` on meshes with tangents.
-A missing native helper factory raises an FFI symbol lookup error.
+Create the material with its enum value. For glTF, request
+`SceneAssetGeometryCapability.barycentrics` when loading the mesh. Procedural
+triangle meshes can supply barycentric coordinates in `attribute0.xyz` and
+the three-bit edge mask in `attribute0.w`.
+
+```dart
+final material = await app.createBuiltInMaterial(BuiltInMaterial.sharpEdge);
+final edges = SharpEdgeMaterialInstance(await material.createInstance());
+```
+
+The caller owns the material and its instances. Remove their renderables, destroy
+the instances, then destroy the material. Requesting a helper omitted from the
+engine raises a `StateError` that names its pubspec key.
 
 Native builds embed exactly the selected packages. Selecting any helper on web
-downloads the helper-enabled prebuilt engine for the chosen thread and runtime
-compiler settings. The standalone downloader accepts `--variant helpers` for
-the worker engine. To embed individual helpers in a custom web build, configure
-CMake with, for example, `-DTHERMION_MATERIALS="sharp_edge;normal_color"` and
-select that local engine with `web_local: true`.
+downloads the prebuilt engine containing all 13 helpers for the chosen thread and
+runtime compiler settings. The standalone downloader accepts `--variant helpers`
+for the worker engine. For an exact subset on web, configure CMake with, for
+example, `-DTHERMION_MATERIALS="sharp_edge"` and select the local engine with
+`web_local: true`.
 
 ### Quickstart (Flutter)
 

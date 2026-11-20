@@ -139,6 +139,11 @@ abstract class FilamentApp<T> {
 
   Future<Material> createBoneOverlayMaterial();
 
+  /// Creates a caller-owned material from an embedded helper package.
+  /// Destroy its instances before destroying the material. Throws [StateError]
+  /// if the build omits the selected package.
+  Future<Material> createBuiltInMaterial(BuiltInMaterial material);
+
   /// Material package format version expected by the loaded native build.
   ///
   /// This is the number reported by `matc --version`, distinct from the
@@ -365,15 +370,6 @@ abstract class FilamentApp<T> {
   /// edgeWidth) on the returned [WireframeMaterialInstance], then apply with
   /// [ThermionAsset.setMaterialInstanceForAll].
   Future<WireframeMaterialInstance> createWireframeMaterialInstance();
-
-  /// Creates a normal-color material instance that colors faces based on their
-  /// world-space normal direction. Requires a tangent frame on the mesh.
-  Future<NormalColorMaterialInstance> createNormalColorMaterialInstance();
-
-  /// Creates a sharp-edge material instance that highlights hard edges and
-  /// creases steeper than 30 degrees. Load glTF assets with
-  /// [SceneAssetGeometryCapability.barycentrics] to generate edge masks.
-  Future<SharpEdgeMaterialInstance> createSharpEdgeMaterialInstance();
 
   //
   Future<MaterialInstance> getMaterialInstanceAt(ThermionEntity entity, int primitiveIndex);

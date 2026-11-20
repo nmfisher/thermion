@@ -2,19 +2,18 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'helpers.dart';
 
-/// Smoke test for the per-platform material split (see materials/build.sh).
-///
-/// Each material is embedded as a backend-specific .c file selected at build
-/// time, so a material whose matc flags don't match the active backend only
-/// fails when it is instantiated at runtime. CI otherwise exercises the image
-/// material alone (image_tests), so a broken variant in any of the other seven
-/// would go unnoticed until a user hits it.
-///
-/// The eight live materials: image, grid, translation_axis, wireframe, gizmo,
-/// bone_overlay, silhouette, edge_outline.
 void main() async {
   final testHelper = TestHelper("all_materials");
   await testHelper.setup();
+
+  test('every built-in ID resolves to a usable material package', () async {
+    for (final key in BuiltInMaterial.values) {
+      final material = await FilamentApp.instance!.createBuiltInMaterial(key);
+      final instance = await material.createInstance();
+      await instance.destroy();
+      await material.destroy();
+    }
+  });
 
   test('instantiate all live materials and render one frame', () async {
     await ViewerBuilder(testHelper).addSun().execute((result) async {

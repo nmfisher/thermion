@@ -43,5 +43,8 @@ hooks:
         wireframe: true
         translation_axis: true
         bone_overlay: true
+        capture_uv: true
+        linear_depth: true
+        unlit_fixed_size: true
         normal_color: true
         sharp_edge: true

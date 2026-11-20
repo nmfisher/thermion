@@ -3,6 +3,7 @@
 #include "APIBoundaryTypes.h"
 
 #include "TEngine.h"
+#include "TBuiltInMaterial.h"
 #include "TView.h"
 #include "TTexture.h"
 #include "TMaterialProvider.h"
@@ -150,8 +151,9 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Material_createSilhouetteMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Material_createEdgeOutlineMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Material_createWireframeMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *));
-        EMSCRIPTEN_KEEPALIVE void Material_createNormalColorMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *));
-        EMSCRIPTEN_KEEPALIVE void Material_createSharpEdgeMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *));
+        // Returns whether the package is included. Always completes the callback,
+        // with null if the package is absent or Filament cannot build the material.
+        EMSCRIPTEN_KEEPALIVE bool Material_createBuiltInJobThread(TJobThread *jobThread, TEngine *engine, TBuiltInMaterial id, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Material_createTranslationAxisMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *));
 
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_createJobThread(TJobThread *jobThread, void (*onComplete)(TColorGradingBuilder *));
