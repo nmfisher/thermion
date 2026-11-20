@@ -35,10 +35,7 @@ void main() async {
 
   test('apply normal color material to cube', () async {
     await ViewerBuilder(testHelper).setCameraPosition(Vector3(2, 2, 2)).execute((result) async {
-      final asset = await result.viewer.loadGltf(
-        "file://${testHelper.assetsDir}/cube.glb",
-        addToScene: true,
-      );
+      final asset = await result.viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", addToScene: true);
 
       final normalColor = await FilamentApp.instance!.createNormalColorMaterialInstance();
 
