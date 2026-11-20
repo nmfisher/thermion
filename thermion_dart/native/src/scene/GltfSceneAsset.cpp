@@ -4,11 +4,6 @@
 #include "gltfio/FilamentInstance.h"
 #include "Log.hpp"
 
-#ifdef SHARP_EDGE_ENABLED
-#include <algorithm>
-#include <array>
-#include <map>
-#endif
 #include <memory>
 #include <vector>
 #include <cstdlib>
@@ -37,52 +32,6 @@
 
 namespace thermion
 {
-
-#ifdef SHARP_EDGE_ENABLED
-    // Unwelded vertices have distinct indices. Match edge endpoints by position
-    // so a normal or UV seam does not turn a coplanar edge into a boundary.
-    static void writeSharpEdgeMasks(const std::vector<float>& positions,
-                                    const std::vector<float>& flatNormals,
-                                    std::vector<float>& barycentrics)
-    {
-        using Position = std::array<float, 3>;
-        using Edge = std::pair<Position, Position>;
-        struct Corner {
-            size_t triangle;
-            int opposite;
-        };
-        std::map<Edge, std::vector<Corner>> edges;
-        const size_t triangleCount = positions.size() / 9;
-        for (size_t triangle = 0; triangle < triangleCount; ++triangle) {
-            auto position = [&](int corner) -> Position {
-                const auto i = triangle * 9 + corner * 3;
-                return {positions[i], positions[i + 1], positions[i + 2]};
-            };
-            for (int corner = 0; corner < 3; ++corner) {
-                auto a = position((corner + 1) % 3);
-                auto b = position((corner + 2) % 3);
-                edges[std::minmax(a, b)].push_back({triangle, corner});
-            }
-        }
-
-        // Boundary and non-manifold edges are visible. For two adjacent
-        // triangles, draw only creases steeper than 30 degrees.
-        constexpr float cosThreshold = 0.8660254f;
-        for (const auto& entry : edges) {
-            const auto& corners = entry.second;
-            if (corners.size() == 2) {
-                const float* a = &flatNormals[corners[0].triangle * 9];
-                const float* b = &flatNormals[corners[1].triangle * 9];
-                if (a[0] * b[0] + a[1] * b[1] + a[2] * b[2] >= cosThreshold) continue;
-            }
-            for (const auto& corner : corners) {
-                for (int v = 0; v < 3; ++v) {
-                    barycentrics[(corner.triangle * 3 + v) * 4 + 3] += 1 << corner.opposite;
-                }
-            }
-        }
-    }
-#endif
 
     GltfSceneAsset::GltfSceneAsset(
         gltfio::FilamentAsset *asset,
@@ -829,9 +778,6 @@ namespace thermion
                         }
                     }
 
-#ifdef SHARP_EDGE_ENABLED
-                    writeSharpEdgeMasks(newPositions, flatNormals, newBarycentrics);
-#endif
                     // For flat normals, no tangent data from glTF is meaningful, so always recompute from geometry
                     std::vector<filament::math::uint3> flatTris(triangleCount);
                     for (uint32_t i = 0; i < newVertexCount; i += 3)

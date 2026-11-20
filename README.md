@@ -156,14 +156,24 @@ hooks:
         sharp_edge: true
 ```
 
-Create the material with its enum value. For glTF, request
-`SceneAssetGeometryCapability.barycentrics` when loading the mesh. Procedural
-triangle meshes can supply barycentric coordinates in `attribute0.xyz` and
-the three-bit edge mask in `attribute0.w`.
+For a triangle with corners A, B, C, mask values 1, 2, and 4 select edges BC,
+CA, and AB respectively. Combine them with bitwise OR. This example draws only AB.
+The existing geometry helper supplies the barycentric coordinates in the first
+three components of `attribute0`. Write the same mask into the fourth component
+at each corner before uploading the geometry.
 
 ```dart
+final geometry = GeometryUtils.duplicateVerticesWithBarycentrics(
+  Float32List.fromList([-1, -1, 0, 1, -1, 0, 0, 1, 0]), // A, B, C
+  [0, 1, 2],
+);
+for (var corner = 0; corner < 3; corner++) {
+  geometry.attribute0[4 * corner + 3] = 4; // AB
+}
 final material = await app.createBuiltInMaterial(BuiltInMaterial.sharpEdge);
-final edges = SharpEdgeMaterialInstance(await material.createInstance());
+final instance = await material.createInstance();
+final asset = await viewer.createGeometry(geometry, materialInstances: [instance]);
+await viewer.addToScene(asset);
 ```
 
 The caller owns the material and its instances. Remove their renderables, destroy
