@@ -92,13 +92,6 @@ class FinalizableUint8List implements Finalizable {
   FinalizableUint8List(this.name, this.data);
 }
 
-extension GPFBP on void Function(int, double, double, double) {
-  CallbackHolder<GizmoPickCallbackFunction> asCallback() {
-    var nativeCallable = NativeCallable<GizmoPickCallbackFunction>.listener(this);
-    return CallbackHolder(nativeCallable);
-  }
-}
-
 CallbackHolder<PickCallbackFunction> makePickCallbackFunctionPointer(DartPickCallbackFunction fn) {
   final nc = NativeCallable<PickCallbackFunction>.listener(fn);
   final cbh = CallbackHolder(nc);

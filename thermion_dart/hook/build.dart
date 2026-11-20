@@ -307,12 +307,6 @@ outputDirectory : ${outputDirectory.path}
       'bone_overlay': materialPath('bone_overlay', materialSuffix),
     };
 
-    // Add gizmo resources (always included)
-    sources.addAll([
-      path.join(pkgRootFilePath, "native", "include", "resources", "translation_gizmo_glb.c"),
-      path.join(pkgRootFilePath, "native", "include", "resources", "rotation_gizmo_glb.c"),
-    ]);
-
     // Add Dart API DL for port-based frame scheduling (hot restart safe)
     sources.add(path.join(pkgRootFilePath, "native", "include", "dart", "dart_api_dl.c"));
 

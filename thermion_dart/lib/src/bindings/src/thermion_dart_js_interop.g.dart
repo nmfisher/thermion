@@ -735,30 +735,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _FrameScheduler_startWithPort(JSBigInt port, int targetFps);
   external JSBigInt _FrameScheduler_steadyClockUs();
   external void _FrameScheduler_stop();
-  external Pointer<TGizmo> _Gizmo_create(
-    Pointer<TEngine> tEngine,
-    Pointer<TGltfAssetLoader> assetLoader,
-    Pointer<TGltfResourceLoader> tGltfResourceLoader,
-    Pointer<TNameComponentManager> tNameComponentManager,
-    Pointer<TView> tView,
-    Pointer<TMaterial> tMaterial,
-    int tGizmoType,
-  );
-  external void _Gizmo_createJobThread(
-    Pointer<TJobThread> jobThread,
-    Pointer<TEngine> tEngine,
-    Pointer<TGltfAssetLoader> tAssetLoader,
-    Pointer<TGltfResourceLoader> tGltfResourceLoader,
-    Pointer<TNameComponentManager> tNameComponentManager,
-    Pointer<TView> tView,
-    Pointer<TMaterial> tMaterial,
-    int tGizmoType,
-    Pointer<NativeFunction<void Function(PointerClass<TGizmo>)>> callback,
-  );
-  external void _Gizmo_dummy(int t);
-  external void _Gizmo_highlight(Pointer<TGizmo> tGizmo, int axis);
-  external void _Gizmo_pick(Pointer<TGizmo> tGizmo, int x, int y, GizmoPickCallback callback);
-  external void _Gizmo_unhighlight(Pointer<TGizmo> tGizmo);
   external Pointer<TGltfAssetLoader> _GltfAssetLoader_create(
     Pointer<TEngine> tEngine,
     Pointer<TMaterialProvider> tMaterialProvider,
@@ -2493,9 +2469,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int pixelDataType,
     Pointer<NativeFunction<void Function(bool)>> onComplete,
   );
-  external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext(Pointer<Char> canvasSelector);
+  external int _Thermion_createGLContext(Pointer<Char> canvasSelector);
   external void _Thermion_destroyCanvas(Pointer<Char> canvasSelector);
-  external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_getGLContext();
+  external int _Thermion_getGLContext();
   external void _Thermion_setCanvasElementSize(Pointer<Char> name, int width, int height);
   external Pointer<TToneMapper> _ToneMapper_createACES(Pointer<TEngine> tEngine);
   external void _ToneMapper_createACESJobThread(
@@ -2697,7 +2673,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _TransformPipeline_removeKeyBindingsForKey(int logicalKey);
   external void _TransformPipeline_removeMouseButtonBindings(int mouseButton);
   external void _TransformPipeline_setEngine(Pointer<Void> enginePtr);
-  external void _TransformPipeline_setInvertMouseY(bool invert);
+  external void _TransformPipeline_setInvertMouseY(int invert);
   external void _TransformPipeline_setMouseSensitivity(double sensitivity);
   external void _TransformPipeline_unregisterPipelineStage(Pointer<Void> pipelineStageHandle);
   external void _TransformPipeline_update(double deltaTime);
@@ -4912,77 +4888,6 @@ BigInt FrameScheduler_steadyClockUs() {
 
 void FrameScheduler_stop() {
   final result = GeneratedBindings.instance._FrameScheduler_stop();
-  return result;
-}
-
-Pointer<TGizmo> Gizmo_create(
-  Pointer<TEngine> tEngine,
-  Pointer<TGltfAssetLoader> assetLoader,
-  Pointer<TGltfResourceLoader> tGltfResourceLoader,
-  Pointer<TNameComponentManager> tNameComponentManager,
-  Pointer<TView> tView,
-  Pointer<TMaterial> tMaterial,
-  int tGizmoType,
-) {
-  final result = GeneratedBindings.instance._Gizmo_create(
-    tEngine.cast(),
-    assetLoader.cast(),
-    tGltfResourceLoader.cast(),
-    tNameComponentManager.cast(),
-    tView.cast(),
-    tMaterial.cast(),
-    tGizmoType,
-  );
-  return Pointer<TGizmo>(result);
-}
-
-void Gizmo_createJobThread(
-  Pointer<TJobThread> jobThread,
-  Pointer<TEngine> tEngine,
-  Pointer<TGltfAssetLoader> tAssetLoader,
-  Pointer<TGltfResourceLoader> tGltfResourceLoader,
-  Pointer<TNameComponentManager> tNameComponentManager,
-  Pointer<TView> tView,
-  Pointer<TMaterial> tMaterial,
-  int tGizmoType,
-  Pointer<NativeFunction<void Function(Pointer<TGizmo>)>> callback,
-) {
-  final result = GeneratedBindings.instance._Gizmo_createJobThread(
-    jobThread.cast(),
-    tEngine.cast(),
-    tAssetLoader.cast(),
-    tGltfResourceLoader.cast(),
-    tNameComponentManager.cast(),
-    tView.cast(),
-    tMaterial.cast(),
-    tGizmoType,
-    callback.cast(),
-  );
-  return result;
-}
-
-void Gizmo_dummy(int t) {
-  final result = GeneratedBindings.instance._Gizmo_dummy(t);
-  return result;
-}
-
-void Gizmo_highlight(Pointer<TGizmo> tGizmo, int axis) {
-  final result = GeneratedBindings.instance._Gizmo_highlight(tGizmo.cast(), axis);
-  return result;
-}
-
-void Gizmo_pick(Pointer<TGizmo> tGizmo, int x, int y, DartGizmoPickCallback callback) {
-  final result = GeneratedBindings.instance._Gizmo_pick(
-    tGizmo.cast(),
-    x,
-    y,
-    callback as Pointer<NativeFunction<GizmoPickCallbackFunction>>,
-  );
-  return result;
-}
-
-void Gizmo_unhighlight(Pointer<TGizmo> tGizmo) {
-  final result = GeneratedBindings.instance._Gizmo_unhighlight(tGizmo.cast());
   return result;
 }
 
@@ -9299,7 +9204,7 @@ void Texture_setImageJobThread(
   return result;
 }
 
-DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext(Pointer<Char> canvasSelector) {
+int Thermion_createGLContext(Pointer<Char> canvasSelector) {
   final result = GeneratedBindings.instance._Thermion_createGLContext(canvasSelector);
   return result;
 }
@@ -9309,7 +9214,7 @@ void Thermion_destroyCanvas(Pointer<Char> canvasSelector) {
   return result;
 }
 
-DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_getGLContext() {
+int Thermion_getGLContext() {
   final result = GeneratedBindings.instance._Thermion_getGLContext();
   return result;
 }
@@ -9879,7 +9784,7 @@ void TransformPipeline_setEngine(Pointer<Void> enginePtr) {
   return result;
 }
 
-void TransformPipeline_setInvertMouseY(bool invert) {
+void TransformPipeline_setInvertMouseY(int invert) {
   final result = GeneratedBindings.instance._TransformPipeline_setInvertMouseY(invert);
   return result;
 }
@@ -10879,18 +10784,12 @@ final class Aabb3 extends Struct {
   }
 }
 
-typedef EMSCRIPTEN_WEBGL_CONTEXT_HANDLE = int;
-typedef DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE = int;
 typedef EntityId = int;
 typedef DartEntityId = int;
 typedef FrameTickCallback = Pointer<NativeFunction<FrameTickCallbackFunction>>;
 typedef DartFrameTickCallback = Pointer<NativeFunction<FrameTickCallbackFunction>>;
 typedef FrameTickCallbackFunction = void Function(JSBigInt frameTimeNanos);
 typedef DartFrameTickCallbackFunction = void Function(BigInt frameTimeNanos);
-typedef GizmoPickCallback = Pointer<NativeFunction<GizmoPickCallbackFunction>>;
-typedef DartGizmoPickCallback = Pointer<NativeFunction<GizmoPickCallbackFunction>>;
-typedef GizmoPickCallbackFunction = void Function(int resultType, double x, double y, double z);
-typedef DartGizmoPickCallbackFunction = void Function(int resultType, double x, double y, double z);
 
 const int JUMP_INTENT_MASK = 4;
 
@@ -11997,40 +11896,6 @@ final class TFrameInfo extends Struct {
   static Pointer<TFrameInfo> stackAlloc() {
     return Pointer<TFrameInfo>(NativeLibrary.instance.stackAlloc<TFrameInfo>(64));
   }
-}
-
-extension TGizmoExt on Pointer<TGizmo> {
-  TGizmo toDart() {
-    return TGizmo(this);
-  }
-}
-
-final class TGizmo extends Struct {
-  Pointer<TGizmo> get address => super.address.cast();
-  TGizmo(super.address);
-
-  static Pointer<TGizmo> stackAlloc() {
-    return Pointer<TGizmo>(NativeLibrary.instance.stackAlloc<TGizmo>(0));
-  }
-}
-
-sealed class TGizmoAxis {
-  static const X = 0;
-  static const Y = 1;
-  static const Z = 2;
-}
-
-sealed class TGizmoPickResultType {
-  static const AxisX = 0;
-  static const AxisY = 1;
-  static const AxisZ = 2;
-  static const Parent = 3;
-  static const None = 4;
-}
-
-sealed class TGizmoType {
-  static const GIZMO_TYPE_TRANSLATION = 0;
-  static const GIZMO_TYPE_ROTATION = 1;
 }
 
 extension TGltfAssetLoaderExt on Pointer<TGltfAssetLoader> {
@@ -14404,9 +14269,6 @@ extension StructAllocator on Struct {
       case TFrameInfo:
         final ptr = TFrameInfo.stackAlloc();
         return ptr.toDart() as T;
-      case TGizmo:
-        final ptr = TGizmo.stackAlloc();
-        return ptr.toDart() as T;
       case TGltfAssetLoader:
         final ptr = TGltfAssetLoader.stackAlloc();
         return ptr.toDart() as T;
@@ -14568,7 +14430,7 @@ extension NativeFunctionPointer18<T extends NativeType> on void Function(DartEnt
   }
 }
 
-extension NativeFunctionPointer25<T extends NativeType> on void Function(double) {
+extension NativeFunctionPointer24<T extends NativeType> on void Function(double) {
   Pointer<NativeFunction<void Function(double)>> addFunction() {
     return Pointer<NativeFunction<void Function(double)>>(
       NativeLibrary.instance.addFunction<void Function(double)>(this.toJS, 'vf'),
@@ -14576,7 +14438,7 @@ extension NativeFunctionPointer25<T extends NativeType> on void Function(double)
   }
 }
 
-extension NativeFunctionPointer35<T extends NativeType> on void Function() {
+extension NativeFunctionPointer34<T extends NativeType> on void Function() {
   Pointer<NativeFunction<void Function()>> addFunction() {
     return Pointer<NativeFunction<void Function()>>(
       NativeLibrary.instance.addFunction<void Function()>(this.toJS, 'v'),

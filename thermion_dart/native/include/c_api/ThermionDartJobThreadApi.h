@@ -420,16 +420,6 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void SceneAsset_removeFromSceneJobThread(TJobThread *jobThread, TSceneAsset *tSceneAsset, TScene *tScene, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Scene_setSkyboxJobThread(TJobThread *jobThread, TScene *tScene, TSkybox *tSkybox, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Scene_setIndirectLightJobThread(TJobThread *jobThread, TScene *tScene, TIndirectLight *tIndirectLight, uint32_t requestId, VoidCallback onComplete);
-        EMSCRIPTEN_KEEPALIVE void Gizmo_createJobThread(TJobThread *jobThread,
-            TEngine *tEngine,
-            TGltfAssetLoader *tAssetLoader,
-            TGltfResourceLoader *tGltfResourceLoader,
-            TNameComponentManager *tNameComponentManager,
-            TView *tView,
-            TMaterial *tMaterial,
-            TGizmoType tGizmoType,
-            void (*callback)(TGizmo *)
-        );
 
         // VertexBuffer render thread methods
         EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_buildJobThread(TJobThread *jobThread,

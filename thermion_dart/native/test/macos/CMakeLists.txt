@@ -67,12 +67,7 @@ set(MATERIAL_SOURCES
 
 set_source_files_properties(${MATERIAL_SOURCES} PROPERTIES LANGUAGE CXX)
 
-set(RESOURCE_SOURCES
-    "${NATIVE_ROOT}/include/resources/translation_gizmo_glb.c"
-    "${NATIVE_ROOT}/include/resources/rotation_gizmo_glb.c"
-)
-
-set_source_files_properties(${RESOURCE_SOURCES} PROPERTIES LANGUAGE CXX)
+set(RESOURCE_SOURCES)
 
 # Dart API DL for port-based frame scheduling (hot restart safe)
 set(DART_API_SOURCES

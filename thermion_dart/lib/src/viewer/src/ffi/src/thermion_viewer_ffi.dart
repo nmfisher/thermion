@@ -1040,17 +1040,6 @@ class ThermionViewerFFI extends ThermionViewer {
     });
   }
 
-  final _gizmos = <GizmoType, GizmoAsset>{};
-
-  //
-  @override
-  Future<GizmoAsset> getGizmo(GizmoType gizmoType) async {
-    if (_gizmos[gizmoType] == null) {
-      _gizmos[gizmoType] = await _app.createGizmo(view, gizmoType);
-    }
-    return _gizmos[gizmoType]!;
-  }
-
   //
   Future addToScene(ThermionAsset asset) {
     _throwIfNotActive();
