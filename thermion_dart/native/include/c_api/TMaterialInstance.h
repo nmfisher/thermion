@@ -8,6 +8,23 @@ extern "C"
 {
 #endif
 
+	// Stable IDs used by the Dart and native material factory.
+	typedef enum TBuiltInMaterial {
+	    BUILT_IN_IMAGE = 1,
+	    BUILT_IN_GRID = 2,
+	    BUILT_IN_GIZMO = 3,
+	    BUILT_IN_TRANSLATION_AXIS = 4,
+	    BUILT_IN_BONE_OVERLAY = 5,
+	    BUILT_IN_SILHOUETTE = 6,
+	    BUILT_IN_EDGE_OUTLINE = 7,
+	    BUILT_IN_WIREFRAME = 8,
+	    BUILT_IN_NORMAL_COLOR = 9,
+	    BUILT_IN_SHARP_EDGE = 10,
+	    BUILT_IN_CAPTURE_UV = 11,
+	    BUILT_IN_LINEAR_DEPTH = 12,
+	    BUILT_IN_UNLIT_FIXED_SIZE = 13,
+	} TBuiltInMaterial;
+
 	// copied from SamplerCompareFunc in DriverEnums.h
 	enum TSamplerCompareFunc
 	{
@@ -156,5 +173,10 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE TBlendingMode Material_getBlendingMode(TMaterial *material);
 
 #ifdef __cplusplus
+}
+
+namespace thermion {
+    using BuiltInMaterialFactory = TMaterial* (*)(TEngine*);
+    BuiltInMaterialFactory builtInMaterialFactory(TBuiltInMaterial id);
 }
 #endif

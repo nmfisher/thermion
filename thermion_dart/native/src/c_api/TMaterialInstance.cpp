@@ -11,23 +11,35 @@
 #include "Log.hpp"
 #include "MathUtils.hpp"
 
-#include "material/BuiltInMaterialPackage.hpp"
 #include "c_api/TMaterialInstance.h"
 
+#include "material/image.h"
+#include "material/grid.h"
+#include "material/gizmo.h"
+#include "material/translation_axis.h"
+#include "material/bone_overlay.h"
+#include "material/silhouette.h"
+#include "material/edge_outline.h"
+#include "material/wireframe.h"
+#include "material/normal_color.h"
+#include "material/sharp_edge.h"
+#include "material/capture_uv.h"
+#include "material/linear_depth.h"
+#include "material/unlit_fixed_size.h"
+
 namespace thermion {
-TMaterial* buildBuiltInMaterial(TEngine* tEngine, BuiltInMaterialPackage package) {
-    if (!package.data) return nullptr;
+static TMaterial* buildBuiltInMaterial(TEngine* tEngine, TBuiltInMaterial id, const uint8_t* data, size_t size) {
     THERMION_ENGINE_API_GUARD;
     auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
-    auto* material = filament::Material::Builder().package(package.data, package.size).build(*engine);
+    auto* material = filament::Material::Builder().package(data, size).build(*engine);
     if (!material) return nullptr;
 #ifdef NORMAL_COLOR_ENABLED
-    if (package.id == BUILT_IN_NORMAL_COLOR) {
+    if (id == BUILT_IN_NORMAL_COLOR) {
         material->setDefaultParameter("opacity", 1.0f);
     }
 #endif
 #ifdef SHARP_EDGE_ENABLED
-    if (package.id == BUILT_IN_SHARP_EDGE) {
+    if (id == BUILT_IN_SHARP_EDGE) {
         material->setDefaultParameter("edgeColor", filament::math::float4{1, 1, 1, 1});
         material->setDefaultParameter("baseColor", filament::math::float4{0.1f, 0.1f, 0.1f, 1});
         material->setDefaultParameter("edgeWidth", 1.0f);
@@ -35,6 +47,59 @@ TMaterial* buildBuiltInMaterial(TEngine* tEngine, BuiltInMaterialPackage package
 #endif
     return reinterpret_cast<TMaterial*>(material);
 }
+
+// resgen names each slice <PREFIX>_<INPUT>_{DATA,SIZE}. Built-ins use the same name for both.
+#define RESGEN_FACTORY(name) \
+    case BUILT_IN_##name: \
+        return [](TEngine* engine) { \
+            return buildBuiltInMaterial(engine, BUILT_IN_##name, name##_##name##_DATA, name##_##name##_SIZE); \
+        }
+
+BuiltInMaterialFactory builtInMaterialFactory(TBuiltInMaterial id) {
+    switch (id) {
+#ifdef IMAGE_ENABLED
+        RESGEN_FACTORY(IMAGE);
+#endif
+#ifdef GRID_ENABLED
+        RESGEN_FACTORY(GRID);
+#endif
+#ifdef GIZMO_ENABLED
+        RESGEN_FACTORY(GIZMO);
+#endif
+#ifdef TRANSLATION_AXIS_ENABLED
+        RESGEN_FACTORY(TRANSLATION_AXIS);
+#endif
+#ifdef BONE_OVERLAY_ENABLED
+        RESGEN_FACTORY(BONE_OVERLAY);
+#endif
+#ifdef SILHOUETTE_ENABLED
+        RESGEN_FACTORY(SILHOUETTE);
+#endif
+#ifdef EDGE_OUTLINE_ENABLED
+        RESGEN_FACTORY(EDGE_OUTLINE);
+#endif
+#ifdef WIREFRAME_ENABLED
+        RESGEN_FACTORY(WIREFRAME);
+#endif
+#ifdef NORMAL_COLOR_ENABLED
+        RESGEN_FACTORY(NORMAL_COLOR);
+#endif
+#ifdef SHARP_EDGE_ENABLED
+        RESGEN_FACTORY(SHARP_EDGE);
+#endif
+#ifdef CAPTURE_UV_ENABLED
+        RESGEN_FACTORY(CAPTURE_UV);
+#endif
+#ifdef LINEAR_DEPTH_ENABLED
+        RESGEN_FACTORY(LINEAR_DEPTH);
+#endif
+#ifdef UNLIT_FIXED_SIZE_ENABLED
+        RESGEN_FACTORY(UNLIT_FIXED_SIZE);
+#endif
+        default: return nullptr;
+    }
+}
+#undef RESGEN_FACTORY
 } // namespace thermion
 
 #ifdef __cplusplus
@@ -71,49 +136,49 @@ namespace thermion
         // Compatibility exports for existing native callers.
 #ifdef IMAGE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createImageMaterial(TEngine *tEngine) {
-            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_IMAGE));
+            return builtInMaterialFactory(BUILT_IN_IMAGE)(tEngine);
         }
 #endif
 
 #ifdef GRID_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGridMaterial(TEngine *tEngine) {
-            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_GRID));
+            return builtInMaterialFactory(BUILT_IN_GRID)(tEngine);
         }
 #endif
 
 #ifdef GIZMO_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGizmoMaterial(TEngine *tEngine) {
-            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_GIZMO));
+            return builtInMaterialFactory(BUILT_IN_GIZMO)(tEngine);
         }
 #endif
 
 #ifdef SILHOUETTE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSilhouetteMaterial(TEngine *tEngine) {
-            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_SILHOUETTE));
+            return builtInMaterialFactory(BUILT_IN_SILHOUETTE)(tEngine);
         }
 #endif
 
 #ifdef EDGE_OUTLINE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createEdgeOutlineMaterial(TEngine *tEngine) {
-            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_EDGE_OUTLINE));
+            return builtInMaterialFactory(BUILT_IN_EDGE_OUTLINE)(tEngine);
         }
 #endif
 
 #ifdef WIREFRAME_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createWireframeMaterial(TEngine *tEngine) {
-            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_WIREFRAME));
+            return builtInMaterialFactory(BUILT_IN_WIREFRAME)(tEngine);
         }
 #endif
 
 #ifdef TRANSLATION_AXIS_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createTranslationAxisMaterial(TEngine *tEngine) {
-            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_TRANSLATION_AXIS));
+            return builtInMaterialFactory(BUILT_IN_TRANSLATION_AXIS)(tEngine);
         }
 #endif
 
 #ifdef BONE_OVERLAY_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createBoneOverlayMaterial(TEngine *tEngine) {
-            return buildBuiltInMaterial(tEngine, builtInMaterialPackage(BUILT_IN_BONE_OVERLAY));
+            return builtInMaterialFactory(BUILT_IN_BONE_OVERLAY)(tEngine);
         }
 #endif
 

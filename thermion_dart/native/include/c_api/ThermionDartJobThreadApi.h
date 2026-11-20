@@ -3,7 +3,7 @@
 #include "APIBoundaryTypes.h"
 
 #include "TEngine.h"
-#include "TBuiltInMaterial.h"
+#include "TMaterialInstance.h"
 #include "TView.h"
 #include "TTexture.h"
 #include "TMaterialProvider.h"
