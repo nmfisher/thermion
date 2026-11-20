@@ -1,5 +1,3 @@
-// Generated from materials/built_in_materials.json by make bindings.
-
 #pragma once
 
 typedef enum TBuiltInMaterial {

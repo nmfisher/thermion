@@ -322,7 +322,6 @@ jobs:
           # discarded anyway).
           git add -f thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart || true
           git add -f thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart || true
-          git add thermion_dart/native/include/c_api/TBuiltInMaterial.h thermion_dart/native/include/material/BuiltInMaterialPackage.hpp
           git add -f thermion_dart/native/include/material/*.h || true
           git add -f thermion_dart/native/include/material/*.c || true
           # Only .h/.c are committed: the .S/.apple.S/.bin resgen outputs are
