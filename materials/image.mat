@@ -33,6 +33,10 @@ material {
         {
             type : float,
             name : depth
+        },
+        {
+            type : int,
+            name : isDepthTexture
         }
     ],
     variables : [
@@ -73,12 +77,22 @@ fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
         highp vec2 uv = (materialParams.transform * vec4(saturate(variable_imageUV.st), 1.0, 1.0)).st;
-        
+
+        if (materialParams.isDepthTexture != 0) {
+            uv.t = 1.0 - uv.t;
+            float d = texture(materialParams_image, uv.st).r;
+            // Invert so closer = brighter
+            d = 1.0 - d;
+            material.baseColor = vec4(d, d, d, 1.0);
+            gl_FragDepth = materialParams.depth;
+            return;
+        }
+
         if (materialParams.showImage == 0 || uv.s > 1.0 || uv.s < 0.0 || uv.t < 0.0 || uv.t > 1.0) {
             material.baseColor = materialParams.backgroundColor;
         } else {
             vec4 color;
-            
+
             if (materialParams.isCubeMap != 0) {
                 // Sample cubemap using direction vector for specified face
                 vec2 cubeUv = uv;
@@ -90,7 +104,7 @@ fragment {
                 uv.t = 1.0 - uv.t;
                 color = max(texture(materialParams_image, uv.st), 0.0);
             }
-            
+
             color.rgb *= color.a;
             // Manual, pre-multiplied srcOver with opaque destination optimization
             material.baseColor.rgb = color.rgb + materialParams.backgroundColor.rgb * (1.0 - color.a);
