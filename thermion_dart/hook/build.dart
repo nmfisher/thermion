@@ -294,6 +294,8 @@ outputDirectory : ${outputDirectory.path}
 
     final materialSources = <String, String>{
       for (final material in BuiltInMaterial.values)
+        // Renamed from gizmo.c to avoid a case-insensitive .obj collision
+        // with scene/Gizmo.cpp on Windows.
         material.key: materialPath(material == BuiltInMaterial.gizmo ? 'gizmo_material' : material.key, materialSuffix),
     };
 
