@@ -6,6 +6,11 @@ import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
+import '../lib/filament_version.dart';
+import '../lib/src/hooks/filament_artifacts.dart';
+import '../lib/src/hooks/material_backend_resolution.dart';
+import '../lib/src/hooks/material_tools.dart';
+import '../lib/src/hooks/web_artifacts.dart';
 import '../lib/src/logging/log.dart';
 
 void main(List<String> args) async {

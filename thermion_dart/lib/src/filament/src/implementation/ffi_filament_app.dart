@@ -952,18 +952,24 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   @override
   Future<NormalColorMaterialInstance>
       createNormalColorMaterialInstance() async {
-    final material = FFIMaterial(await withPointerCallback<TMaterial>((cb) {
-      Material_createNormalColorMaterialJobThread(jobThreadHandle, engine, cb);
-    }));
+    final material = FFIMaterial(
+      await withPointerCallback<TMaterial>((cb) {
+        Material_createNormalColorMaterialJobThread(jobThreadHandle, engine, cb);
+      }),
+      this,
+    );
     final mi = await material.createInstance();
     return NormalColorMaterialInstance(mi);
   }
 
   @override
   Future<SharpEdgeMaterialInstance> createSharpEdgeMaterialInstance() async {
-    final material = FFIMaterial(await withPointerCallback<TMaterial>((cb) {
-      Material_createSharpEdgeMaterialJobThread(jobThreadHandle, engine, cb);
-    }));
+    final material = FFIMaterial(
+      await withPointerCallback<TMaterial>((cb) {
+        Material_createSharpEdgeMaterialJobThread(jobThreadHandle, engine, cb);
+      }),
+      this,
+    );
     final mi = await material.createInstance();
     return SharpEdgeMaterialInstance(mi);
   }

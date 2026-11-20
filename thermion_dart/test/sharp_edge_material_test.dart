@@ -13,7 +13,10 @@ void main() async {
         .execute((result) async {
       final asset = await result.viewer.loadGltf(
           "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
-          rebuildVertices: true,
+          requiredGeometryCapabilities: const {
+            SceneAssetGeometryCapability.barycentrics,
+            SceneAssetGeometryCapability.uniqueTriangleCorners,
+          },
           addToScene: true);
 
       await testHelper.capture(result.viewer.view, "before_sharp_edge");
@@ -49,7 +52,10 @@ void main() async {
         .execute((result) async {
       final asset = await result.viewer.loadGltf(
           "file://${testHelper.assetsDir}/cube.glb",
-          rebuildVertices: true,
+          requiredGeometryCapabilities: const {
+            SceneAssetGeometryCapability.barycentrics,
+            SceneAssetGeometryCapability.uniqueTriangleCorners,
+          },
           addToScene: true);
 
       await testHelper.capture(result.viewer.view, "cube_before");
