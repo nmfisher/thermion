@@ -680,9 +680,9 @@ jobs:
       - name: Download reviewed platform baseline
         env:
           # Reviewed PNGs live on Cloudflare R2 under render-baselines/<id>/.
-          # Provenance is recorded in baseline-review.json at the same prefix.
-          # To refresh, review captures, upload the zips to R2 under a new
-          # prefix, then update BASELINE_ID and the per-platform SHA-256 values.
+          # Review captures, then run scripts/update_goldens.sh --run <run-id>
+          # with the approved PNG paths. Add --publish to upload and advance
+          # these pins. Each version records its provenance in baseline-review.json.
           BASELINE_BASE_URL: https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/render-baselines
           BASELINE_ID: 2026-11-20-atomic-capture
           BASELINE_ASSET: ${{ matrix.baseline_asset }}
