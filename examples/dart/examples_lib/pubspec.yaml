@@ -13,3 +13,11 @@ dependencies:
     git:
       url: https://github.com/nmfisher/assimp_dart.git
   vector_math: ^2.1.4
+  reactphysics3d_dart:
+    git:
+      url: https://github.com/nmfisher/reactphysics3d_dart.git
+      ref: b1da137a1c16d12fa2f8c1eb597539b916687bba
+
+# Use Thermion’s ffigen_js version for both sets of generated bindings.
+dependency_overrides:
+  ffigen_js: ^0.1.3

@@ -3,6 +3,15 @@ FILAMENT_VERSION := $(word 2,$(shell cat filament.version))
 # immutable hash-suffixed key when pinned, else the legacy key.
 FILAMENT_WEB_ZIP := $(shell python3 scripts/filament-artifact-url.py web release --name-only)
 FILAMENT_WEB_URL := $(shell python3 scripts/filament-artifact-url.py web release)
+WASM_BUILD_DIR ?= build
+WASM_LINK_EXCEPTIONS ?= OFF
+RP3D_WEB_DIR := thermion_dart/native/web/lib/external/reactphysics3d_dart
+
+.DEFAULT_GOAL := wasm
+.PHONY: wasm-physics
+wasm-physics:
+	scripts/build_reactphysics3d_web.sh "$(RP3D_WEB_DIR)"
+	$(MAKE) wasm WASM_BUILD_DIR=build/physics WASM_LINK_EXCEPTIONS=ON EXTERNAL_PROJECTS_CMAKE="$(RP3D_WEB_DIR)/native/web/reactphysics3d_dart.cmake"
 
 wasm:
 	@if [ ! -f thermion_dart/native/web/lib/release/$(FILAMENT_WEB_ZIP) ]; then \
@@ -16,10 +25,8 @@ wasm:
 	rm -rf include lib && \
 	unzip -o $(FILAMENT_WEB_ZIP)
 	cd thermion_dart/native/web && \
-	mkdir -p build && \
-	cd build && \
-	emcmake cmake .. && \
-	emmake make
+	emcmake cmake -S . -B "$(WASM_BUILD_DIR)" "-DEXTERNAL_PROJECTS=$(abspath $(EXTERNAL_PROJECTS_CMAKE))" -DTHERMION_WEB_LINK_EXCEPTIONS=$(WASM_LINK_EXCEPTIONS)
+	cd thermion_dart/native/web && emmake $(MAKE) -C "$(WASM_BUILD_DIR)"
 wasm-clean:
 	cd thermion_dart/native/web && rm -rf build
 wasm-example-web: 

@@ -11,6 +11,7 @@ import 'instancing.dart';
 import 'materials_and_lighting.dart';
 import 'materials_pbr.dart';
 import 'morph_targets.dart';
+import 'physics_basics.dart';
 import 'picking.dart';
 import 'post_processing.dart';
 import 'render_targets.dart';
@@ -68,10 +69,8 @@ import 'game_effects_showcase.dart';
 import 'noise_showcase.dart';
 
 /// A scene-setup function: configures a scene on a ready [ThermionViewer].
-typedef ExampleSetup = Future<void> Function(
-  ThermionViewer viewer, {
-  required String assetsDir,
-});
+typedef ExampleSetup =
+    Future<void> Function(ThermionViewer viewer, {required String assetsDir});
 
 /// Maps an example name (used as the `?example=` query parameter on the web
 /// gallery) to its setup function.
@@ -131,6 +130,9 @@ final Map<String, ExampleSetup> registry = {
   'load_via_assimp': setupLoadViaAssimp,
   'materials_pbr': setupMaterialsPbr,
   'morph_targets': setupMorphTargets,
+  // Registered for the headless CLI runner and the web gallery (as the
+  // 'physics' gallery scene).
+  'physics_basics': setupPhysicsBasics,
   'picking': setupPicking,
   'post_processing': setupPostProcessing,
   'render_targets': setupRenderTargets,
