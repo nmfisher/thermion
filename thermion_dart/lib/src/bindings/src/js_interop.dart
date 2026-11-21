@@ -14,6 +14,13 @@ const FILAMENT_SINGLE_THREADED = true;
 const FILAMENT_WASM = true;
 const IS_WINDOWS = false;
 
+extension type _WebMaterialReader(JSObject _) implements JSObject {
+  external JSArrayBuffer? readThermionMaterial(String sectionName);
+}
+
+Uint8List? readEmbeddedMaterial(String sectionName) =>
+    _WebMaterialReader(NativeLibrary.instance).readThermionMaterial(sectionName)?.toDart.asUint8List();
+
 typedef IntPtrList = Int32List;
 typedef Utf8 = Char;
 typedef Float = Float32;

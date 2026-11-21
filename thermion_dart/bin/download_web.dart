@@ -3,13 +3,13 @@ import 'dart:isolate';
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
+import 'package:thermion_dart/src/filament/src/interface/built_in_material.dart';
+import 'package:thermion_dart/src/hooks/built_in_materials.dart';
 
 const _r2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
 
 /// CLI variant selectors → the artifact zip suffix used on R2 (mirrors
-/// lib/src/hooks/web_artifacts.dart, which the build hook uses; this script
-/// predates that abstraction and stays dependency-free so it can run before
-/// pub get has materialized anything).
+/// lib/src/hooks/web_artifacts.dart).
 const _variants = {
   'default': '',
   'worker': '',
@@ -18,15 +18,16 @@ const _variants = {
   'main-thread-runtime-materials': '-main-thread-runtime-materials',
 };
 
-Future<String> _getWebVersion() async {
-  // Resolve package:thermion_dart/ to its lib/ directory so we can locate
-  // native/web/web.version regardless of how this script was invoked.
+Future<String> _getPackageRoot() async {
   final resolved = await Isolate.resolvePackageUri(Uri.parse('package:thermion_dart/'));
   if (resolved == null) {
     stderr.writeln('Could not resolve package:thermion_dart');
     exit(1);
   }
-  final packageRoot = path.dirname(path.normalize(resolved.toFilePath().replaceAll(RegExp(r'[\\/]$'), '')));
+  return path.dirname(path.normalize(resolved.toFilePath().replaceAll(RegExp(r'[\\/]$'), '')));
+}
+
+Future<String> _getWebVersion(String packageRoot) async {
   final versionPath = path.join(packageRoot, 'native', 'web', 'web.version');
   final versionFile = File(versionPath);
   if (!versionFile.existsSync()) {
@@ -87,26 +88,26 @@ Future<Directory> _downloadToCache(String version, String zipSuffix, Directory c
   return cacheDir;
 }
 
-void _copyToOutput(Directory cacheDir, String outputDir) {
-  for (final name in ['thermion_dart.js', 'thermion_dart.wasm']) {
-    final src = File(path.join(cacheDir.path, name));
-    if (!src.existsSync()) {
-      stderr.writeln('Warning: $name not found in cache');
-      continue;
+List<BuiltInMaterial> _parseMaterials(String raw) {
+  final byKey = {for (final m in BuiltInMaterial.values.where((m) => m.compiledOnDemand)) m.key: m};
+  final selected = <BuiltInMaterial>{};
+  for (final token in raw.split(',')) {
+    final key = token.trim();
+    if (key.isEmpty) continue;
+    final material = byKey[key];
+    if (material == null) {
+      stderr.writeln("Unknown material '$key'. Valid keys: ${byKey.keys.join(', ')}");
+      exit(1);
     }
-    final destDir = Directory(outputDir);
-    if (!destDir.existsSync()) {
-      destDir.createSync(recursive: true);
-    }
-    final dest = File(path.join(outputDir, name));
-    src.copySync(dest.path);
-    stdout.writeln('Copied $name to ${dest.path}');
+    selected.add(material);
   }
+  return selected.toList();
 }
 
 void main(List<String> args) async {
   String outputDir = 'web';
   String variant = 'default';
+  String? materialsArg;
 
   for (var i = 0; i < args.length; i++) {
     if (args[i] == '-o' || args[i] == '--output') {
@@ -117,13 +118,23 @@ void main(List<String> args) async {
       if (i + 1 < args.length) {
         variant = args[++i];
       }
+    } else if (args[i] == '--materials') {
+      if (i + 1 >= args.length) {
+        stderr.writeln('--materials requires a material list.');
+        exit(64);
+      }
+      materialsArg = args[++i];
     } else if (args[i] == '-h' || args[i] == '--help') {
-      stdout.writeln('Usage: dart run thermion_dart:download_web [-o <dir>] [--variant <name>]');
+      stdout.writeln('Usage: dart run thermion_dart:download_web [-o <dir>] [--variant <name>] [--materials <list>]');
       stdout.writeln('  -o, --output   Output directory (default: web/)');
       stdout.writeln('  --variant      Engine variant: ${_variants.keys.join(', ')} (default: default)');
       stdout.writeln('                runtime-materials = filamat-enabled engine for');
       stdout.writeln('                runtime material compilation (~20 MB larger).');
       stdout.writeln('                main-thread-runtime-materials = both combined.');
+      stdout.writeln('  --materials    Comma-separated helper keys, for example normal_color,sharp_edge.');
+      stdout.writeln(
+        '                 Available keys: ${BuiltInMaterial.values.where((m) => m.compiledOnDemand).map((m) => m.key).join(', ')}',
+      );
       return;
     }
   }
@@ -134,7 +145,10 @@ void main(List<String> args) async {
     exit(1);
   }
 
-  final version = await _getWebVersion();
+  final materials = materialsArg == null ? const <BuiltInMaterial>[] : _parseMaterials(materialsArg);
+
+  final packageRoot = await _getPackageRoot();
+  final version = await _getWebVersion(packageRoot);
   stdout.writeln('Web artifact version: $version (variant: $variant)');
 
   outputDir = path.normalize(outputDir);
@@ -144,7 +158,13 @@ void main(List<String> args) async {
   final cacheDir = Directory(path.join('.dart_tool', 'thermion_dart', 'web', '$version$zipSuffix'));
 
   await _downloadToCache(version, zipSuffix, cacheDir);
-  _copyToOutput(cacheDir, outputDir);
+  await publishWebMaterials(
+    root: Directory(packageRoot),
+    engineDir: cacheDir,
+    webDir: Directory(outputDir),
+    materials: materials,
+    onLog: stdout.writeln,
+  );
 
   stdout.writeln('Done.');
 }
