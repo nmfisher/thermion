@@ -105,7 +105,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   static final _logger = Logger("FFIFilamentApp");
 
   FFIFilamentApp(
-    this._backend,
     this.engine,
     this.gltfAssetLoader,
     this.renderer,
@@ -117,8 +116,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     Future<Uint8List> Function(String uri)? loadResource,
     Pointer<TLightManager> lightManagerPointer,
     Pointer<TRenderableManager> renderableManagerPointer,
-    Pointer<TAnimationManager> animationManagerPointer,
-  ) {
+    Pointer<TAnimationManager> animationManagerPointer, {
+    Backend backend = Backend.DEFAULT,
+  }) : _backend = backend {
     this._loadResource = loadResource ?? defaultResourceLoader;
     this.lightManager = FFILightManager(lightManagerPointer, this);
     this.renderableManager = FFIRenderableManager(renderableManagerPointer, this);
@@ -231,7 +231,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     );
 
     FilamentApp.instance = FFIFilamentApp(
-      config.backend,
       engine,
       gltfAssetLoader,
       renderer,
@@ -244,6 +243,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       lightManager,
       renderableManager,
       animationManager,
+      backend: config.backend,
     );
 
     _logger.info("Initialization complete");
