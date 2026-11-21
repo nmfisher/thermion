@@ -2,7 +2,73 @@ import 'dart:async';
 import 'dart:js_interop';
 
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_examples_lib/examples_lib.dart';
 import 'package:web/web.dart';
+
+/// Material controls supplied by the active game-effect setup. Uniform writes
+/// are serialized so rapid input cannot apply an older value after a newer one.
+void installGameEffectControls(String title) {
+  if (effectSliders.isEmpty) return;
+  final panel = document.getElementById('effects-controls') as HTMLElement;
+  panel.textContent = '';
+  panel.appendChild(HTMLHeadingElement.h2()..textContent = title);
+  Future<void> updates = Future.value();
+  final inputs = <HTMLInputElement>[];
+  final values = <HTMLElement>[];
+  void enqueue(EffectSlider control, double value) {
+    updates =
+        updates.then((_) => control.setValue(value)).catchError((Object error) {
+      print('Failed to update ${control.label}: $error');
+    });
+  }
+
+  for (var i = 0; i < effectSliders.length; i++) {
+    final control = effectSliders[i];
+    final id = 'game-effect-$i';
+    final label = HTMLLabelElement()
+      ..htmlFor = id
+      ..className = 'slider-label'
+      ..textContent = control.label;
+    final value = HTMLSpanElement()
+      ..textContent = control.initialValue.toStringAsFixed(2);
+    label.appendChild(value);
+    final input = HTMLInputElement()
+      ..id = id
+      ..type = 'range'
+      ..min = control.min.toString()
+      ..max = control.max.toString()
+      ..step = control.step.toString()
+      ..value = control.initialValue.toString();
+    input.addEventListener(
+        'input',
+        ((Event _) {
+          final next = double.tryParse(input.value);
+          if (next == null) return;
+          value.textContent = next.toStringAsFixed(2);
+          enqueue(control, next);
+        }).toJS);
+    inputs.add(input);
+    values.add(value);
+    panel.appendChild(label);
+    panel.appendChild(input);
+  }
+  final reset = HTMLButtonElement()
+    ..id = 'effects-reset'
+    ..type = 'button'
+    ..textContent = 'Reset';
+  reset.addEventListener(
+      'click',
+      ((Event _) {
+        for (var i = 0; i < effectSliders.length; i++) {
+          final control = effectSliders[i];
+          inputs[i].value = control.initialValue.toString();
+          values[i].textContent = control.initialValue.toStringAsFixed(2);
+          enqueue(control, control.initialValue);
+        }
+      }).toJS);
+  panel.appendChild(reset);
+  panel.removeAttribute('hidden');
+}
 
 /// Connects the Effects scene's browser controls to the active Filament view.
 Future<void> installEffectsControls(ThermionViewer viewer) async {

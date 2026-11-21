@@ -1,0 +1,70 @@
+material {
+    name : StormDebris,
+    shadingModel : unlit,
+    blending : transparent,
+    culling : none,
+    depthWrite : false,
+    variables : [ debrisData ],
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : windSpeed },
+        { type : float, name : density },
+        { type : float, name : debrisAmount },
+        { type : float, name : funnelWidth },
+        { type : float, name : stormType }
+    ],
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+vertex {
+    float debrisHash(float n) { return fract(sin(n * 127.1 + 13.7) * 43758.5453); }
+    void materialVertex(inout MaterialVertexInputs material) {
+        int index = getVertexIndex();
+        float seed = float(index / 6);
+        int corner = index - (index / 6) * 6;
+        vec2 corners[6] = vec2[6](vec2(-1,-1), vec2(1,-1), vec2(-1,1), vec2(1,-1), vec2(1,1), vec2(-1,1));
+        float a = debrisHash(seed), b = debrisHash(seed + 53.0), c = debrisHash(seed + 109.0);
+        float t = materialParams.time * materialParams.windSpeed;
+        vec3 center;
+        vec2 scale;
+        float fade;
+        if (materialParams.stormType < .5) {
+            float age = fract(a + t * (.09 + b * .06));
+            float y = age * 4.4;
+            float r = (.18 + pow(age, 1.45) * 1.35) * materialParams.funnelWidth * (.65 + c * .55);
+            float angle = b * 6.283185 + t * (3.2 - age * 1.4) - y * 2.8;
+            center = vec3(cos(angle) * r, y, sin(angle) * r);
+            center.xz += vec2(sin(age * 2.9 + t * .28), cos(age * 3.3 + t * .22)) * age * age * .65;
+            // Elongated tangential motion-blur streak rather than square peppercorn dots.
+            scale = vec2(.032 + c * .045, .0035 + b * .005);
+            fade = smoothstep(0.0, .08, age) * (1.0 - smoothstep(.65, .92, age));
+        } else {
+            float age = fract(a + t * (.22 + b * .16));
+            center = vec3(mix(-9.0, 9.0, age), .05 + b * b * 1.8, (c - .5) * 9.0);
+            center.y += .08 * sin(age * 15.0 + b * 40.0);
+            scale = vec2(.055 + c * .09, .0025 + b * .004);
+            fade = smoothstep(0.0, .12, age) * (1.0 - smoothstep(.82, 1.0, age));
+        }
+        mat4 view = getViewFromWorldMatrix();
+        vec3 right = vec3(view[0].x, view[1].x, view[2].x);
+        vec3 up = vec3(view[0].y, view[1].y, view[2].y);
+        vec2 quad = corners[corner] * scale;
+        float angle = materialParams.stormType < .5 ? (-.25 + (b - .5) * .35) : -.08;
+        quad = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * quad;
+        material.worldPosition.xyz += center + right * quad.x + up * quad.y - getPosition().xyz;
+        material.debrisData = vec4(corners[corner], fade, a);
+    }
+}
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        vec2 p = variable_debrisData.xy;
+        float d = length(p);
+        float shape = exp(-d * d * 3.2) * (1.0 - smoothstep(.7, 1.0, d));
+        float coverage = smoothstep(variable_debrisData.w, variable_debrisData.w + .08, materialParams.debrisAmount);
+        float alpha = shape * variable_debrisData.z * coverage * clamp(materialParams.density, 0.0, 1.0) * .42;
+        vec3 tornadoDust = mix(vec3(.12, .11, .10), vec3(.28, .30, .33), variable_debrisData.w);
+        vec3 sandStreak = mix(vec3(.34, .20, .09), vec3(.58, .38, .18), variable_debrisData.w);
+        vec3 color = mix(tornadoDust, sandStreak, materialParams.stormType);
+        material.baseColor = vec4(color * alpha, alpha);
+    }
+}

@@ -1,0 +1,176 @@
+material {
+    name : DamageDecals,
+    shadingModel : lit,
+    requires : [ position, tangents, uv0 ],
+    variables : [ objectPos ],
+    parameters : [ { type : float, name : time } ],
+    culling : none,
+    variantFilter : [ skinning ]
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.objectPos.xyz = getPosition().xyz;
+    }
+}
+fragment {
+    vec2 hash2(vec2 p) {
+        return fract(sin(vec2(dot(p, vec2(127.1, 311.7)),
+                              dot(p, vec2(269.5, 183.3)))) * 43758.5453);
+    }
+    float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+    float noise2(vec2 p) {
+        vec2 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x),
+                   mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+    }
+    float fbm(vec2 p) {
+        return noise2(p) * 0.52 + noise2(p * 2.13 + 7.3) * 0.28 +
+               noise2(p * 4.57 + 19.1) * 0.14 + noise2(p * 9.31 + 3.7) * 0.06;
+    }
+
+    // Returns (F1, F2 - F1, cellId): F2 - F1 = 0 traces authentic angular Voronoi
+    // aggregate grain boundaries so cracks look like fractured stone/concrete!
+    vec3 voronoi2D(vec2 x) {
+        vec2 n = floor(x), f = fract(x);
+        float f1 = 8.0, f2 = 8.0, id = 0.0;
+        for (int j = -1; j <= 1; j++) {
+            for (int i = -1; i <= 1; i++) {
+                vec2 g = vec2(float(i), float(j));
+                vec2 o = hash2(n + g);
+                vec2 r = g + o - f;
+                float d = dot(r, r);
+                if (d < f1) { f2 = f1; f1 = d; id = o.x; }
+                else if (d < f2) { f2 = d; }
+            }
+        }
+        return vec3(sqrt(f1), sqrt(f2) - sqrt(f1), id);
+    }
+
+    // Evaluates 3D sculpted surface height + damage masks for one bullet crater.
+    // Returns (heightDelta, spallMask, crackMask, boreMask).
+    vec4 craterProfile(vec2 p, vec2 c, float born) {
+        float age = clamp((materialParams.time - born) * 4.0, 0.0, 1.0);
+        if (age <= 0.001) return vec4(0.0);
+        vec2 q = p - c;
+        float r = length(q);
+        if (r > 0.58) return vec4(0.0);
+
+        vec3 vChunk = voronoi2D(q * 16.0 + c * 7.3);
+        float nRough = fbm(q * 19.0 + c * 5.1) - 0.5;
+        float nFine = noise2(q * 72.0 + c * 11.0) - 0.5;
+
+        // Angular chipped concrete spall boundary shaped by Voronoi aggregate chunks.
+        float spallR = 0.145 + nRough * 0.048 + (vChunk.z - 0.5) * 0.036;
+        float boreR = 0.046 + nFine * 0.008;
+
+        float bore = 1.0 - smoothstep(boreR * 0.55, boreR * 1.15, r);
+        float spall = (1.0 - smoothstep(spallR - 0.022, spallR + 0.012, r)) * (1.0 - bore * 0.85);
+        // Raised pulverized lip right around the spalled crater edge.
+        float lip = exp(-pow((r - spallR * 1.03) / 0.026, 2.0)) * (0.6 + 0.4 * fbm(q * 32.0));
+
+        // Multi-scale angular Voronoi fractures radiating outward along aggregate boundaries
+        // (zero smooth sinusoidal tentacles!).
+        vec3 vCrack1 = voronoi2D(q * 9.5 + c * 13.7 + nRough * 0.45);
+        vec3 vCrack2 = voronoi2D(q * 21.0 + c * 3.1 + nRough * 0.65);
+        float reachMask = smoothstep(boreR * 0.9, boreR * 1.4, r) *
+                          (1.0 - smoothstep(0.18, 0.42 + (vCrack1.z - 0.5) * 0.14, r));
+        float branchSelect = smoothstep(0.32, 0.62, hash(floor(vec2(atan(q.y, q.x) * 2.2, 0.0)) + c * 19.0));
+        float majorCrack = (1.0 - smoothstep(0.008, 0.028, vCrack1.y)) * reachMask * (0.35 + 0.65 * branchSelect);
+        float microCrack = (1.0 - smoothstep(0.010, 0.032, vCrack2.y)) *
+                           smoothstep(boreR, boreR * 1.3, r) *
+                           (1.0 - smoothstep(spallR * 0.8, spallR * 1.55, r)) * 0.65;
+        float cracks = clamp(max(majorCrack, microCrack), 0.0, 1.0);
+
+        // Stepped fractured rock terraces inside the spall zone.
+        float terrace = floor(vChunk.z * 4.0) / 4.0;
+        float h = -bore * 0.115
+                  - spall * (0.028 + 0.022 * terrace - nFine * 0.006)
+                  + lip * 0.011
+                  - cracks * 0.018;
+        return vec4(h * age, spall * age, cracks * age, bore * age);
+    }
+
+    float totalHeight(vec2 p) {
+        // Brushed architectural concrete slab with subtle form-tie joints & pores.
+        float slab = fbm(p * 3.2) * 0.005 + noise2(p * 55.0) * 0.0018;
+        float seamX = 1.0 - smoothstep(0.003, 0.010, abs(fract(p.x * 0.45 + 0.5) - 0.5));
+        float seamY = 1.0 - smoothstep(0.003, 0.010, abs(fract(p.y * 0.55 + 0.5) - 0.5));
+        slab -= max(seamX, seamY) * 0.0035;
+        // Tiny concrete air-void bug-holes.
+        vec3 pores = voronoi2D(p * 42.0);
+        slab -= (1.0 - smoothstep(0.02, 0.06, pores.x)) * step(0.86, pores.z) * 0.004;
+
+        slab += craterProfile(p, vec2(-0.78, 0.38), 0.10).x;
+        slab += craterProfile(p, vec2(0.22, 0.52), 0.72).x;
+        slab += craterProfile(p, vec2(0.68, -0.16), 1.34).x;
+        slab += craterProfile(p, vec2(-0.28, -0.48), 1.96).x;
+        return slab;
+    }
+
+    void shadeImpact(vec2 p, vec2 c, float born, inout vec3 albedo, inout float rough,
+                     inout float ao, inout vec3 emissive) {
+        float dt = materialParams.time - born;
+        float age = clamp(dt * 4.0, 0.0, 1.0);
+        if (age <= 0.001) return;
+        vec4 cp = craterProfile(p, c, born);
+        vec2 q = p - c;
+        float r = length(q);
+        float n = fbm(q * 18.0 + c * 4.0);
+
+        // Directional cordite & carbon blast smudge (slightly upward-pluming).
+        vec2 sootQ = vec2(q.x, q.y * 0.78 - 0.035);
+        float soot = exp(-dot(sootQ, sootQ) / (0.042 + n * 0.028)) * smoothstep(0.02, 0.08, r) * age;
+
+        // Freshly fractured inner concrete is lighter & chalkier than weathered outer slab;
+        // deep bullet bore is charred near-black with embedded metallic jacket glint.
+        vec3 spallColor = mix(vec3(0.26, 0.25, 0.23), vec3(0.38, 0.36, 0.33), noise2(q * 65.0));
+        albedo = mix(albedo, spallColor, cp.y * 0.92);
+        albedo = mix(albedo, vec3(0.022, 0.020, 0.019), clamp(soot * 0.78, 0.0, 0.85));
+        albedo = mix(albedo, vec3(0.018, 0.016, 0.015), cp.z * 0.88);
+        albedo = mix(albedo, vec3(0.008, 0.007, 0.007), cp.w);
+
+        rough = mix(rough, 0.94, cp.y);
+        rough = mix(rough, 0.35, cp.w * exp(-max(dt, 0.0) * 1.8)); // molten glassy slag while hot
+        ao *= (1.0 - cp.w * 0.88) * (1.0 - cp.z * 0.65) * (1.0 - cp.y * 0.25);
+
+        // Physical blackbody cooling: blinding yellow-orange core -> cherry-red rim -> dark.
+        float heat = exp(-max(dt, 0.0) * 2.1) * age;
+        float coreHeat = cp.w * heat * 2.2 + cp.y * exp(-r * 14.0) * heat * 1.1 + cp.z * exp(-r * 9.0) * heat * 0.65;
+        vec3 blackbody = mix(vec3(0.85, 0.09, 0.005), vec3(1.0, 0.52, 0.10), clamp(coreHeat * 0.65, 0.0, 1.0));
+        emissive += blackbody * coreHeat * 1.8;
+    }
+
+    void material(inout MaterialInputs material) {
+        vec2 p = variable_objectPos.xz;
+        const float eps = 0.0025;
+        float h0 = totalHeight(p);
+        float hx = totalHeight(p + vec2(eps, 0.0));
+        float hy = totalHeight(p + vec2(0.0, eps));
+        // Analytic tangent-space normal for crisp 3D raking light across every chip & crack!
+        vec2 grad = vec2(hx - h0, hy - h0) / eps;
+        material.normal = normalize(vec3(-grad * 2.6, 1.0));
+        prepareMaterial(material);
+
+        float coarse = fbm(p * 2.8);
+        float fine = fbm(p * 26.0);
+        vec3 albedo = mix(vec3(0.14, 0.145, 0.15), vec3(0.22, 0.215, 0.205), coarse * 0.6 + fine * 0.4);
+        float rough = mix(0.76, 0.90, fine);
+        float ao = 0.92 + 0.08 * fine;
+        vec3 emissive = vec3(0.0);
+
+        shadeImpact(p, vec2(-0.78, 0.38), 0.10, albedo, rough, ao, emissive);
+        shadeImpact(p, vec2(0.22, 0.52), 0.72, albedo, rough, ao, emissive);
+        shadeImpact(p, vec2(0.68, -0.16), 1.34, albedo, rough, ao, emissive);
+        shadeImpact(p, vec2(-0.28, -0.48), 1.96, albedo, rough, ao, emissive);
+
+        float vignette = 1.0 - smoothstep(0.55, 2.25, length(p));
+        material.baseColor = vec4(albedo * (0.72 + 0.28 * vignette), 1.0);
+        material.metallic = 0.0;
+        material.roughness = rough;
+        material.ambientOcclusion = clamp(ao, 0.05, 1.0);
+        material.emissive = vec4(emissive, 0.0);
+    }
+}

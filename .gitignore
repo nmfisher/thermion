@@ -17,6 +17,8 @@ pubspec_overrides.yaml
 /pubspec.lock
 *.iml
 **/*/*.filamat
+**/.thermion-materials.json
+**/.thermion-materials.lock
 **/*/*.g.dart
 **/*.BAK
 .wrangler
@@ -24,3 +26,4 @@ node_modules
 .claude
 .tickets
 .tina/
+examples/dart/headless_runner/output/

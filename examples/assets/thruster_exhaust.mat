@@ -1,0 +1,89 @@
+material {
+    name : ThrusterExhaust,
+    shadingModel : unlit,
+    requires : [ position ],
+    variables : [ objectPos ],
+    parameters : [ { type : float, name : time }, { type : float, name : throttle } ],
+    blending : add,
+    depthWrite : false,
+    culling : none
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs m) {
+        m.objectPos.xyz = getPosition().xyz;
+    }
+}
+fragment {
+    float hash(highp vec2 p) {
+        highp vec3 q = fract(vec3(p.xyx) * .1031);
+        q += dot(q, q.yzx + 33.33);
+        return fract((q.x + q.y) * q.z);
+    }
+    float noise(vec2 p) {
+        vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+        return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
+                   mix(hash(i+vec2(0,1)),hash(i+1.0),f.x),f.y);
+    }
+    void material(inout MaterialInputs m) {
+        prepareMaterial(m);
+        vec2 p = variable_objectPos.xz;
+        float t = materialParams.time, power = clamp(materialParams.throttle, 0.0, 1.0);
+        float x = p.x + 1.45;
+        float extent = 1.65 + power * 2.15;
+        float u = clamp(x / extent, 0.0, 1.0);
+        float aa = max(length(fwidth(p)), 0.001);
+
+        // High-speed supersonic shear-layer eddies (collimated near nozzle, turbulent in tail).
+        vec2 flow = vec2(x * 3.8 - t * 14.0, p.y * 16.0);
+        float n = noise(flow);
+        float fine = noise(flow * 2.35 + vec2(-t * 5.0, n * 2.0));
+        float eddies = 0.62 * n + 0.38 * fine;
+
+        // Subtle high-frequency acoustic flutter only in the downstream tail.
+        float bend = u * u * u * (0.022 * sin(x * 11.0 - t * 18.0) + 0.012 * sin(x * 21.0 - t * 27.0));
+        float y = p.y - bend;
+
+        // Sleek supersonic collimated plume profile with mild under-expanded barrel waves.
+        float spacing = 0.56 + 0.22 * power;
+        float cellX = x / spacing;
+        float phase = fract(cellX);
+        float barrel = 1.0 + 0.11 * sin(cellX * 6.283185) * exp(-u * 2.2);
+        float radius = (0.245 * barrel) * mix(1.0, 0.42, pow(u, 1.35));
+        float shearTurb = (eddies - 0.5) * (0.006 + 0.085 * pow(u, 1.5));
+        float outerEnv = radius + shearTurb;
+
+        float gate = smoothstep(-0.01, 0.018, x) * (1.0 - smoothstep(0.80, 1.0, u)) * power;
+
+        // 1) Nozzle exit lip & scorching white-cyan throat plasma.
+        float throat = exp(-x * 7.5) * exp(-pow(abs(y) / 0.235, 5.0));
+        float lipRing = exp(-pow(x / 0.045, 2.0)) * exp(-pow((abs(y) - 0.225) / 0.028, 2.0));
+
+        // 2) Authentic supersonic Mach shock diamonds: intersecting oblique expansion/compression
+        //    characteristics + bright normal Mach disk nodes at each cell focus!
+        float cellIdx = floor(cellX);
+        float shockDecay = exp(-cellIdx * 0.48) * (1.0 - smoothstep(0.55, 0.92, u));
+        // Diamond X-wave characteristics crossing at phase = 0.5.
+        float charR1 = abs(phase - 0.5) * 2.0 * radius * 0.82;
+        float charLine = exp(-pow((abs(y) - charR1) / max(0.014, aa * 1.4), 2.0)) * shockDecay;
+        // Incandescent diamond core right after each shock intersection (phase ~ 0.52).
+        float diamondX = (phase - 0.52) / 0.16;
+        float diamondY = y / (0.068 * mix(1.0, 0.55, u));
+        float machDiamond = exp(-(diamondX * diamondX + diamondY * diamondY * 1.4)) * shockDecay;
+
+        // 3) Smooth radial gas integration: hot cyan core -> cobalt jet -> violet-amber afterburner mixing layer.
+        float rNorm = abs(y) / max(outerEnv, 0.01);
+        float jetBody = pow(max(1.0 - rNorm * rNorm, 0.0), 1.35);
+        float hotSpine = exp(-pow(y / (0.085 * mix(1.0, 0.5, u)), 2.0)) * exp(-u * 1.35);
+        // Annular shear-layer mixing glow (warm violet/orange-pink oxidation at the jet boundary).
+        float shearRim = exp(-pow((rNorm - 0.82) / 0.24, 2.0)) * (0.45 + 0.75 * eddies) * (1.0 - smoothstep(0.65, 0.98, u));
+        float softHalo = exp(-pow(y / (outerEnv * 1.65), 2.0)) * (1.0 - u * 0.65);
+
+        vec3 color = vec3(0.02, 0.12, 0.62) * jetBody * (0.55 + 0.45 * eddies) * 0.24;
+        color += vec3(0.14, 0.48, 1.0) * (hotSpine * 0.22 + charLine * 0.09);
+        color += vec3(0.78, 0.94, 1.0) * (machDiamond * 0.34 + throat * 0.32 + lipRing * 0.18);
+        color += mix(vec3(0.42, 0.12, 0.75), vec3(0.85, 0.28, 0.14), smoothstep(0.15, 0.75, u)) * shearRim * 0.11;
+        color += vec3(0.04, 0.14, 0.55) * softHalo * 0.055;
+
+        m.baseColor = vec4(color * gate, 1.0);
+    }
+}

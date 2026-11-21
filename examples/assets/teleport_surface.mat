@@ -1,0 +1,57 @@
+material {
+    name : TeleportSurface, shadingModel : lit,
+    requires : [ position, tangents ],
+    parameters : [ { type : float, name : dissolve }, { type : float, name : origin } ],
+    blending : masked, maskThreshold : 0.5,
+    doubleSided : true
+}
+fragment {
+    float hash(highp vec3 p) {
+        p = fract(p * .1031);
+        p += dot(p, p.yzx + 33.33);
+        return fract((p.x + p.y) * p.z);
+    }
+    float noise3(vec3 p) {
+        vec3 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x),
+                       mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+                   mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                       mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+    }
+
+    void material(inout MaterialInputs m) {
+        prepareMaterial(m);
+        vec3 p = getUserWorldPosition() - vec3(materialParams.origin, 0.0, 0.0);
+        // Fine digital micro-cell + organic turbulence dissolve front (no chunky giant voxels!).
+        float microCell = hash(floor(p * 72.0));
+        float turb = noise3(p * 7.5) * 0.65 + noise3(p * 19.0) * 0.35;
+        // Dissolve top-down on source pad (leaving base anchored on pad) and
+        // materialize bottom-up on destination pad as particles arrive.
+        float heightNorm = clamp((p.y - 0.12) / 1.42, 0.0, 1.0);
+        float field = (1.0 - heightNorm) * 0.78 + turb * 0.14 + microCell * 0.08;
+        float edge = field - materialParams.dissolve;
+
+        // Sharp blinding white-cyan disintegration lip + trailing violet-blue digital scan grid.
+        float hotLip = 1.0 - smoothstep(0.0, 0.032, abs(edge));
+        float scanBand = 1.0 - smoothstep(0.0, 0.14, abs(edge));
+        float gridX = 1.0 - smoothstep(0.04, 0.14, abs(fract(p.x * 28.0) - 0.5));
+        float gridY = 1.0 - smoothstep(0.04, 0.14, abs(fract(p.y * 42.0) - 0.5));
+        float gridZ = 1.0 - smoothstep(0.04, 0.14, abs(fract(p.z * 28.0) - 0.5));
+        float holoGrid = max(max(gridX, gridZ) * 0.6, gridY);
+
+        vec3 N = getWorldNormalVector();
+        vec3 V = getWorldViewVector();
+        float fresnel = pow(1.0 - abs(dot(N, V)), 3.0);
+
+        m.baseColor = vec4(vec3(0.11, 0.14, 0.18), step(0.0, edge));
+        m.metallic = 0.72;
+        m.roughness = 0.28;
+
+        vec3 glow = vec3(0.008, 0.022, 0.042) * (0.4 + 0.6 * fresnel) +
+                    vec3(0.75, 0.96, 1.0) * hotLip * 2.4 +
+                    mix(vec3(0.06, 0.52, 1.0), vec3(0.45, 0.18, 1.0), 1.0 - hotLip) *
+                        scanBand * (0.45 + 0.85 * holoGrid) * 1.15;
+        m.emissive = vec4(glow, 0.0);
+    }
+}

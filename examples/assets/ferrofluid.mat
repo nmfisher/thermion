@@ -1,0 +1,137 @@
+material {
+    name : Ferrofluid,
+    shadingModel : lit,
+    requires : [ position, tangents ],
+    variables : [ displacedNormal, spikeVal, tangentN ],
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : fieldStrength },
+        { type : float, name : spikeDensity },
+        { type : float, name : viscosity }
+    ],
+    culling : back,
+    variantFilter : [ skinning ]
+}
+vertex {
+    vec3 hash33(vec3 p) {
+        p = fract(p * vec3(0.1031, 0.1030, 0.0973));
+        p += dot(p, p.yxz + 33.33);
+        return fract((p.xxy + p.yxx) * p.zyx);
+    }
+
+    // 3D Rosensweig magnetic-instability spike field on the unit sphere!
+    float ferroHeight(vec3 dir, float t, float strength, float density, float visc) {
+        // Two counter-orbiting magnetic dipoles focusing magnetic flux lines!
+        float speed = mix(1.45, 0.55, clamp(visc, 0.0, 1.0));
+        float a1 = t * speed;
+        float a2 = -t * speed * 0.78 + 2.1;
+        vec3 pole1 = normalize(vec3(cos(a1), 0.36 * sin(a1 * 1.3), sin(a1)));
+        vec3 pole2 = normalize(vec3(cos(a2) * 0.85, -0.32 * cos(a2), sin(a2) * 0.85));
+
+        // Dipolar flux concentration (both N and S poles attract colloidal magnetite!).
+        float flux1 = pow(max(abs(dot(dir, pole1)), 0.0), 2.4);
+        float flux2 = pow(max(abs(dot(dir, pole2)), 0.0), 3.0) * 0.82;
+        float flux = clamp(flux1 + flux2, 0.0, 1.35);
+
+        // 3D Voronoi cellular lattice on the scaled unit sphere so spikes have zero UV pole seams!
+        vec3 x = dir * density + pole1 * 0.35;
+        vec3 n = floor(x), f = fract(x);
+        float bestD = 8.0, secondD = 8.0;
+        for (int k = -1; k <= 1; k++) {
+            for (int j = -1; j <= 1; j++) {
+                for (int i = -1; i <= 1; i++) {
+                    vec3 g = vec3(float(i), float(j), float(k));
+                    vec3 o = 0.18 + 0.64 * hash33(n + g);
+                    vec3 r = g + o - f;
+                    float d = dot(r, r);
+                    if (d < bestD) {
+                        secondD = bestD;
+                        bestD = d;
+                    } else if (d < secondD) {
+                        secondD = d;
+                    }
+                }
+            }
+        }
+        float r = sqrt(bestD);
+        // Smooth concave meniscus trough rising to a sharp conical Rosensweig peak!
+        float thresh = smoothstep(0.14, 0.72, flux * strength);
+        float cone = max(1.0 - r * 1.52, 0.0);
+        float spike = pow(cone, 1.55) * thresh * 0.44 * strength;
+        float meniscus = -0.045 * thresh * smoothstep(0.15, 0.65, r);
+        float ripple = 0.012 * sin(dot(dir, pole1) * 18.0 - t * 4.5) * strength;
+        return spike + meniscus + ripple;
+    }
+
+    void materialVertex(inout MaterialVertexInputs material) {
+        vec3 p = getPosition().xyz;
+        vec3 dir = normalize(p);
+        float t = materialParams.time;
+        float str = materialParams.fieldStrength;
+        float dens = max(materialParams.spikeDensity, 2.5);
+        float visc = materialParams.viscosity;
+
+        float h0 = ferroHeight(dir, t, str, dens, visc);
+
+        // Tangent-plane finite differences on the sphere for razor-accurate liquid-chrome normals!
+        vec3 upRef = abs(dir.y) < 0.92 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+        vec3 t1 = normalize(cross(upRef, dir));
+        vec3 t2 = cross(dir, t1);
+        float eps = 0.016;
+        vec3 d1 = normalize(dir + t1 * eps);
+        vec3 d2 = normalize(dir + t2 * eps);
+        float h1 = ferroHeight(d1, t, str, dens, visc);
+        float h2 = ferroHeight(d2, t, str, dens, visc);
+
+        vec3 pos0 = dir * (1.0 + h0);
+        vec3 pos1 = d1  * (1.0 + h1);
+        vec3 pos2 = d2  * (1.0 + h2);
+        vec3 worldN = normalize(cross(pos2 - pos0, pos1 - pos0));
+        if (dot(worldN, dir) < 0.0) worldN = -worldN;
+
+        material.worldPosition.xyz += dir * h0;
+        material.displacedNormal.xyz = worldN;
+        material.tangentN = vec4(dot(worldN, t1), dot(worldN, t2), max(dot(worldN, dir), 0.08), 0.0);
+        material.spikeVal = vec4(clamp(h0 * 2.4, 0.0, 1.0), 0.0, 0.0, 0.0);
+    }
+}
+fragment {
+    void material(inout MaterialInputs material) {
+        material.normal = normalize(variable_tangentN.xyz);
+        material.clearCoatNormal = normalize(variable_tangentN.xyz);
+        prepareMaterial(material);
+        // Colloidal magnetite in carrier oil: jet-black liquid metal with subtle warm-cyan
+        // oily iridescence in the meniscus valleys and mirror-gloss clearCoat!
+        vec3 N = normalize(variable_displacedNormal.xyz);
+        vec3 V = getWorldViewVector();
+        float ndv = clamp(abs(dot(N, V)), 0.02, 1.0);
+        float fresnel = pow(1.0 - ndv, 3.5);
+        float tip = variable_spikeVal.x;
+
+        // Recompute crisp analytical lighting response from displaced world normal + Filament PBR!
+        vec3 key1 = normalize(vec3(0.48, 0.78, 0.40));
+        vec3 key2 = normalize(vec3(-0.62, 0.52, 0.58));
+        vec3 rimL = normalize(vec3(0.0, 0.28, -0.96));
+        float spec1 = pow(max(dot(N, normalize(key1 + V)), 0.0), 140.0);
+        float spec2 = pow(max(dot(N, normalize(key2 + V)), 0.0), 90.0);
+        float rimSpec = pow(max(dot(N, normalize(rimL + V)), 0.0), 48.0);
+
+        // Subtle carrier-oil thin-film tint in concave valleys.
+        vec3 oilTint = mix(vec3(0.018, 0.022, 0.030),
+                           vec3(0.035, 0.085, 0.14),
+                           fresnel * (1.0 - tip * 0.65));
+
+        material.baseColor = vec4(oilTint, 1.0);
+        material.metallic = 0.90;
+        material.roughness = 0.055;
+        material.clearCoat = 1.0;
+        material.clearCoatRoughness = 0.018;
+
+        // Crisp liquid-chrome specular streaks along the moving Rosensweig spikes!
+        vec3 specGlow = vec3(0.92, 0.96, 1.0) * spec1 * 1.35 +
+                        vec3(0.32, 0.74, 1.0) * spec2 * 0.75 +
+                        vec3(1.0, 0.52, 0.18) * rimSpec * 0.55 +
+                        vec3(0.08, 0.24, 0.42) * fresnel * 0.28;
+        material.emissive = vec4(specGlow, 0.0);
+    }
+}

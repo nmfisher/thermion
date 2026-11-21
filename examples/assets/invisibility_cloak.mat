@@ -1,0 +1,96 @@
+material {
+    name : InvisibilityCloak,
+    shadingModel : lit,
+    requires : [ position, tangents ],
+    variables : [ objectPos, surfaceNormal, worldPos ],
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : disruption }
+    ],
+    blending : transparent,
+    refractionMode : screenspace,
+    refractionType : solid,
+    culling : back,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.objectPos.xyz = getPosition().xyz;
+        material.surfaceNormal.xyz = material.worldNormal;
+        material.worldPos.xyz = (getWorldFromModelMatrix() * vec4(getPosition().xyz, 1.0)).xyz;
+    }
+}
+fragment {
+    float hash(vec3 p) {
+        p = fract(p * 0.1031);
+        p += dot(p, p.yzx + 33.33);
+        return fract((p.x + p.y) * p.z);
+    }
+    float noise3(vec3 p) {
+        vec3 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x),
+                       mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+                   mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                       mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+    }
+    // Hexagonal metamaterial lattice distance for active-camo transition band.
+    float hexEdge(vec2 uv) {
+        const vec2 s = vec2(1.0, 1.7320508);
+        vec4 hC = floor(vec4(uv, uv - vec2(0.5, 1.0)) / s.xyxy) + 0.5;
+        vec4 h = vec4(uv - hC.xy * s, uv - (hC.zw + 0.5) * s);
+        vec2 c = dot(h.xy, h.xy) < dot(h.zw, h.zw) ? h.xy : h.zw;
+        c = abs(c);
+        float d = 0.5 - max(dot(c, s * 0.5), c.x);
+        return 1.0 - smoothstep(0.015, 0.065, d);
+    }
+    void material(inout MaterialInputs material) {
+        vec3 p = variable_objectPos.xyz;
+        vec3 wp = variable_worldPos.xyz;
+        float t = materialParams.time;
+        float dis = clamp(materialParams.disruption, 0.0, 1.0);
+
+        // Animated active-camouflage sweep across the FlightHelmet height so
+        // viewers see solid dark titanium decloaking & recloaking into a true
+        // screen-space refractive optical bend!
+        float sweepCenter = 0.55 * sin(t * 1.25 - 0.35);
+        float warp = (noise3(wp * 6.5 + vec3(0.0, t * 0.6, 0.0)) - 0.5) * 0.16;
+        float signedDist = (wp.y + warp) - sweepCenter;
+        float cloaked = smoothstep(-0.04, 0.05, signedDist);
+
+        // Optical shimmer normal ripples inside the cloaked region bend background lines.
+        float rA = noise3(wp * 9.0 + vec3(t * 0.9, -t * 1.3, 0.0));
+        float rB = noise3(wp * 9.0 + vec3(0.07 + t * 0.9, -t * 1.3, 0.0));
+        float rC = noise3(wp * 9.0 + vec3(t * 0.9, 0.07 - t * 1.3, 0.0));
+        vec2 shimmerSlope = vec2(rB - rA, rC - rA) * (1.8 + 2.4 * dis) * cloaked;
+        material.normal = normalize(vec3(-shimmerSlope, 1.0));
+        prepareMaterial(material);
+
+        vec3 N = getWorldNormalVector();
+        vec3 V = getWorldViewVector();
+        float fresnel = pow(1.0 - clamp(abs(dot(N, V)), 0.0, 1.0), 3.2);
+
+        // Dominant-axis triplanar hex grid glowing along the phase-transition seam & glitches.
+        vec3 an = abs(variable_surfaceNormal.xyz);
+        vec2 hexUv = (an.x > an.y && an.x > an.z ? wp.zy : (an.y > an.z ? wp.xz : wp.xy)) * 16.0;
+        float hex = hexEdge(hexUv);
+        float seam = exp(-pow(signedDist / 0.055, 2.0));
+        float glitch = smoothstep(0.68, 0.88, noise3(wp * 11.0 + vec3(0.0, -t * 2.4, t * 1.1))) * dis * cloaked;
+
+        // Uncloaked tactical dark-titanium PBR vs near-invisible refractive metamaterial.
+        material.baseColor = vec4(mix(vec3(0.11, 0.13, 0.17), vec3(0.76, 0.90, 1.0), cloaked), 1.0);
+        material.metallic = mix(0.82, 0.0, cloaked);
+        material.roughness = mix(0.24, 0.025 + 0.05 * glitch, cloaked);
+        material.transmission = cloaked * 0.965;
+        material.ior = 1.07 + 0.09 * dis + 0.05 * fresnel;
+        material.absorption = vec3(0.18, 0.06, 0.02) * cloaked;
+
+        vec3 cyan = vec3(0.08, 0.78, 1.0);
+        vec3 violet = vec3(0.56, 0.18, 1.0);
+        vec3 seamGlow = mix(cyan, violet, 0.5 + 0.5 * N.x) *
+                        (seam * (0.65 + 1.15 * hex) * 1.55 +
+                         glitch * (0.35 + 0.85 * hex) * 0.95 +
+                         fresnel * cloaked * 0.22);
+        material.emissive = vec4(seamGlow, 0.0);
+    }
+}

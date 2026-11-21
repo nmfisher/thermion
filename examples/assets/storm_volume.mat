@@ -1,0 +1,162 @@
+material {
+    name : StormVolume,
+    shadingModel : unlit,
+    blending : transparent,
+    culling : front,
+    depthWrite : false,
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : windSpeed },
+        { type : float, name : density },
+        { type : float, name : turbulence },
+        { type : float, name : funnelWidth },
+        { type : float, name : stormType },
+        { type : float3, name : volumeMin },
+        { type : float3, name : volumeMax },
+        { type : float3, name : dustColor },
+        { type : float3, name : volumeOrigin },
+        { type : float, name : sampleCount }
+    ],
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+fragment {
+    float stormHash(vec3 p) {
+        p = fract(p * .1031);
+        p += dot(p, p.yzx + 33.33);
+        return fract((p.x + p.y) * p.z);
+    }
+    float stormNoise(vec3 p) {
+        vec3 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(mix(stormHash(i), stormHash(i + vec3(1,0,0)), f.x),
+                       mix(stormHash(i + vec3(0,1,0)), stormHash(i + vec3(1,1,0)), f.x), f.y),
+                   mix(mix(stormHash(i + vec3(0,0,1)), stormHash(i + vec3(1,0,1)), f.x),
+                       mix(stormHash(i + vec3(0,1,1)), stormHash(i + vec3(1,1,1)), f.x), f.y), f.z);
+    }
+    float stormFbm(vec3 p) {
+        float v = 0.0, a = 0.55;
+        for (int i = 0; i < 3; i++) {
+            v += a * stormNoise(p);
+            p = p * 2.07 + vec3(13.1, 7.7, 5.3);
+            a *= 0.48;
+        }
+        return v;
+    }
+    vec2 interval(vec3 eye, vec3 ray) {
+        vec3 safeRay = mix(vec3(-1.0), vec3(1.0), step(vec3(0.0), ray)) * max(abs(ray), vec3(.00001));
+        vec3 a = (materialParams.volumeMin - eye) / safeRay;
+        vec3 b = (materialParams.volumeMax - eye) / safeRay;
+        vec3 lo = min(a,b), hi = max(a,b);
+        return vec2(max(max(lo.x,lo.y),lo.z), min(min(hi.x,hi.y),hi.z));
+    }
+    float dustField(vec3 position) {
+        vec3 p = position - materialParams.volumeOrigin;
+        float t = materialParams.time * materialParams.windSpeed;
+        float turbulent = materialParams.turbulence;
+        if (materialParams.stormType < .5) {
+            float topY = max(materialParams.volumeMax.y - materialParams.volumeOrigin.y, 1.8);
+            float halfW = max(materialParams.volumeMax.x - materialParams.volumeOrigin.x, 1.8);
+            float h = clamp(p.y / topY, 0.0, 1.0);
+            // Sinuous snake-like condensation funnel bend.
+            vec2 bend = vec2(sin(h * 3.1 + t * .32), cos(h * 2.7 + t * .25)) * pow(h, 1.4) * .55;
+            vec2 xz = p.xz - bend;
+            // Trumpet-flaring profile that widens smoothly into an overhanging supercell
+            // wall cloud scaled to fit cleanly inside any volume box.
+            float maxFlare = max(halfW * 0.52 - 0.65, 0.45);
+            float flare = pow(max(h - 0.54, 0.0) / 0.46, 2.1) * maxFlare;
+            float radius = (.11 + .54 * pow(h, 1.35) + flare) * materialParams.funnelWidth;
+            float rotation = t * (3.1 - h * 1.4) - p.y * 3.2;
+            float ca = cos(rotation), sa = sin(rotation);
+            vec2 spin = mat2(ca, -sa, sa, ca) * xz;
+            float n = stormFbm(vec3(spin * 1.85, p.y * 2.4 - t * 1.8));
+            float billow = stormFbm(vec3(spin * 3.8 + n * 1.4, p.y * 4.8 - t * 2.7));
+            float angle = atan(xz.y, xz.x);
+            float strands = pow(0.5 + 0.5 * sin(angle * 3.0 - p.y * 5.6 + t * 4.2 + n * 4.2), 1.5);
+            float r = length(xz);
+            float warped = r + (n - .5) * radius * turbulent * .72 + (billow - .5) * radius * .28;
+            // Hollow low-pressure eye inside a thick turbulent vortex wall.
+            float wallRing = exp(-pow((warped - radius * .62) / max(radius * .44, .035), 2.0));
+            float innerCore = exp(-warped * warped / max(radius * radius * .32, .008)) * .55;
+            float funnel = (wallRing * (.52 + .68 * strands) + innerCore) * (.32 + n * .55 + billow * .45);
+            float edgeXZ = 1.0 - smoothstep(halfW * 0.78, halfW * 0.98, max(abs(p.x), abs(p.z)));
+            funnel *= smoothstep(-0.02, .08, p.y) * (1.0 - smoothstep(topY * 0.78, topY * 0.97, p.y)) * edgeXZ;
+            // Violent ground debris cloud erupting around the touchdown vortex.
+            float debrisSwirl = stormFbm(vec3(spin * 2.6, p.y * 3.0 - t * 2.5));
+            float skirt = exp(-r * r * .36) * exp(-max(p.y, 0.0) * 2.3) *
+                          smoothstep(.22, .82, debrisSwirl) * (1.0 + .5 * strands) * edgeXZ;
+            return funnel * 2.25 + skirt * 1.75;
+        }
+        // Horizon-spanning haboob sandstorm: towering billowing cauliflower lobes
+        // rolling forward across the desert floor with zero visible box edges.
+        float halfW = max(materialParams.volumeMax.x - materialParams.volumeOrigin.x, 5.0);
+        float topY = max(materialParams.volumeMax.y - materialParams.volumeOrigin.y, 5.4);
+        vec3 q = vec3(p.x * 0.72 - t * 0.95, p.y * 0.68, p.z * 0.78);
+        float macro = stormFbm(q * 0.55 + vec3(0.0, -t * 0.12, 0.0));
+        float billow = stormFbm(q * 1.28 + vec3(macro * 1.45, macro * 0.95, -macro * 1.1));
+        float fine = stormNoise(q * 3.1 + vec3(-t * 0.55, t * 0.28, 0.0));
+        float h = clamp(p.y / (topY * 0.76), 0.0, 1.3);
+        // Rolling nose curls ahead near the ground, stacked lobes tower behind it.
+        float nose = 1.15 * sin(clamp(h, 0.0, 1.0) * 2.6) - h * 0.95 + sin(p.x * 0.38) * 0.65;
+        float front = nose + (macro - 0.5) * turbulent * 2.8 + (billow - 0.5) * turbulent * 1.5;
+        // Solid dust mass behind the front + billowing turbulent leading edge.
+        float behindFront = smoothstep(front + 1.8, front - 1.6, p.z);
+        float crestHeight = topY * (0.52 + 0.34 * macro + 0.16 * billow * turbulent * 0.5);
+        float vertical = (1.0 - smoothstep(crestHeight - 1.35, crestHeight + 0.35, p.y)) *
+                         smoothstep(-0.08, 0.22, p.y);
+        // Fast saltating sand veil racing ahead across the dunes.
+        float saltation = exp(-max(p.y, 0.0) * 1.85) *
+                          smoothstep(front + 4.2, front - 0.5, p.z) *
+                          (0.35 + 0.65 * fine);
+        // Softly feather near the volume's outer bounds so no hard slab cut ever appears.
+        float edgeX = 1.0 - smoothstep(halfW * 0.68, halfW * 0.98, abs(p.x) + (macro - 0.5) * 2.2);
+        float backZ = 1.0 - smoothstep(materialParams.volumeMin.z + 0.2, materialParams.volumeMin.z - 0.1, p.z);
+        float lobes = smoothstep(0.22, 0.80, billow * 0.72 + fine * 0.28);
+        return (behindFront * vertical * (0.45 + 1.65 * lobes) + saltation * 0.85) * edgeX * backZ;
+    }
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = vec4(0.0);
+        if (materialParams.density <= 0.0) return;
+        vec3 eye = (getUserWorldFromWorldMatrix() * vec4(getWorldCameraPosition(), 1.0)).xyz;
+        vec3 ray = normalize(getUserWorldPosition() - eye);
+        vec2 segment = interval(eye, ray);
+        float start = max(segment.x, 0.0);
+        float samples = materialParams.sampleCount > 0.0 ? clamp(materialParams.sampleCount, 12.0, 56.0) : 56.0;
+        float stepSize = max(segment.y - start, 0.0) / samples;
+        if (stepSize <= 0.0) return;
+        float jitter = stormHash(vec3(floor(getNormalizedViewportCoord().xy * getResolution().xy), 7.0));
+        vec3 toLight = normalize(vec3(-.65, .72, .38));
+        float cosTheta = dot(ray, toLight);
+        float hg = (1.0 - 0.36) / (4.0 * 3.14159 * pow(max(1.0 + 0.36 - 1.2 * cosTheta, 0.15), 1.5));
+        float phase = 0.82 + 0.65 * clamp(hg, 0.0, 2.2);
+        float transmission = 1.0;
+        vec3 scattering = vec3(0.0);
+        for (int i = 0; i < 56; i++) {
+            if (float(i) >= samples) break;
+            vec3 p = eye + ray * (start + (float(i) + jitter) * stepSize);
+            float dust = dustField(p) * materialParams.density;
+            float opacity = 1.0 - exp(-dust * stepSize);
+            if (opacity > 0.001) {
+                float shadowDepth = dustField(p + toLight * .28) * .30;
+                shadowDepth += dustField(p + toLight * .85) * .60;
+                shadowDepth += dustField(p + toLight * 1.85) * .95;
+                float direct = exp(-shadowDepth * materialParams.density * 1.85);
+                // Silver-lining powder effect on thin sunlit outer edges (Beer-Powder law).
+                float powder = 1.0 - 0.45 * exp(-dust * 1.8);
+                float h = clamp((p.y - materialParams.volumeOrigin.y) / 5.2, 0.0, 1.0);
+                vec3 baseTint = materialParams.dustColor;
+                vec3 shadowTint = materialParams.stormType < 0.5
+                    ? mix(vec3(0.055, 0.050, 0.048), vec3(0.065, 0.082, 0.115), smoothstep(0.05, 0.55, h))
+                    : baseTint * vec3(0.28, 0.18, 0.11);
+                vec3 litTint = materialParams.stormType < 0.5
+                    ? mix(vec3(0.46, 0.39, 0.31), vec3(0.56, 0.64, 0.74), smoothstep(0.0, 0.38, h))
+                    : baseTint * vec3(1.32, 1.08, 0.84);
+                vec3 color = mix(shadowTint, litTint * phase * powder, direct) * 0.48;
+                scattering += transmission * opacity * color;
+                transmission *= 1.0 - opacity;
+                if (transmission < .012) break;
+            }
+        }
+        material.baseColor = vec4(scattering, 1.0 - transmission);
+    }
+}

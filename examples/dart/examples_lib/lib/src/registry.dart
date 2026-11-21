@@ -28,6 +28,44 @@ import 'load_gltf.dart';
 import 'load_via_assimp.dart';
 import 'shadows.dart';
 import 'skybox_and_background.dart';
+import 'game_effects_hit_flash.dart';
+import 'game_effects_hologram.dart';
+import 'game_effects_force_field.dart';
+import 'game_effects_dissolve_burn.dart';
+import 'game_effects_water.dart';
+import 'game_effects_smoke.dart';
+import 'game_effects_fire.dart';
+import 'game_effects_lava.dart';
+import 'game_effects_shockwave.dart';
+import 'game_effects_shore_waves.dart';
+import 'game_effects_wetness.dart';
+import 'game_effects_crystal_ice.dart';
+import 'game_effects_snow_accumulation.dart';
+import 'game_effects_damage_decals.dart';
+import 'game_effects_portal_rift.dart';
+import 'game_effects_electricity.dart';
+import 'game_effects_invisibility_cloak.dart';
+import 'game_effects_energy_weapon.dart';
+import 'game_effects_thruster.dart';
+import 'game_effects_cryogenic_blast.dart';
+import 'game_effects_black_hole.dart';
+import 'game_effects_teleportation.dart';
+import 'game_effects_meteor_impact.dart';
+import 'game_effects_corrosive_acid.dart';
+import 'game_effects_rain_glass.dart';
+import 'game_effects_fog_light_shafts.dart';
+import 'game_effects_storm.dart';
+import 'game_effects_cloth.dart';
+import 'game_effects_hair_fur.dart';
+import 'game_effects_cosmic.dart';
+import 'game_effects_iridescence.dart';
+import 'game_effects_interior_mapping.dart';
+import 'game_effects_subsurface.dart';
+import 'game_effects_car_paint.dart';
+import 'game_effects_underwater_caustics.dart';
+import 'game_effects_ferrofluid.dart';
+import 'game_effects_showcase.dart';
+import 'noise_showcase.dart';
 
 /// A scene-setup function: configures a scene on a ready [ThermionViewer].
 typedef ExampleSetup = Future<void> Function(
@@ -41,6 +79,46 @@ final Map<String, ExampleSetup> registry = {
   'bone_animation': setupBoneAnimation,
   'camera_basics': setupCameraBasics,
   'custom_geometry': setupCustomGeometry,
+  'game_effects_hit_flash': setupHitFlash,
+  'game_effects_hologram': setupHologram,
+  'game_effects_force_field': setupForceField,
+  'game_effects_dissolve_burn': setupDissolveBurn,
+  'game_effects_water': setupWater,
+  'game_effects_smoke': setupSmoke,
+  'game_effects_fire': setupFire,
+  'game_effects_lava': setupLava,
+  'game_effects_shockwave': setupShockwave,
+  'game_effects_shore_waves': setupShoreWaves,
+  'game_effects_wetness': setupWetness,
+  'game_effects_crystal_ice': setupCrystalIce,
+  'game_effects_snow_accumulation': setupSnowAccumulation,
+  'game_effects_damage_decals': setupDamageDecals,
+  'game_effects_portal_rift': setupPortalRift,
+  'game_effects_electricity': setupElectricity,
+  'game_effects_invisibility_cloak': setupInvisibilityCloak,
+  'game_effects_energy_weapon': setupEnergyWeapon,
+  'game_effects_thruster': setupThruster,
+  'game_effects_cryogenic_blast': setupCryogenicBlast,
+  'game_effects_black_hole': setupBlackHole,
+  'game_effects_teleportation': setupTeleportation,
+  'game_effects_meteor_impact': setupMeteorImpact,
+  'game_effects_corrosive_acid': setupCorrosiveAcid,
+  'game_effects_rain_glass': setupRainGlass,
+  'game_effects_fog_light_shafts': setupFogLightShafts,
+  'game_effects_tornado': setupTornado,
+  'game_effects_sandstorm': setupSandstorm,
+  'game_effects_cloth': setupCloth,
+  'game_effects_hair_fur': setupHairFur,
+  'game_effects_aurora': setupAurora,
+  'game_effects_nebula': setupNebula,
+  'game_effects_iridescence': setupIridescence,
+  'game_effects_interior_mapping': setupInteriorMapping,
+  'game_effects_subsurface': setupSubsurface,
+  'game_effects_car_paint': setupCarPaint,
+  'game_effects_underwater_caustics': setupUnderwaterCaustics,
+  'game_effects_ferrofluid': setupFerrofluid,
+  'game_effects_showcase': setupShowcase,
+  'noise_showcase': setupNoiseShowcase,
   'geometry_primitives': setupGeometryPrimitives,
   'gizmo_basics': setupGizmoBasics,
   'gltf_animation': setupGltfAnimation,
@@ -67,9 +145,48 @@ final Map<String, ExampleSetup> registry = {
 /// concept area). The original per-concept setups in [registry] stay available
 /// for the headless CLI runner's PNG reference.
 final Map<String, ExampleSetup> galleryScenes = {
+  'showcase': setupShowcase,
   'basics': setupBasics,
   'geometry': setupGeometry,
   'materials_and_lighting': setupMaterialsAndLighting,
   'animation': setupAnimation,
   'effects': setupEffects,
+  'hit_flash': setupHitFlash,
+  'hologram': setupHologram,
+  'force_field': setupForceField,
+  'dissolve_burn': setupDissolveBurn,
+  'water': setupWater,
+  'smoke': setupSmoke,
+  'fire': setupFire,
+  'lava': setupLava,
+  'shockwave': setupShockwave,
+  'shore_waves': setupShoreWaves,
+  'wetness': setupWetness,
+  'crystal_ice': setupCrystalIce,
+  'snow_accumulation': setupSnowAccumulation,
+  'damage_decals': setupDamageDecals,
+  'portal_rift': setupPortalRift,
+  'electricity': setupElectricity,
+  'invisibility_cloak': setupInvisibilityCloak,
+  'energy_weapon': setupEnergyWeapon,
+  'thruster': setupThruster,
+  'cryogenic_blast': setupCryogenicBlast,
+  'black_hole': setupBlackHole,
+  'teleportation': setupTeleportation,
+  'meteor_impact': setupMeteorImpact,
+  'corrosive_acid': setupCorrosiveAcid,
+  'rain_glass': setupRainGlass,
+  'fog_light_shafts': setupFogLightShafts,
+  'tornado': setupTornado,
+  'sandstorm': setupSandstorm,
+  'cloth': setupCloth,
+  'hair_fur': setupHairFur,
+  'aurora': setupAurora,
+  'nebula': setupNebula,
+  'iridescence': setupIridescence,
+  'interior_mapping': setupInteriorMapping,
+  'subsurface': setupSubsurface,
+  'car_paint': setupCarPaint,
+  'underwater_caustics': setupUnderwaterCaustics,
+  'ferrofluid': setupFerrofluid,
 };

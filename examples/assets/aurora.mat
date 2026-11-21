@@ -1,0 +1,55 @@
+material {
+    name : Aurora,
+    shadingModel : unlit,
+    culling : front,
+    depthWrite : true,
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : speed },
+        { type : float, name : intensity },
+        { type : float, name : curtainScale },
+        { type : float, name : colorShift },
+        { type : float, name : starAmount },
+        { type : float, name : sampleCount }
+    ],
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+fragment {
+    #include "cosmic_noise.glsl"
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        vec3 eye = (getUserWorldFromWorldMatrix() * vec4(getWorldCameraPosition(), 1)).xyz;
+        vec3 ray = normalize(getUserWorldPosition() - eye);
+        vec3 color = mix(vec3(.0006, .0012, .004), vec3(.0025, .004, .009),
+                         pow(1.0 - max(ray.y, 0.0), 5.0));
+        color += cosmicStars(ray, materialParams.starAmount) * smoothstep(-.03, .12, ray.y);
+        float t = materialParams.time * materialParams.speed;
+        if (ray.y > .015 && materialParams.intensity > 0.0) {
+            vec3 glow = vec3(0.0);
+            float samples = materialParams.sampleCount > 0.0 ? clamp(materialParams.sampleCount, 16.0, 96.0) : 96.0;
+            float jitter = cosmicHash(vec3(floor(getNormalizedViewportCoord().xy * getResolution().xy), 9.0));
+            for (int i = 0; i < 96; i++) {
+                if (float(i) >= samples) break;
+                float h = (float(i) + jitter) / samples;
+                float altitude = .8 + h * 1.8;
+                vec2 p = ray.xz * (altitude / ray.y) * materialParams.curtainScale;
+                float wave = sin(p.x * .83 + t * .14) * .65 + sin(p.x * 1.9 - t * .11) * .23;
+                wave += (cosmicNoise(vec3(p.x * 2.8, 0, t * .06)) - .5) * .8;
+                float ribbon = p.y + 3.6 + wave;
+                float width = max(.15, (3.84 / samples) / ray.y);
+                float curtain = exp(-ribbon * ribbon / (width * width)) * .15 / width;
+                float second = p.y + 6.4 + wave * 1.5;
+                curtain += exp(-second * second / (width * width * 1.5)) * .09 / width;
+                float rayDetail = .3 + .7 * cosmicNoise(vec3(p.x * 24.0, p.y * 3.0, t * .28));
+                rayDetail *= .2 + .8 * cosmicNoise(vec3(p.x * 67.0, p.y * 2.0, t * .19));
+                float envelope = smoothstep(0.0, .07, h) * exp(-h * 4.5);
+                vec3 lower = mix(vec3(.015, 1, .32), vec3(.045, .3, 1), materialParams.colorShift);
+                vec3 upper = mix(vec3(.35, .055, .65), vec3(.8, .09, .28), materialParams.colorShift);
+                vec3 emission = mix(lower, upper, smoothstep(.08, .75, h));
+                glow += emission * curtain * rayDetail * envelope;
+            }
+            color += glow * materialParams.intensity * (5.88 / samples) * smoothstep(.03, .14, ray.y);
+        }
+        material.baseColor = vec4(color, 1.0);
+    }
+}

@@ -1,0 +1,362 @@
+material {
+    name : NoiseShowcase,
+    requires : [ position ],
+    variables : [ objectPos ],
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : noiseType },
+        { type : float, name : scale },
+        { type : float, name : tileSize }
+    ],
+    depthWrite : true,
+    depthCulling : true,
+    shadingModel : unlit,
+    blending : opaque,
+    culling : none,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.objectPos.xyz = getPosition().xyz;
+    }
+}
+
+fragment {
+    // ------------------------------------------------------------------
+    // A zoo of procedural noise TEXTURE GENERATORS, one per tile of the
+    // showcase wall. Everything is derived from two hash primitives; the
+    // generators are kept standalone so an effect material can lift any
+    // single function (plus its hash dependency) verbatim.
+    //
+    // noiseType selects the generator:
+    //   0  white noise (film grain, re-hashed at ~18 fps)
+    //   1  value noise (smoothstep-interpolated lattice)
+    //   2  Perlin gradient noise (quintic fade, hashed unit gradients)
+    //   3  simplex noise (Ashima/Gustavson 2D)
+    //   4  fbm (5 octaves of Perlin)
+    //   5  billow / turbulence (abs per octave)
+    //   6  ridged multifractal (squared ridges + weight feedback)
+    //   7  domain warp (fbm(p + 4*fbm(p + 4*fbm(p))), IQ palette)
+    //   8  Voronoi F1 (cell-ID colors, drifting points)
+    //   9  Worley crackle (F2 - F1 edges)
+    //  10  curl noise (4-step self-advection through a scalar fbm curl)
+    //  11  smooth Voronoi (exponential smooth-min, organic blobs)
+    //
+    // `scale` is per-tile: lattice cells for the gradient family, pixels
+    // for white noise. The bottom-left corner of every tile carries four
+    // binary index dots (faint ring = 0 bit, lit dot = 1 bit, LSB first).
+    // ------------------------------------------------------------------
+
+    float nzHash21(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
+    vec2 nzHash22(vec2 p) {
+        return fract(sin(vec2(dot(p, vec2(127.1, 311.7)),
+                              dot(p, vec2(269.5, 183.3)))) * 43758.5453);
+    }
+
+    float nzValue(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        vec2 u = f * f * (3.0 - 2.0 * f);
+        return mix(mix(nzHash21(i), nzHash21(i + vec2(1.0, 0.0)), u.x),
+                   mix(nzHash21(i + vec2(0.0, 1.0)),
+                       nzHash21(i + vec2(1.0, 1.0)), u.x), u.y);
+    }
+
+    vec2 nzGrad(vec2 p) {
+        float a = nzHash21(p) * 6.2831853;
+        return vec2(cos(a), sin(a));
+    }
+
+    float nzPerlin(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        // Improved Perlin quintic fade.
+        vec2 u = f * f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+        float a = dot(nzGrad(i), f);
+        float b = dot(nzGrad(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0));
+        float c = dot(nzGrad(i + vec2(0.0, 1.0)), f - vec2(0.0, 1.0));
+        float d = dot(nzGrad(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0));
+        return mix(mix(a, b, u.x), mix(c, d, u.x), u.y) * 1.4142;
+    }
+
+    vec3 nzMod289(vec3 x) {
+        return x - floor(x * (1.0 / 289.0)) * 289.0;
+    }
+
+    vec2 nzMod289v2(vec2 x) {
+        return x - floor(x * (1.0 / 289.0)) * 289.0;
+    }
+
+    vec3 nzPermute(vec3 x) {
+        return nzMod289(((x * 34.0) + 1.0) * x);
+    }
+
+    float nzSimplex(vec2 v) {
+        const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+                            -0.577350269189626, 0.024390243902439);
+        vec2 i = floor(v + dot(v, C.yy));
+        vec2 x0 = v - i + dot(i, C.xx);
+        vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+        vec4 x12 = x0.xyxy + C.xxzz;
+        x12.xy -= i1;
+        i = nzMod289v2(i);
+        vec3 p = nzPermute(nzPermute(i.y + vec3(0.0, i1.y, 1.0)) +
+                           i.x + vec3(0.0, i1.x, 1.0));
+        vec3 m = max(0.5 - vec3(dot(x0, x0), dot(x12.xy, x12.xy),
+                                dot(x12.zw, x12.zw)), 0.0);
+        m = m * m;
+        m = m * m;
+        vec3 x = 2.0 * fract(p * C.www) - 1.0;
+        vec3 h = abs(x) - 0.5;
+        vec3 ox = floor(x + 0.5);
+        vec3 a0 = x - ox;
+        m *= 1.79284291400159 - 0.85373472095314 * (a0 * a0 + h * h);
+        vec3 g;
+        g.x = a0.x * x0.x + h.x * x0.y;
+        g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+        return 130.0 * dot(m, g);
+    }
+
+    // 5-octave fractal sums of Perlin. nzFbm returns ~[-1, 1],
+    // nzFbm01 remaps to ~[0, 1].
+    float nzFbm(vec2 p) {
+        float v = 0.0;
+        float a = 0.5;
+        vec2 q = p;
+        for (int i = 0; i < 5; i++) {
+            v += a * nzPerlin(q);
+            q = q * 2.02 + vec2(11.3, 7.7);
+            a *= 0.5;
+        }
+        return v / 0.96875;
+    }
+
+    float nzFbm01(vec2 p) {
+        return 0.5 + 0.5 * nzFbm(p);
+    }
+
+    float nzBillow(vec2 p) {
+        float v = 0.0;
+        float a = 0.5;
+        vec2 q = p;
+        for (int i = 0; i < 5; i++) {
+            v += a * abs(nzPerlin(q));
+            q = q * 2.05 + vec2(4.7, 9.1);
+            a *= 0.5;
+        }
+        return v / 0.96875;
+    }
+
+    float nzRidged(vec2 p) {
+        float v = 0.0;
+        float a = 0.5;
+        float w = 1.0;
+        vec2 q = p;
+        for (int i = 0; i < 5; i++) {
+            float n = 1.0 - abs(nzPerlin(q));
+            n = n * n * w;
+            w = clamp(n * 1.8, 0.0, 1.0);
+            v += a * n;
+            q = q * 2.08 + vec2(7.1, 3.3);
+            a *= 0.5;
+        }
+        return v / 0.96875;
+    }
+
+    // Inigo Quilez's domain-warp warping demo: two nested fbm
+    // displacements color-mapped through his classic palette.
+    vec3 nzDomainWarp(vec2 p, float t) {
+        vec2 q = vec2(nzFbm01(p + vec2(0.0, 0.0) + 0.10 * t),
+                      nzFbm01(p + vec2(5.2, 1.3) - 0.07 * t));
+        vec2 r = vec2(nzFbm01(p + 4.0 * q + vec2(1.7, 9.2) + 0.15 * t),
+                      nzFbm01(p + 4.0 * q + vec2(8.3, 2.8) - 0.11 * t));
+        float f = nzFbm01(p + 4.0 * r);
+        float ff = f * f;
+        vec3 col = mix(vec3(0.101, 0.619, 0.666),
+                       vec3(0.666, 0.666, 0.498),
+                       clamp(ff * 4.0, 0.0, 1.0));
+        col = mix(col, vec3(0.125, 0.125, 0.566),
+                  clamp(length(q), 0.0, 1.0));
+        col = mix(col, vec3(0.666, 1.0, 0.25),
+                  clamp(length(r.x), 0.0, 1.0));
+        col = mix(col, vec3(0.966, 1.0, 0.966),
+                  clamp(ff * 3.6, 0.0, 1.0) * 0.4);
+        col *= f * ff * f + 0.6 * ff + 0.5 * f;
+        return col;
+    }
+
+    vec3 nzVoronoiCells(vec2 p, float t) {
+        vec2 n = floor(p);
+        vec2 f = fract(p);
+        float md = 8.0;
+        float md2 = 8.0;
+        float cellHash = 0.0;
+        for (int j = -1; j <= 1; j++) {
+            for (int i = -1; i <= 1; i++) {
+                vec2 g = vec2(float(i), float(j));
+                vec2 o = nzHash22(n + g);
+                o = 0.5 + 0.42 * sin(t * 0.7 + 6.2831 * o);
+                vec2 r = g + o - f;
+                float d = dot(r, r);
+                if (d < md) {
+                    md2 = md;
+                    md = d;
+                    cellHash = nzHash21(n + g);
+                } else if (d < md2) {
+                    md2 = d;
+                }
+            }
+        }
+        float f1 = sqrt(md);
+        float f2 = sqrt(md2);
+        vec3 idCol = 0.55 + 0.45 * cos(cellHash * 6.2831 +
+                                       vec3(0.0, 2.1, 4.2));
+        // Dim toward cell borders, bright near the drifting feature point.
+        vec3 col = idCol * (0.25 + 0.75 * (1.0 - smoothstep(0.0, 0.72, f1)));
+        float edge = 1.0 - smoothstep(0.0, 0.07, f2 - f1);
+        return mix(col, vec3(0.92, 0.95, 1.0), edge * 0.75);
+    }
+
+    float nzCrackle(vec2 p, float t) {
+        vec2 n = floor(p);
+        vec2 f = fract(p);
+        float md = 8.0;
+        float md2 = 8.0;
+        for (int j = -1; j <= 1; j++) {
+            for (int i = -1; i <= 1; i++) {
+                vec2 g = vec2(float(i), float(j));
+                vec2 o = nzHash22(n + g);
+                o = 0.5 + 0.42 * sin(t * 0.6 + 6.2831 * o);
+                vec2 r = g + o - f;
+                float d = dot(r, r);
+                if (d < md) {
+                    md2 = md;
+                    md = d;
+                } else if (d < md2) {
+                    md2 = d;
+                }
+            }
+        }
+        return sqrt(md2) - sqrt(md);
+    }
+
+    // Divergence-free flow from the curl of a scalar fbm potential,
+    // visualized by self-advecting the sample point a few steps down
+    // the field and shading the transported density - the streaks are
+    // streamlines, which is what curl noise is FOR.
+    vec2 nzCurl(vec2 p, float t) {
+        float e = 0.12;
+        float dpx = nzFbm(p * 1.2 + vec2(t * 0.10, -t * 0.13) + vec2(e, 0.0)) -
+                    nzFbm(p * 1.2 + vec2(t * 0.10, -t * 0.13) - vec2(e, 0.0));
+        float dpy = nzFbm(p * 1.2 + vec2(t * 0.10, -t * 0.13) + vec2(0.0, e)) -
+                    nzFbm(p * 1.2 + vec2(t * 0.10, -t * 0.13) - vec2(0.0, e));
+        return vec2(dpy, -dpx) / (2.0 * e);
+    }
+
+    float nzCurlFlow(vec2 p, float t) {
+        vec2 q = p;
+        for (int i = 0; i < 4; i++) {
+            q += 0.30 * nzCurl(q, t);
+        }
+        return nzFbm01(q * 1.4);
+    }
+
+    // IQ's smooth Voronoi: exponential smooth-min over a 5x5 neighborhood
+    // turns cell distances into organic, metaball-like blobs.
+    float nzSmoothVoronoi(vec2 p, float t) {
+        vec2 n = floor(p);
+        vec2 f = fract(p);
+        float sm = 0.0;
+        for (int j = -2; j <= 2; j++) {
+            for (int i = -2; i <= 2; i++) {
+                vec2 g = vec2(float(i), float(j));
+                vec2 o = nzHash22(n + g);
+                o = 0.5 + 0.40 * sin(t * 0.5 + 6.2831 * o);
+                float d = length(g + o - f);
+                sm += exp(-4.5 * d);
+            }
+        }
+        return -(1.0 / 4.5) * log(max(sm, 1e-4));
+    }
+
+    // Four binary index dots (LSB first) in the tile's bottom-left corner:
+    // a lit dot is a 1 bit, a faint ring a 0 bit.
+    float nzIndexDots(vec2 uv, float nt) {
+        float m = 0.0;
+        for (int k = 0; k < 4; k++) {
+            float fk = float(k);
+            vec2 c = vec2(0.085 + fk * 0.055, 0.085);
+            float d = length(uv - c);
+            float on = mod(floor(nt / exp2(fk)), 2.0);
+            float lit = (1.0 - smoothstep(0.016, 0.026, d)) * on;
+            float ring = (1.0 - smoothstep(0.004, 0.009, abs(d - 0.021)));
+            m = max(m, lit + ring * 0.30);
+        }
+        return min(m, 1.0);
+    }
+
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        float t = materialParams.time;
+        float nt = materialParams.noiseType;
+        vec2 p = variable_objectPos.xz * materialParams.scale;
+        vec2 uv = variable_objectPos.xz / materialParams.tileSize + 0.5;
+
+        vec3 col;
+        if (nt < 0.5) {
+            // White noise: lattice = pixels, re-hashed at ~18 fps.
+            col = vec3(nzHash21(floor(p) + floor(t * 18.0) * 0.61803));
+        } else if (nt < 1.5) {
+            float n = nzValue(p) * 2.0 - 1.0;
+            col = vec3(0.5 + 0.62 * n);
+        } else if (nt < 2.5) {
+            float n = nzPerlin(p);
+            col = vec3(clamp(0.5 + 0.85 * n, 0.0, 1.0));
+        } else if (nt < 3.5) {
+            float n = nzSimplex(p);
+            col = vec3(clamp(0.5 + 0.62 * n, 0.0, 1.0));
+        } else if (nt < 4.5) {
+            float n = nzFbm(p + vec2(t * 0.05, t * 0.04));
+            col = vec3(clamp(0.5 + 1.35 * n, 0.0, 1.0));
+        } else if (nt < 5.5) {
+            // abs() per octave clusters billow values tightly around its
+            // mean; re-center and stretch hard or it renders as flat gray.
+            float n = nzBillow(p + vec2(t * 0.05, t * 0.04));
+            col = vec3(clamp(0.5 + 2.4 * (n - 0.5), 0.0, 1.0));
+        } else if (nt < 6.5) {
+            float n = nzRidged(p + vec2(t * 0.045, t * 0.04));
+            col = vec3(clamp(n * 1.35 - 0.05, 0.0, 1.0));
+        } else if (nt < 7.5) {
+            // IQ's palette is tuned for direct display with darks at true
+            // zero; the showcase pipeline lifts small values toward mid, so
+            // push mids down with a gamma before display.
+            col = clamp(pow(nzDomainWarp(p, t), vec3(1.6)) * 2.1, 0.0, 1.0);
+        } else if (nt < 8.5) {
+            col = nzVoronoiCells(p, t);
+        } else if (nt < 9.5) {
+            float edge = nzCrackle(p, t);
+            col = vec3(1.0 - smoothstep(0.0, 0.34, edge));
+            col *= col;
+        } else if (nt < 10.5) {
+            float d = nzCurlFlow(p, t);
+            vec3 ramp = mix(vec3(0.0, 0.0, 0.0), vec3(0.04, 0.38, 0.62),
+                            smoothstep(0.10, 0.50, d));
+            ramp = mix(ramp, vec3(0.98, 0.82, 0.35),
+                       smoothstep(0.52, 0.92, d));
+            col = ramp;
+        } else {
+            // The smooth-min distance only spans ~[0.05, 0.45]; expand
+            // through that exact window or the tile goes flat.
+            float n = nzSmoothVoronoi(p, t);
+            col = vec3(smoothstep(0.02, 0.42, n));
+        }
+
+        col = mix(col, vec3(0.96), nzIndexDots(uv, nt) * 0.85);
+        material.baseColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+    }
+}

@@ -1,0 +1,76 @@
+material {
+    name : HairCards,
+    shadingModel : lit,
+    blending : masked,
+    maskThreshold : 0.45,
+    doubleSided : true,
+    flipUV : false,
+    requires : [ uv0, tangents ],
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : windSpeed },
+        { type : float, name : windStrength },
+        { type : float, name : roughness },
+        { type : float, name : anisotropy },
+        { type : float3, name : rootColor },
+        { type : float3, name : tipColor }
+    ],
+    variantFilter : [ skinning ]
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        float t = materialParams.time * materialParams.windSpeed;
+        float tip = material.uv0.y * material.uv0.y;
+        float lock = floor(material.uv0.x);
+        vec3 bend = vec3(sin(t * 1.7 + lock * .23), .1 * sin(t + lock),
+                         .4 * sin(t * 2.3 + lock * .31));
+        material.worldPosition.xyz += bend * tip * materialParams.windStrength * .16;
+    }
+}
+fragment {
+    float hairHash(float p) { return fract(sin(p * 127.1) * 43758.5453); }
+    void material(inout MaterialInputs material) {
+        vec2 uv = getUV0();
+        float lock = floor(uv.x);
+        float u = fract(uv.x);
+        // Multi-scale overlapping hair clumping + fine individual fiber strands.
+        float clump = u * 5.0 + 0.08 * sin(uv.y * 7.0 + lock * 1.7);
+        float strand = u * 26.0 + 0.12 * sin(uv.y * 10.0 + lock * 2.3);
+        float id = floor(strand);
+        float seed = hairHash(id + lock * 19.0);
+        float clumpSeed = hairHash(floor(clump) + lock * 7.0);
+        float center = abs(fract(strand) - 0.5);
+
+        // Staggered natural tip lengths so locks feather softly instead of chopping flat.
+        float tipStart = 0.48 + clumpSeed * 0.22 + seed * 0.24;
+        float taper = 1.0 - smoothstep(tipStart, min(tipStart + 0.22, 1.0), uv.y);
+        float width = (0.24 + seed * 0.22) * taper;
+        float aa = max(fwidth(strand) * 0.65, 0.03);
+        float coverage = 1.0 - smoothstep(width - aa, width + aa, center);
+        coverage *= smoothstep(0.0, 0.06, u) * (1.0 - smoothstep(0.94, 1.0, u));
+
+        // Cylindrical fiber cross-section normal + Marschner-style longitudinal cuticle tilt
+        // (~4 deg toward root, jittered per strand for realistic sparkling hair sheen!).
+        float cylX = sin((fract(strand) - 0.5) * 3.14159) * 0.28;
+        float cuticleTilt = -0.09 + (seed - 0.5) * 0.07;
+        material.normal = normalize(vec3(cylX, cuticleTilt, 1.0));
+        prepareMaterial(material);
+
+        // Rich melanin root-to-tip ombre + per-strand natural highlight variation.
+        vec3 basePigment = mix(materialParams.rootColor, materialParams.tipColor,
+                               smoothstep(0.06, 0.88, uv.y));
+        float strandVar = 0.68 + 0.64 * seed;
+        float clumpShade = 0.82 + 0.28 * clumpSeed;
+        material.baseColor = vec4(basePigment * strandVar * clumpShade, coverage);
+        material.roughness = clamp(materialParams.roughness, 0.12, 1.0);
+        material.metallic = 0.0;
+        material.reflectance = 0.46;
+        // In Filament GGX anisotropy, roughness is stretched along anisotropyDirection
+        // and compressed perpendicular to it — so (1, 0, 0) produces the authentic
+        // horizontal angel-ring crown halo across vertical hair strands!
+        material.anisotropy = materialParams.anisotropy;
+        material.anisotropyDirection = vec3(1, 0, 0);
+        material.ambientOcclusion = (0.42 + 0.58 * smoothstep(0.0, 0.65, uv.y)) *
+                                    (0.85 + 0.15 * cos(fract(clump) * 6.28318));
+    }
+}
