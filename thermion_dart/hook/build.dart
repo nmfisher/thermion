@@ -578,19 +578,19 @@ outputDirectory : ${outputDirectory.path}
 
     if (targetOS == OS.linux) {
       flags.add("-Wl,--export-dynamic");
-      // Filament's libbackend.a is built with -fno-rtti, so classes
-      // like backend::OpenGLPlatform have no typeinfo. Compiling
-      // Thermion's subclasses (ThermionPlatformEGLHeadless etc) with
-      // RTTI on creates vtables that reference the missing typeinfo
-      // symbol and the resulting .so fails to load. Match Filament's
-      // flag to keep vtables minimal.
-      flags.add("-fno-rtti");
-      // Dawn's webgpu_dawn monolithic archive bundles its own copy of
-      // SPIRV-Tools, which collides at link time with the SPIRV-Tools
-      // objects that Filament's filamat bundles. Let the linker pick
-      // one — both copies are compatible for symbol resolution and we
-      // don't care which gets exported. Only enable when webgpu is on.
+      // Dawn's webgpu_dawn monolithic archive is built without RTTI, so
+      // Thermion's WebGPUPlatform subclasses must match it to keep vtables
+      // consistent. The canonical Filament artifacts are built with
+      // FILAMENT_ENABLE_RTTI=ON (scripts/build_linux.sh), so default
+      // (non-WebGPU) builds keep RTTI enabled and only gate these flags on
+      // the WebGPU opt-in.
       if (webgpuEnabled) {
+        flags.add("-fno-rtti");
+        // Dawn's webgpu_dawn monolithic archive bundles its own copy of
+        // SPIRV-Tools, which collides at link time with the SPIRV-Tools
+        // objects that Filament's filamat bundles. Let the linker pick
+        // one — both copies are compatible for symbol resolution and we
+        // don't care which gets exported.
         flags.add("-Wl,--allow-multiple-definition");
       }
     }

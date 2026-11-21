@@ -11,8 +11,10 @@
 
 #include <backend/Platform.h>
 #include <backend/platforms/PlatformWebGL.h>
+#if defined(THERMION_SUPPORTS_WEBGPU)
 #include <backend/platforms/WebGPUPlatform.h>
 #include <webgpu/webgpu_cpp.h>
+#endif
 
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
@@ -42,6 +44,7 @@ EMSCRIPTEN_WEBGL_CONTEXT_HANDLE createWebGLContextForCurrentJob() {
 
 namespace {
 
+#if defined(THERMION_SUPPORTS_WEBGPU)
 class ThermionWebGPUPlatform : public filament::backend::WebGPUPlatform {
 public:
     // The canvas selector is resolved once, at platform creation (which
@@ -77,6 +80,7 @@ protected:
 private:
     std::string _canvasSelector;
 };
+#endif // THERMION_SUPPORTS_WEBGPU
 
 } // namespace
 
@@ -151,6 +155,7 @@ extern "C"
     return _context;
   }
 
+#if defined(THERMION_SUPPORTS_WEBGPU)
   EMSCRIPTEN_KEEPALIVE void *Thermion_createWebGPUPlatform() {
     // Honor the canvas selector configured for this viewer's job thread
     // (Engine_create on the web runs inside that thread's job), falling
@@ -162,5 +167,6 @@ extern "C"
     std::cout << "Creating WebGPU platform for canvas " << canvasSelector << std::endl;
     return static_cast<filament::backend::Platform *>(new ThermionWebGPUPlatform(canvasSelector));
   }
+#endif
 
 }
