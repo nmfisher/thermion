@@ -649,23 +649,23 @@ jobs:
           - name: Linux
             artifact: dart-test-output-Linux
             baseline_asset: dart-test-output-Linux.zip
-            baseline_sha256: b945703739670a81dc555fc6f3610ab6be0bad20bf598ee68cc0daade4f1f8a6
+            baseline_sha256: bae2af70850b4430165be14a639a3f15ae02b926f2d6f963d1a91964b2a36971
           - name: Windows
             artifact: dart-test-output-Windows
             baseline_asset: dart-test-output-Windows.zip
-            baseline_sha256: 51b600f1db7c2c6b63cc42f92edfbcad4d608b25762fb0944e317cd2dfd631a2
+            baseline_sha256: 97dfcbb033dbb3b2103ef9225fbe1fd79b0a270da545ba050a6a75748386b020
           - name: macOS
             artifact: dart-test-output-macOS
             baseline_asset: dart-test-output-macOS.zip
-            baseline_sha256: 5f3f00eade62747cf14dc23ecfa39130be94d2f22f9bdc2fb6db330d1830c996
+            baseline_sha256: 0445323beac95378a0c6725d08743f61587e99ac7cd831cc3706801a371c8511
           - name: Linux opengl-only
             artifact: dart-material-output-Linux opengl-only
             baseline_asset: dart-material-output-Linux-opengl-only.zip
-            baseline_sha256: d56293460b1baaa388d2d1ed35523e54a52dc520178f7617c418e952cdcb6728
+            baseline_sha256: a903567d420f6de5587c7827982db82146a583e3ac30cbf106ed2d3641ea8aea
           - name: Windows vulkan-only
             artifact: dart-material-output-Windows vulkan-only
             baseline_asset: dart-material-output-Windows-vulkan-only.zip
-            baseline_sha256: 91abd9fac57c9cd2c7d3165b7492304fff7d8367ba9065be2b386a62f7cc9e47
+            baseline_sha256: 89b9bb01cc864b838b7ed12307c11715c1b112dc1da50220c85b62d958e17533
     steps:
       - uses: actions/checkout@v4
         with:
@@ -680,11 +680,11 @@ jobs:
       - name: Download reviewed platform baseline
         env:
           # Reviewed PNGs live on Cloudflare R2 under render-baselines/<id>/.
-          # Provenance is recorded in baseline-review.json at the same prefix.
-          # To refresh, review captures, upload the zips to R2 under a new
-          # prefix, then update BASELINE_ID and the per-platform SHA-256 values.
+          # Review captures, then run scripts/update_goldens.sh --run <run-id>
+          # with the approved PNG paths. Add --publish to upload and advance
+          # these pins. Each version records its provenance in baseline-review.json.
           BASELINE_BASE_URL: https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/render-baselines
-          BASELINE_ID: 2026-11-20-atomic-capture
+          BASELINE_ID: run-44875718579-c0bb4a5566d1cd42ab6b
           BASELINE_ASSET: ${{ matrix.baseline_asset }}
           BASELINE_SHA256: ${{ matrix.baseline_sha256 }}
         run: |
