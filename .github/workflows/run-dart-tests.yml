@@ -431,6 +431,8 @@ jobs:
                 skip_native_build: true
                 runtime_materials: ${{ matrix.enabled }}
                 web_variant: '${{ matrix.variant }}'
+                materials:
+                  sharp_edge: true
           EOF
 
       - name: Download the committed web engine
@@ -458,6 +460,7 @@ jobs:
           xvfb-run dart run tool/web_test_runner.dart --assets=../examples/assets --clean \
             test/runtime_material_${{ matrix.enabled && 'enabled' || 'disabled' }}_test.dart \
             test/material_package_test.dart \
+            test/embedded_material_loading_test.dart \
             ${{ matrix.enabled && 'test/runtime_material_metadata_test.dart test/runtime_material_diagnostics_test.dart' || '' }}
 
   runtime-materials-ios:

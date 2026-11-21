@@ -26,6 +26,8 @@ enum BuiltInMaterial {
   /// Key under hooks.user_defines.thermion_dart.materials.
   final String key;
 
+  String get wasmSectionName => 'thermion.material.$key';
+
   /// Whether the build hook compiles this material from its packaged source.
   bool get compiledOnDemand => this == normalColor || this == sharpEdge;
 }

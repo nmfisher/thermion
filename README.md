@@ -149,25 +149,19 @@ hooks:
 The build hook compiles only the debug shaders you enable. It downloads and caches
 the matching Filament tools on first use. Native builds link the generated shader
 for the selected graphics backend. `flutter run -d chrome` and
-`flutter build web` publish `.filamat` files under `web/thermion_materials/`.
+`flutter build web` embed the selected packages in `web/thermion_dart.wasm`.
 
 For a Flutter app inside a pub workspace, set `web_directory: apps/viewer/web`
 alongside `materials` under `hooks.user_defines.thermion_dart` in the workspace
 pubspec. The path is relative to that pubspec.
 
 For plain Dart web apps, `dart compile js` only compiles the Dart entrypoint.
-Use `dart run thermion_dart:download_web` to fetch the engine and compile each
-enabled shader separately with `matc` from the Filament release pinned by
-Thermion. Run these example commands from the app directory with
-`THERMION_PACKAGE` pointing at the `thermion_dart` package directory.
+Run the following to embed the selected materials in the engine, then deploy
+`thermion_dart.js` and `thermion_dart.wasm` together:
 
 ```sh
-mkdir -p web/thermion_materials
-matc -a opengl -a webgpu -o web/thermion_materials/normal_color.filamat \
-  "$THERMION_PACKAGE/hook/materials/normal_color.mat"
+dart run thermion_dart:download_web -o web --materials normal_color,sharp_edge
 ```
-
-Use `sharp_edge` in both filenames to enable that shader.
 
 In native builds the entries override the defaults individually. For example,
 `grid: false` removes the grid and `include_defaults: false` starts from an

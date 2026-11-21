@@ -8,6 +8,7 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import '../lib/filament_version.dart';
 import '../lib/src/filament/src/interface/built_in_material.dart';
+import '../lib/src/hooks/built_in_materials.dart';
 import '../lib/src/hooks/filament_artifacts.dart';
 import '../lib/src/hooks/material_backend_resolution.dart';
 import '../lib/src/hooks/material_tools.dart';
@@ -117,8 +118,17 @@ void main(List<String> args) async {
         }
         return;
       }
-      await _publishWebMaterials(input, output, webDir, optInMaterials, logger);
-      await _downloadWebArtifacts(input, webDir, logger);
+      final engineDir = await _resolveWebEngine(input, logger);
+      output.dependencies.add(input.packageRoot.resolve('native/web/web.version'));
+      await publishWebMaterials(
+        root: Directory.fromUri(input.packageRoot),
+        engineDir: engineDir,
+        webDir: webDir,
+        materials: optInMaterials,
+        download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
+        onLog: logger.info,
+        addDependency: output.dependencies.add,
+      );
       return;
     }
 
@@ -1045,7 +1055,7 @@ Directory? _findWebDirectory(BuildInput input, Logger logger) {
   return directory.existsSync() ? directory : null;
 }
 
-Future<void> _downloadWebArtifacts(BuildInput input, Directory webDir, Logger logger) async {
+Future<Directory> _resolveWebEngine(BuildInput input, Logger logger) async {
   final packageRoot = input.packageRoot.toFilePath(windows: Platform.isWindows);
 
   // The "web_variant" user define selects which prebuilt engine to fetch:
@@ -1077,33 +1087,21 @@ Future<void> _downloadWebArtifacts(BuildInput input, Directory webDir, Logger lo
       path.join(packageRoot, 'native', 'web', webLocalBuildDir(variant.zipSuffix), 'build', 'out'),
     );
     if (!localOut.existsSync()) {
-      logger.warning(
+      throw MaterialToolsError(
         'web_local: true set but ${localOut.path} does not exist; '
         'build the web target first, then re-run.',
       );
-      return;
     }
-    for (final name in ['thermion_dart.js', 'thermion_dart.wasm']) {
-      final src = File(path.join(localOut.path, name));
-      if (!src.existsSync()) {
-        logger.warning('$name not found in ${localOut.path}');
-        continue;
-      }
-      src.copySync(path.join(webDir.path, name));
-      logger.info('[web_local] Copied $name from ${localOut.path}');
-    }
-    return;
+    return localOut;
   }
 
   final versionFile = File(path.join(packageRoot, 'native', 'web', 'web.version'));
   if (!versionFile.existsSync()) {
-    logger.warning('web.version not found at ${versionFile.path}; skipping web artifact download');
-    return;
+    throw MaterialToolsError('Missing web engine version at ${versionFile.path}.');
   }
   final version = versionFile.readAsStringSync().trim();
   if (version.isEmpty || version == 'pending') {
-    logger.warning('web.version contains "$version"; skipping download (CI may not have uploaded yet)');
-    return;
+    throw MaterialToolsError('No published web engine version in ${versionFile.path}.');
   }
   logger.info('Web artifact version: $version');
 
@@ -1114,23 +1112,8 @@ Future<void> _downloadWebArtifacts(BuildInput input, Directory webDir, Logger lo
     path.join(packageRoot, '.dart_tool', 'thermion_dart', 'web', '$version${variant.cacheSuffix}'),
   );
 
-  try {
-    await _fetchWebZip(version, variant.zipSuffix, cacheDir, logger);
-  } catch (e) {
-    logger.warning('Failed to download web artifacts: $e');
-    return;
-  }
-
-  for (final name in ['thermion_dart.js', 'thermion_dart.wasm']) {
-    final src = File(path.join(cacheDir.path, name));
-    if (!src.existsSync()) {
-      logger.warning('$name not found in cache ${cacheDir.path}');
-      continue;
-    }
-    final dest = File(path.join(webDir.path, name));
-    src.copySync(dest.path);
-    logger.info('Copied $name to ${dest.path}');
-  }
+  await _fetchWebZip(version, variant.zipSuffix, cacheDir, logger);
+  return cacheDir;
 }
 
 Future<void> _fetchWebZip(String version, String zipSuffix, Directory cacheDir, Logger logger) async {
@@ -1353,33 +1336,4 @@ Future<Directory> _compileBuiltInMaterials(
   output.dependencies.add(input.packageRoot.resolve('pubspec.yaml'));
   output.dependencies.add(input.packageRoot.resolve(filamentPinFileName));
   return result.outputDir;
-}
-
-Future<void> _publishWebMaterials(
-  BuildInput input,
-  BuildOutputBuilder output,
-  Directory webDir,
-  List<BuiltInMaterial> materials,
-  Logger logger,
-) async {
-  final deployDir = Directory(path.join(webDir.path, 'thermion_materials'));
-  final compiled = materials.isEmpty
-      ? null
-      : await _compileBuiltInMaterials(input, output, materials, ['opengl', 'webgpu'], logger);
-  if (compiled != null) deployDir.createSync(recursive: true);
-  for (final material in BuiltInMaterial.values.where((material) => material.compiledOnDemand)) {
-    final name = '${material.key}.filamat';
-    final destination = File(path.join(deployDir.path, name));
-    if (compiled != null && materials.contains(material)) {
-      final source = File(path.join(compiled.path, name));
-      if (!destination.existsSync() ||
-          sha256.convert(source.readAsBytesSync()) != sha256.convert(destination.readAsBytesSync())) {
-        source.copySync(destination.path);
-      }
-      output.dependencies.add(destination.uri);
-    } else if (destination.existsSync()) {
-      destination.deleteSync();
-    }
-  }
-  if (deployDir.existsSync()) output.dependencies.add(deployDir.uri);
 }

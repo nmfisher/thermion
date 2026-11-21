@@ -37,11 +37,12 @@ Future<T> withMaterialOutputLock<T>(Directory output, Future<T> Function() actio
 
 /// Restore the previous generation after a process died during publication.
 /// Backups are copied, never moved, so interrupted recovery is safe to retry.
-void recoverMaterialPublication(Directory output) {
-  final journal = File(p.join(output.path, materialJournalName));
+void recoverMaterialPublication(Directory output, {Directory? stateDirectory}) {
+  final stateDir = stateDirectory ?? output;
+  final journal = File(p.join(stateDir.path, materialJournalName));
   if (journal.existsSync()) {
     final state = jsonDecode(journal.readAsStringSync()) as Map<String, dynamic>;
-    final stage = Directory(p.join(output.path, state['staging'] as String));
+    final stage = Directory(p.join(stateDir.path, state['staging'] as String));
     final existing = (state['existing'] as List).cast<String>().toSet();
     for (final name in (state['files'] as List).cast<String>()) {
       final destination = File(p.join(output.path, name));
@@ -58,7 +59,7 @@ void recoverMaterialPublication(Directory output) {
     if (stage.existsSync()) stage.deleteSync(recursive: true);
   }
   // Compilation can also be interrupted before a journal is prepared.
-  for (final entry in output.listSync().whereType<Directory>()) {
+  for (final entry in stateDir.listSync().whereType<Directory>()) {
     if (p.basename(entry.path).startsWith(materialStagingPrefix)) entry.deleteSync(recursive: true);
   }
 }
@@ -68,6 +69,7 @@ void recoverMaterialPublication(Directory output) {
 void publishMaterialBatch({
   required Directory output,
   required Directory staging,
+  Directory? stateDirectory,
   required List<String> outputs,
   required List<String> staleOutputs,
   required String manifestName,
@@ -83,7 +85,7 @@ void publishMaterialBatch({
       existing.add(name);
     }
   }
-  final journal = File(p.join(output.path, materialJournalName));
+  final journal = File(p.join((stateDirectory ?? output).path, materialJournalName));
   final temporaryJournal = File(p.join(staging.path, 'journal.json'));
   temporaryJournal.writeAsStringSync(
     jsonEncode({'staging': p.basename(staging.path), 'files': files, 'existing': existing}),
@@ -106,7 +108,7 @@ void publishMaterialBatch({
     // Removing the journal commits the generation. Backups can now be discarded.
     journal.deleteSync();
   } catch (_) {
-    recoverMaterialPublication(output);
+    recoverMaterialPublication(output, stateDirectory: stateDirectory);
     rethrow;
   }
 }

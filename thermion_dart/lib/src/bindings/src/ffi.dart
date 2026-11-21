@@ -13,6 +13,8 @@ const FILAMENT_SINGLE_THREADED = false;
 const FILAMENT_WASM = false;
 bool get IS_WINDOWS => Platform.isWindows;
 
+Uint8List? readEmbeddedMaterial(String sectionName) => throw UnsupportedError('Wasm material sections require web.');
+
 Uint8List makeUint8List(int length) {
   return Uint8List(length);
 }
