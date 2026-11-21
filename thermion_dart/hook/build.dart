@@ -806,14 +806,6 @@ Future<void> _downloadWithRetry(String url, File destination, Logger logger) asy
   }
 }
 
-/// Legacy (mutable) R2 key for Filament artifact zips. Used for the
-/// -webgpu suffixed artifacts published by build-filament.yml's webgpu
-/// input, which are not covered by the filament.libs.json pin.
-String _getLibraryUrl(String version, String platform, String mode, {bool webgpu = false}) {
-  final suffix = webgpu ? "-webgpu" : "";
-  return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${version}-${platform}-${mode}${suffix}.zip";
-}
-
 //
 // Download precompiled Filament libraries for the target platform from Cloudflare.
 //
@@ -894,7 +886,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
   // Unpinned artifacts keep the exact legacy path — existing caches stay valid.
   // WebGPU (Dawn) builds download a different zip (-webgpu suffix); keep
   // their cache separate from the canonical artifact's.
-  final artifact = resolveFilamentArtifact(version, platform, mode, pin);
+  final artifact = resolveFilamentArtifact(version, platform, mode, pin, webgpu: webgpuEnabled);
   var cacheSuffix = artifact.cacheSuffix;
   if (webgpuEnabled) {
     cacheSuffix = '$cacheSuffix-webgpu';
@@ -911,13 +903,14 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
 
   logger.info("Searching for Filament libraries under ${libDir.path}");
 
-  // WebGPU (Dawn) artifacts are published by build-filament.yml's webgpu
-  // input under legacy (mutable, non-content-addressed) keys with a -webgpu
-  // suffix; they are not covered by the filament.libs.json pin, so bypass
-  // pin resolution for them.
-  final url = webgpuEnabled ? _getLibraryUrl(version, platform, mode, webgpu: true) : artifact.url;
+  // WebGPU (Dawn) artifacts resolve against the same filament.libs.json pin
+  // as the canonical ones (<platform>-webgpu/<variant> entries, published
+  // under content-addressed keys by build-filament.yml + publish-filament-
+  // to-r2.yml); an absent pin entry falls back to the legacy mutable
+  // -webgpu suffixed key, exactly like unpinned canonical artifacts.
+  final url = artifact.url;
 
-  final filename = webgpuEnabled ? url.split("/").last : artifact.zipName;
+  final filename = artifact.zipName;
 
   // We will write an empty file called success to the unzip directory after successfully downloading/extracting the prebuilt libraries.
   // If this file already exists, we assume everything has been successfully extracted and skip
@@ -955,9 +948,9 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
     // Content-addressed artifacts are verified against the pin's full
     // SHA-256 before extraction: a corrupt/truncated download (or a proxy
     // serving an error page with HTTP 200) must never be cached under the
-    // success token. Legacy (unpinned) artifacts have no digest to check,
-    // and neither do the -webgpu suffixed artifacts.
-    final expectedSha = webgpuEnabled ? null : artifact.sha256;
+    // success token. Legacy (unpinned) artifacts — canonical or -webgpu
+    // suffixed — have no digest to check.
+    final expectedSha = artifact.sha256;
     if (expectedSha != null) {
       final actualSha = sha256.convert(downloadedBytes).toString();
       if (actualSha != expectedSha) {

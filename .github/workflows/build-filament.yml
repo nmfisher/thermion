@@ -193,15 +193,11 @@ jobs:
         run: |
           pip3 install --break-system-packages awscli
           for variant in release debug; do
-            if [ -n "${{ env.ZIP_SUFFIX }}" ]; then
-              aws s3 cp \
-                "output/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}${{ env.ZIP_SUFFIX }}.zip" \
-                "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}${{ env.ZIP_SUFFIX }}.zip" \
-                --endpoint-url "${{ env.R2_ENDPOINT }}"
-            else
-              bash scripts/upload_filament_hashed.sh \
-                "output/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}.zip"
-            fi
+            # Content-addressed keys for every artifact, including the
+            # -webgpu suffixed zips (record them into the pin via
+            # publish-filament-to-r2.yml, same as the canonical ones).
+            bash scripts/upload_filament_hashed.sh \
+              "output/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}${{ env.ZIP_SUFFIX }}.zip"
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -508,15 +504,11 @@ jobs:
         if: inputs.upload_to_r2
         run: |
           for variant in release debug; do
-            if [ -n "${{ env.ZIP_SUFFIX }}" ]; then
-              aws s3 cp \
-                "output/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}${{ env.ZIP_SUFFIX }}.zip" \
-                "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}${{ env.ZIP_SUFFIX }}.zip" \
-                --endpoint-url "${{ env.R2_ENDPOINT }}"
-            else
-              bash scripts/upload_filament_hashed.sh \
-                "output/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}.zip"
-            fi
+            # Content-addressed keys for every artifact, including the
+            # -webgpu suffixed zips (record them into the pin via
+            # publish-filament-to-r2.yml, same as the canonical ones).
+            bash scripts/upload_filament_hashed.sh \
+              "output/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}${{ env.ZIP_SUFFIX }}.zip"
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
