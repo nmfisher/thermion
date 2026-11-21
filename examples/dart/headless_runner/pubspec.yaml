@@ -15,6 +15,10 @@ dependencies:
 hooks:
   user_defines:
     thermion_dart:
+      material_compilation:
+        inputs: [../../assets]
+        output: ../../assets
+        backends: all
       materials:
         gizmo: true
         wireframe: true

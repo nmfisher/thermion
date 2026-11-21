@@ -17,7 +17,8 @@ pubspec_overrides.yaml
 /pubspec.lock
 *.iml
 **/*/*.filamat
-!examples/assets/*.filamat
+**/.thermion-materials.json
+**/.thermion-materials.lock
 **/*/*.g.dart
 **/*.BAK
 .wrangler
