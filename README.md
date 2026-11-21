@@ -132,6 +132,64 @@ startup or from a background isolate.
 A live web demo — a GLSL editor that compiles and applies materials in the
 browser — is in `examples/dart/material_editor`.
 
+#### Debug/visualization materials (opt-in)
+
+`normal_color` shows world-space normals as RGB. `sharp_edge` draws the triangle
+edges selected by a per-triangle mask. Enable either helper in the root pubspec.
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      materials:
+        normal_color: true
+        sharp_edge: true
+```
+
+The build hook compiles only the debug shaders you enable. It downloads and caches
+the matching Filament tools on first use. Native builds link the generated shader
+for the selected graphics backend. `flutter run -d chrome` and
+`flutter build web` embed the selected packages in `web/thermion_dart.wasm`.
+
+For a Flutter app inside a pub workspace, set `web_directory: apps/viewer/web`
+alongside `materials` under `hooks.user_defines.thermion_dart` in the workspace
+pubspec. The path is relative to that pubspec.
+
+For plain Dart web apps, `dart compile js` only compiles the Dart entrypoint.
+Run the following to embed the selected materials in the engine, then deploy
+`thermion_dart.js` and `thermion_dart.wasm` together:
+
+```sh
+dart run thermion_dart:download_web -o web --materials normal_color,sharp_edge
+```
+
+In native builds the entries override the defaults individually. For example,
+`grid: false` removes the grid and `include_defaults: false` starts from an
+empty list.
+For a triangle with corners A, B, C, mask values 1, 2, and 4 select edges BC,
+CA, and AB respectively. Combine them with bitwise OR. This example draws only AB.
+The existing geometry helper supplies the barycentric coordinates in the first
+three components of `attribute0`. Write the same mask into the fourth component
+at each corner before uploading the geometry.
+
+```dart
+final geometry = GeometryUtils.duplicateVerticesWithBarycentrics(
+  Float32List.fromList([-1, -1, 0, 1, -1, 0, 0, 1, 0]), // A, B, C
+  [0, 1, 2],
+);
+for (var corner = 0; corner < 3; corner++) {
+  geometry.attribute0[4 * corner + 3] = 4; // AB
+}
+final material = await app.createBuiltInMaterial(BuiltInMaterial.sharpEdge);
+final instance = await material.createInstance();
+final asset = await viewer.createGeometry(geometry, materialInstances: [instance]);
+await viewer.addToScene(asset);
+```
+
+The caller owns the material and instance. Destroy the instance before destroying
+the material after removing its renderables. An omitted helper raises a
+`StateError` naming the pubspec key needed to enable it.
+
 ### Quickstart (Flutter)
 
 From the command line:

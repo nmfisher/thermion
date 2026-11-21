@@ -11,17 +11,89 @@
 #include "Log.hpp"
 #include "MathUtils.hpp"
 
+#include "c_api/TMaterialInstance.h"
+
 #include "material/image.h"
 #include "material/grid.h"
-#include "material/unlit_fixed_size.h"
+#include "material/gizmo.h"
+#include "material/translation_axis.h"
+#include "material/bone_overlay.h"
 #include "material/silhouette.h"
 #include "material/edge_outline.h"
-#include "material/translation_axis.h"
-#include "material/gizmo.h"
 #include "material/wireframe.h"
-#include "material/bone_overlay.h"
+#include "material/capture_uv.h"
+#include "material/linear_depth.h"
+#include "material/unlit_fixed_size.h"
 
-#include "c_api/TMaterialInstance.h"
+// The Dart build hook emits these headers for the selected target backend.
+#ifdef NORMAL_COLOR_ENABLED
+#include "normal_color.h"
+#endif
+#ifdef SHARP_EDGE_ENABLED
+#include "sharp_edge.h"
+#endif
+
+namespace thermion {
+static TMaterial* buildBuiltInMaterial(TEngine* tEngine, const uint8_t* data, size_t size) {
+    THERMION_ENGINE_API_GUARD;
+    auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
+    auto* material = filament::Material::Builder().package(data, size).build(*engine);
+    return reinterpret_cast<TMaterial*>(material);
+}
+
+// resgen names each slice <PREFIX>_<INPUT>_{DATA,SIZE}. Built-ins use the same name for both.
+#define RESGEN_FACTORY(name) \
+    case BUILT_IN_##name: \
+        return [](TEngine* engine) { \
+            return buildBuiltInMaterial(engine, name##_##name##_DATA, name##_##name##_SIZE); \
+        }
+
+BuiltInMaterialFactory builtInMaterialFactory(TBuiltInMaterial id) {
+    switch (id) {
+#ifdef IMAGE_ENABLED
+        RESGEN_FACTORY(IMAGE);
+#endif
+#ifdef GRID_ENABLED
+        RESGEN_FACTORY(GRID);
+#endif
+#ifdef GIZMO_ENABLED
+        RESGEN_FACTORY(GIZMO);
+#endif
+#ifdef TRANSLATION_AXIS_ENABLED
+        RESGEN_FACTORY(TRANSLATION_AXIS);
+#endif
+#ifdef BONE_OVERLAY_ENABLED
+        RESGEN_FACTORY(BONE_OVERLAY);
+#endif
+#ifdef SILHOUETTE_ENABLED
+        RESGEN_FACTORY(SILHOUETTE);
+#endif
+#ifdef EDGE_OUTLINE_ENABLED
+        RESGEN_FACTORY(EDGE_OUTLINE);
+#endif
+#ifdef WIREFRAME_ENABLED
+        RESGEN_FACTORY(WIREFRAME);
+#endif
+#ifdef NORMAL_COLOR_ENABLED
+        RESGEN_FACTORY(NORMAL_COLOR);
+#endif
+#ifdef SHARP_EDGE_ENABLED
+        RESGEN_FACTORY(SHARP_EDGE);
+#endif
+#ifdef CAPTURE_UV_ENABLED
+        RESGEN_FACTORY(CAPTURE_UV);
+#endif
+#ifdef LINEAR_DEPTH_ENABLED
+        RESGEN_FACTORY(LINEAR_DEPTH);
+#endif
+#ifdef UNLIT_FIXED_SIZE_ENABLED
+        RESGEN_FACTORY(UNLIT_FIXED_SIZE);
+#endif
+        default: return nullptr;
+    }
+}
+#undef RESGEN_FACTORY
+} // namespace thermion
 
 #ifdef __cplusplus
 namespace thermion
@@ -54,78 +126,54 @@ namespace thermion
             }
         }
 
+        // Compatibility exports for existing native callers.
+#ifdef IMAGE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createImageMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-            .package(IMAGE_IMAGE_DATA, IMAGE_IMAGE_SIZE)
-            .build(*engine);
-            
-            return reinterpret_cast<TMaterial *>(material);
+            return builtInMaterialFactory(BUILT_IN_IMAGE)(tEngine);
         }
+#endif
 
+#ifdef GRID_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGridMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(GRID_GRID_DATA, GRID_GRID_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
+            return builtInMaterialFactory(BUILT_IN_GRID)(tEngine);
         }
+#endif
 
+#ifdef GIZMO_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGizmoMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
+            return builtInMaterialFactory(BUILT_IN_GIZMO)(tEngine);
         }
+#endif
 
+#ifdef SILHOUETTE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSilhouetteMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(SILHOUETTE_SILHOUETTE_DATA, SILHOUETTE_SILHOUETTE_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
+            return builtInMaterialFactory(BUILT_IN_SILHOUETTE)(tEngine);
         }
+#endif
 
+#ifdef EDGE_OUTLINE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createEdgeOutlineMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(EDGE_OUTLINE_EDGE_OUTLINE_DATA, EDGE_OUTLINE_EDGE_OUTLINE_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
+            return builtInMaterialFactory(BUILT_IN_EDGE_OUTLINE)(tEngine);
         }
+#endif
 
+#ifdef WIREFRAME_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createWireframeMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(WIREFRAME_WIREFRAME_DATA, WIREFRAME_WIREFRAME_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
+            return builtInMaterialFactory(BUILT_IN_WIREFRAME)(tEngine);
         }
+#endif
 
+#ifdef TRANSLATION_AXIS_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createTranslationAxisMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(TRANSLATION_AXIS_TRANSLATION_AXIS_DATA, TRANSLATION_AXIS_TRANSLATION_AXIS_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
+            return builtInMaterialFactory(BUILT_IN_TRANSLATION_AXIS)(tEngine);
         }
+#endif
 
+#ifdef BONE_OVERLAY_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createBoneOverlayMaterial(TEngine *tEngine) {
-            THERMION_ENGINE_API_GUARD;
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(BONE_OVERLAY_BONE_OVERLAY_DATA, BONE_OVERLAY_BONE_OVERLAY_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
+            return builtInMaterialFactory(BUILT_IN_BONE_OVERLAY)(tEngine);
         }
+#endif
 
         EMSCRIPTEN_KEEPALIVE bool Material_hasParameter(TMaterial *tMaterial, const char *propertyName) {
             THERMION_ENGINE_API_GUARD;

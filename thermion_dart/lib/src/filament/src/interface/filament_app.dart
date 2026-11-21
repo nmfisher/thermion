@@ -139,6 +139,11 @@ abstract class FilamentApp<T> {
 
   Future<Material> createBoneOverlayMaterial();
 
+  /// Creates a caller-owned material from an embedded helper package.
+  /// Destroy its instances before destroying the material. Throws [StateError]
+  /// if the build omits the selected package.
+  Future<Material> createBuiltInMaterial(BuiltInMaterial material);
+
   /// Material package format version expected by the loaded native build.
   ///
   /// This is the number reported by `matc --version`, distinct from the

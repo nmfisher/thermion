@@ -1426,6 +1426,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
   );
+  external int _Material_createBuiltInJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TEngine> engine,
+    int id,
+    Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
+  );
   external Pointer<TMaterial> _Material_createEdgeOutlineMaterial(Pointer<TEngine> tEngine);
   external void _Material_createEdgeOutlineMaterialJobThread(
     Pointer<TJobThread> jobThread,
@@ -6474,6 +6480,21 @@ void Material_createBoneOverlayMaterialJobThread(
   return result;
 }
 
+bool Material_createBuiltInJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> engine,
+  int id,
+  Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._Material_createBuiltInJobThread(
+    jobThread.cast(),
+    engine.cast(),
+    id,
+    onComplete.cast(),
+  );
+  return result == 1;
+}
+
 Pointer<TMaterial> Material_createEdgeOutlineMaterial(Pointer<TEngine> tEngine) {
   final result = GeneratedBindings.instance._Material_createEdgeOutlineMaterial(tEngine.cast());
   return Pointer<TMaterial>(result);
@@ -11190,6 +11211,22 @@ final class TBufferObjectBuilder extends Struct {
   static Pointer<TBufferObjectBuilder> stackAlloc() {
     return Pointer<TBufferObjectBuilder>(NativeLibrary.instance.stackAlloc<TBufferObjectBuilder>(0));
   }
+}
+
+sealed class TBuiltInMaterial {
+  static const BUILT_IN_IMAGE = 1;
+  static const BUILT_IN_GRID = 2;
+  static const BUILT_IN_GIZMO = 3;
+  static const BUILT_IN_TRANSLATION_AXIS = 4;
+  static const BUILT_IN_BONE_OVERLAY = 5;
+  static const BUILT_IN_SILHOUETTE = 6;
+  static const BUILT_IN_EDGE_OUTLINE = 7;
+  static const BUILT_IN_WIREFRAME = 8;
+  static const BUILT_IN_NORMAL_COLOR = 9;
+  static const BUILT_IN_SHARP_EDGE = 10;
+  static const BUILT_IN_CAPTURE_UV = 11;
+  static const BUILT_IN_LINEAR_DEPTH = 12;
+  static const BUILT_IN_UNLIT_FIXED_SIZE = 13;
 }
 
 extension TCameraExt on Pointer<TCamera> {

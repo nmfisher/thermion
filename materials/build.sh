@@ -38,9 +38,8 @@ fi
 MATC="${FILAMENT_PATH}/matc"
 RESGEN="${FILAMENT_PATH}/resgen"
 MATERIAL_DIR="thermion_dart/native/include/material"
+# Gizmo is built separately below.
 MATERIALS=(image unlit_fixed_size grid linear_depth silhouette edge_outline wireframe translation_axis bone_overlay capture_uv)
-# capture_uv is now in the main list; gizmo handled separately below
-GIZMO_NAME="gizmo"
 EXAMPLE_MATERIALS=(customattributes solidcolor viewspace proceduralquad)
 
 # -------------------------------------------------------------------

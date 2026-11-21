@@ -104,25 +104,11 @@ jobs:
         uses: ./.github/actions/setup-windows-env
 
       - name: Enable debug mode for tests
+        working-directory: thermion_dart
         shell: bash
         run: |
-          # pubspec.yaml ships a local-only hooks.user_defines block (the
-          # WebGPU/Dawn toggle). Strip any existing block before appending:
-          # appending on top of it leaves two top-level `hooks:` keys, and
-          # `dart pub get` then fails with "Duplicate mapping key".
-          # CI runs the native backend, so the local WebGPU override must go.
-          awk '
-            /^hooks:/ { skip=1; next }
-            skip && /^[^[:space:]#]/ { skip=0 }
-            !skip { print }
-          ' thermion_dart/pubspec.yaml > thermion_dart/pubspec.yaml.tmp
-          mv thermion_dart/pubspec.yaml.tmp thermion_dart/pubspec.yaml
-          cat >> thermion_dart/pubspec.yaml <<'EOF'
-          hooks:
-            user_defines:
-              thermion_dart:
-                mode: debug
-          EOF
+          dart pub get
+          dart --packages=.dart_tool/package_config.json tool/configure_material_tests.dart
 
       - name: Clean cached Filament libraries
         shell: bash
@@ -158,6 +144,8 @@ jobs:
             test/gltf_parser_tests.dart \
             test/overlay_tests.dart \
             test/wireframe_renderable_test.dart \
+            test/normal_color_material_test.dart \
+            test/sharp_edge_material_test.dart \
             test/gizmo_tests_new.dart \
             test/all_axes_test.dart \
             test/bone_picking_tests.dart \
@@ -191,6 +179,8 @@ jobs:
             test/image_tests.dart `
             test/overlay_tests.dart `
             test/wireframe_renderable_test.dart `
+            test/normal_color_material_test.dart `
+            test/sharp_edge_material_test.dart `
             test/gizmo_tests_new.dart `
             test/all_axes_test.dart `
             test/all_materials_smoke_test.dart `
@@ -275,23 +265,11 @@ jobs:
         uses: dart-lang/setup-dart@v1
 
       - name: Enable debug mode for tests
+        working-directory: thermion_dart
         shell: bash
         run: |
-          # See the equivalent step in dart-tests: strip the local-only
-          # hooks.user_defines block before appending, so the file never
-          # carries two top-level `hooks:` keys.
-          awk '
-            /^hooks:/ { skip=1; next }
-            skip && /^[^[:space:]#]/ { skip=0 }
-            !skip { print }
-          ' thermion_dart/pubspec.yaml > thermion_dart/pubspec.yaml.tmp
-          mv thermion_dart/pubspec.yaml.tmp thermion_dart/pubspec.yaml
-          cat >> thermion_dart/pubspec.yaml <<'EOF'
-          hooks:
-            user_defines:
-              thermion_dart:
-                mode: debug
-          EOF
+          dart pub get
+          dart --packages=.dart_tool/package_config.json tool/configure_material_tests.dart
 
       - name: Clean cached Filament libraries
         shell: bash
@@ -310,6 +288,8 @@ jobs:
             test/image_tests.dart \
             test/overlay_tests.dart \
             test/wireframe_renderable_test.dart \
+            test/normal_color_material_test.dart \
+            test/sharp_edge_material_test.dart \
             test/gizmo_tests_new.dart \
             test/skybox_tests.dart \
             --concurrency=1
@@ -409,6 +389,7 @@ jobs:
           dart pub get
           ${{ matrix.name == 'Linux' && 'xvfb-run' || '' }} dart test -j1 \
             test/runtime_material_${{ matrix.enabled && 'enabled' || 'disabled' }}_test.dart \
+            test/omitted_built_in_material_tests.dart \
             test/material_package_test.dart \
             ${{ matrix.enabled && 'test/runtime_material_metadata_test.dart test/runtime_material_diagnostics_test.dart' || '' }} \
             --concurrency=1
@@ -442,6 +423,7 @@ jobs:
 
       - name: Select web engine and disable unused native build
         run: |
+          sed -i '/^hooks:/,$d' thermion_dart/pubspec.yaml
           cat >> thermion_dart/pubspec.yaml <<'EOF'
           hooks:
             user_defines:
@@ -449,6 +431,8 @@ jobs:
                 skip_native_build: true
                 runtime_materials: ${{ matrix.enabled }}
                 web_variant: '${{ matrix.variant }}'
+                materials:
+                  sharp_edge: true
           EOF
 
       - name: Download the committed web engine
@@ -476,6 +460,7 @@ jobs:
           xvfb-run dart run tool/web_test_runner.dart --assets=../examples/assets --clean \
             test/runtime_material_${{ matrix.enabled && 'enabled' || 'disabled' }}_test.dart \
             test/material_package_test.dart \
+            test/embedded_material_loading_test.dart \
             ${{ matrix.enabled && 'test/runtime_material_metadata_test.dart test/runtime_material_diagnostics_test.dart' || '' }}
 
   runtime-materials-ios:
@@ -601,26 +586,11 @@ jobs:
         uses: ./.github/actions/setup-windows-env
 
       - name: Select material backend variant
+        working-directory: thermion_dart
         shell: bash
         run: |
-          # Same strip-then-append pattern as the other jobs (avoids a
-          # duplicate top-level `hooks:` key), adding materials.backends on
-          # top of mode: debug.
-          awk '
-            /^hooks:/ { skip=1; next }
-            skip && /^[^[:space:]#]/ { skip=0 }
-            !skip { print }
-          ' thermion_dart/pubspec.yaml > thermion_dart/pubspec.yaml.tmp
-          mv thermion_dart/pubspec.yaml.tmp thermion_dart/pubspec.yaml
-          cat >> thermion_dart/pubspec.yaml <<'EOF'
-          hooks:
-            user_defines:
-              thermion_dart:
-                mode: debug
-                materials:
-                  backends:
-                    ${{ matrix.os-key }}: ${{ matrix.backends }}
-          EOF
+          dart pub get
+          dart --packages=.dart_tool/package_config.json tool/configure_material_tests.dart "${{ matrix.os-key }}" "${{ matrix.backends }}"
 
       - name: Clean cached Filament libraries
         shell: bash
@@ -635,6 +605,8 @@ jobs:
             test/image_tests.dart \
             test/overlay_tests.dart \
             test/wireframe_renderable_test.dart \
+            test/normal_color_material_test.dart \
+            test/sharp_edge_material_test.dart \
             test/gizmo_tests_new.dart \
             test/all_axes_test.dart \
             test/bone_picking_tests.dart \
@@ -646,7 +618,7 @@ jobs:
         working-directory: thermion_dart
         env:
           VK_ICD_FILENAMES: C:\swiftshader\vk_swiftshader_icd.json
-        run: dart pub get; dart test -j1 test/image_tests.dart test/overlay_tests.dart test/wireframe_renderable_test.dart test/gizmo_tests_new.dart test/all_axes_test.dart test/all_materials_smoke_test.dart --concurrency=1
+        run: dart pub get; dart test -j1 test/image_tests.dart test/overlay_tests.dart test/wireframe_renderable_test.dart test/normal_color_material_test.dart test/sharp_edge_material_test.dart test/gizmo_tests_new.dart test/all_axes_test.dart test/all_materials_smoke_test.dart --concurrency=1
 
       - name: Upload material-variant test output candidate
         uses: actions/upload-artifact@v4

@@ -94,6 +94,8 @@ endif()
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 add_link_options(${EMCC_CFLAGS} -pthread)
+set(MATERIAL_READER "${CMAKE_CURRENT_SOURCE_DIR}/src/read_material.js")
+add_link_options(--post-js "${MATERIAL_READER}")
 
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/lib")
 
@@ -110,22 +112,19 @@ if(NOT DEFINED THERMION_MATERIAL_VARIANT)
 endif()
 message(STATUS "Material variant: ${THERMION_MATERIAL_VARIANT}")
 
-# Collect material .c files for the selected variant only.
-# Using an explicit list avoids the glob picking up _native.c AND _webgpu.c
-# (which would cause duplicate symbol definitions).
-set(MATERIAL_SOURCES
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/capture_uv_${THERMION_MATERIAL_VARIANT}.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/grid_${THERMION_MATERIAL_VARIANT}.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/image_${THERMION_MATERIAL_VARIANT}.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/linear_depth_${THERMION_MATERIAL_VARIANT}.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/unlit_fixed_size_${THERMION_MATERIAL_VARIANT}.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/silhouette_${THERMION_MATERIAL_VARIANT}.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/edge_outline_${THERMION_MATERIAL_VARIANT}.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/wireframe_${THERMION_MATERIAL_VARIANT}.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/translation_axis_${THERMION_MATERIAL_VARIANT}.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/bone_overlay_${THERMION_MATERIAL_VARIANT}.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/gizmo_material_${THERMION_MATERIAL_VARIANT}.c"
-)
+# Select helper packages separately from the graphics backend.
+set(THERMION_MATERIALS "capture_uv;grid;image;linear_depth;unlit_fixed_size;silhouette;edge_outline;wireframe;translation_axis;bone_overlay;gizmo"
+    CACHE STRING "Semicolon-separated helper materials to embed")
+set(MATERIAL_SOURCES)
+foreach(material IN LISTS THERMION_MATERIALS)
+  set(stem "${material}")
+  if(material STREQUAL "gizmo")
+    set(stem "gizmo_material")
+  endif()
+  string(TOUPPER "${material}" material_define)
+  add_compile_definitions("${material_define}_ENABLED=1")
+  list(APPEND MATERIAL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/${stem}_${THERMION_MATERIAL_VARIANT}.c")
+endforeach()
 
 file(GLOB SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/*.cpp"
@@ -175,6 +174,7 @@ endif()
 
 message(STATUS "Total source files being compiled: ${SOURCES}")
 add_executable(${MODULE_NAME} ${SOURCES} ${MATERIAL_SOURCES})
+set_property(TARGET ${MODULE_NAME} APPEND PROPERTY LINK_DEPENDS "${MATERIAL_READER}")
 if(THERMION_WEB_MAIN_THREAD)
   target_compile_definitions(${MODULE_NAME} PRIVATE THERMION_WEB_MAIN_THREAD=1)
 endif()
