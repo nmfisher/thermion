@@ -12,10 +12,10 @@ void main() async {
     await builder.execute((result) async {
       final material = await FilamentApp.instance!.createBuiltInMaterial(BuiltInMaterial.sharpEdge);
       addTearDown(material.destroy);
-      final edges = SharpEdgeMaterialInstance(await material.createInstance());
-      addTearDown(edges.materialInstance.destroy);
-      await edges.setEdgeColor(1, 0, 0, 1);
-      await edges.setEdgeWidth(3);
+      final edges = await material.createInstance();
+      addTearDown(edges.destroy);
+      await edges.setParameterFloat4('edgeColor', 1, 0, 0, 1);
+      await edges.setParameterFloat('edgeWidth', 3);
 
       // BC is diagonal, CA is vertical, and AB is horizontal.
       final positions = Float32List.fromList([-0.7, -0.7, 0, 0.7, -0.7, 0, -0.7, 0.7, 0]);
@@ -27,7 +27,7 @@ void main() async {
         for (var corner = 0; corner < 3; corner++) {
           geometry.attribute0[corner * 4 + 3] = mask.toDouble();
         }
-        final asset = await result.viewer.createGeometry(geometry, materialInstances: [edges.materialInstance]);
+        final asset = await result.viewer.createGeometry(geometry, materialInstances: [edges]);
         await result.viewer.addToScene(asset);
         final bytes = (await testHelper.capture(result.viewer.view, null)).values.single;
         final pixels = bytes.buffer.asFloat32List(bytes.offsetInBytes, bytes.lengthInBytes ~/ 4);

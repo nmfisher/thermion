@@ -17,19 +17,19 @@ void main() async {
 
       final material = await FilamentApp.instance!.createBuiltInMaterial(BuiltInMaterial.normalColor);
       addTearDown(material.destroy);
-      final normalColor = NormalColorMaterialInstance(await material.createInstance());
-      addTearDown(normalColor.materialInstance.destroy);
+      final normalColor = await material.createInstance();
+      addTearDown(normalColor.destroy);
       await normalColor.setDoubleSided(true);
 
-      await asset.setMaterialInstanceForAll(normalColor.materialInstance);
+      await asset.setMaterialInstanceForAll(normalColor);
       await testHelper.capture(result.viewer.view, "normal_color_default");
 
       // Switch to absolute value mode
-      await normalColor.setUseAbsoluteValue(true);
+      await normalColor.setParameterInt('useAbsoluteValue', 1);
       await testHelper.capture(result.viewer.view, "normal_color_absolute_value");
 
       // Test opacity
-      await normalColor.setOpacity(0.5);
+      await normalColor.setParameterFloat('opacity', 0.5);
       await testHelper.capture(result.viewer.view, "normal_color_half_opacity");
 
       await result.viewer.removeFromScene(asset);
@@ -42,10 +42,10 @@ void main() async {
 
       final material = await FilamentApp.instance!.createBuiltInMaterial(BuiltInMaterial.normalColor);
       addTearDown(material.destroy);
-      final normalColor = NormalColorMaterialInstance(await material.createInstance());
-      addTearDown(normalColor.materialInstance.destroy);
+      final normalColor = await material.createInstance();
+      addTearDown(normalColor.destroy);
 
-      await asset.setMaterialInstanceForAll(normalColor.materialInstance);
+      await asset.setMaterialInstanceForAll(normalColor);
       final reference = (await testHelper.capture(result.viewer.view, "cube_normal_color")).values.single;
       final pixels = Float32List.fromList(
         reference.buffer.asFloat32List(reference.offsetInBytes, reference.lengthInBytes ~/ 4),
@@ -71,7 +71,7 @@ void main() async {
           rebuilt.getVertexBuffer()!.getVertexCount(),
           capability == SceneAssetGeometryCapability.preservedTopology ? 24 : 36,
         );
-        await rebuilt.setMaterialInstanceForAll(normalColor.materialInstance);
+        await rebuilt.setMaterialInstanceForAll(normalColor);
         final frame = (await testHelper.capture(result.viewer.view, null)).values.single;
         final actual = frame.buffer.asFloat32List(frame.offsetInBytes, frame.lengthInBytes ~/ 4);
         var error = 0.0;
@@ -83,7 +83,7 @@ void main() async {
       }
       await result.viewer.addToScene(asset);
 
-      await normalColor.setUseAbsoluteValue(true);
+      await normalColor.setParameterInt('useAbsoluteValue', 1);
       await testHelper.capture(result.viewer.view, "cube_normal_color_absolute");
 
       await result.viewer.removeFromScene(asset);
