@@ -154,7 +154,9 @@ class _InteriorFixture {
   static Future<_InteriorFixture> create(TestHelper helper, ThermionViewer viewer) async {
     final app = FilamentApp.instance!;
     await app.renderManager.setRenderable(viewer.view, false);
-    final material = await app.createMaterial(await loadResourceBytes('${helper.assetsDir}/interior_mapping_glass.filamat'));
+    final material = await app.createMaterial(
+      await loadResourceBytes('${helper.assetsDir}/interior_mapping_glass.filamat'),
+    );
     final instance = await material.createInstance();
     await instance.setParameterFloat2('roomGrid', 1, 1);
     await instance.setParameterFloat3('roomSize', 1, 1, 2);
