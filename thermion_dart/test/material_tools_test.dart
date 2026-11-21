@@ -604,6 +604,18 @@ void main() {
       expect(File(p.join(dest.path, 'lib', 'libfilament.a')).existsSync(), isFalse);
       expect(File(p.join(dest.path, 'include', 'filament', 'Material.h')).existsSync(), isFalse);
     });
+
+    test('extracts tools with Windows ZIP entry separators', () {
+      final archive = Archive()
+        ..addFile(ArchiveFile(r'bin\matc.exe', 2, [1, 2]))
+        ..addFile(ArchiveFile(r'bin\resgen.exe', 2, [3, 4]))
+        ..addFile(ArchiveFile(r'lib\filament.lib', 2, [5, 6]));
+      final dest = freshDir('windows_tools');
+
+      expect(extractToolBinaries(archive, dest), unorderedEquals(['bin/matc.exe', 'bin/resgen.exe']));
+      expect(File(p.join(dest.path, 'bin', 'matc.exe')).readAsBytesSync(), [1, 2]);
+      expect(File(p.join(dest.path, 'bin', 'resgen.exe')).readAsBytesSync(), [3, 4]);
+    });
   });
 
   group('smokeTestMatc', () {
