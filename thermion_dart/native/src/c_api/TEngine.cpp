@@ -118,7 +118,7 @@ namespace thermion
                 tPlatform = Thermion_createWebGPUPlatform();
                 tSharedContext = nullptr;
                 #else
-                Log("ERROR - Backend::WEBGPU requested but this engine was built without WebGPU support (set hooks.user_defines.thermion_dart.backend: webgpu so the build hook defines THERMION_SUPPORTS_WEBGPU and links Dawn)");
+                Log("ERROR - Backend::WEBGPU requested but this engine was built without WebGPU support (build with -DTHERMION_ENABLE_WEBGPU=ON)");
                 return nullptr;
                 #endif
             } else {
