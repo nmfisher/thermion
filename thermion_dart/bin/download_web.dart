@@ -111,18 +111,12 @@ List<BuiltInMaterial> _parseMaterials(String raw) {
   for (final token in raw.split(',')) {
     final key = token.trim();
     if (key.isEmpty) continue;
-    if (key == 'defaults') {
-      selected.addAll(BuiltInMaterial.values.where((m) => m.isStandardDefault));
-    } else if (key == 'all') {
-      selected.addAll(BuiltInMaterial.values);
-    } else {
-      final material = byKey[key];
-      if (material == null) {
-        stderr.writeln("Unknown material '$key'. Valid: defaults, all, ${byKey.keys.join(', ')}");
-        exit(1);
-      }
-      selected.add(material);
+    final material = byKey[key];
+    if (material == null) {
+      stderr.writeln("Unknown material '$key'. Valid keys: ${byKey.keys.join(', ')}");
+      exit(1);
     }
+    selected.add(material);
   }
   return selected.toList();
 }
@@ -154,9 +148,8 @@ void main(List<String> args) async {
       stdout.writeln('                runtime-materials = filamat-enabled engine for');
       stdout.writeln('                runtime material compilation (~20 MB larger).');
       stdout.writeln('                main-thread-runtime-materials = both combined.');
-      stdout.writeln('  --materials    Comma-separated helper materials to compile to');
-      stdout.writeln('                 <output>/thermion_materials/*.filamat (e.g. defaults,');
-      stdout.writeln('                 all, or grid,wireframe,gizmo).');
+      stdout.writeln('  --materials    Comma-separated helper keys, for example gizmo,image.');
+      stdout.writeln('                 Available keys: ${BuiltInMaterial.values.map((m) => m.key).join(', ')}');
       return;
     }
   }

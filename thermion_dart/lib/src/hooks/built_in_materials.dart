@@ -14,7 +14,7 @@ List<BuiltInMaterial> selectBuiltInMaterials(Object? materialConfig, {required v
   if (materialConfig is! Map) {
     throw MaterialToolsError('materials must be a map in pubspec.yaml.');
   }
-  final knownMaterialKeys = {'backends', 'include_defaults', ...BuiltInMaterial.values.map((material) => material.key)};
+  final knownMaterialKeys = {'backends', ...BuiltInMaterial.values.map((material) => material.key)};
   for (final MapEntry(:key, :value) in materialConfig.entries) {
     if (!knownMaterialKeys.contains(key)) {
       onWarning('Unknown key materials.$key in pubspec.yaml.');
@@ -22,10 +22,9 @@ List<BuiltInMaterial> selectBuiltInMaterials(Object? materialConfig, {required v
       throw MaterialToolsError('materials.$key must be true or false (an unquoted YAML boolean).');
     }
   }
-  final includeDefaults = materialConfig['include_defaults'] == true;
   return [
     for (final material in BuiltInMaterial.values)
-      if ((materialConfig[material.key] ?? (includeDefaults && material.isStandardDefault)) == true) material,
+      if (materialConfig[material.key] == true) material,
   ];
 }
 

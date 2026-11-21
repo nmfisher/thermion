@@ -15,10 +15,13 @@ hooks:
 
 ## Material backend variants
 
-Thermion ships a set of built-in materials (gizmo, grid, wireframe, skybox
-helpers, ...), each precompiled into per-platform shader variants. By default
-your app gets **every backend usable on the target platform**, so runtime
-backend selection always works:
+Set each built-in helper your app uses to `true` under `materials`. For
+example, a transform gizmo needs `gizmo: true` and a background image needs
+`image: true`. Apps that only render glTF assets with their authored materials
+can omit the section.
+
+For each enabled helper, the native build compiles shaders for the following
+backends by default.
 
 | Platform | Default variant | Backends included |
 | --- | --- | --- |
@@ -34,6 +37,8 @@ hooks:
   user_defines:
     thermion_dart:
       materials:
+        gizmo: true
+        image: true
         backends:
           ios: metal
           android: [opengl, vulkan]
@@ -49,9 +54,9 @@ hooks:
 - Selecting a single backend means exactly that: a device that doesn't
   support it will fail to render those materials — there is no fallback
   compiled in.
-- The web target is not configurable here (the web WASM ships with its
-  material variant prebuilt — see [Web](/web/)). For native WebGPU/Dawn or
-  other explicit variant overrides, use the flat `backend` key:
+- On web, each enabled helper ships as a separate `.filamat` with WebGL and
+  WebGPU support. For native WebGPU/Dawn or other explicit variant overrides,
+  use the flat `backend` key:
   `backend: webgpu`, `backend: webgl2`, or `backend: hybrid`. If both are
   set, `materials.backends` wins.
 

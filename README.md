@@ -136,10 +136,8 @@ browser — is in `examples/dart/material_editor`.
 
 The default viewer loads glTF assets, renders them with their authored materials,
 and displays skyboxes and solid backgrounds with zero embedded helper packages.
-Apps using the following features must enable their helpers in the root pubspec.
-
-Set `include_defaults: true` under `materials` to include all 11 standard helpers.
-Individual keys override that setting on both native and web builds.
+For each feature your app uses, set its material key to `true` under
+`hooks.user_defines.thermion_dart.materials` in the root pubspec.
 
 | Feature | Material keys |
 | --- | --- |
@@ -205,8 +203,7 @@ compile the requested `.filamat` files into `web/thermion_materials/`:
 dart run thermion_dart:download_web -o web --materials grid,wireframe,gizmo
 ```
 
-Use `--materials defaults` for all 11 standard helpers or `--materials all` for
-all 13 helpers.
+Pass each required key explicitly. Omit `--materials` for an app that uses no helpers.
 
 ### Quickstart (Flutter)
 

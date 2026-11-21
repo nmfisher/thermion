@@ -36,6 +36,16 @@ hooks:
   user_defines:
     thermion_dart:
       materials:
-        include_defaults: true
+        image: true
+        grid: true
+        gizmo: true
+        translation_axis: true
+        bone_overlay: true
+        silhouette: true
+        edge_outline: true
+        wireframe: true
         normal_color: true
         sharp_edge: true
+        capture_uv: true
+        linear_depth: true
+        unlit_fixed_size: true

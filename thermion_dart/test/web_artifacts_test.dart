@@ -7,6 +7,24 @@ import 'package:thermion_dart/src/hooks/built_in_materials.dart';
 import 'package:thermion_dart/src/hooks/web_artifacts.dart';
 
 void main() {
+  test('each built-in requires its own true key', () {
+    final warnings = <String>[];
+    expect(selectBuiltInMaterials(null, onWarning: warnings.add), isEmpty);
+    for (final material in BuiltInMaterial.values) {
+      expect(selectBuiltInMaterials({material.key: true}, onWarning: warnings.add), [material]);
+    }
+    expect(warnings, isEmpty);
+
+    final selection = selectBuiltInMaterials({
+      'include_defaults': true,
+      'backends': {'android': 'vulkan'},
+      'image': false,
+      'gizmo': true,
+    }, onWarning: warnings.add);
+    expect(selection, [BuiltInMaterial.gizmo]);
+    expect(warnings.single, contains('include_defaults'));
+  });
+
   test('web publication tracks selected packages and removes only omitted built-ins', () {
     final root = Directory.systemTemp.createTempSync('web-materials-');
     addTearDown(() => root.deleteSync(recursive: true));

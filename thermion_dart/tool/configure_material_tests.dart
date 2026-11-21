@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:thermion_dart/src/filament/src/interface/built_in_material.dart';
 import 'package:yaml_edit/yaml_edit.dart';
 
 void main(List<String> args) {
@@ -16,8 +17,8 @@ void main(List<String> args) {
     _ensureMap(editor, materials.take(length).toList());
   }
   editor.update([...defines, 'mode'], 'debug');
-  for (final key in ['include_defaults', 'normal_color', 'sharp_edge']) {
-    editor.update([...materials, key], true);
+  for (final material in BuiltInMaterial.values) {
+    editor.update([...materials, material.key], true);
   }
   if (args.isNotEmpty) {
     final backends = [...materials, 'backends'];
