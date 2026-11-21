@@ -1,0 +1,150 @@
+material {
+    name : SubsurfaceJade,
+    shadingModel : subsurface,
+    requires : [ position, tangents ],
+    variables : [ objPos, objNormal ],
+    parameters : [
+        { type : float,  name : time },
+        { type : float,  name : preset },
+        { type : float,  name : thicknessScale },
+        { type : float,  name : scatterStrength },
+        { type : float,  name : roughness },
+        { type : float3, name : lightPos }
+    ],
+    culling : back,
+    variantFilter : [ skinning ]
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.objPos.xyz = getPosition().xyz;
+        material.objNormal.xyz = material.worldNormal;
+    }
+}
+fragment {
+    float hash(vec3 p) {
+        p = fract(p * 0.1031);
+        p += dot(p, p.yzx + 33.33);
+        return fract((p.x + p.y) * p.z);
+    }
+    float noise3(vec3 p) {
+        vec3 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x),
+                       mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+                   mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                       mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+    }
+    float fbm(vec3 p) {
+        float v = 0.0, a = 0.55;
+        for (int i = 0; i < 4; i++) {
+            v += a * noise3(p);
+            p = p * 2.07 + vec3(7.3, 13.1, 5.9);
+            a *= 0.48;
+        }
+        return v;
+    }
+    float amberBubbles(vec3 p) {
+        vec3 i = floor(p), f = fract(p);
+        float hit = 0.0;
+        for (int z = -1; z <= 1; z++) {
+            for (int y = -1; y <= 1; y++) {
+                for (int x = -1; x <= 1; x++) {
+                    vec3 g = vec3(float(x), float(y), float(z));
+                    vec3 c = i + g;
+                    float rnd = hash(c + 19.0);
+                    if (rnd > 0.56) {
+                        vec3 o = vec3(hash(c), hash(c + 31.0), hash(c + 71.0));
+                        float rad = 0.07 + 0.17 * fract(rnd * 7.3);
+                        float d = length(g + o - f);
+                        hit = max(hit, smoothstep(rad, rad * 0.35, d));
+                    }
+                }
+            }
+        }
+        return hit;
+    }
+
+    void material(inout MaterialInputs material) {
+        vec3 p = variable_objPos.xyz;
+        vec3 wp = getUserWorldPosition();
+        vec3 V = getWorldViewVector();
+
+        bool isJade  = materialParams.preset < 0.5;
+        bool isWax   = materialParams.preset >= 0.5 && materialParams.preset < 1.5;
+
+        float mA = fbm(p * 7.0);
+        float mB = fbm(p * 7.0 + vec3(0.04, 0.0, 0.0));
+        float mC = fbm(p * 7.0 + vec3(0.0, 0.04, 0.0));
+        vec2 slope = vec2(mB - mA, mC - mA) * (isWax ? 0.42 : 0.16);
+        material.normal = normalize(vec3(-slope, 1.0));
+        prepareMaterial(material);
+
+        vec3 N = getWorldNormalVector();
+        float ndv = clamp(abs(dot(N, V)), 0.03, 1.0);
+        float edgeThin = pow(1.0 - ndv, 1.55);
+        float mineralWarp = fbm(p * 4.5 + vec3(mA * 1.6));
+        float rawThickness = clamp((0.10 + 0.58 * (1.0 - edgeThin) + 0.22 * mineralWarp) *
+                                   materialParams.thicknessScale, 0.02, 1.0);
+
+        // Compute true optical forward-transmission from the orbiting rear spotlight
+        // (Beer-Lambert attenuation exp(-sigma * thickness) + phase lobe)!
+        vec3 toLight = materialParams.lightPos - wp;
+        float distSq = dot(toLight, toLight);
+        vec3 L = toLight * inversesqrt(max(distSq, 0.001));
+        float forwardPhase = pow(clamp(dot(-V, normalize(L - N * 0.42)), 0.0, 1.0), 2.4);
+        float wrapBack = clamp(dot(-N, L) * 0.55 + 0.45, 0.0, 1.0);
+        float lightAtten = 1.0 / (0.35 + 0.28 * distSq);
+        float transGlow = (forwardPhase * 1.35 + wrapBack * 0.55) *
+                          exp(-rawThickness * 2.65) * lightAtten * materialParams.scatterStrength;
+
+        vec3 albedo;
+        vec3 sssColor;
+        vec3 deepScatterTint;
+        float sssPower;
+        float rough = materialParams.roughness;
+        vec3 inclusionGlow = vec3(0.0);
+
+        if (isJade) {
+            // Deep Imperial Feicui Emerald Jade: rich dark viridian body that glows
+            // luminous electric-emerald where backlit!
+            float veinField = abs(fbm(p * 6.2 + vec3(mA * 2.2)) - 0.52);
+            float mossVein = 1.0 - smoothstep(0.0, 0.042, veinField);
+            float cloud = smoothstep(0.28, 0.74, mineralWarp);
+            albedo = mix(vec3(0.018, 0.11, 0.055), vec3(0.006, 0.048, 0.022), cloud);
+            albedo = mix(albedo, vec3(0.003, 0.018, 0.008), mossVein * 0.85);
+            sssColor = vec3(0.08, 0.95, 0.38) * materialParams.scatterStrength;
+            deepScatterTint = vec3(0.06, 0.92, 0.34) * (1.0 - 0.65 * mossVein);
+            sssPower = 6.5;
+            rawThickness = clamp(rawThickness + mossVein * 0.35, 0.03, 1.0);
+        } else if (isWax) {
+            // Warm Translucent Crimson-Honey Beeswax / Red Coral: rich warm terracotta
+            // exterior bleeding fiery blood-orange & gold through thin ribbon loops!
+            float strata = 0.5 + 0.5 * sin(p.y * 14.0 + mA * 4.5);
+            albedo = mix(vec3(0.14, 0.042, 0.018), vec3(0.24, 0.085, 0.032), strata);
+            sssColor = vec3(1.0, 0.28, 0.05) * materialParams.scatterStrength;
+            deepScatterTint = mix(vec3(0.95, 0.14, 0.02), vec3(1.0, 0.58, 0.12), edgeThin);
+            sssPower = 5.2;
+            rough = clamp(rough + 0.08, 0.08, 0.75);
+        } else {
+            // Polished Cognac Baltic Amber with 3D parallax-suspended golden air bubbles!
+            vec3 refr = refract(-V, N, 1.0 / 1.54);
+            float b1 = amberBubbles(wp * 6.2 + refr * 0.52);
+            float b2 = amberBubbles(wp * 11.0 + refr * 0.98 + 13.0);
+            float swirl = fbm(wp * 3.6 + refr * 0.42);
+            albedo = mix(vec3(0.065, 0.014, 0.002), vec3(0.16, 0.045, 0.005), swirl);
+            sssColor = vec3(1.0, 0.52, 0.05) * materialParams.scatterStrength;
+            deepScatterTint = mix(vec3(0.92, 0.26, 0.01), vec3(1.0, 0.72, 0.12), 0.4 + 0.6 * forwardPhase);
+            sssPower = 4.8;
+            rough = clamp(rough * 0.38, 0.025, 0.35);
+            rawThickness = clamp(rawThickness * 0.68, 0.02, 0.85);
+            inclusionGlow = vec3(1.0, 0.78, 0.24) * (b1 * 0.85 + b2 * 0.48) * (0.25 + 1.35 * transGlow);
+        }
+
+        material.baseColor = vec4(albedo, 1.0);
+        material.roughness = rough;
+        material.thickness = rawThickness;
+        material.subsurfaceColor = clamp(sssColor, vec3(0.0), vec3(1.0));
+        material.subsurfacePower = sssPower;
+        material.emissive = vec4(deepScatterTint * transGlow * 1.45 + inclusionGlow, 0.0);
+    }
+}

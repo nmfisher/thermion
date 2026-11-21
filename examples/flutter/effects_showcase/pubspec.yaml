@@ -1,0 +1,36 @@
+name: effects_showcase
+description: Native desktop and mobile showcase for Thermion game effects.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  thermion_flutter:
+    path: ../../../thermion_flutter/thermion_flutter
+  thermion_examples_lib:
+    path: ../../dart/examples_lib
+
+dependency_overrides:
+  thermion_dart:
+    path: ../../../thermion_dart
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/default_env_ibl.ktx
+    - assets/aurora.filamat
+    - assets/storm_volume.filamat
+    - assets/silk.filamat
+    - assets/woven_cloth.filamat
+    - assets/rain_glass.filamat
+    - assets/iridescent_surface.filamat
+    - assets/fur_shell.filamat

@@ -183,6 +183,39 @@ class EffectClock {
 /// hooks, so animation for video/stills is driven through these instead.)
 final List<Future<void> Function(double t)> effectAnimators = [];
 
+/// Example-level sliders. Setups register controls alongside their animators;
+/// browser runners render them and headless callers can set them directly.
+class EffectSlider {
+  final String label;
+  final double min;
+  final double max;
+  final double step;
+  final double initialValue;
+  final Future<void> Function(double) setValue;
+
+  const EffectSlider(
+    this.label, {
+    required this.min,
+    required this.max,
+    required this.initialValue,
+    required this.setValue,
+    this.step = .01,
+  });
+}
+
+final List<EffectSlider> effectSliders = [];
+
+/// Optional navigation metadata for the gallery's single-scene lifetime.
+/// Sky scenes rotate the camera in place; material scenes orbit their focus.
+class EffectCameraControls {
+  final Vector3 focus;
+  final bool lookAround;
+
+  EffectCameraControls({required this.focus, this.lookAround = false});
+}
+
+EffectCameraControls? effectCameraControls;
+
 /// Loads one of the game-effect materials from `examples/assets` and returns
 /// a ready-to-use [MaterialInstance].
 Future<MaterialInstance> loadEffectMaterial(

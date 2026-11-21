@@ -225,10 +225,11 @@ echo ""
 # -------------------------------------------------------------------
 # Compile example asset materials (standalone .filamat, not embedded)
 # -------------------------------------------------------------------
-for material in "${EXAMPLE_MATERIALS[@]}"; do
+for mat_file in examples/assets/*.mat; do
+    material="$(basename "${mat_file}" .mat)"
     echo "=== examples/assets/$material (all platforms) ==="
     ${MATC} -a opengl -a metal -a vulkan -a webgpu \
-        -o "examples/assets/${material}.filamat" "examples/assets/${material}.mat" || exit 1
+        -o "examples/assets/${material}.filamat" "${mat_file}" || exit 1
 done
 
 echo "=== Done ==="

@@ -67,28 +67,33 @@ fragment {
             discard;
         }
 
-        float fresnel = pow(rimBase, 2.5);
+        float fresnel = pow(rimBase, 2.8);
+        float sharpRim = pow(rimBase, 11.0);
+        float innerRim = pow(clamp(rimBase * 1.08, 0.0, 1.0), 6.5) * (1.0 - sharpRim);
 
-        // Energy shimmer flowing up the dome: noise stretched vertically
-        // into rising streaks, plus a hot lip around the equator where the
-        // dome meets the ground.
-        float streaks = 0.55 + 0.45 * noise2(vec2(pos.x * 2.0 + pos.z * 1.3,
-                                                  pos.y * 6.0) -
-                                             vec2(0.0, t * 2.5));
-        float dr_eq = pos.y * 4.5;
-        float equator = exp(-dr_eq * dr_eq);
+        // Radial Mach condensation ribs + rising shock filaments sweeping up the hemisphere.
+        float azim = atan(pos.z, pos.x);
+        float ribs = pow(0.5 + 0.5 * sin(azim * 18.0 + sin(pos.y * 9.0 - t * 4.0) * 1.4), 3.0);
+        float streaks = 0.45 + 0.55 * noise2(vec2(azim * 5.5, pos.y * 8.0 - t * 3.5));
+        // Tight Mach-stem contact ring where the blast wave scours the ground.
+        float machStem = exp(-pow(pos.y * 7.5, 2.0));
 
         float age = max(materialParams.age, 0.0);
-        float fade = exp(-age * 2.1);
-        float turbulence = noise2(pos.xz * 12.0 + pos.y * 7.0 - t * .5);
-        float fragments = smoothstep(age * .22, age * .22 + .18, turbulence);
-        float amount = (fresnel * .8 + lip * 1.5 + equator * .65) *
-                       streaks * fade * fragments;
+        float fade = exp(-age * 2.0);
+        float turb = noise2(pos.xz * 10.0 + pos.y * 6.5 - t * 0.8) * 0.65 +
+                     noise2(pos.xz * 23.0 - pos.y * 12.0 + t * 1.4) * 0.35;
+        float fragments = smoothstep(age * 0.20, age * 0.20 + 0.22, turb);
 
-        vec3 color = mix(materialParams.baseColor.rgb, vec3(0.9, 0.98, 1.0),
-                         max(lip, equator) * 0.6);
-        // Additive materials pass through the engine's HDR exposure before
-        // tonemapping on this pipeline - see hit_flash.mat.
-        material.baseColor = vec4(color * amount * 0.07, 1.0);
+        // Chromatic dispersion across the pressure shell: blinding white-cyan outer shock
+        // front, electric cobalt mid-shell, and violet rarefaction wake!
+        vec3 base = materialParams.baseColor.rgb;
+        vec3 leadCol = vec3(0.82, 0.97, 1.0);
+        vec3 wakeCol = mix(base, vec3(0.45, 0.16, 1.0), 0.65);
+
+        vec3 rgb = leadCol * (sharpRim * 2.4 + machStem * 1.35) +
+                   base * (fresnel * 0.55 + ribs * fresnel * 0.65) * streaks +
+                   wakeCol * innerRim * 0.95;
+
+        material.baseColor = vec4(rgb * fade * fragments * 0.068, 1.0);
     }
 }

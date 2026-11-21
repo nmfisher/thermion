@@ -52,6 +52,19 @@ import 'game_effects_black_hole.dart';
 import 'game_effects_teleportation.dart';
 import 'game_effects_meteor_impact.dart';
 import 'game_effects_corrosive_acid.dart';
+import 'game_effects_rain_glass.dart';
+import 'game_effects_fog_light_shafts.dart';
+import 'game_effects_storm.dart';
+import 'game_effects_cloth.dart';
+import 'game_effects_hair_fur.dart';
+import 'game_effects_cosmic.dart';
+import 'game_effects_iridescence.dart';
+import 'game_effects_interior_mapping.dart';
+import 'game_effects_subsurface.dart';
+import 'game_effects_car_paint.dart';
+import 'game_effects_underwater_caustics.dart';
+import 'game_effects_ferrofluid.dart';
+import 'game_effects_showcase.dart';
 import 'noise_showcase.dart';
 
 /// A scene-setup function: configures a scene on a ready [ThermionViewer].
@@ -90,6 +103,21 @@ final Map<String, ExampleSetup> registry = {
   'game_effects_teleportation': setupTeleportation,
   'game_effects_meteor_impact': setupMeteorImpact,
   'game_effects_corrosive_acid': setupCorrosiveAcid,
+  'game_effects_rain_glass': setupRainGlass,
+  'game_effects_fog_light_shafts': setupFogLightShafts,
+  'game_effects_tornado': setupTornado,
+  'game_effects_sandstorm': setupSandstorm,
+  'game_effects_cloth': setupCloth,
+  'game_effects_hair_fur': setupHairFur,
+  'game_effects_aurora': setupAurora,
+  'game_effects_nebula': setupNebula,
+  'game_effects_iridescence': setupIridescence,
+  'game_effects_interior_mapping': setupInteriorMapping,
+  'game_effects_subsurface': setupSubsurface,
+  'game_effects_car_paint': setupCarPaint,
+  'game_effects_underwater_caustics': setupUnderwaterCaustics,
+  'game_effects_ferrofluid': setupFerrofluid,
+  'game_effects_showcase': setupShowcase,
   'noise_showcase': setupNoiseShowcase,
   'geometry_primitives': setupGeometryPrimitives,
   'gizmo_basics': setupGizmoBasics,
@@ -117,9 +145,24 @@ final Map<String, ExampleSetup> registry = {
 /// concept area). The original per-concept setups in [registry] stay available
 /// for the headless CLI runner's PNG reference.
 final Map<String, ExampleSetup> galleryScenes = {
+  'showcase': setupShowcase,
   'basics': setupBasics,
   'geometry': setupGeometry,
   'materials_and_lighting': setupMaterialsAndLighting,
   'animation': setupAnimation,
   'effects': setupEffects,
+  'rain_glass': setupRainGlass,
+  'fog_light_shafts': setupFogLightShafts,
+  'tornado': setupTornado,
+  'sandstorm': setupSandstorm,
+  'cloth': setupCloth,
+  'hair_fur': setupHairFur,
+  'aurora': setupAurora,
+  'nebula': setupNebula,
+  'iridescence': setupIridescence,
+  'interior_mapping': setupInteriorMapping,
+  'subsurface': setupSubsurface,
+  'car_paint': setupCarPaint,
+  'underwater_caustics': setupUnderwaterCaustics,
+  'ferrofluid': setupFerrofluid,
 };

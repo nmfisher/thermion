@@ -1,0 +1,233 @@
+material {
+    name : InteriorMapping,
+    shadingModel : lit,
+    requires : [ position, tangents ],
+    variables : [ objPos, objNormal ],
+    parameters : [
+        { type : float,  name : time },
+        { type : float,  name : roomDepth },
+        { type : float,  name : occupancy },
+        { type : float,  name : blindClose },
+        { type : float3, name : buildingHalf }
+    ],
+    culling : back,
+    variantFilter : [ skinning ]
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.objPos.xyz = getPosition().xyz;
+        material.objNormal.xyz = material.worldNormal;
+    }
+}
+fragment {
+    float hash21(vec2 p) {
+        vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+        q += dot(q, q.yzx + 33.33);
+        return fract((q.x + q.y) * q.z);
+    }
+
+    vec3 hash23(vec2 p) {
+        vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+        q += dot(q, q.yzx + 33.33);
+        return fract((q.xxy + q.yzz) * q.zyx);
+    }
+
+    float noise2(vec2 p) {
+        vec2 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x),
+                   mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x), f.y);
+    }
+
+    void material(inout MaterialInputs material) {
+        vec3 wp = getUserWorldPosition();
+        vec3 eye = (getUserWorldFromWorldMatrix() * vec4(getWorldCameraPosition(), 1.0)).xyz;
+        vec3 rayWorld = normalize(wp - eye);
+        vec3 nWorld = normalize(variable_objNormal.xyz);
+
+        // Build facade-local basis: u = horizontal along wall, v = vertical up, w = inward into room!
+        bool roof = abs(nWorld.y) > 0.7;
+        vec3 inward = -nWorld;
+        vec3 tangentU = abs(nWorld.z) > 0.5 ? vec3(sign(nWorld.z), 0.0, 0.0)
+                                            : vec3(0.0, 0.0, -sign(nWorld.x));
+        vec3 tangentV = vec3(0.0, 1.0, 0.0);
+
+        if (roof) {
+            material.normal = vec3(0.0, 0.0, 1.0);
+            prepareMaterial(material);
+            material.baseColor = vec4(vec3(0.025, 0.030, 0.038), 1.0);
+            material.metallic = 0.25;
+            material.roughness = 0.72;
+            return;
+        }
+
+        // Facade coordinates in meters from bottom-left corner of each wall.
+        vec3 halfB = materialParams.buildingHalf;
+        float wallW = abs(nWorld.z) > 0.5 ? halfB.x * 2.0 : halfB.z * 2.0;
+        float wallH = halfB.y * 2.0;
+        float uCoord = (abs(nWorld.z) > 0.5 ? wp.x * sign(nWorld.z) + halfB.x
+                                            : -wp.z * sign(nWorld.x) + halfB.z);
+        float vCoord = wp.y;
+
+        // Bay sizing: ~1.28m wide x 1.08m floor-to-floor height.
+        float cols = max(floor(wallW / 1.28 + 0.5), 2.0);
+        float floors = max(floor(wallH / 1.08 + 0.5), 3.0);
+        vec2 gridUV = vec2(uCoord / wallW * cols, vCoord / wallH * floors);
+        vec2 roomID = floor(gridUV) + (abs(nWorld.z) > 0.5 ? vec2(0.0, 0.0) : vec2(37.0, 19.0));
+        vec2 cellUV = fract(gridUV);
+
+        // Exterior curtain-wall architecture: dark concrete spandrels + anodized mullions.
+        float frameLeft = 0.075, frameRight = 0.925;
+        float frameBot = 0.14, frameTop = 0.88;
+        float subMullion = 1.0 - smoothstep(0.008, 0.018, abs(cellUV.x - 0.5));
+        bool isFrame = cellUV.x < frameLeft || cellUV.x > frameRight ||
+                       cellUV.y < frameBot || cellUV.y > frameTop;
+        float spandrelBand = step(cellUV.y, frameBot) + step(frameTop, cellUV.y);
+
+        if (isFrame) {
+            float flute = sin(cellUV.x * 62.8318) * 0.06 * spandrelBand;
+            material.normal = normalize(vec3(flute, 0.0, 1.0));
+            prepareMaterial(material);
+            vec3 frameCol = spandrelBand > 0.5 ? vec3(0.032, 0.038, 0.048)
+                                               : vec3(0.018, 0.022, 0.030);
+            material.baseColor = vec4(frameCol, 1.0);
+            material.metallic = spandrelBand > 0.5 ? 0.35 : 0.78;
+            material.roughness = spandrelBand > 0.5 ? 0.58 : 0.28;
+            return;
+        }
+
+        // Window glass subtle warpage so exterior sky/city reflections ripple like real float glass!
+        vec2 glassWarp = (vec2(noise2(gridUV * 3.2), noise2(gridUV * 3.2 + 11.7)) - 0.5) * 0.035;
+        material.normal = normalize(vec3(glassWarp, 1.0));
+        prepareMaterial(material);
+
+        // Normalize pane coordinates to [0, 1] across the room interior cross-section.
+        // Inward depth zRoom runs [0 .. depthRatio].
+        vec2 winUV = vec2((cellUV.x - frameLeft) / (frameRight - frameLeft),
+                          (cellUV.y - frameBot) / (frameTop - frameBot));
+        float depthScale = max(materialParams.roomDepth, 0.35);
+
+        // Ray direction in room-box space: x in [0,1], y in [0,1], z in [0, depthScale].
+        vec3 rayRoom = vec3(
+            dot(rayWorld, tangentU) / ((frameRight - frameLeft) * (wallW / cols)),
+            dot(rayWorld, tangentV) / ((frameTop - frameBot) * (wallH / floors)),
+            max(dot(rayWorld, inward), 0.001)
+        );
+        vec3 safeR = mix(vec3(-1.0), vec3(1.0), step(vec3(0.0), rayRoom)) * max(abs(rayRoom), vec3(0.0001));
+
+        // Intersect x = 0 / 1, y = 0 / 1, z = depthScale from entry (winUV.x, winUV.y, 0.0).
+        float tx = ((rayRoom.x > 0.0 ? 1.0 : 0.0) - winUV.x) / safeR.x;
+        float ty = ((rayRoom.y > 0.0 ? 1.0 : 0.0) - winUV.y) / safeR.y;
+        float tz = depthScale / safeR.z;
+        float tHit = min(min(tx, ty), tz);
+        vec3 hit = vec3(winUV, 0.0) + rayRoom * tHit;
+        float depthNorm = clamp(hit.z / depthScale, 0.0, 1.0);
+
+        vec3 rnd = hash23(roomID);
+        // Subtle occupancy & occasional TV/monitor flicker over time.
+        float litScore = fract(rnd.x + 0.08 * sin(materialParams.time * 0.25 + rnd.y * 12.0));
+        float isLit = smoothstep(1.0 - materialParams.occupancy - 0.06,
+                                 1.0 - materialParams.occupancy + 0.04, litScore);
+
+        // Color temperature palette: warm 2700K apartments, crisp 4800K offices, rare cyan/magenta studios.
+        vec3 warmLight = vec3(1.0, 0.68, 0.36);
+        vec3 coolOffice = vec3(0.76, 0.90, 1.0);
+        vec3 cyberStudio = mix(vec3(0.18, 0.78, 1.0), vec3(1.0, 0.22, 0.68), rnd.z);
+        vec3 roomTint = rnd.y < 0.52 ? warmLight : (rnd.y < 0.88 ? coolOffice : cyberStudio);
+
+        // Identify which interior surface was hit.
+        bool hitCeil  = (abs(tHit - ty) < 0.0005) && (rayRoom.y > 0.0);
+        bool hitFloor = (abs(tHit - ty) < 0.0005) && (rayRoom.y <= 0.0);
+        bool hitBack  = (abs(tHit - tz) < 0.0005);
+        bool hitSide  = !hitCeil && !hitFloor && !hitBack;
+
+        vec3 surfAlbedo = vec3(0.18, 0.17, 0.16);
+        vec3 directEmit = vec3(0.0);
+
+        if (hitCeil) {
+            // 2x2 recessed LED ceiling troffers or central warm pendant fixture!
+            vec2 ceilGrid = fract(vec2(hit.x * 2.0, depthNorm * 2.0));
+            float troffer = step(0.20, ceilGrid.x) * step(ceilGrid.x, 0.80) *
+                            step(0.22, ceilGrid.y) * step(ceilGrid.y, 0.78);
+            surfAlbedo = vec3(0.32, 0.33, 0.35);
+            directEmit = roomTint * troffer * 2.4;
+        } else if (hitFloor) {
+            // Wood planks / tiled office carpet with rug accent.
+            float planks = 0.82 + 0.18 * sin(hit.x * 38.0 + floor(depthNorm * 8.0) * 2.1);
+            float rug = step(0.22, hit.x) * step(hit.x, 0.78) * step(0.28, depthNorm) * step(depthNorm, 0.82);
+            surfAlbedo = mix(vec3(0.16, 0.11, 0.07) * planks, vec3(0.12, 0.15, 0.20), rug * step(0.5, rnd.z));
+        } else if (hitBack) {
+            // Back wall with framed art, shelving or wide illuminated wall wash.
+            float wainscot = step(hit.y, 0.30);
+            float shelves = step(0.55, rnd.x) * step(0.18, hit.x) * step(hit.x, 0.82) *
+                            step(0.32, hit.y) * step(hit.y, 0.84) *
+                            step(0.72, fract(hit.y * 6.0));
+            float frameArt = (1.0 - step(0.55, rnd.x)) *
+                             step(0.30, hit.x) * step(hit.x, 0.70) *
+                             step(0.42, hit.y) * step(hit.y, 0.76);
+            surfAlbedo = mix(vec3(0.30, 0.28, 0.26), vec3(0.12, 0.10, 0.09), wainscot);
+            surfAlbedo = mix(surfAlbedo, vec3(0.08, 0.06, 0.05), shelves);
+            surfAlbedo = mix(surfAlbedo, roomTint * 0.55, frameArt * 0.65);
+        } else if (hitSide) {
+            // Side wall with vertical accent stripe / doorway silhouette!
+            float door = step(0.38, depthNorm) * step(depthNorm, 0.72) * step(hit.y, 0.76);
+            surfAlbedo = mix(vec3(0.26, 0.25, 0.24), vec3(0.07, 0.07, 0.08), door * step(0.4, rnd.z));
+        }
+
+        // Room illumination: inverse-distance falloff from ceiling fixture + soft ambient bounce.
+        vec3 lightPos = vec3(0.5, 0.96, depthScale * 0.48);
+        float dLight = length(hit - lightPos);
+        float falloff = 1.0 / (0.38 + 1.45 * dLight * dLight);
+        float ao = smoothstep(0.0, 0.16, hit.x) * smoothstep(1.0, 0.84, hit.x) *
+                   smoothstep(0.0, 0.16, hit.y) * (1.0 - 0.32 * depthNorm);
+        vec3 roomColor = surfAlbedo * roomTint * falloff * ao * 1.45 + directEmit;
+
+        // Mid-room 3D parallax furniture / glowing workstation monitor plane at z = 0.52 * depthScale!
+        float tMid = (depthScale * 0.52) / safeR.z;
+        if (tMid < tHit) {
+            vec2 midXY = winUV + rayRoom.xy * tMid;
+            float desk = step(0.16 + 0.18 * rnd.z, midXY.x) * step(midXY.x, 0.72 + 0.12 * rnd.z) *
+                         step(midXY.y, 0.30);
+            float monitor = step(0.34, midXY.x) * step(midXY.x, 0.62) *
+                            step(0.31, midXY.y) * step(midXY.y, 0.50) * step(0.35, rnd.y);
+            float flicker = 0.88 + 0.12 * sin(materialParams.time * 4.5 + rnd.x * 31.0);
+            if (desk > 0.5) {
+                roomColor = vec3(0.035, 0.032, 0.036) * (0.3 + 0.7 * isLit);
+            }
+            if (monitor > 0.5) {
+                vec3 screenCol = mix(vec3(0.22, 0.68, 1.0), vec3(0.95, 0.55, 0.25), rnd.x);
+                roomColor = screenCol * flicker * (0.45 + 0.85 * isLit);
+            }
+        }
+
+        // Unlit rooms still show faint nocturnal city-sky bounce inside + occasional standby screen!
+        vec3 unlitBounce = surfAlbedo * vec3(0.018, 0.028, 0.048) * (1.0 - 0.55 * depthNorm);
+        vec3 interior = mix(unlitBounce, roomColor, isLit);
+
+        // Partial Venetian blinds right behind the glass (z ~ 0.03) with warm light leaking between slats!
+        float blindDrop = clamp(fract(rnd.y * 3.7) * materialParams.blindClose * 1.35, 0.0, 0.92);
+        if (1.0 - winUV.y < blindDrop && rnd.x > 0.28) {
+            float slats = 0.35 + 0.65 * smoothstep(-0.2, 0.6, sin(winUV.y * 110.0));
+            vec3 blindLit = roomTint * (0.28 + 0.42 * slats) * isLit + vec3(0.015, 0.02, 0.03);
+            interior = mix(interior * 0.18, blindLit, 0.82);
+        }
+
+        // Center vertical casement mullion + perimeter rubber gasket shadow.
+        float gasket = smoothstep(0.0, 0.035, winUV.x) * smoothstep(1.0, 0.965, winUV.x) *
+                       smoothstep(0.0, 0.04, winUV.y) * smoothstep(1.0, 0.96, winUV.y);
+        interior *= gasket * (1.0 - 0.88 * subMullion);
+
+        // Exterior tinted architectural curtain-wall glass with Fresnel reflection via Filament PBR + clearCoat!
+        vec3 V = getWorldViewVector();
+        float ndv = clamp(abs(dot(getWorldNormalVector(), V)), 0.02, 1.0);
+        float fresnel = 0.06 + 0.94 * pow(1.0 - ndv, 4.2);
+
+        material.baseColor = vec4(vec3(0.012, 0.020, 0.032), 1.0);
+        material.metallic = mix(0.05, 0.80, subMullion);
+        material.roughness = mix(0.045, 0.28, subMullion);
+        material.reflectance = 0.72;
+        material.clearCoat = 1.0 - subMullion;
+        material.clearCoatRoughness = 0.03;
+        material.emissive = vec4(interior * (1.0 - fresnel * 0.78), 0.0);
+    }
+}

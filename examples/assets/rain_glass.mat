@@ -1,0 +1,159 @@
+material {
+    name : RainGlass,
+    shadingModel : lit,
+    requires : [ uv0, tangents ],
+    flipUV : false,
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : rainAmount },
+        { type : float, name : flowSpeed },
+        { type : float, name : distortion },
+        { type : float, name : condensation },
+        { type : float2, name : paneSize }
+    ],
+    blending : transparent,
+    refractionMode : screenspace,
+    refractionType : thin,
+    doubleSided : true,
+    variantFilter : [ skinning ]
+}
+
+fragment {
+    float rainHash(vec2 p) {
+        vec3 q = fract(vec3(p.xyx) * vec3(.1031, .1030, .0973));
+        q += dot(q, q.yzx + 33.33);
+        return fract((q.x + q.y) * q.z);
+    }
+
+    // Plump gravity-bulged teardrop with meandering wiped condensation channel
+    // and residual wake droplets.
+    vec3 flowingDrops(vec2 p, float t, float scale) {
+        vec2 aspect = vec2(2.35, 0.82) * scale;
+        vec2 grid = p * aspect;
+        float column = floor(grid.x);
+        float colSeed = rainHash(vec2(column, 7.0));
+        float speed = 0.24 + 0.34 * colSeed;
+        // Stick-slip motion: drops pause briefly under surface tension, then surge down.
+        float phase = t * speed + colSeed * 6.28318;
+        float slip = phase + 0.22 * sin(phase * 2.0) + 0.06 * sin(phase * 4.0);
+        grid.y += slip;
+
+        vec2 cell = floor(grid);
+        float seed = rainHash(cell);
+        vec2 q = fract(grid) - 0.5;
+        // Meandering horizontal path along the pane.
+        float wiggle = (seed - 0.5) * 0.46 +
+                       0.065 * sin(p.y * 5.5 + seed * 19.0) +
+                       0.03 * sin(p.y * 13.0 - seed * 11.0);
+        q.x -= wiggle;
+        q.y += 0.24;
+
+        // Convert to isotropic pane-space coordinates inside the cell so drops
+        // are round/teardrop-shaped rather than vertically squashed.
+        vec2 m = q / aspect;
+        float rBase = mix(0.038, 0.068, rainHash(cell + 19.0)) / scale;
+        // Gravity teardrop: swollen lower belly (m.y < 0), tapered upper tail (m.y > 0).
+        float taper = clamp(1.0 - m.y / (rBase * 2.4), 0.35, 1.32);
+        vec2 d = vec2(m.x / (rBase * taper), m.y / (rBase * 1.18));
+        float r2 = dot(d, d);
+        // Plump spherical-cap dome profile with crisp surface-tension contact angle.
+        float head = sqrt(max(1.0 - r2, 0.0)) * smoothstep(1.02, 0.88, r2);
+
+        // Wiped clear rivulet channel above the drop (m.y > 0) + residual wake beads.
+        float trailLen = (0.42 + 0.35 * seed) / aspect.y;
+        float along = clamp(m.y / trailLen, 0.0, 1.0);
+        float trailHalfW = rBase * mix(0.58, 0.14, along);
+        float trailMask = (1.0 - smoothstep(trailHalfW * 0.55, trailHalfW, abs(m.x))) *
+                          smoothstep(-rBase * 0.2, rBase * 0.35, m.y) *
+                          (1.0 - smoothstep(0.68, 1.0, along));
+
+        // Discrete beaded droplets left behind in the wiped channel.
+        float beadCell = floor(m.y / (rBase * 2.1));
+        float beadSeed = rainHash(vec2(beadCell, seed * 91.0));
+        float beadY = (fract(m.y / (rBase * 2.1)) - 0.5) * (rBase * 2.1);
+        float beadR = rBase * mix(0.24, 0.48, beadSeed) * (1.0 - along * 0.6);
+        vec2 bd = vec2(m.x, beadY) / max(beadR, 0.002);
+        float wakeBead = sqrt(max(1.0 - dot(bd, bd), 0.0)) *
+                         step(0.32, beadSeed) * trailMask;
+
+        float amt = clamp(materialParams.rainAmount, 0.0, 1.0);
+        float coverage = smoothstep(seed * 0.65, seed * 0.65 + 0.22, amt);
+        float height = (head * rBase * 1.35 + wakeBead * beadR * 1.15 + trailMask * 0.0018) * coverage;
+        float wiped = max(smoothstep(1.05, 0.82, r2), trailMask) * coverage;
+        // Bright lower-belly caustic arc where gravity focuses light inside the drop.
+        float caustic = smoothstep(0.35, 0.92, r2) * (1.0 - smoothstep(0.92, 1.04, r2)) *
+                        smoothstep(0.2, -0.7, d.y) * coverage;
+        return vec3(height, wiped, caustic);
+    }
+
+    // Stationary clinging drops that haven't broken surface tension yet.
+    vec3 staticDrops(vec2 p, float t) {
+        float amt = clamp(materialParams.rainAmount, 0.0, 1.0);
+        vec3 acc = vec3(0.0);
+        for (int layer = 0; layer < 2; layer++) {
+            float sc = layer == 0 ? 5.2 : 11.5;
+            vec2 g = p * sc;
+            vec2 cell = floor(g);
+            float seed = rainHash(cell + float(layer) * 37.0);
+            vec2 offset = 0.22 + 0.56 * vec2(seed, rainHash(cell + 71.0));
+            vec2 m = (fract(g) - offset) / sc;
+            float r = (layer == 0 ? mix(0.014, 0.028, rainHash(cell + 13.0))
+                                  : mix(0.006, 0.013, rainHash(cell + 13.0)));
+            // Gentle growth & evaporation cycle.
+            float life = smoothstep(0.15, 0.55, 0.5 + 0.5 * sin(t * 0.35 + seed * 31.0));
+            float present = smoothstep(seed * 0.8, seed * 0.8 + 0.2, amt) * life;
+            vec2 d = vec2(m.x / r, m.y / (r * 1.08));
+            float r2 = dot(d, d);
+            float dome = sqrt(max(1.0 - r2, 0.0)) * smoothstep(1.02, 0.85, r2) * present;
+            float caustic = smoothstep(0.45, 0.94, r2) * (1.0 - smoothstep(0.94, 1.04, r2)) *
+                            smoothstep(0.1, -0.7, d.y) * present;
+            acc.x += dome * r * 1.15;
+            acc.y = max(acc.y, smoothstep(1.02, 0.8, r2) * present);
+            acc.z += caustic * 0.6;
+        }
+        return acc;
+    }
+
+    vec3 waterFilm(vec2 p) {
+        float t = materialParams.time * materialParams.flowSpeed;
+        vec3 a = flowingDrops(p, t, 1.0);
+        vec3 b = flowingDrops(p + vec2(1.37, 0.61), t * 0.78, 1.55);
+        vec3 s = staticDrops(p, t);
+        // Smooth union of overlapping water heights; trails wipe condensation everywhere.
+        float h = max(max(a.x, b.x * 0.88), s.x * (1.0 - max(a.y, b.y)));
+        float wiped = clamp(max(max(a.y, b.y), s.y), 0.0, 1.0);
+        float caustic = a.z + b.z * 0.8 + s.z * (1.0 - max(a.y, b.y));
+        return vec3(h, wiped, caustic);
+    }
+
+    void material(inout MaterialInputs material) {
+        vec2 uv = getUV0();
+        vec2 p = uv * materialParams.paneSize;
+        vec3 film = waterFilm(p);
+        const float e = 0.0022;
+        vec2 slope = vec2(waterFilm(p + vec2(e, 0.0)).x - film.x,
+                          waterFilm(p + vec2(0.0, e)).x - film.x) / e;
+        vec2 nXY = -slope * materialParams.distortion * 1.35;
+        // Prevent upward-pointing meniscus normals near the top of the window
+        // from refracting outside the backdrop into pitch black.
+        float topGuard = smoothstep(0.96, 0.72, uv.y);
+        nXY.y = min(nXY.y, 0.55 + 1.45 * topGuard);
+        nXY = clamp(nXY, vec2(-2.2), vec2(2.2));
+        material.normal = normalize(vec3(nXY, 1.0));
+        prepareMaterial(material);
+
+        float cond = clamp(materialParams.condensation, 0.0, 1.0);
+        float foggy = cond * (1.0 - film.y);
+        // Steamed-up condensation slightly scatters ambient night light; wiped
+        // water paths and droplets are crystal clear.
+        material.baseColor = vec4(mix(vec3(0.98, 0.99, 1.0), vec3(0.72, 0.78, 0.86), foggy * 0.35), 1.0);
+        material.metallic = 0.0;
+        material.ior = 1.333;
+        material.transmission = 1.0 - foggy * 0.08;
+        material.roughness = mix(0.015, 0.08 + cond * 0.52, 1.0 - film.y);
+        material.microThickness = 0.015 + film.x * 5.2;
+        material.absorption = vec3(0.015, 0.008, 0.003);
+        // Subtle warm/cool caustic meniscus glint at the bottom lip of each droplet.
+        material.emissive = vec4(vec3(0.32, 0.36, 0.44) * clamp(film.z, 0.0, 1.2) * 0.38, 0.0);
+    }
+}

@@ -1,0 +1,74 @@
+material {
+    name : RainCity,
+    shadingModel : unlit,
+    requires : [ uv0 ],
+    flipUV : false,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+fragment {
+    float cityHash(vec2 p) {
+        vec3 q = fract(vec3(p.xyx) * vec3(.1031, .1030, .0973));
+        q += dot(q, q.yzx + 33.33);
+        return fract((q.x + q.y) * q.z);
+    }
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        vec2 uv = getUV0();
+        // Dark rainy night sky with warm urban horizon glow (no bright top band).
+        float horizon = exp(-max(uv.y - 0.08, 0.0) * 3.8);
+        vec3 color = mix(vec3(.004, .008, .018), vec3(.032, .022, .038), horizon);
+
+        // Three depth layers of rainy city silhouettes and softly glowing windows.
+        for (int layer = 0; layer < 3; layer++) {
+            float f = float(layer);
+            float scaleX = 7.0 + f * 4.5;
+            vec2 p = uv * vec2(scaleX, 1.0) + vec2(f * 1.73, 0.0);
+            float id = floor(p.x);
+            float h = 0.34 + cityHash(vec2(id, f * 13.0)) * (0.52 - f * 0.08);
+            float bldg = (1.0 - smoothstep(h - 0.01, h + 0.008, uv.y)) *
+                         smoothstep(0.03, 0.06, fract(p.x)) *
+                         (1.0 - smoothstep(0.94, 0.97, fract(p.x)));
+
+            vec2 grid = vec2(fract(p.x) * (4.0 + f), uv.y * (28.0 + f * 8.0));
+            vec2 cell = floor(grid);
+            vec2 q = abs(fract(grid) - 0.5);
+            float win = (1.0 - smoothstep(0.16, 0.34, q.x)) *
+                        (1.0 - smoothstep(0.14, 0.34, q.y));
+            float seed = cityHash(cell + vec2(id * 11.0, f * 41.0));
+            float lit = step(0.46 + f * 0.05, seed);
+            vec3 warm = mix(vec3(1.0, 0.56, 0.18), vec3(1.0, 0.82, 0.48), fract(seed * 7.3));
+            vec3 cool = mix(vec3(0.12, 0.58, 0.95), vec3(0.85, 0.18, 0.52), step(0.82, seed));
+            vec3 wCol = mix(cool, warm, step(0.32, fract(seed * 3.7)));
+            float depthAtten = mix(0.35, 1.0, f / 2.0);
+            vec3 silhouette = vec3(0.004, 0.007, 0.014) * (1.0 - f * 0.2);
+            color = mix(color, silhouette + wCol * win * lit * (0.45 + 0.75 * fract(seed * 19.0)) * depthAtten, bldg);
+        }
+
+        // Rich out-of-focus traffic, neon, and streetlamp bokeh discs across all heights
+        // so raindrops at every height have luminous color circles to lens-invert.
+        for (int i = 0; i < 28; i++) {
+            float s = float(i);
+            vec2 center = vec2(
+                0.06 + 0.88 * cityHash(vec2(s, 6.0)),
+                0.08 + 0.74 * pow(cityHash(vec2(s, 17.0)), 1.35)
+            );
+            float rad = mix(0.022, 0.068, cityHash(vec2(s, 29.0)));
+            vec2 d = (uv - center) * vec2(1.25, 1.0) / rad;
+            float r2 = dot(d, d);
+            // Soft bokeh disc with subtle bright spherical-aberration ring.
+            float disc = (1.0 - smoothstep(0.68, 1.05, r2)) * (0.55 + 0.45 * smoothstep(0.2, 0.85, r2));
+            float halo = exp(-r2 * 1.8) * 0.45;
+            float pick = fract(s * 0.37 + 0.13);
+            vec3 light = pick < 0.48
+                ? vec3(1.0, 0.46, 0.10)   // warm sodium streetlamp
+                : (pick < 0.72
+                    ? vec3(1.0, 0.10, 0.16) // ruby brake light
+                    : (pick < 0.88
+                        ? vec3(0.08, 0.68, 1.0) // cyan neon
+                        : vec3(0.95, 0.18, 0.68))); // magenta sign
+            float intensity = mix(0.35, 1.25, cityHash(vec2(s, 53.0)));
+            color += light * (disc + halo) * intensity;
+        }
+        material.baseColor = vec4(color, 1.0);
+    }
+}

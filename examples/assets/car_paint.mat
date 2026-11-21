@@ -1,0 +1,129 @@
+material {
+    name : CarPaint,
+    shadingModel : lit,
+    requires : [ position, tangents ],
+    variables : [ objPos, objNormal ],
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : preset },
+        { type : float, name : flakeScale },
+        { type : float, name : flakeStrength },
+        { type : float, name : clearCoat }
+    ],
+    culling : back,
+    variantFilter : [ skinning ]
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.objPos.xyz = getPosition().xyz;
+        material.objNormal.xyz = material.worldNormal;
+    }
+}
+fragment {
+    vec3 hash33(vec3 p) {
+        p = fract(p * vec3(0.1031, 0.1030, 0.0973));
+        p += dot(p, p.yxz + 33.33);
+        return fract((p.xxy + p.yxx) * p.zyx);
+    }
+
+    vec4 voronoiFlake(vec3 x) {
+        vec3 n = floor(x), f = fract(x);
+        float bestD = 8.0;
+        vec3 bestRnd = vec3(0.5);
+        for (int k = -1; k <= 1; k++) {
+            for (int j = -1; j <= 1; j++) {
+                for (int i = -1; i <= 1; i++) {
+                    vec3 g = vec3(float(i), float(j), float(k));
+                    vec3 rnd = hash33(n + g);
+                    vec3 r = g + rnd - f;
+                    float d = dot(r, r);
+                    if (d < bestD) {
+                        bestD = d;
+                        bestRnd = rnd;
+                    }
+                }
+            }
+        }
+        return vec4(bestRnd, sqrt(bestD));
+    }
+
+    void material(inout MaterialInputs material) {
+        vec3 p = variable_objPos.xyz;
+        // Ultra-fine sub-millimeter metallic mica flakes (never coarse granite speckles!).
+        float scale = max(materialParams.flakeScale, 80.0);
+        vec3 flakeCoord = p * scale;
+        float pixelFootprint = length(fwidth(flakeCoord));
+        float lodFade = 1.0 - smoothstep(0.55, 2.2, pixelFootprint);
+
+        vec4 flake1 = voronoiFlake(flakeCoord);
+        vec4 flake2 = voronoiFlake(flakeCoord * 2.17 + 19.3);
+
+        vec2 tilt = ((flake1.xy - 0.5) * 0.28 + (flake2.xy - 0.5) * 0.18) *
+                    materialParams.flakeStrength * lodFade;
+
+        // Smooth candy metallic base with subtle micro-flake normal perturbation
+        // underneath a glass-smooth outer automotive clearCoat lacquer!
+        material.normal = normalize(vec3(tilt, 1.0));
+        material.clearCoatNormal = vec3(0.0, 0.0, 1.0);
+        prepareMaterial(material);
+
+        vec3 N = normalize(variable_objNormal.xyz);
+        vec3 V = getWorldViewVector();
+        float ndv = clamp(abs(dot(N, V)), 0.02, 1.0);
+        float flip = pow(1.0 - ndv, 1.85);
+        float rimShift = pow(1.0 - ndv, 3.8);
+
+        // Deep luxury multi-stage chameleon / candy automotive finishes:
+        vec3 faceCol, midCol, grazeCol, flakeTint;
+        if (materialParams.preset < 0.5) {
+            // TVR Sagaris / GT-R Midnight Purple III: Deep Sapphire -> Royal Violet -> Electric Cyan-Gold!
+            faceCol   = vec3(0.012, 0.032, 0.28);
+            midCol    = vec3(0.32, 0.022, 0.48);
+            grazeCol  = vec3(0.04, 0.68, 0.72);
+            flakeTint = mix(vec3(0.35, 0.80, 1.0), vec3(0.95, 0.42, 1.0), flake1.x);
+        } else if (materialParams.preset < 1.5) {
+            // Mazda Soul Red / McLaren Volcano Sunset: Deep Ruby -> Blazing Crimson -> Liquid Gold!
+            faceCol   = vec3(0.24, 0.008, 0.022);
+            midCol    = vec3(0.76, 0.065, 0.012);
+            grazeCol  = vec3(1.0, 0.58, 0.04);
+            flakeTint = mix(vec3(1.0, 0.76, 0.28), vec3(1.0, 0.28, 0.12), flake1.x);
+        } else {
+            // Aston Martin Iridescent Emerald: Deep Racing Green -> Viridian Teal -> Champagne Gold!
+            faceCol   = vec3(0.006, 0.14, 0.075);
+            midCol    = vec3(0.012, 0.34, 0.28);
+            grazeCol  = vec3(0.58, 0.68, 0.06);
+            flakeTint = mix(vec3(0.32, 1.0, 0.68), vec3(1.0, 0.90, 0.35), flake1.x);
+        }
+
+        vec3 basePigment = mix(faceCol, midCol, smoothstep(0.06, 0.55, flip));
+        basePigment = mix(basePigment, grazeCol, rimShift);
+
+        // Pinpoint metallic mica glints that twinkle only when individual flake normals
+        // align with studio light vectors (zero muddy dark speckles in baseColor!).
+        vec3 flakeWorldN = getWorldNormalVector();
+        vec3 keyDir1 = normalize(vec3(0.42, 0.82, 0.38));
+        vec3 keyDir2 = normalize(vec3(-0.55, 0.68, 0.48));
+        vec3 overhead = vec3(0.0, 1.0, 0.0);
+        float g1 = pow(max(dot(flakeWorldN, normalize(keyDir1 + V)), 0.0), 96.0);
+        float g2 = pow(max(dot(flakeWorldN, normalize(keyDir2 + V)), 0.0), 96.0);
+        float g3 = pow(max(dot(flakeWorldN, normalize(overhead + V)), 0.0), 120.0);
+        float glintMask = step(0.62, flake1.z) * (0.4 + 0.6 * step(0.5, flake2.z));
+        float sparkle = (g1 + g2 * 0.8 + g3 * 0.9) * glintMask * lodFade * materialParams.flakeStrength;
+
+        // Sharp reflection of the three overhead showroom light strips in the clearCoat!
+        vec3 R = reflect(-V, N);
+        float studioStrip = smoothstep(0.35, 0.85, R.y) *
+                            pow(0.5 + 0.5 * cos(R.x * 9.5), 14.0);
+
+        material.baseColor = vec4(basePigment, 1.0);
+        material.metallic = 0.92;
+        material.roughness = 0.16;
+        material.clearCoat = clamp(materialParams.clearCoat, 0.0, 1.0);
+        material.clearCoatRoughness = 0.018;
+        material.emissive = vec4(
+            flakeTint * sparkle * 1.45 +
+            vec3(0.88, 0.94, 1.0) * studioStrip * 0.22 * materialParams.clearCoat,
+            0.0
+        );
+    }
+}

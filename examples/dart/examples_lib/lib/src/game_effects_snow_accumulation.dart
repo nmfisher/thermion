@@ -32,12 +32,19 @@ Future<void> setupSnowAccumulation(
   await snow.setParameterFloat('accumulation', 0.72);
   await asset.setMaterialInstanceForAll(snow);
   await viewer.addDirectLight(
-    DirectLight.sun(direction: Vector3(-0.3, -0.82, -0.48), intensity: 90000),
+    DirectLight.sun(
+      direction: Vector3(-0.35, -0.82, -0.45),
+      color: const LinearColor(0.96, 0.98, 1.0),
+      intensity: 68000,
+      castShadows: true,
+    ),
   );
   effectAnimators.add((t) async {
-    final cycle = t % 6.0;
-    final amount =
-        cycle < 3.0 ? 0.28 + cycle * 0.23 : 0.97 - (cycle - 3.0) * 0.23;
+    // Full bare-helmet -> deep winter snowdrift progression over a 5s cycle.
+    final phase = (t + 0.9) % 5.0;
+    final amount = phase < 3.6
+        ? (0.04 + (phase / 3.6) * 0.94)
+        : (0.98 - ((phase - 3.6) / 1.4) * 0.94);
     await snow.setParameterFloat('time', t);
     await snow.setParameterFloat('accumulation', amount);
   });

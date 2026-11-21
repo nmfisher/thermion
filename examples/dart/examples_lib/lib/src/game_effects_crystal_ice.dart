@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:thermion_dart/thermion_dart.dart';
 
 import 'game_effects_shared.dart';
@@ -15,9 +17,11 @@ Future<void> setupCrystalIce(
     aspect: 1,
     focalLength: 34,
   );
-  await camera.lookAt(Vector3(2.25, 1.35, 3.4), focus: Vector3(0, 0.18, 0));
+  await camera.lookAt(Vector3(2.15, 1.25, 3.25), focus: Vector3(0, 0.15, 0));
+  await viewer.loadIbl('$assetsDir/default_env_ibl.ktx', intensity: 16000);
   await setDarkSkybox(viewer);
-  await enableVfxPost(viewer, bloomStrength: 0.24);
+  await enableVfxPost(viewer, bloomStrength: 0.20);
+  await viewer.setShadowsEnabled(true);
 
   final crystal = await loadEffectMaterial(
     viewer,
@@ -55,18 +59,40 @@ Future<void> setupCrystalIce(
   }
 
   final groundMaterial = await viewer.app.createUbershaderMaterial();
-  await groundMaterial.setBaseColorFactor(0.018, 0.028, 0.055, 1.0);
-  await groundMaterial.setMetallicFactor(0.15);
-  await groundMaterial.setRoughnessFactor(0.22);
+  await groundMaterial.setBaseColorFactor(0.014, 0.024, 0.042, 1.0);
+  await groundMaterial.setMetallicFactor(0.08);
+  await groundMaterial.setRoughnessFactor(0.16);
   final ground = await viewer.createGeometry(
-    GeometryUtils.plane(width: 7, height: 7),
+    GeometryUtils.plane(width: 9, height: 9),
     materialInstances: [groundMaterial.materialInstance],
   );
-  await ground.setTransform(Matrix4.translation(Vector3(0, -1.26, 0)));
+  await ground.setTransform(Matrix4.translation(Vector3(0, -1.22, 0)));
+  await ground.setReceiveShadows(true);
   await viewer.addDirectLight(
-    DirectLight.sun(direction: Vector3(-0.5, -0.7, -0.45), intensity: 80000),
+    DirectLight.sun(
+      direction: Vector3(-0.55, -0.68, -0.48),
+      color: const LinearColor(0.88, 0.95, 1.0),
+      intensity: 68000,
+      castShadows: true,
+    ),
   );
+  await viewer.addDirectLight(
+    DirectLight.point(
+      position: Vector3(-1.8, 1.6, -2.2),
+      color: const LinearColor(0.28, 0.72, 1.0),
+      intensity: 95000,
+      falloffRadius: 10.0,
+    ),
+  );
+  const baseAngle = 0.5804; // atan2(2.15, 3.25), radius ~ 3.897
+  const orbitRadius = 3.897;
   effectAnimators.add((t) async {
     await crystal.setParameterFloat('time', t);
+    final angle = baseAngle + 0.52 * math.sin(t * math.pi * 2 / 6.0);
+    final elev = 1.25 + 0.18 * math.sin(t * math.pi * 2 / 6.0);
+    await camera.lookAt(
+      Vector3(math.sin(angle) * orbitRadius, elev, math.cos(angle) * orbitRadius),
+      focus: Vector3(0, 0.15, 0),
+    );
   });
 }

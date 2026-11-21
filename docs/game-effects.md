@@ -1,9 +1,11 @@
 # Game-Effect Shaders — guide for contributors
 
-Eighteen example-level Filament effects for common game VFX: **hit flash,
+Example-level Filament effects for common game VFX: **hit flash,
 hologram, force field, dissolve/burn, water, smoke, fire, lava, shockwave,
 shore waves, wetness, crystal/ice, snow accumulation, damage decals, portal,
-electricity, invisibility cloak, and an energy-weapon suite**. Everything lives at
+electricity, invisibility cloak, an energy-weapon suite, rain-streaked glass,
+local fog/light shafts, tornado/sandstorm, silk/velvet/woven cloth, hair/fur,
+aurora, nebulae, and iridescent coatings**. Everything lives at
 example level — no engine changes, no new public API. This document explains
 what each effect is meant to read as, how it is built, how to render and
 iterate, and where the interesting improvement opportunities are.
@@ -31,9 +33,10 @@ Shared demo assets (FlightHelmet, BusterDrone, IBLs) are in `examples/assets/`.
 ## 2. Environment
 
 - **matc/resgen** come from a local Filament build:
-  `FILAMENT_PATH="/Volumes/T7 1/projects/filament/out/cmake-release/tools"`
-  (Ninja layout — binaries at `tools/matc/matc`, `tools/resgen/resgen`; the
-  volume name contains a space, so quote it).
+  `FILAMENT_PATH="/Volumes/T7/projects/filament/out/release/filament/bin"`.
+  Check `matc --version`: the runtime currently requires material version **75**.
+  The adjacent `out/cmake-release/tools` build emits version 76 and its assets
+  abort at load time with the version-75 runtime.
 - This machine's matc has **no WebGPU support** — `make materials` skips the
   `_webgpu`/`_web_combined` variants and the webgpu backend in example
   `.filamat`s with a warning. Committed webgpu blobs are left untouched.
@@ -63,7 +66,7 @@ cd ../examples_lib && dart analyze
 Fast material-only iteration (skip `make materials`, Metal only):
 
 ```bash
-"$FILAMENT_PATH/matc/matc" -a metal \
+"$FILAMENT_PATH/matc" -a metal \
   -o examples/assets/<name>.filamat examples/assets/<name>.mat
 ```
 
@@ -168,6 +171,7 @@ bloom so highlights soften without flattening the image.
 |---|---|
 | `EffectClock` | Stopwatch-based clock with `tick()` (live hooks) and `setTime(t)` (deterministic stills) |
 | `effectAnimators` | per-setup time→uniform closures consumed by the runner's still (`--time`) and video modes |
+| `effectSliders` | Example-level slider descriptors and async setters consumed by the web gallery; also usable by headless callers |
 | `loadEffectMaterial(viewer, assetsDir, name)` | `.filamat` bytes → `MaterialInstance` |
 | `setDarkSkybox(viewer)` | near-black navy skybox for additive scenes |
 | `enableVfxPost(viewer, bloomStrength)` | enables AA/tonemapping/bloom with a per-effect glow strength |
@@ -704,6 +708,326 @@ generator, measure the tile's min/max/std, not just eyeball it.
 
 ---
 
+### 6.20 rain_glass — `game_effects_rain_glass.dart`, `rain_glass.mat` + `rain_city.mat`
+
+**Intent.** A framed window covered in moving droplets, fine stationary beads,
+and tapering rivulets, overlooking warm/cool city lights. Wet trails clear the
+condensation and distort the opaque city backdrop through actual screen-space
+refraction. The city material is a procedural demonstration background, not a
+texture baked into the glass.
+
+**Build.** Lit, double-sided, thin screen-space refraction. Three evaluations of
+a procedural water-height field produce tangent-space normals. `microThickness`
+provides the optical path needed to offset scene-color samples; its exaggerated
+droplet thickness makes distortion readable at gallery resolution. Time advances
+through `effectAnimators`. UV V must point up the pane; `paneSize` is its physical
+width/height and keeps drops proportioned on rectangular windows.
+
+**Controls.** `rainAmount` (0–1), `flowSpeed` (0–2), `distortion` (0–1.5), and
+`condensation` (0–1). Defaults: 0.85, 1, 0.65, 0.28. `time` is elapsed seconds.
+The gallery exposes these with a Reset button at `?example=rain_glass`.
+Both pane and city materials disable Filament's default UV flip so rain falls
+downward with trails above the moving heads.
+
+**Limits.** Refraction sees opaque on-screen geometry and requires post-processing.
+Transparent objects and off-screen content are not captured. Droplet collection
+and trails are procedural approximations, not a fluid simulation. `flowSpeed=0`
+freezes procedural time at zero; `rainAmount=0` leaves the glass and its optional
+condensation intact.
+
+```bash
+cd examples/dart/headless_runner
+dart run bin/run_example.dart game_effects_rain_glass 768 768 --time 2.4
+dart run bin/run_example.dart game_effects_rain_glass 768 768 --video 4 30
+```
+
+### 6.21 fog_light_shafts — `game_effects_fog_light_shafts.dart`, `fog_light_shafts.mat`
+
+**Intent.** Warm sunbeams through three high windows in a cool stone room, with
+drifting density variations, denser low fog, and a pillar casting a dark break
+through the shafts.
+
+**Build.** A lit receiver material integrates 48 single-scattering samples from
+the camera to the visible opaque surface, clipped to `volumeMin`/`volumeMax`.
+Beer–Lambert extinction attenuates both the surface and later samples; the
+premultiplied scattering is composited using `postLightingColor`. User-world
+position getters keep fog stationary when objects or the camera move, including
+when the camera enters the volume. Static sample jitter reduces marching bands.
+The shader evaluates three window apertures on the back plane and one explicit
+box occluder matching the demo pillar. Filament shadows handle surface lighting.
+
+**Controls.** `density` (0–0.8), `shaftStrength` (0–5), `driftSpeed` (0–3),
+defaulting to 0.24, 0.55, 1. Other uniforms configure fog/light colors, volume bounds,
+the pillar bounds, surface color, and source glow. `lightDirection` must point
+from the window into the room, with positive Z. Window centers are X = −2, 0, 2,
+with half-width 0.45 and heights 1.72–3.34; change the aperture function alongside
+the scene geometry to customize them. Gallery: `?example=fog_light_shafts`.
+
+**Limits.** This is an example-level receiver technique. Added opaque geometry
+must use the receiver material to receive fog; rays with no receiver have no
+fog. Transparent objects are not supported. Volumetric shadows use the explicit
+apertures/pillar, not arbitrary engine shadow maps. The fixed 48-step integration
+cost should be profiled before using it on mobile or large viewports. Zero
+density removes all volume scattering; zero shaft strength keeps ambient fog.
+
+```bash
+cd examples/dart/headless_runner
+dart run bin/run_example.dart game_effects_fog_light_shafts 768 768 --time 1.8
+dart run bin/run_example.dart game_effects_fog_light_shafts 768 768 --video 4 30
+```
+
+### 6.22 tornado — `game_effects_storm.dart`, `storm_volume.mat` + `storm_debris.mat`
+
+**Intent.** A bending funnel with rotating turbulent folds, a ragged cloud base,
+ground-hugging dust, and orbiting fragments. The camera can orbit or enter it.
+
+**Build.** A back-face-rendered transparent box bounds a 56-step ray march through
+a procedural density field. Two scales of rotating 3D noise warp a tapered
+funnel; a wider skirt connects it to the ground. Beer–Lambert extinction and
+three density samples toward the key light give the dust self-shadowing.
+256 GPU billboard fragments spiral upward with staggered lifetimes. All
+animation uses `time * windSpeed`, so zero speed freezes both volume and debris.
+The ground uses `storm_ground.mat` for filtered dune ripples and fine grain.
+
+**Controls.** Wind speed (0–2.5), dust density (0–4), turbulence (0–2), debris
+amount (0–1), and funnel width (0.5–1.4). Defaults: 1, 2.2, 1, 0.75, 1. Density
+zero removes both dust and debris. Gallery: `?example=tornado`.
+
+**Limits.** This is a procedural VFX approximation, not fluid simulation. The
+volume does not sample scene depth or engine shadow maps: opaque objects inside
+the proxy need a depth-aware integration pass for correct partial occlusion.
+The demo therefore keeps the ground below the box. Debris is a deliberately
+ordered transparent overlay, not independently attenuated by the volume. Keep
+the box transform and `volumeMin`/`volumeMax` in sync when moving the effect.
+The fixed integration budget and secondary shadow samples need profiling on
+mobile; OpenGL, Metal, and Vulkan compilation is not a frame-rate guarantee.
+
+```bash
+cd examples/dart/headless_runner
+dart run bin/run_example.dart game_effects_tornado 768 768 --time 2.6
+dart run bin/run_example.dart game_effects_tornado 512 512 --video 4 30
+```
+
+### 6.23 sandstorm — `game_effects_storm.dart`, shared storm materials
+
+**Intent.** An ochre wall of rolling dust with eroded billows, a broad low skirt,
+and fast horizontal sand streaks. Warm lighting and dune ripples provide a
+desert setting.
+
+**Build.** Uses the storm volume's `stormType=1` density field: noise advects along
+X, deforms the front and upper edge of the cloud, and adds low dust ahead of it.
+The shared debris shader switches from orbiting fragments to small windblown
+streaks. The storm proxy is 10 × 5.4 × 6.4 world units and fades at its X edges.
+
+**Controls.** Same wind/density/turbulence/debris controls as tornado, with a
+default density of 1.8 and no funnel-width slider. The same depth, lighting,
+particle ordering, and performance limitations apply. Gallery: `?example=sandstorm`.
+
+```bash
+cd examples/dart/headless_runner
+dart run bin/run_example.dart game_effects_sandstorm 768 768 --time 2.6
+```
+
+### 6.24 cloth — `game_effects_cloth.dart`, `silk.mat`, `velvet.mat`, `woven_cloth.mat`
+
+**Intent.** Three fabric samples under identical studio lighting. From left to
+right: teal silk, burgundy velvet, and golden woven cloth. Each hangs from a
+rail with static pleats and wind flutter; the upper edge stays pinned.
+
+**Build.** Silk uses the lit model with anisotropic specular highlights. Velvet
+uses Filament's cloth model with a dark body and colored grazing sheen. Woven
+cloth uses the cloth model with alternating warp/weft relief, diffuse thread
+variation, a darker hem, and restrained subsurface color. These choices follow
+the [Filament material model guide](https://google.github.io/filament/main/materials.html).
+
+All three share `cloth_motion.glsl` and `cloth_weave.glsl`, included by matc
+relative to the `.mat` source. Motion uses a 72 × 96 XY grid with positive-Z
+normals and unflipped UVs; `clothSize` is the panel's width/height (1.65 × 2.65
+in the demo). Finite differences update the displaced world normal for lighting
+and shadow rendering. Thread frequencies fade with their pixel footprint to
+limit moiré as the camera moves away.
+
+**Controls.** Shared wind strength (0–1.5, default 0.65), wind speed (0–2.5,
+default 1), thread count (24–160, default 72), and thread relief (0–1, default
+0.65). Silk has roughness (0.12–0.65, default 0.27) and anisotropy (0–0.95,
+default 0.8); velvet has sheen strength (0–1.5, default 1). Zero wind strength
+leaves static pleats; zero wind speed freezes the deformation at time zero.
+Gallery: `?example=cloth`.
+
+**Limits.** The drape is a vertex animation, not a collision-aware cloth solver.
+These demo materials assume a UV-aligned planar rest mesh; arbitrary garments
+need a corresponding deformation and tangent-frame treatment. The weave is a
+filtered procedural approximation, not explicit fiber geometry. The materials
+are double-sided and cast shadows from their deformed silhouettes.
+
+```bash
+cd examples/dart/headless_runner
+dart run bin/run_example.dart game_effects_cloth 768 768 --time 1.7
+dart run bin/run_example.dart game_effects_cloth 512 512 --video 4 30
+```
+
+### 6.25 hair and fur — `game_effects_hair_fur.dart`, `hair_cards.mat`, `fur_shell.mat`
+
+**Intent.** A copper-haired mannequin beside a groomed, patterned fur sample.
+The hair has directional highlights and wispy tips; the fur has a soft sheen,
+darker roots, and visible fibers at its silhouette.
+
+**Build.** Hair uses 72 curved ribbons with 28 longitudinal subdivisions and
+17 masked procedural strands per ribbon. UV U encodes the card index plus its
+width, and V runs from root to tip. The lit model uses anisotropic specular
+reflection; root-to-tip color and irregular strand taper break up the cards.
+Wind displacement is pinned at the roots. Hair cards cast masked shadows.
+
+Fur uses 28 masked shells over a 48 × 72 sphere grid. A coherent UV strand
+field tapers through the shells, while the vertices extrude along the normal
+and bend under grooming and wind. The cloth BRDF gives the fibers a soft
+sheen, with approximate root occlusion and warmer tips. Only the base shell
+casts shadows. At zero length, outer shells disappear to avoid coincident
+depth surfaces.
+
+**Controls.** Shared wind strength (0–1.5, default .6) and speed (0–2.5,
+default 1); hair roughness (.15–.7, default .3), anisotropy (0–.95, default
+.85); fur length (0–.4, default .16), grooming (0–1, default .45), and
+density (24–100, default 92). Zero speed freezes time; zero wind strength
+leaves the authored hairstyle and static groom. Gallery: `?example=hair_fur`.
+
+**Limits.** These are procedural cards and shells, not strand simulation or a
+hair scattering model. Wind does not solve collisions, and the card normals
+retain their rest orientation. Fur has no silhouette fins or automatic LOD;
+shell overdraw and the UV sphere's pole convergence matter at close range.
+For production characters, use authored card/groom meshes and choose shell
+counts and strand frequencies for the target resolution.
+
+### 6.26 aurora — `game_effects_cosmic.dart`, `aurora.mat`
+
+**Intent.** Animated green/cyan curtains with violet upper emission over a
+mountain silhouette and a procedural star field.
+
+**Build.** A front-culled sky sphere integrates 96 altitude samples through two
+noise-warped ribbons. Height controls the color and emission falloff; fine
+noise creates vertical rays. The curtain width expands near the horizon to
+reduce undersampling. `cosmic_noise.glsl` shares noise and filtered angular
+stars with the nebula. A fixed per-pixel sample offset breaks up coherent march
+aliasing; post-process dithering smooths dark gradients on the eight-bit output.
+
+**Controls.** Brightness (0–4, default 1.7), curtain scale (.5–1.8, default 1),
+animation speed (0–3, default 1), color shift (0–1), and star amount (0–2,
+default 1). Brightness zero leaves a static starry sky. Gallery:
+`?example=aurora`; drag looks around in place and scroll changes the lens.
+
+**Limits.** An artistic sky model, without physical atmospheric scattering or
+scene illumination. The ribbons occupy one region of the sky; other directions
+show stars. The mountain ring is a simple silhouette. This is a full-screen
+ray-marched material, so its cost scales with resolution.
+
+### 6.27 nebula — `game_effects_cosmic.dart`, `nebula.mat`
+
+**Intent.** A slowly evolving blue/magenta emission cloud with dark absorbing
+dust and stars showing through thinner regions.
+
+**Build.** The sky shader integrates 48 samples through a virtual cloud with
+domain-warped four-octave noise, finer density detail, and separate emitting gas
+and absorbing dust. Front-to-back Beer–Lambert attenuation dims both distant
+emission and background stars. Colors and density stay attached to world
+directions as the camera rotates; camera translation creates no parallax.
+
+**Controls.** Gas density (0–4, default 2.2), emission (0–3, default 1.4), dark
+dust (0–3, default 1.1), and the shared sky speed/color/star controls. Zero gas
+and dust leave a static star field; zero speed freezes the cloud. Gallery:
+`?example=nebula`, with the same look-around navigation as aurora.
+
+**Limits.** A procedural astronomical sky rather than a traversable local
+volume. It has no scene-depth integration, physical stellar lighting, or
+multiple scattering. The noise march is relatively expensive; profile at the
+intended viewport size before using it as an always-visible background.
+
+### 6.28 iridescence — `game_effects_iridescence.dart`, `iridescent_surface.mat`, `iridescent_bubble.mat`
+
+**Intent.** Coated metal (left), pearl (center), soap bubble (right), and an
+oil film (foreground) under shared lighting. A striped backing behind the
+bubble makes its transparency visible.
+
+**Build.** `thin_film.glsl` evaluates the Airy interference formula at both
+polarizations, averaging nine wavelengths into approximate RGB bands. Optical
+path length varies with film thickness, IOR, and the view angle. Phase
+derivatives filter subpixel interference. Animated flow varies thickness over
+the surface; the pearl adds fine normal relief. The bubble composites a
+reflective coating over scene color without refractive displacement.
+
+Thickness and IOR follow the physical concepts described in the
+[Khronos iridescence specification](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_iridescence).
+The bundled version-75 compiler does **not** expose native iridescence fields.
+These custom materials therefore use its specular/glossiness model and convert
+the view-dependent film reflectance into an approximate colored F0. They are
+not implementations of the glTF extension: they use N.V instead of per-light
+V.H, RGB band averages instead of full spectral integration, and an effective
+real substrate IOR instead of complex metal optical constants.
+
+**Controls.** Film thickness (0–1200 nm, default 480), variation (0–400 nm,
+default 160), film IOR (1.05–2.4, default 1.65), iridescence (0–1, default 1),
+roughness (.06–.65, default .18), and flow speed (0–3, default 1). Zero speed
+freezes the flow. Zero variation produces a uniform, static film. Thickness
+and variation both zero remove optical interference independently of film
+IOR. Gallery: `?example=iridescence`.
+
+**Rendering and verification for these scenes:**
+
+```bash
+cd examples/dart/headless_runner
+dart run bin/run_example.dart game_effects_hair_fur 768 768 --time 1.8
+dart run bin/run_example.dart game_effects_aurora 768 768 --time 3.2
+dart run bin/run_example.dart game_effects_nebula 768 768 --time 3.2
+dart run bin/run_example.dart game_effects_iridescence 768 768 --time 2.4
+# Repeat for any of the four registry names above:
+dart run bin/verify_material_controls.dart game_effects_iridescence
+```
+
+The native verification runner checks finite pixels, visible animation and
+material changes, zero-speed invariance, extrema, and alternate camera views.
+It also checks zero-thickness film invariance across IOR values. Frame-varying
+post-process dithering is disabled for image comparisons, then restored for
+the extrema and alternate-view captures. Diagnostic
+images are written to `output/control_checks/`. Gallery setups provide optional
+`EffectCameraControls` metadata so subject orbiting and sky look-around preserve
+the initial camera pose. Compiling Dart to WASM validates web code, but is not
+a substitute for testing the native renderer's WebGL/WebGPU integration in a
+browser.
+
+### 6.29 Combined showcase — `game_effects_showcase.dart`
+
+**Storm Observatory** brings aurora, a distant tornado, silk and woven banners,
+rain glass, an iridescent relic, and fur into a shared courtyard scene. The
+standalone [Flutter Effects Lab](../examples/flutter/effects_showcase/README.md)
+provides desktop/mobile runners, subject cameras, orbit/zoom, a camera tour,
+effect toggles, weather controls, pause, and JSON performance recordings.
+The same scene is registered as `game_effects_showcase` in the native CLI and
+`?example=showcase` in the web gallery.
+
+**Performance.** Low/Balanced/High explicitly budget aurora (24/48/96 samples),
+storm (16/32/56), and fur (8/16/28 shells). Flutter additionally scales the
+render surface to 65/85/100%; Low disables shadows. Disabled groups leave the
+scene and stop receiving time updates; paused time skips redundant uniforms.
+Materials and geometry are reused across quality switches. The aurora and
+storm materials retain their old maximum-sample defaults when `sampleCount`
+is unset. The storm's new `volumeOrigin` places its density field independently
+of the world-space integration bounds. Aurora now writes sky-dome depth so a
+fallback skybox cannot overpaint it.
+
+The native benchmark in `headless_runner/bin/benchmark_showcase.dart` measures
+fixed-resolution serialized frames through GPU completion, with separate
+scene-update costs, warm-up, mean/p50/p95/max, and effect-by-effect comparisons.
+Captures and behavioral verification stay outside timed sections. Flutter
+records render-request cadence and update wall time; neither runner claims
+isolated GPU timestamps. See the app README for exact commands and limits.
+
+The material FFI setters now free their temporary parameter-name strings after
+the synchronous C calls, fixing a native allocation leak on every animation
+uniform update. No C API or generated binding changes are required.
+
+**Limits.** This is a composition of representative effects. Specialized demos
+retain the other variants. The distant tornado still lacks arbitrary scene
+depth clipping; the showcase is not a general depth-aware volume pass.
+
 ## 7. Suggested roadmap
 
 1. **hit_flash**: overlay pass (keep PBR visible during the flash);
@@ -721,11 +1045,12 @@ generator, measure the tile's min/max/std, not just eyeball it.
 8. **shockwave**: event-triggered pulses; overlapping waves.
 9. **shore_waves**: wave refraction toward the beach contour; foam
    advection behind the break line.
-10. New effects from the same toolkit: cloth/flags, grass, heal circles,
-    volumetric fog shafts, stylized clouds, and caustic projectors.
-11. Cross-cutting: a `game_effects` composite galleryScene for the web
-    gallery; web verification (COOP/COEP, real Chrome) once a WebGPU matc is
-    available; interactive parameter playground.
+10. New effects from the same toolkit: grass, heal circles,
+    stylized clouds, and caustic projectors. Extend the fog demo with a general
+    depth-aware volume pass and shadow-map sampling for arbitrary scenes.
+11. Cross-cutting: extend the standalone Effects Lab with more compositions,
+    sustained mobile thermal runs, and backend GPU timestamp queries; web
+    verification (COOP/COEP, real Chrome) once a WebGPU matc is available.
 12. Noise library: migrate the hand-rolled inline noise in the older
     `.mat`s (§6.19) to the standalone `noise_showcase` generators; add
     tileable/periodic variants and 3D (volumetric) hashes when an effect

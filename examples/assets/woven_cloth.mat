@@ -1,0 +1,36 @@
+material {
+    name : WovenCloth,
+    shadingModel : cloth,
+    requires : [ uv0, tangents ],
+    flipUV : false,
+    doubleSided : true,
+    parameters : [
+        { type : float3, name : fabricColor },
+        { type : float2, name : clothSize },
+        { type : float, name : time },
+        { type : float, name : windSpeed },
+        { type : float, name : windStrength },
+        { type : float, name : weaveScale },
+        { type : float, name : weaveStrength }
+    ],
+    variantFilter : [ skinning ]
+}
+vertex {
+    #include "cloth_motion.glsl"
+}
+fragment {
+    #include "cloth_weave.glsl"
+    void material(inout MaterialInputs material) {
+        float weave;
+        material.normal = threadDetail(getUV0(), materialParams.weaveScale, weave);
+        prepareMaterial(material);
+        vec2 uv = getUV0();
+        float edge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
+        float hem = 1.0 - smoothstep(.014, .021, edge);
+        vec3 color = materialParams.fabricColor * (1.0 + weave * materialParams.weaveStrength * .65);
+        material.baseColor = vec4(color * (1.0 - hem * .25), 1.0);
+        material.roughness = .87;
+        material.sheenColor = sqrt(materialParams.fabricColor) * .28;
+        material.subsurfaceColor = materialParams.fabricColor * .18;
+    }
+}

@@ -17,6 +17,7 @@ pubspec_overrides.yaml
 /pubspec.lock
 *.iml
 **/*/*.filamat
+!examples/assets/*.filamat
 **/*/*.g.dart
 **/*.BAK
 .wrangler
@@ -24,3 +25,4 @@ node_modules
 .claude
 .tickets
 .tina/
+examples/dart/headless_runner/output/

@@ -13,17 +13,17 @@ material {
 vertex {
     float hash(float x) { return fract(sin(x * 127.1 + 311.7) * 43758.5453); }
 
-    // Piecewise-linear fractal leaders: angular at several scales, with
-    // no sinusoidal backbone and no disconnected per-segment jitter.
+    // Piecewise-linear 6-octave fractal leaders: crisp angular micro-kinks at
+    // every scale with zero smooth sinusoidal wave artifacts.
     float jagged(float u, float seed) {
-        float value = 0.0, frequency = 3.0, amplitude = 0.65;
-        for (int i = 0; i < 4; i++) {
+        float value = 0.0, frequency = 3.2, amplitude = 0.62;
+        for (int i = 0; i < 6; i++) {
             float x = u * frequency;
             float a = hash(floor(x) + seed + float(i) * 37.0);
             float b = hash(floor(x) + 1.0 + seed + float(i) * 37.0);
             value += (mix(a, b, fract(x)) - 0.5) * amplitude;
-            frequency *= 2.3;
-            amplitude *= 0.48;
+            frequency *= 2.35;
+            amplitude *= 0.49;
         }
         return value;
     }
@@ -67,50 +67,87 @@ vertex {
         float localId = tier < 0.5 ? id : (tier < 1.5 ? id - 48.0 : id - 144.0);
         float branch = floor(localId / count), segment = mod(localId, count);
         float u0 = segment / count, u1 = (segment + 1.0) / count;
-        // Keep the channel stable for the initial strike and return strokes.
-        // New topology appears only after the previous discharge fades.
-        float cycle = floor(materialParams.time / 0.9);
-        float age = mod(materialParams.time, 0.9), seed = cycle * 71.0 + 3.7;
+        // Sustained high-voltage snapping discharge: re-strikes along a fresh
+        // fractal leader topology ~3.6 times/sec with subtle thermal plasma quiver
+        // while active, return-stroke surges, and brief micro-extinctions.
+        float tShift = materialParams.time + 0.09;
+        float period = 0.28;
+        float cycle = floor(tShift / period);
+        float age = mod(tShift, period), seed = cycle * 71.0 + 3.7;
         vec2 a = pathPoint(u0, branch, tier, seed);
         vec2 b = pathPoint(u1, branch, tier, seed);
+        // Subtle convective lateral quiver of the ionized plasma channel.
+        float quiverA = sin(u0 * 19.0 + tShift * 38.0 + seed) * 0.014 * sin(u0 * 3.14159265);
+        float quiverB = sin(u1 * 19.0 + tShift * 38.0 + seed) * 0.014 * sin(u1 * 3.14159265);
+        a.x += quiverA;
+        b.x += quiverB;
         vec2 delta = b - a;
         float len = max(length(delta), 0.0001);
         vec2 tangent = delta / len, side = vec2(-tangent.y, tangent.x);
-        float radius = tier < 0.5 ? 0.048 : (tier < 1.5 ? 0.027 : 0.018);
+        float radius = tier < 0.5 ? 0.14 : (tier < 1.5 ? 0.075 : 0.045);
         float along = mix(-radius, len + radius, uv.y);
         vec2 point = a + tangent * along + side * (uv.x * 2.0 - 1.0) * radius;
         material.worldPosition.xyz += vec3(point, 0.0) - getPosition().xyz;
         material.capsule = vec4((uv.x * 2.0 - 1.0) * radius, along, len, radius);
         float progress = tier < 0.5 ? u0 : rootAt(branch) + u0 * 0.25 + (tier - 1.0) * 0.14;
-        float arrival = progress * 0.065, localAge = max(age - arrival, 0.0);
-        float pulse = exp(-localAge * 17.0) +
-                      0.72 * exp(-max(localAge - 0.12, 0.0) * 28.0) * step(0.12, localAge) +
-                      0.42 * exp(-max(localAge - 0.26, 0.0) * 23.0) * step(0.26, localAge);
-        pulse *= smoothstep(0.0, 0.007, age - arrival);
-        float taper = tier < 0.5 ? 1.0 : mix(1.0, 0.12, u0);
-        float power = tier < 0.5 ? 1.0 : (tier < 1.5 ? 0.65 : 0.35);
+        float arrival = progress * 0.032, localAge = max(age - arrival, 0.0);
+        float surge = mod(cycle, 3.0) < 0.5 ? 1.28 : 0.92;
+        float flicker = 0.80 + 0.20 * sin(tShift * 89.0 + branch * 3.1);
+        float sustain = tier < 0.5 ? 0.42 : (tier < 1.5 ? 0.22 : 0.10);
+        float pulse = (sustain * flicker +
+                       0.82 * exp(-localAge * 16.0) +
+                       0.52 * exp(-max(localAge - 0.11, 0.0) * 28.0) * step(0.11, localAge)) * surge;
+        pulse *= smoothstep(0.0, 0.006, age - arrival) *
+                 mix(0.24, 1.0, 1.0 - smoothstep(0.235, 0.278, age));
+        float taper = tier < 0.5 ? 1.0 : mix(1.0, 0.14, u0);
+        float power = tier < 0.5 ? 1.0 : (tier < 1.5 ? 0.62 : 0.34);
         float enabled = 1.0 - step(materialParams.segmentCount, id);
-        material.discharge = vec4(mix(0.0034, 0.0018, tier * 0.5) * sqrt(taper),
-                                  pulse * power * sqrt(taper) * enabled, tier, 0.0);
+        // Razor-thin plasma core width so overlapping fork joints never bloat into sausages.
+        float uInterp = mix(u0, u1, clamp(along / len, 0.0, 1.0));
+        material.discharge = vec4(mix(0.0036, 0.0014, tier * 0.5) * sqrt(taper),
+                                  pulse * power * sqrt(taper) * enabled, tier, uInterp);
     }
 }
 
 fragment {
+    float fragHash(float x) { return fract(sin(x * 91.7 + 17.3) * 43758.5453); }
+    float subArcOffset(float u, float t) {
+        float x = u * 26.0 - t * 14.0;
+        float i = floor(x), f = fract(x);
+        float a = fragHash(i) - 0.5, b = fragHash(i + 1.0) - 0.5;
+        return mix(a, b, f) * 0.022 * sin(u * 3.14159265);
+    }
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
-        // Rounded caps overlap at shared endpoints, avoiding square joints.
         vec4 p = variable_capsule;
         float endDistance = max(max(-p.y, p.y - p.z), 0.0);
         float d = length(vec2(p.x, endDistance));
-        float aa = max(fwidth(d), 0.0002), width = variable_discharge.x;
+        float aa = max(fwidth(d), 0.0003), width = variable_discharge.x;
+
+        // Needle-sharp incandescent core + delicate intertwined secondary plasma thread
+        // on the main trunk, surrounded by a restrained electric-blue/violet corona.
         float core = 1.0 - smoothstep(max(width - aa, 0.0), width + aa, d);
         core *= min(1.0, width / aa);
-        float sheath = exp(-d / max(width * 3.0, 0.002));
-        float halo = exp(-d * d / (p.w * p.w * 0.22));
-        float edge = 1.0 - smoothstep(p.w * 0.65, p.w, d);
-        vec3 color = vec3(0.64, 0.82, 1.0) * core * 1.2 +
-                     vec3(0.10, 0.28, 1.0) * sheath * 0.12 +
-                     vec3(0.045, 0.07, 0.45) * halo * 0.04;
+
+        float secOff = subArcOffset(variable_discharge.w, materialParams.time);
+        float dSec = length(vec2(p.x - secOff, endDistance));
+        float secMask = (1.0 - step(0.5, variable_discharge.z)) * smoothstep(p.w, 0.0, abs(secOff) * 2.0);
+        float subCore = (1.0 - smoothstep(width * 0.45, width * 0.45 + aa, dSec)) * secMask;
+        float subSheath = exp(-dSec / max(width * 2.6, 0.002)) * secMask;
+
+        float innerSheath = exp(-d / max(width * 3.0, 0.0025));
+        float outerCorona = exp(-d * d / max(p.w * p.w * 0.16, 0.0002));
+        float edge = 1.0 - smoothstep(p.w * 0.55, p.w, d);
+
+        // Anchor electrode flare at the top/bottom strike points of the main trunk.
+        float u = variable_discharge.w;
+        float anchor = (exp(-u * 52.0) + exp(-(1.0 - u) * 52.0)) *
+                       (1.0 - step(0.5, variable_discharge.z)) *
+                       exp(-d * d / 0.0009);
+
+        vec3 color = vec3(0.92, 0.97, 1.0) * (core * 1.65 + subCore * 0.65 + anchor * 0.42) +
+                     vec3(0.24, 0.56, 1.0) * (innerSheath * 0.22 + subSheath * 0.11) +
+                     vec3(0.08, 0.12, 0.58) * outerCorona * 0.026;
         material.baseColor = vec4(color * variable_discharge.y * edge, 1.0);
     }
 }

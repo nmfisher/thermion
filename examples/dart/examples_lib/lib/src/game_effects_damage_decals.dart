@@ -15,9 +15,18 @@ Future<void> setupDamageDecals(
     aspect: 1,
     focalLength: 38,
   );
-  await camera.lookAt(Vector3(0, 0.05, 4.0), focus: Vector3(0, 0, 0));
+  await camera.lookAt(Vector3(0.15, 0.08, 3.65), focus: Vector3(0, 0, 0));
+  await viewer.loadIbl('$assetsDir/default_env_ibl.ktx', intensity: 6500);
   await setDarkSkybox(viewer);
-  await enableVfxPost(viewer, bloomStrength: 0.28);
+  await enableVfxPost(viewer, bloomStrength: 0.24);
+  // Steep grazing raking light so every chipped concrete spall terrace & crack casts crisp 3D relief!
+  await viewer.addDirectLight(
+    DirectLight.sun(
+      direction: Vector3(0.68, -0.52, -0.52),
+      color: const LinearColor(1.0, 0.96, 0.90),
+      intensity: 58000,
+    ),
+  );
   final decals = await loadEffectMaterial(
     viewer,
     assetsDir: assetsDir,

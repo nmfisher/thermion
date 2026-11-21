@@ -75,6 +75,10 @@ vertex {
         float ampScale = shoal * landCollapse;
 
         vec3 disp = swellSum(xz, t, ampScale);
+        // Prevent wave troughs from dipping below the sand plane (y = -0.16 for z >= 0.2)
+        // so the beach never pokes up as a detached sandbar island in receding troughs.
+        float sandGuard = smoothstep(-0.3, 0.6, xz.y);
+        disp.y = mix(disp.y, max(disp.y, -0.105), sandGuard);
         // Additive displacement only - see the NOTE in smoke.mat.
         material.worldPosition.xyz += disp;
 
