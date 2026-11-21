@@ -419,10 +419,7 @@ outputDirectory : ${outputDirectory.path}
       // produces multiple-definition errors. Use the monolith alone;
       // add abseil because it's required by webgpu_dawn but exported
       // as a separate archive.
-      libs.addAll(<String>[
-        "webgpu_dawn",
-        "abseil",
-      ]);
+      libs.addAll(<String>["webgpu_dawn", "abseil"]);
     }
 
     // Check for plugin configuration. Plugin sources are compiled directly
@@ -807,6 +804,7 @@ Future<void> _downloadWithRetry(String url, File destination, Logger logger) asy
       await Future<void>.delayed(delay);
     }
   }
+}
 
 /// Legacy (mutable) R2 key for Filament artifact zips. Used for the
 /// -webgpu suffixed artifacts published by build-filament.yml's webgpu
