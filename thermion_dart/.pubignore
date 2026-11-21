@@ -21,7 +21,6 @@ test/generated/libThermionTextureSwift.dylib
 native/web/build-debug/
 native/test/thermion_dart.js
 native/test/thermion_dart.wasm
-test/embedded_engine/
 
 # Test assets are a symlink to ../../examples/assets (~68 MB) — never ship.
 test/assets/

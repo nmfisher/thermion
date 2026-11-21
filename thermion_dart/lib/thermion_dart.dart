@@ -10,6 +10,7 @@ export 'src/animation/animation.dart';
 export 'src/filament/filament.dart';
 export 'src/bindings/bindings.dart'
     hide
+        readEmbeddedMaterial,
         Aabb2,
         Aabb3,
         TMat4,

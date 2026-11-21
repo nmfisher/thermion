@@ -119,11 +119,6 @@ void main(List<String> args) async {
         return;
       }
       final engineDir = await _resolveWebEngine(input, logger);
-      if (engineDir == null) {
-        if (optInMaterials.isNotEmpty)
-          throw MaterialToolsError('A web engine is required to embed selected materials.');
-        return;
-      }
       output.dependencies.add(input.packageRoot.resolve('native/web/web.version'));
       await publishWebMaterials(
         root: Directory.fromUri(input.packageRoot),
@@ -1060,7 +1055,7 @@ Directory? _findWebDirectory(BuildInput input, Logger logger) {
   return directory.existsSync() ? directory : null;
 }
 
-Future<Directory?> _resolveWebEngine(BuildInput input, Logger logger) async {
+Future<Directory> _resolveWebEngine(BuildInput input, Logger logger) async {
   final packageRoot = input.packageRoot.toFilePath(windows: Platform.isWindows);
 
   // The "web_variant" user define selects which prebuilt engine to fetch:
@@ -1092,24 +1087,21 @@ Future<Directory?> _resolveWebEngine(BuildInput input, Logger logger) async {
       path.join(packageRoot, 'native', 'web', webLocalBuildDir(variant.zipSuffix), 'build', 'out'),
     );
     if (!localOut.existsSync()) {
-      logger.warning(
+      throw MaterialToolsError(
         'web_local: true set but ${localOut.path} does not exist; '
         'build the web target first, then re-run.',
       );
-      return null;
     }
     return localOut;
   }
 
   final versionFile = File(path.join(packageRoot, 'native', 'web', 'web.version'));
   if (!versionFile.existsSync()) {
-    logger.warning('web.version not found at ${versionFile.path}; skipping web artifact download');
-    return null;
+    throw MaterialToolsError('Missing web engine version at ${versionFile.path}.');
   }
   final version = versionFile.readAsStringSync().trim();
   if (version.isEmpty || version == 'pending') {
-    logger.warning('web.version contains "$version"; skipping download (CI may not have uploaded yet)');
-    return null;
+    throw MaterialToolsError('No published web engine version in ${versionFile.path}.');
   }
   logger.info('Web artifact version: $version');
 
@@ -1120,13 +1112,7 @@ Future<Directory?> _resolveWebEngine(BuildInput input, Logger logger) async {
     path.join(packageRoot, '.dart_tool', 'thermion_dart', 'web', '$version${variant.cacheSuffix}'),
   );
 
-  try {
-    await _fetchWebZip(version, variant.zipSuffix, cacheDir, logger);
-  } catch (e) {
-    logger.warning('Failed to download web artifacts: $e');
-    return null;
-  }
-
+  await _fetchWebZip(version, variant.zipSuffix, cacheDir, logger);
   return cacheDir;
 }
 
