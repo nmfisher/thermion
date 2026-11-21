@@ -88,23 +88,6 @@ Future<Directory> _downloadToCache(String version, String zipSuffix, Directory c
   return cacheDir;
 }
 
-void _copyToOutput(Directory cacheDir, String outputDir) {
-  for (final name in ['thermion_dart.js', 'thermion_dart.wasm']) {
-    final src = File(path.join(cacheDir.path, name));
-    if (!src.existsSync()) {
-      stderr.writeln('Warning: $name not found in cache');
-      continue;
-    }
-    final destDir = Directory(outputDir);
-    if (!destDir.existsSync()) {
-      destDir.createSync(recursive: true);
-    }
-    final dest = File(path.join(outputDir, name));
-    src.copySync(dest.path);
-    stdout.writeln('Copied $name to ${dest.path}');
-  }
-}
-
 List<BuiltInMaterial> _parseMaterials(String raw) {
   final byKey = {for (final m in BuiltInMaterial.values) m.key: m};
   final selected = <BuiltInMaterial>{};
@@ -173,9 +156,9 @@ void main(List<String> args) async {
   final cacheDir = Directory(path.join('.dart_tool', 'thermion_dart', 'web', '$version$zipSuffix'));
 
   await _downloadToCache(version, zipSuffix, cacheDir);
-  _copyToOutput(cacheDir, outputDir);
   await publishWebMaterials(
     root: Directory(packageRoot),
+    engineDir: cacheDir,
     webDir: Directory(outputDir),
     materials: materials,
     onLog: stdout.writeln,

@@ -29,7 +29,7 @@ test/assets/
 test/golden-downloads/
 test/thermion_dart.js
 test/thermion_dart.wasm
-test/thermion_materials/
+test/embedded_engine/
 test/*.html
 
 # Scratch / debug

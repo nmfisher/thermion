@@ -98,15 +98,22 @@ void main(List<String> args) async {
         }
         return;
       }
+      final engineDir = await _resolveWebEngine(input, logger);
+      if (engineDir == null) {
+        if (selectedMaterials.isNotEmpty)
+          throw MaterialToolsError('A web engine is required to embed selected materials.');
+        return;
+      }
+      output.dependencies.add(input.packageRoot.resolve('native/web/web.version'));
       await publishWebMaterials(
-        root: Directory.fromUri(packageRoot),
+        root: Directory.fromUri(input.packageRoot),
+        engineDir: engineDir,
         webDir: webDir,
         materials: selectedMaterials,
         download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
         onLog: logger.info,
         addDependency: output.dependencies.add,
       );
-      await _downloadWebArtifacts(input, webDir, logger);
       return;
     }
 
@@ -1003,7 +1010,7 @@ Directory? _findWebDirectory(BuildInput input, Logger logger) {
   return directory.existsSync() ? directory : null;
 }
 
-Future<void> _downloadWebArtifacts(BuildInput input, Directory webDir, Logger logger) async {
+Future<Directory?> _resolveWebEngine(BuildInput input, Logger logger) async {
   final packageRoot = input.packageRoot.toFilePath(windows: Platform.isWindows);
 
   // The "web_variant" user define selects which prebuilt engine to fetch:
@@ -1039,29 +1046,20 @@ Future<void> _downloadWebArtifacts(BuildInput input, Directory webDir, Logger lo
         'web_local: true set but ${localOut.path} does not exist; '
         'build the web target first, then re-run.',
       );
-      return;
+      return null;
     }
-    for (final name in ['thermion_dart.js', 'thermion_dart.wasm']) {
-      final src = File(path.join(localOut.path, name));
-      if (!src.existsSync()) {
-        logger.warning('$name not found in ${localOut.path}');
-        continue;
-      }
-      src.copySync(path.join(webDir.path, name));
-      logger.info('[web_local] Copied $name from ${localOut.path}');
-    }
-    return;
+    return localOut;
   }
 
   final versionFile = File(path.join(packageRoot, 'native', 'web', 'web.version'));
   if (!versionFile.existsSync()) {
     logger.warning('web.version not found at ${versionFile.path}; skipping web artifact download');
-    return;
+    return null;
   }
   final version = versionFile.readAsStringSync().trim();
   if (version.isEmpty || version == 'pending') {
     logger.warning('web.version contains "$version"; skipping download (CI may not have uploaded yet)');
-    return;
+    return null;
   }
   logger.info('Web artifact version: $version');
 
@@ -1076,19 +1074,10 @@ Future<void> _downloadWebArtifacts(BuildInput input, Directory webDir, Logger lo
     await _fetchWebZip(version, variant.zipSuffix, cacheDir, logger);
   } catch (e) {
     logger.warning('Failed to download web artifacts: $e');
-    return;
+    return null;
   }
 
-  for (final name in ['thermion_dart.js', 'thermion_dart.wasm']) {
-    final src = File(path.join(cacheDir.path, name));
-    if (!src.existsSync()) {
-      logger.warning('$name not found in cache ${cacheDir.path}');
-      continue;
-    }
-    final dest = File(path.join(webDir.path, name));
-    src.copySync(dest.path);
-    logger.info('Copied $name to ${dest.path}');
-  }
+  return cacheDir;
 }
 
 Future<void> _fetchWebZip(String version, String zipSuffix, Directory cacheDir, Logger logger) async {

@@ -94,13 +94,15 @@ endif()
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 add_link_options(${EMCC_CFLAGS} -pthread)
+set(MATERIAL_READER "${CMAKE_CURRENT_SOURCE_DIR}/src/read_material.js")
+add_link_options(--post-js "${MATERIAL_READER}")
 
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/lib")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build/out)
 
-# Optional helper materials are compiled to standalone .filamat packages by the
-# Dart build hook (or thermion_dart:download_web) and loaded at runtime.
+# The Dart build hook and download_web embed selected materials as custom
+# sections in a copy of this engine.
 file(GLOB SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/*.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/c_api/*.cpp"
@@ -149,6 +151,7 @@ endif()
 
 message(STATUS "Total source files being compiled: ${SOURCES}")
 add_executable(${MODULE_NAME} ${SOURCES})
+set_property(TARGET ${MODULE_NAME} APPEND PROPERTY LINK_DEPENDS "${MATERIAL_READER}")
 if(THERMION_WEB_MAIN_THREAD)
   target_compile_definitions(${MODULE_NAME} PRIVATE THERMION_WEB_MAIN_THREAD=1)
 endif()

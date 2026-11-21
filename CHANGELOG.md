@@ -42,7 +42,7 @@ hooks:
 ```
 
 **Plain Dart web apps.** Pass the individual keys to `download_web` and deploy
-`web/thermion_materials/` alongside the engine. The same gizmo and background
+the resulting `thermion_dart.wasm` and `thermion_dart.js` together. The same gizmo and background
 image example uses this command.
 
 ```sh

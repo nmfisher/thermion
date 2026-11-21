@@ -26,6 +26,8 @@ enum BuiltInMaterial {
   /// Key under hooks.user_defines.thermion_dart.materials.
   final String key;
 
+  String get wasmSectionName => 'thermion.material.$key';
+
   /// Resgen symbol prefix used when compiling into native builds.
   ///
   /// `gizmo` uses `gizmo_material` to avoid a case-insensitive `.obj`

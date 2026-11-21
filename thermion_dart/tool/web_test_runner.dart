@@ -42,7 +42,7 @@ String _wrapperHtml(String testFileName) =>
     <title>$testFileName</title>
 
     <!-- emscripten Filament module factory (built by `make wasm`, copied to test/). -->
-    <script src="thermion_dart.js"></script>
+    <script src="embedded_engine/thermion_dart.js"></script>
 
     <!-- Standard package:test bootstrap. These must be STATIC scripts: dart.js
          locates itself via document.currentScript to find the compiled test. -->
@@ -159,14 +159,17 @@ Future<void> main(List<String> args) async {
   }
 
   final pubspec = YamlEditor(File('pubspec.yaml').readAsStringSync());
-  final materialConfig = pubspec.parseAt(
-    ['hooks', 'user_defines', 'thermion_dart', 'materials'],
-    orElse: () => wrapAsYamlNode(null),
-  );
+  final materialConfig = pubspec.parseAt([
+    'hooks',
+    'user_defines',
+    'thermion_dart',
+    'materials',
+  ], orElse: () => wrapAsYamlNode(null)).value;
   await publishWebMaterials(
     root: Directory.current,
-    webDir: Directory('test'),
-    materials: selectBuiltInMaterials(materialConfig.value, onWarning: stderr.writeln),
+    engineDir: Directory('test'),
+    webDir: Directory('test/embedded_engine'),
+    materials: selectBuiltInMaterials(materialConfig, onWarning: stderr.writeln),
     onLog: stderr.writeln,
   );
 

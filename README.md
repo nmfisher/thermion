@@ -188,8 +188,8 @@ under `thermion_dart/.dart_tool/thermion_dart/materials/` so repeat builds,
 `flutter clean`, and config changes skip recompilation. On native builds, the
 hook links the compiled `.c` files for the selected graphics backend into
 `libthermion_dart`. On Flutter web builds (`flutter run -d chrome`,
-`flutter build web`), it publishes only the enabled `.filamat` files to
-`web/thermion_materials/` for the slim prebuilt engine to load at runtime.
+`flutter build web`), it embeds the enabled packages in `web/thermion_dart.wasm`.
+Filament creates each material on first use.
 
 For a Flutter app inside a pub workspace, set `web_directory: apps/viewer/web`
 alongside `materials` under `hooks.user_defines.thermion_dart` in the workspace
@@ -197,7 +197,7 @@ pubspec. The path is relative to that pubspec.
 
 For plain Dart web apps (`dart compile js` / `dart compile wasm`), pass
 `--materials` to `thermion_dart:download_web` to fetch the slim engine and
-compile the requested `.filamat` files into `web/thermion_materials/`:
+embed the requested materials in the app’s copy of `thermion_dart.wasm`:
 
 ```sh
 dart run thermion_dart:download_web -o web --materials grid,wireframe,gizmo

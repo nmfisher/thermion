@@ -30,7 +30,6 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/src/filament/src/interface/surface_orientation.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:logging/logging.dart';
-import 'package:http/http.dart' as http;
 import 'ffi_frame_info_history.dart' as frame_info_history;
 import 'ffi_gltf_mesh_data.dart';
 import 'resource_loader.dart';
@@ -646,17 +645,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       'BuiltInMaterial.${material.name} requires materials.${material.key}: true in this build.',
     );
     if (FILAMENT_WASM) {
-      final response = await http.get(Uri.parse('thermion_materials/${material.key}.filamat'));
-      if (response.statusCode == 404) {
-        throw unavailable;
-      }
-      if (response.statusCode != 200) {
-        throw StateError('Could not load ${material.key}.filamat (HTTP ${response.statusCode}).');
-      }
-      if (response.headers['content-type']?.startsWith('text/html') == true) {
-        throw unavailable;
-      }
-      return _createMaterial(response.bodyBytes, builtIn: material);
+      final bytes = bindings.readEmbeddedMaterial(material.wasmSectionName);
+      if (bytes == null) throw unavailable;
+      return _createMaterial(bytes, builtIn: material);
     }
     late final bool included;
     final ptr = await withPointerCallback<TMaterial>((cb) {

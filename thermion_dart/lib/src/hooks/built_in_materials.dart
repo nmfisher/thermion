@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -84,10 +85,9 @@ Future<Map<BuiltInMaterial, Directory>> compileBuiltInMaterials({
   return outputs;
 }
 
-/// Publish the selected packages beside the web entrypoint. Compile the whole
-/// selection before changing any deployed files, so a matc failure is retryable.
 Future<void> publishWebMaterials({
   required Directory root,
+  required Directory engineDir,
   required Directory webDir,
   required List<BuiltInMaterial> materials,
   required void Function(String) onLog,
@@ -95,51 +95,106 @@ Future<void> publishWebMaterials({
   void Function(Uri)? addDependency,
 }) async {
   final compiled = await compileBuiltInMaterials(
-    root: root,
-    materials: materials,
     backends: const ['opengl', 'webgpu'],
     resgen: false,
+    root: root,
+    materials: materials,
     download: download,
     onLog: onLog,
     addDependency: addDependency,
   );
-  final deployDir = Directory(path.join(webDir.path, 'thermion_materials'));
-  if (compiled.isEmpty && !deployDir.existsSync()) return;
-
-  // Calls from the hook and CLI share this cache. Serialize the final copy
-  // and prune so concurrent invocations cannot mix two selections.
   final cache = Directory(path.join(root.path, '.dart_tool', 'thermion_dart', 'materials'));
   await withMaterialOutputLock(cache, () async {
-    for (final dependency in stageWebMaterialFiles(deployDir, compiled, onLog: onLog)) {
-      addDependency?.call(dependency);
-    }
+    await stageWebEngine(engineDir, webDir, {
+      for (final MapEntry(key: material, value: dir) in compiled.entries)
+        material: File(path.join(dir.path, '${material.key}.filamat')),
+    }, onLog: onLog);
   });
+  for (final name in ['thermion_dart.js', 'thermion_dart.wasm']) {
+    addDependency?.call(File(path.join(engineDir.path, name)).uri);
+    addDependency?.call(File(path.join(webDir.path, name)).uri);
+  }
 }
 
-/// Track deployed files as hook dependencies so deleting or changing one
-/// invalidates a cached web build.
-List<Uri> stageWebMaterialFiles(
-  Directory deployDir,
-  Map<BuiltInMaterial, Directory> compiled, {
-  void Function(String)? onLog,
-}) {
-  final dependencies = <Uri>[];
-  if (compiled.isNotEmpty) deployDir.createSync(recursive: true);
-  for (final MapEntry(key: material, value: output) in compiled.entries) {
-    final name = '${material.key}.filamat';
-    final source = File(path.join(output.path, name));
-    final destination = File(path.join(deployDir.path, name));
-    if (!destination.existsSync() ||
-        sha256.convert(source.readAsBytesSync()) != sha256.convert(destination.readAsBytesSync())) {
-      source.copySync(destination.path);
-      onLog?.call('Published $name to ${destination.path}');
+// WebAssembly section lengths and UTF-8 name lengths are unsigned LEB128.
+List<int> _encodeLength(int value) {
+  final bytes = <int>[];
+  do {
+    final low = value & 0x7f;
+    value >>= 7;
+    bytes.add(value == 0 ? low : low | 0x80);
+  } while (value != 0);
+  return bytes;
+}
+
+/// Publish the loader and customized Wasm together, always starting with the
+/// pristine engine. Callers serialize publications to this output directory.
+Future<void> stageWebEngine(
+  Directory engineDir,
+  Directory webDir,
+  Map<BuiltInMaterial, File> packages, {
+  required void Function(String) onLog,
+}) async {
+  const js = 'thermion_dart.js';
+  const wasm = 'thermion_dart.wasm';
+  webDir.createSync(recursive: true);
+  if (FileSystemEntity.identicalSync(engineDir.path, webDir.path)) {
+    throw ArgumentError('The web output directory must be different from the base engine directory.');
+  }
+  recoverMaterialPublication(webDir);
+  final stage = webDir.createTempSync(materialStagingPrefix);
+  try {
+    File file(Directory dir, String name) => File(path.join(dir.path, name));
+    file(engineDir, js).copySync(file(stage, js).path);
+    final binary = file(engineDir, wasm).copySync(file(stage, wasm).path);
+    final output = binary.openSync(mode: FileMode.append);
+    try {
+      for (final material in BuiltInMaterial.values) {
+        final package = packages[material];
+        if (package == null) continue;
+        final bytes = package.readAsBytesSync();
+        final name = utf8.encode(material.wasmSectionName);
+        final nameLength = _encodeLength(name.length);
+        output.writeFromSync([
+          0,
+          ..._encodeLength(nameLength.length + name.length + bytes.length),
+          ...nameLength,
+          ...name,
+        ]);
+        output.writeFromSync(bytes);
+      }
+    } finally {
+      output.closeSync();
     }
-    dependencies.add(destination.uri);
+    Future<bool> changed(String name) async {
+      final before = file(webDir, name);
+      final after = file(stage, name);
+      if (!before.existsSync() || before.lengthSync() != after.lengthSync()) return true;
+      return await sha256.bind(before.openRead()).first != await sha256.bind(after.openRead()).first;
+    }
+
+    if (await changed(js) || await changed(wasm)) {
+      publishMaterialBatch(
+        output: webDir,
+        staging: stage,
+        outputs: [js],
+        staleOutputs: [],
+        manifestName: wasm,
+        log: onLog,
+      );
+    }
+    // Older builds deployed these files beside the engine. Keep user-owned files.
+    final legacy = Directory(path.join(webDir.path, 'thermion_materials'));
+    if (legacy.existsSync()) {
+      for (final material in BuiltInMaterial.values) {
+        final old = file(legacy, '${material.key}.filamat');
+        if (old.existsSync()) old.deleteSync();
+      }
+      if (legacy.listSync().isEmpty) legacy.deleteSync();
+    }
+  } finally {
+    if (!File(path.join(webDir.path, materialJournalName)).existsSync() && stage.existsSync()) {
+      stage.deleteSync(recursive: true);
+    }
   }
-  for (final material in BuiltInMaterial.values.where((material) => !compiled.containsKey(material))) {
-    final destination = File(path.join(deployDir.path, '${material.key}.filamat'));
-    if (destination.existsSync()) destination.deleteSync();
-  }
-  if (deployDir.existsSync()) dependencies.add(deployDir.uri);
-  return dependencies;
 }
