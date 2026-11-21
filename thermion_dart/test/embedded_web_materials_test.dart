@@ -25,11 +25,14 @@ void main() {
     // The 17,031-byte payload length occupies three unsigned LEB128 bytes.
     final expected = [...wasmHeader, 0, 0x87, 0x85, 0x01, name.length, ...name, ...data];
     Future<void> stage(Map<BuiltInMaterial, File> files) => stageWebEngine(engine, output, files, onLog: (_) {});
+    final authoredStage = Directory.fromUri(output.uri.resolve('.staging-thermion-materials-user/'))
+      ..createSync(recursive: true);
     await stage({BuiltInMaterial.normalColor: package});
     expect(built.readAsBytesSync(), expected);
     await stage({BuiltInMaterial.normalColor: package});
     expect(built.readAsBytesSync(), expected);
     expect(base.readAsBytesSync(), wasmHeader);
+    expect(authoredStage.existsSync(), isTrue);
     await expectLater(
       stage({BuiltInMaterial.sharpEdge: File.fromUri(root.uri.resolve('missing'))}),
       throwsA(isA<FileSystemException>()),

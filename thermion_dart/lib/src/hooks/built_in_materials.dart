@@ -103,13 +103,10 @@ Future<void> publishWebMaterials({
     onLog: onLog,
     addDependency: addDependency,
   );
-  final cache = Directory(path.join(root.path, '.dart_tool', 'thermion_dart', 'materials'));
-  await withMaterialOutputLock(cache, () async {
-    await stageWebEngine(engineDir, webDir, {
-      for (final MapEntry(key: material, value: dir) in compiled.entries)
-        material: File(path.join(dir.path, '${material.key}.filamat')),
-    }, onLog: onLog);
-  });
+  await stageWebEngine(engineDir, webDir, {
+    for (final MapEntry(key: material, value: dir) in compiled.entries)
+      material: File(path.join(dir.path, '${material.key}.filamat')),
+  }, onLog: onLog);
   for (final name in ['thermion_dart.js', 'thermion_dart.wasm']) {
     addDependency?.call(File(path.join(engineDir.path, name)).uri);
     addDependency?.call(File(path.join(webDir.path, name)).uri);
@@ -128,7 +125,7 @@ List<int> _encodeLength(int value) {
 }
 
 /// Publish the loader and customized Wasm together, always starting with the
-/// pristine engine. Callers serialize publications to this output directory.
+/// pristine engine. The hook and CLI share a lock per destination.
 Future<void> stageWebEngine(
   Directory engineDir,
   Directory webDir,
@@ -141,60 +138,70 @@ Future<void> stageWebEngine(
   if (FileSystemEntity.identicalSync(engineDir.path, webDir.path)) {
     throw ArgumentError('The web output directory must be different from the base engine directory.');
   }
-  recoverMaterialPublication(webDir);
-  final stage = webDir.createTempSync(materialStagingPrefix);
-  try {
-    File file(Directory dir, String name) => File(path.join(dir.path, name));
-    file(engineDir, js).copySync(file(stage, js).path);
-    final binary = file(engineDir, wasm).copySync(file(stage, wasm).path);
-    final output = binary.openSync(mode: FileMode.append);
+  final destination = webDir.resolveSymbolicLinksSync();
+  final lockKey = sha256.convert(utf8.encode(destination)).toString();
+  final lockDir = Directory(path.join(Directory.systemTemp.path, 'thermion-web-engine-locks', lockKey));
+  await withMaterialOutputLock(lockDir, () async {
+    // User-authored material compilation can also publish into web/. Keep its
+    // journal and staged files independent of the JS/Wasm pair.
+    final state = Directory(path.join(webDir.path, '.thermion-web-engine'))..createSync();
+    recoverMaterialPublication(webDir, stateDirectory: state);
+    final stage = state.createTempSync(materialStagingPrefix);
     try {
-      for (final material in BuiltInMaterial.values) {
-        final package = packages[material];
-        if (package == null) continue;
-        final bytes = package.readAsBytesSync();
-        final name = utf8.encode(material.wasmSectionName);
-        final nameLength = _encodeLength(name.length);
-        output.writeFromSync([
-          0,
-          ..._encodeLength(nameLength.length + name.length + bytes.length),
-          ...nameLength,
-          ...name,
-        ]);
-        output.writeFromSync(bytes);
+      File file(Directory dir, String name) => File(path.join(dir.path, name));
+      file(engineDir, js).copySync(file(stage, js).path);
+      final binary = file(engineDir, wasm).copySync(file(stage, wasm).path);
+      final output = binary.openSync(mode: FileMode.append);
+      try {
+        for (final material in BuiltInMaterial.values) {
+          final package = packages[material];
+          if (package == null) continue;
+          final bytes = package.readAsBytesSync();
+          final name = utf8.encode(material.wasmSectionName);
+          final nameLength = _encodeLength(name.length);
+          output.writeFromSync([
+            0,
+            ..._encodeLength(nameLength.length + name.length + bytes.length),
+            ...nameLength,
+            ...name,
+          ]);
+          output.writeFromSync(bytes);
+        }
+      } finally {
+        output.closeSync();
+      }
+      Future<bool> changed(String name) async {
+        final before = file(webDir, name);
+        final after = file(stage, name);
+        if (!before.existsSync() || before.lengthSync() != after.lengthSync()) return true;
+        return await sha256.bind(before.openRead()).first != await sha256.bind(after.openRead()).first;
+      }
+
+      if (await changed(js) || await changed(wasm)) {
+        publishMaterialBatch(
+          output: webDir,
+          staging: stage,
+          stateDirectory: state,
+          outputs: [js],
+          staleOutputs: [],
+          manifestName: wasm,
+          log: onLog,
+        );
+      }
+      // Older builds deployed these files beside the engine. Keep user-owned files.
+      final legacy = Directory(path.join(webDir.path, 'thermion_materials'));
+      if (legacy.existsSync()) {
+        for (final material in BuiltInMaterial.values) {
+          final old = file(legacy, '${material.key}.filamat');
+          if (old.existsSync()) old.deleteSync();
+        }
+        if (legacy.listSync().isEmpty) legacy.deleteSync();
       }
     } finally {
-      output.closeSync();
-    }
-    Future<bool> changed(String name) async {
-      final before = file(webDir, name);
-      final after = file(stage, name);
-      if (!before.existsSync() || before.lengthSync() != after.lengthSync()) return true;
-      return await sha256.bind(before.openRead()).first != await sha256.bind(after.openRead()).first;
-    }
-
-    if (await changed(js) || await changed(wasm)) {
-      publishMaterialBatch(
-        output: webDir,
-        staging: stage,
-        outputs: [js],
-        staleOutputs: [],
-        manifestName: wasm,
-        log: onLog,
-      );
-    }
-    // Older builds deployed these files beside the engine. Keep user-owned files.
-    final legacy = Directory(path.join(webDir.path, 'thermion_materials'));
-    if (legacy.existsSync()) {
-      for (final material in BuiltInMaterial.values) {
-        final old = file(legacy, '${material.key}.filamat');
-        if (old.existsSync()) old.deleteSync();
+      if (!File(path.join(state.path, materialJournalName)).existsSync() && stage.existsSync()) {
+        stage.deleteSync(recursive: true);
       }
-      if (legacy.listSync().isEmpty) legacy.deleteSync();
+      if (state.listSync().isEmpty) state.deleteSync();
     }
-  } finally {
-    if (!File(path.join(webDir.path, materialJournalName)).existsSync() && stage.existsSync()) {
-      stage.deleteSync(recursive: true);
-    }
-  }
+  });
 }
