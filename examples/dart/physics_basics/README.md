@@ -1,8 +1,8 @@
 # physics_basics
 
-Standalone Dart example demonstrating rigid-body physics with [`reactphysics3d_dart`](https://github.com/nmfisher/reactphysics3d_dart) and rendering with `thermion_dart` (both headless native and interactive WASM web).
+Standalone Dart example demonstrating rigid-body physics with [`reactphysics3d_dart`](https://pub.dev/packages/reactphysics3d_dart) and rendering with `thermion_dart` (both headless native and interactive WASM web).
 
-> **Native platform support:** The pinned `reactphysics3d_dart` revision provides prebuilt native libraries for Apple Silicon macOS and x86-64/arm64 Linux. This package is intentionally kept separate from `examples/dart/examples_lib` so the shared examples continue to build on all platforms and the standard web gallery does not need to link ReactPhysics3D.
+> This package is intentionally kept separate from `examples/dart/examples_lib` and `examples/dart/web_gallery` so the standard web gallery does not need to link ReactPhysics3D into the main Thermion WASM bundle.
 
 ## Headless (Native)
 

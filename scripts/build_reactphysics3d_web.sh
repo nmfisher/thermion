@@ -28,9 +28,19 @@ else:
 PY
 )
 
-# The upstream build stages generated files alongside its source. Use a copy
-# under Thermion's ignored web build tree so it never modifies the Pub cache.
+# Stage the package's native/ tree under Thermion's ignored web build directory
+# so CMake never writes into the Pub cache. Published pub.dev releases already
+# include prebuilt native/web/libreactphysics3d.a; fall back to building it when
+# developing against a source checkout without prebuilt web artifacts.
 stage="$1"
+rm -rf "$stage"
 mkdir -p "$stage"
-cp -R "$source_dir/native" "$source_dir/scripts" "$stage/"
-bash "$stage/scripts/build_web_artifacts.sh"
+cp -R "$source_dir/native" "$stage/"
+if [[ ! -f "$stage/native/web/libreactphysics3d.a" ]]; then
+    if [[ ! -f "$source_dir/scripts/build_web_artifacts.sh" ]]; then
+        echo "Missing prebuilt $stage/native/web/libreactphysics3d.a and scripts/build_web_artifacts.sh." >&2
+        exit 1
+    fi
+    cp -R "$source_dir/scripts" "$stage/"
+    bash "$stage/scripts/build_web_artifacts.sh"
+fi
