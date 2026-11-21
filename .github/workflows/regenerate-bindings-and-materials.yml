@@ -474,7 +474,7 @@ jobs:
                 --endpoint-url "$R2_ENDPOINT" --region auto
             )
           done
-          # Publish the pointer only after all four uploads succeeded.
+          # Publish the pointer only after all uploads succeeded.
           echo "$SHORT_SHA" > "$WEB_ROOT/web.version"
 
       - name: Commit web.version

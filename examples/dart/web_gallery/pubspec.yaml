@@ -25,3 +25,8 @@ hooks:
   user_defines:
     thermion_dart:
       skip_native_build: true
+      materials:
+        gizmo: true
+        wireframe: true
+        edge_outline: true
+        silhouette: true

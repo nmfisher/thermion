@@ -83,17 +83,17 @@ class WebPublicationTests(unittest.TestCase):
         self.assertFalse(self.count.exists())
 
     def test_failed_upload_leaves_existing_pointer(self):
-        for failure in range(1, 5):
+        for failure in range(1, len(BUILD_DIRS) + 1):
             with self.subTest(failure=failure):
                 self.count.unlink(missing_ok=True)
                 self.env['FAIL_UPLOAD'] = str(failure)
                 self.assert_pointer_unchanged(self.run_step())
                 self.assertEqual(int(self.count.read_text()), failure)
 
-    def test_success_advances_pointer_only_after_four_uploads(self):
+    def test_success_advances_pointer_only_after_all_uploads(self):
         result = self.run_step()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(self.count.read_text().strip(), '4')
+        self.assertEqual(int(self.count.read_text()), len(BUILD_DIRS))
         self.assertEqual(self.version.read_text(), 'deadbee\n')
 
     def test_missing_compiler_prerequisite_fails_both_runtime_builds(self):

@@ -89,7 +89,7 @@ Future<Directory> _downloadToCache(String version, String zipSuffix, Directory c
 }
 
 List<BuiltInMaterial> _parseMaterials(String raw) {
-  final byKey = {for (final m in BuiltInMaterial.values.where((m) => m.compiledOnDemand)) m.key: m};
+  final byKey = {for (final m in BuiltInMaterial.values) m.key: m};
   final selected = <BuiltInMaterial>{};
   for (final token in raw.split(',')) {
     final key = token.trim();
@@ -131,10 +131,8 @@ void main(List<String> args) async {
       stdout.writeln('                runtime-materials = filamat-enabled engine for');
       stdout.writeln('                runtime material compilation (~20 MB larger).');
       stdout.writeln('                main-thread-runtime-materials = both combined.');
-      stdout.writeln('  --materials    Comma-separated helper keys, for example normal_color,sharp_edge.');
-      stdout.writeln(
-        '                 Available keys: ${BuiltInMaterial.values.where((m) => m.compiledOnDemand).map((m) => m.key).join(', ')}',
-      );
+      stdout.writeln('  --materials    Comma-separated helper keys, for example gizmo,image.');
+      stdout.writeln('                 Available keys: ${BuiltInMaterial.values.map((m) => m.key).join(', ')}');
       return;
     }
   }

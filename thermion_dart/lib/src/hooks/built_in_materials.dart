@@ -10,9 +10,30 @@ import 'filament_artifacts.dart';
 import 'material_publication.dart';
 import 'material_tools.dart';
 
-Future<Map<BuiltInMaterial, Directory>> _compileWebMaterials({
+List<BuiltInMaterial> selectBuiltInMaterials(Object? materialConfig, {required void Function(String) onWarning}) {
+  if (materialConfig == null) return [];
+  if (materialConfig is! Map) {
+    throw MaterialToolsError('materials must be a map in pubspec.yaml.');
+  }
+  final knownMaterialKeys = {'backends', ...BuiltInMaterial.values.map((material) => material.key)};
+  for (final MapEntry(:key, :value) in materialConfig.entries) {
+    if (!knownMaterialKeys.contains(key)) {
+      onWarning('Unknown key materials.$key in pubspec.yaml.');
+    } else if (key != 'backends' && value is! bool) {
+      throw MaterialToolsError('materials.$key must be true or false (an unquoted YAML boolean).');
+    }
+  }
+  return [
+    for (final material in BuiltInMaterial.values)
+      if (materialConfig[material.key] == true) material,
+  ];
+}
+
+Future<Map<BuiltInMaterial, Directory>> compileBuiltInMaterials({
   required Directory root,
   required List<BuiltInMaterial> materials,
+  required List<String> backends,
+  required bool resgen,
   required void Function(String) onLog,
   UrlDownloader? download,
   void Function(Uri)? addDependency,
@@ -24,24 +45,19 @@ Future<Map<BuiltInMaterial, Directory>> _compileWebMaterials({
   final warnings = <String>[];
   final toolsPin = parseFilamentPin(pinFile.existsSync() ? pinFile.readAsStringSync() : null, warnings: warnings);
   warnings.forEach(onLog);
+  final variantKey = '${backends.join('_')}-${resgen ? 'resgen' : 'filamat'}';
   final outputs = <BuiltInMaterial, Directory>{};
 
   for (final material in materials) {
-    final cacheDir = path.join(
-      root.path,
-      '.dart_tool',
-      'thermion_dart',
-      'materials',
-      material.key,
-      'opengl_webgpu-filamat',
-    );
+    final cacheDir = path.join(root.path, '.dart_tool', 'thermion_dart', 'materials', material.key, variantKey);
     final result = await compileUserMaterials(
       appRoot: root,
       config: MaterialCompilationConfig(
         inputs: ['hook/materials/${material.key}.mat'],
         output: cacheDir,
-        backends: const ['opengl', 'webgpu'],
-        resgen: false,
+        backends: backends,
+        resgen: resgen,
+        resgenPrefixes: material.resgenPrefix != material.key ? {material.key: material.resgenPrefix} : const {},
       ),
       filamentVersion: filamentVersion,
       packageVersion: packageVersion,
@@ -78,7 +94,9 @@ Future<void> publishWebMaterials({
   UrlDownloader? download,
   void Function(Uri)? addDependency,
 }) async {
-  final compiled = await _compileWebMaterials(
+  final compiled = await compileBuiltInMaterials(
+    backends: const ['opengl', 'webgpu'],
+    resgen: false,
     root: root,
     materials: materials,
     download: download,
@@ -173,7 +191,7 @@ Future<void> stageWebEngine(
       // Older builds deployed these files beside the engine. Keep user-owned files.
       final legacy = Directory(path.join(webDir.path, 'thermion_materials'));
       if (legacy.existsSync()) {
-        for (final material in BuiltInMaterial.values.where((material) => material.compiledOnDemand)) {
+        for (final material in BuiltInMaterial.values) {
           final old = file(legacy, '${material.key}.filamat');
           if (old.existsSync()) old.deleteSync();
         }
