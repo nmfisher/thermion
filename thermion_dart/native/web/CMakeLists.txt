@@ -101,31 +101,8 @@ link_directories("${CMAKE_CURRENT_SOURCE_DIR}/lib")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build/out)
 
-# Material backend variant selection.
-# Set -DTHERMION_MATERIAL_VARIANT=<value> on the cmake command line:
-#   native       — OpenGL+Metal+Vulkan (GLSL, SPIR-V, MSL) [default for native, not for web]
-#   webgpu       — WebGPU only (WGSL)
-#   web_webgl    — WebGL2 only (GLSL), smallest web variant
-#   web_combined — WebGL2 + WebGPU (GLSL + WGSL), runtime backend selection
-if(NOT DEFINED THERMION_MATERIAL_VARIANT)
-  set(THERMION_MATERIAL_VARIANT "web_webgl")
-endif()
-message(STATUS "Material variant: ${THERMION_MATERIAL_VARIANT}")
-
-# Select helper packages separately from the graphics backend.
-set(THERMION_MATERIALS "capture_uv;grid;image;linear_depth;unlit_fixed_size;silhouette;edge_outline;wireframe;translation_axis;bone_overlay;gizmo"
-    CACHE STRING "Semicolon-separated helper materials to embed")
-set(MATERIAL_SOURCES)
-foreach(material IN LISTS THERMION_MATERIALS)
-  set(stem "${material}")
-  if(material STREQUAL "gizmo")
-    set(stem "gizmo_material")
-  endif()
-  string(TOUPPER "${material}" material_define)
-  add_compile_definitions("${material_define}_ENABLED=1")
-  list(APPEND MATERIAL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/${stem}_${THERMION_MATERIAL_VARIANT}.c")
-endforeach()
-
+# The Dart build hook and download_web embed selected materials as custom
+# sections in a copy of this engine.
 file(GLOB SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/*.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/c_api/*.cpp"
@@ -173,7 +150,7 @@ else()
 endif()
 
 message(STATUS "Total source files being compiled: ${SOURCES}")
-add_executable(${MODULE_NAME} ${SOURCES} ${MATERIAL_SOURCES})
+add_executable(${MODULE_NAME} ${SOURCES})
 set_property(TARGET ${MODULE_NAME} APPEND PROPERTY LINK_DEPENDS "${MATERIAL_READER}")
 if(THERMION_WEB_MAIN_THREAD)
   target_compile_definitions(${MODULE_NAME} PRIVATE THERMION_WEB_MAIN_THREAD=1)
@@ -183,9 +160,6 @@ set_target_properties(${MODULE_NAME} PROPERTIES
   CXX_VISIBILITY_PRESET hidden)
 target_compile_definitions(${MODULE_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 
-# Set the material backend define so forwarding headers resolve correctly.
-string(TOUPPER ${THERMION_MATERIAL_VARIANT} VARIANT_UPPER)
-target_compile_definitions(${MODULE_NAME} PRIVATE THERMION_MATERIAL_${VARIANT_UPPER})
 target_compile_options(${MODULE_NAME} PRIVATE -matomics -mbulk-memory)
 target_compile_options(${MODULE_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>")
 target_compile_features(${MODULE_NAME} PRIVATE cxx_std_17)

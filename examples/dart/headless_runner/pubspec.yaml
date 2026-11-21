@@ -11,3 +11,12 @@ dependencies:
     path: ../../../thermion_dart
   thermion_examples_lib:
     path: ../examples_lib
+
+hooks:
+  user_defines:
+    thermion_dart:
+      materials:
+        gizmo: true
+        wireframe: true
+        edge_outline: true
+        silhouette: true

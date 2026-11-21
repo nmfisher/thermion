@@ -32,3 +32,10 @@ flutter:
   assets:
     - assets/
     - assets/FlightHelmet/
+
+hooks:
+  user_defines:
+    thermion_dart:
+      materials:
+        wireframe: true
+        image: true

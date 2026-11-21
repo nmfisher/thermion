@@ -13,24 +13,46 @@
 
 #include "c_api/TMaterialInstance.h"
 
-#include "material/image.h"
-#include "material/grid.h"
-#include "material/gizmo.h"
-#include "material/translation_axis.h"
-#include "material/bone_overlay.h"
-#include "material/silhouette.h"
-#include "material/edge_outline.h"
-#include "material/wireframe.h"
-#include "material/capture_uv.h"
-#include "material/linear_depth.h"
-#include "material/unlit_fixed_size.h"
-
-// The Dart build hook emits these headers for the selected target backend.
+// The Dart build hook compiles enabled materials on demand and places their
+// generated resgen headers on the compiler include path.
+#ifdef IMAGE_ENABLED
+#include "image.h"
+#endif
+#ifdef GRID_ENABLED
+#include "grid.h"
+#endif
+#ifdef GIZMO_ENABLED
+#include "gizmo_material.h"
+#endif
+#ifdef TRANSLATION_AXIS_ENABLED
+#include "translation_axis.h"
+#endif
+#ifdef BONE_OVERLAY_ENABLED
+#include "bone_overlay.h"
+#endif
+#ifdef SILHOUETTE_ENABLED
+#include "silhouette.h"
+#endif
+#ifdef EDGE_OUTLINE_ENABLED
+#include "edge_outline.h"
+#endif
+#ifdef WIREFRAME_ENABLED
+#include "wireframe.h"
+#endif
 #ifdef NORMAL_COLOR_ENABLED
 #include "normal_color.h"
 #endif
 #ifdef SHARP_EDGE_ENABLED
 #include "sharp_edge.h"
+#endif
+#ifdef CAPTURE_UV_ENABLED
+#include "capture_uv.h"
+#endif
+#ifdef LINEAR_DEPTH_ENABLED
+#include "linear_depth.h"
+#endif
+#ifdef UNLIT_FIXED_SIZE_ENABLED
+#include "unlit_fixed_size.h"
 #endif
 
 namespace thermion {
@@ -41,7 +63,8 @@ static TMaterial* buildBuiltInMaterial(TEngine* tEngine, const uint8_t* data, si
     return reinterpret_cast<TMaterial*>(material);
 }
 
-// resgen names each slice <PREFIX>_<INPUT>_{DATA,SIZE}. Built-ins use the same name for both.
+// resgen names each slice <PREFIX>_<INPUT>_{DATA,SIZE}. Built-ins use the same name for both,
+// except gizmo which uses prefix gizmo_material to avoid a Windows .obj collision with Gizmo.cpp.
 #define RESGEN_FACTORY(name) \
     case BUILT_IN_##name: \
         return [](TEngine* engine) { \
@@ -57,7 +80,10 @@ BuiltInMaterialFactory builtInMaterialFactory(TBuiltInMaterial id) {
         RESGEN_FACTORY(GRID);
 #endif
 #ifdef GIZMO_ENABLED
-        RESGEN_FACTORY(GIZMO);
+        case BUILT_IN_GIZMO:
+            return [](TEngine* engine) {
+                return buildBuiltInMaterial(engine, GIZMO_MATERIAL_GIZMO_DATA, GIZMO_MATERIAL_GIZMO_SIZE);
+            };
 #endif
 #ifdef TRANSLATION_AXIS_ENABLED
         RESGEN_FACTORY(TRANSLATION_AXIS);

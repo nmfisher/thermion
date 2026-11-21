@@ -28,7 +28,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:thermion_dart/src/filament/src/interface/built_in_material.dart';
 import 'package:thermion_dart/src/hooks/built_in_materials.dart';
 import 'package:yaml_edit/yaml_edit.dart';
 
@@ -170,10 +169,7 @@ Future<void> main(List<String> args) async {
     root: Directory.current,
     engineDir: Directory('test'),
     webDir: Directory('test/embedded_engine'),
-    materials: [
-      for (final m in BuiltInMaterial.values)
-        if (m.compiledOnDemand && materialConfig is Map && materialConfig[m.key] == true) m,
-    ],
+    materials: selectBuiltInMaterials(materialConfig, onWarning: stderr.writeln),
     onLog: stderr.writeln,
   );
 

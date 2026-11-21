@@ -132,40 +132,31 @@ startup or from a background isolate.
 A live web demo — a GLSL editor that compiles and applies materials in the
 browser — is in `examples/dart/material_editor`.
 
-#### Debug/visualization materials (opt-in)
+#### Optional helper materials
 
-`normal_color` shows world-space normals as RGB. `sharp_edge` draws the triangle
-edges selected by a per-triangle mask. Enable either helper in the root pubspec.
+The default viewer loads glTF assets, renders them with their authored materials,
+and displays skyboxes and solid backgrounds with zero embedded helper packages.
+For each feature your app uses, set its material key to `true` under
+`hooks.user_defines.thermion_dart.materials` in the root pubspec.
+
+| Feature | Material keys |
+| --- | --- |
+| Textured quads and background images | `image` |
+| Grid, transform gizmo, translation axis, skeleton overlay | `grid`, `gizmo`, `translation_axis`, `bone_overlay`, respectively |
+| Selection highlights | Both `silhouette` and `edge_outline` |
+| Wireframes, world-space normal colors, selected triangle edges | `wireframe`, `normal_color`, `sharp_edge`, respectively |
+| Embedded packages for UV capture, linear depth, fixed-size unlit geometry | `capture_uv`, `linear_depth`, `unlit_fixed_size`, respectively |
+
+For example, an app using the sharp-edge view needs one entry:
 
 ```yaml
 hooks:
   user_defines:
     thermion_dart:
       materials:
-        normal_color: true
         sharp_edge: true
 ```
 
-The build hook compiles only the debug shaders you enable. It downloads and caches
-the matching Filament tools on first use. Native builds link the generated shader
-for the selected graphics backend. `flutter run -d chrome` and
-`flutter build web` embed the selected packages in `web/thermion_dart.wasm`.
-
-For a Flutter app inside a pub workspace, set `web_directory: apps/viewer/web`
-alongside `materials` under `hooks.user_defines.thermion_dart` in the workspace
-pubspec. The path is relative to that pubspec.
-
-For plain Dart web apps, `dart compile js` only compiles the Dart entrypoint.
-Run the following to embed the selected materials in the engine, then deploy
-`thermion_dart.js` and `thermion_dart.wasm` together:
-
-```sh
-dart run thermion_dart:download_web -o web --materials normal_color,sharp_edge
-```
-
-In native builds the entries override the defaults individually. For example,
-`grid: false` removes the grid and `include_defaults: false` starts from an
-empty list.
 For a triangle with corners A, B, C, mask values 1, 2, and 4 select edges BC,
 CA, and AB respectively. Combine them with bitwise OR. This example draws only AB.
 The existing geometry helper supplies the barycentric coordinates in the first
@@ -186,9 +177,33 @@ final asset = await viewer.createGeometry(geometry, materialInstances: [instance
 await viewer.addToScene(asset);
 ```
 
-The caller owns the material and instance. Destroy the instance before destroying
-the material after removing its renderables. An omitted helper raises a
-`StateError` naming the pubspec key needed to enable it.
+The caller owns the material and its instances. Remove their renderables, destroy
+the instances, then destroy the material. Requesting a helper omitted from the
+engine raises a `StateError` that names its pubspec key.
+
+The build hook compiles only the enabled helper shaders from source
+(`thermion_dart/hook/materials/*.mat`) using the version-matched, cached
+Filament tools (`matc` / `resgen`). Compiled packages are cached per material
+under `thermion_dart/.dart_tool/thermion_dart/materials/` so repeat builds,
+`flutter clean`, and config changes skip recompilation. On native builds, the
+hook links the compiled `.c` files for the selected graphics backend into
+`libthermion_dart`. On Flutter web builds (`flutter run -d chrome`,
+`flutter build web`), it embeds the enabled packages in `web/thermion_dart.wasm`.
+Filament creates each material on first use.
+
+For a Flutter app inside a pub workspace, set `web_directory: apps/viewer/web`
+alongside `materials` under `hooks.user_defines.thermion_dart` in the workspace
+pubspec. The path is relative to that pubspec.
+
+For plain Dart web apps (`dart compile js` / `dart compile wasm`), pass
+`--materials` to `thermion_dart:download_web` to fetch the slim engine and
+embed the requested materials in the app’s copy of `thermion_dart.wasm`:
+
+```sh
+dart run thermion_dart:download_web -o web --materials grid,wireframe,gizmo
+```
+
+Pass each required key explicitly. Omit `--materials` for an app that uses no helpers.
 
 ### Quickstart (Flutter)
 

@@ -2,6 +2,56 @@
 
 Earlier entries are consolidated. [Original detailed history](https://github.com/nmfisher/thermion/blob/29a53ae682891be0aed05c59fe7ad5f490d2e44e/CHANGELOG.md).
 
+## Unreleased
+
+### Breaking change — built-in helper materials require explicit keys
+
+Migrate when your app uses any feature in the table below, including through a
+widget or plugin. Thermion previously bundled most of these helpers by default.
+Apps that only render glTF models with their authored materials, load skyboxes,
+or display solid backgrounds need no configuration change.
+
+| If your app uses… | Enable these material keys |
+| --- | --- |
+| Transform gizmos (`TransformationGizmo`) | `gizmo` |
+| Background images (`setBackgroundImage`, `setBackgroundImageFromTexture`) or textured quads (`createTexturedQuad`) | `image` |
+| Grid overlay (`setGridOverlayVisibility`) | `grid` |
+| Translation-axis overlay (`setTranslationAxisVisibility`) | `translation_axis` |
+| Bone or skeleton overlay (`createBoneOverlayMaterial`) | `bone_overlay` |
+| Selection outlines (`setStencilHighlight` or `ViewerWidget(enableHighlights: true)`) | Both `silhouette` and `edge_outline` |
+| Wireframe rendering (`createWireframeMaterialInstance`) | `wireframe` |
+| World-space normal visualization | `normal_color` |
+| Masked triangle-edge visualization | `sharp_edge` |
+| The built-in UV capture material (`BuiltInMaterial.captureUv`) | `capture_uv` |
+| The built-in linear depth material (`BuiltInMaterial.linearDepth`) | `linear_depth` |
+| The built-in fixed-size unlit material (`BuiltInMaterial.unlitFixedSize`) | `unlit_fixed_size` |
+
+**Flutter and native Dart apps.** Set each required key to `true` in the app's
+root `pubspec.yaml` (the workspace root for a pub workspace), then rebuild.
+Keep any keys already set to `true`. If you used `include_defaults`, replace it
+with the keys for the features you use. For example, an app that displays a
+transform gizmo over a background image needs these two entries.
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      materials:
+        gizmo: true
+        image: true
+```
+
+**Plain Dart web apps.** Pass the individual keys to `download_web` and deploy
+the resulting `thermion_dart.wasm` and `thermion_dart.js` together. The same gizmo and background
+image example uses this command.
+
+```sh
+dart run thermion_dart:download_web -o web --materials gizmo,image
+```
+
+On any platform, requesting an omitted helper raises a `StateError` naming
+the key to enable.
+
 ## 0.7.0 - 2026-11-13
 
 - Add opt-in runtime material compilation on native and web, with includes,
