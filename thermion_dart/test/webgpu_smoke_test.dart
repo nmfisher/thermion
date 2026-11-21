@@ -28,12 +28,16 @@ void main() {
 
   test('Backend.WEBGPU engine creation + teardown', () async {
     await FFIFilamentApp.create(
-      config: FFIFilamentConfig(
-        loadResource: _loadResource,
-        backend: Backend.WEBGPU,
-      ),
+      config: FFIFilamentConfig(loadResource: _loadResource, backend: Backend.WEBGPU),
     );
     expect(FilamentApp.instance, isNotNull);
     print('WebGPU FilamentApp created successfully on ${Platform.operatingSystem}');
+
+    // Tear the engine back down: destroy() flushes and destroys the
+    // engine/platform (including the WebGPU platform created in
+    // Engine_create) and clears FilamentApp.instance.
+    await FilamentApp.instance!.destroy();
+    expect(FilamentApp.instance, isNull, reason: "destroy() must clear FilamentApp.instance");
+    print('WebGPU FilamentApp destroyed cleanly');
   });
 }
