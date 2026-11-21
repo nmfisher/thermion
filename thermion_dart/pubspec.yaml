@@ -33,13 +33,16 @@ dev_dependencies:
 # Material factories exercised by this package's native integration tests.
 # Consuming applications select their own helpers in their root pubspec.
 #
-# Local testing: `webgpu: true` turns on the Dawn-backed WebGPU path in the
-# build hook. Requires a Filament artifact built with FILAMENT_SUPPORTS_WEBGPU=ON
-# staged at .dart_tool/thermion_dart/lib/<version>/<platform>/<mode>/.
+# Local WebGPU testing: set `backend: webgpu` here and run the webgpu
+# tests explicitly. The build hook then defines THERMION_SUPPORTS_WEBGPU,
+# links Dawn and downloads the pinned -webgpu Filament artifact (built
+# with FILAMENT_SUPPORTS_WEBGPU=ON) into
+# .dart_tool/thermion_dart/lib/<version>/<platform>/<mode>/.
+# Keep it off otherwise — it swaps the Dawn-linked artifact in for every
+# native build of this package.
 hooks:
   user_defines:
     thermion_dart:
-      webgpu: true
       materials:
         image: true
         grid: true

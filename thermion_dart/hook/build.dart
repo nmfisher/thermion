@@ -176,9 +176,10 @@ outputDirectory : ${outputDirectory.path}
     //   "webgl2"            — WebGL2 only (GLSL). Web-only, smallest variant.
     //   "hybrid"            — WebGL2 + WebGPU combined (GLSL + WGSL). Web-only,
     //                         enables runtime backend selection.
-    //
-    // Legacy: "webgpu: true" is equivalent to backend: "webgpu".
     final backendRaw = input.userDefines["backend"];
+    // Legacy spelling kept for older pubspecs: `webgpu: true` (bool or
+    // string) maps to backend: "webgpu". New configurations should set
+    // `backend: webgpu`.
     final legacyWebgpu = input.userDefines["webgpu"];
     final String backend;
     if (backendRaw == "webgpu" || backendRaw == "WebGPU") {
@@ -193,10 +194,10 @@ outputDirectory : ${outputDirectory.path}
       backend = "native";
     }
 
-    // Native WebGPU (Dawn) opt-in: either the legacy `webgpu: true`
-    // user-define or `backend: "webgpu"`. Detected before getLibDir so the
-    // build hook can download the -webgpu suffixed zip from R2 instead of
-    // the canonical artifact.
+    // Native WebGPU (Dawn) opt-in: the `backend: "webgpu"` user define
+    // (or its legacy `webgpu: true` spelling). Detected before getLibDir
+    // so the build hook can download the -webgpu suffixed zip from R2
+    // instead of the canonical artifact.
     final webgpuEnabled = backend == "webgpu";
 
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;

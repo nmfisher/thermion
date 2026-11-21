@@ -7,8 +7,9 @@
 #endif
 
 // Native WebGPU support is opt-in: consuming app must set
-// `hooks.user_defines.thermion_dart.webgpu: true` in pubspec, which causes
-// the build hook to define THERMION_SUPPORTS_WEBGPU and link the Dawn libs.
+// `hooks.user_defines.thermion_dart.backend: webgpu` in pubspec, which
+// causes the build hook to define THERMION_SUPPORTS_WEBGPU and link the
+// Dawn libs.
 #if defined(THERMION_SUPPORTS_WEBGPU) && !defined(__EMSCRIPTEN__)
   #if defined(__APPLE__)
     #include <backend/platforms/WebGPUPlatformApple.h>
@@ -117,7 +118,7 @@ namespace thermion
                 tPlatform = Thermion_createWebGPUPlatform();
                 tSharedContext = nullptr;
                 #else
-                Log("ERROR - Backend::WEBGPU requested but this engine was built without WebGPU support (build with -DTHERMION_ENABLE_WEBGPU=ON)");
+                Log("ERROR - Backend::WEBGPU requested but this engine was built without WebGPU support (set hooks.user_defines.thermion_dart.backend: webgpu so the build hook defines THERMION_SUPPORTS_WEBGPU and links Dawn)");
                 return nullptr;
                 #endif
             } else {
