@@ -33,7 +33,9 @@ Future<void> setupEffects(
   // The bright centre cube makes changes to bloom strength obvious.
   final emissive = await viewer.loadGltf(
     "$assetsDir/cube.glb",
-    rebuildVertices: true,
+    requiredGeometryCapabilities: const {
+      SceneAssetGeometryCapability.barycentrics,
+    },
   );
   await emissive.transformToUnitCube();
   await emissive.setTransform(Matrix4.translation(Vector3(-1.0, 0.5, 0)));

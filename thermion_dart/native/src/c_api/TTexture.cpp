@@ -22,6 +22,7 @@
 #include "c_api/TTexture.h"
 
 #include "Log.hpp"
+#include "rendering/EngineApiLock.hpp"
 
 #include <third_party/stb/stb_image.h>
 
@@ -130,6 +131,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TTexture *Ktx2Reader_createTexture(TEngine *tEngine, uint8_t* data, size_t size) {
+            THERMION_ENGINE_API_GUARD;
             std::vector<uint8_t> copy(data, data + size);
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto reader = new ktxreader::Ktx2Reader(*engine);
@@ -181,6 +183,7 @@ namespace thermion
             uint32_t requestId,
             VoidCallback onTextureUploadComplete)
         {
+            THERMION_ENGINE_API_GUARD;
 
             auto engine = reinterpret_cast<filament::Engine *>(tEngine);
 
@@ -204,7 +207,7 @@ namespace thermion
                         if (callbackPtr)
                         {
                             auto callback = ((VoidCallback)callbackPtr);
-                            callback(requestId);
+                            thermion::deferDartCallback([callback, requestId] { callback(requestId); });
                         } },
                     (void *)callbackData);
             return reinterpret_cast<TTexture *>(texture);
@@ -503,6 +506,7 @@ namespace thermion
             TTextureSamplerType tSamplerType,
             TTextureFormat tFormat)
         {
+            THERMION_ENGINE_API_GUARD;
             TRACE("Creating texture %dx%d (depth %d), sampler type %d, format %d tUsage %d, %d levels", width, height, depth, static_cast<int>(tSamplerType), static_cast<int>(tFormat), tUsage, levels);
             auto *engine = reinterpret_cast<::filament::Engine *>(tEngine);
             auto format = convertToFilamentFormat(tFormat);
@@ -543,6 +547,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void Texture_setExternalImage(TEngine *tEngine, TTexture *tTexture, void *externalImage)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *texture = reinterpret_cast<filament::Texture *>(tTexture);
             auto *extImg = static_cast<filament::backend::Platform::ExternalImage *>(externalImage);
@@ -552,12 +557,14 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE size_t Texture_getLevels(TTexture *tTexture)
         {
+            THERMION_ENGINE_API_GUARD;
             auto texture = reinterpret_cast<filament::Texture *>(tTexture);
             return texture->getLevels();
         }
 
         EMSCRIPTEN_KEEPALIVE bool Texture_loadImage(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage, TPixelDataFormat tBufferFormat, TPixelDataType tPixelDataType, int level)
         {
+            THERMION_ENGINE_API_GUARD;
             auto engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto image = reinterpret_cast<::image::LinearImage *>(tImage);
             auto texture = reinterpret_cast<filament::Texture *>(tTexture);
@@ -623,8 +630,11 @@ namespace thermion
             uint32_t height,
             uint32_t depth,
             uint32_t tBufferFormat,
-            uint32_t tPixelDataType)
+            uint32_t tPixelDataType,
+            void (*onRelease)(void *, size_t, void *),
+            void *userData)
         {
+            THERMION_ENGINE_API_GUARD;
             auto engine = reinterpret_cast<filament::Engine *>(tEngine);
 
             auto texture = reinterpret_cast<filament::Texture *>(tTexture);
@@ -632,18 +642,8 @@ namespace thermion
             auto pixelDataType = static_cast<PixelBufferDescriptor::PixelDataType>(tPixelDataType);
             TRACE("Setting texture image for level %d, offset %dx%dx%d, depth %d", level, x_offset, y_offset, z_offset, depth);
 
-            // the texture upload is async, so we need to copy the buffer
-            auto *buffer = new std::vector<uint8_t>(size);
-            std::copy(data, data + size, buffer->begin());
-
-            filament::Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
-                                                                                 void *data)
-            {
-                delete reinterpret_cast<std::vector<uint8_t> *>(data);
-            };
-
             filament::Texture::PixelBufferDescriptor pbd(
-                buffer->data(),
+                data,
                 size,
                 bufferFormat,
                 pixelDataType,
@@ -651,8 +651,8 @@ namespace thermion
                 0, // left
                 0, // top
                 0, // stride
-                freeCallback,
-                buffer);
+                onRelease,
+                userData);
 
             texture->setImage(
                 *engine,
@@ -670,30 +670,35 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE uint32_t Texture_getWidth(TTexture *tTexture, uint32_t level)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *texture = reinterpret_cast<filament::Texture *>(tTexture);
             return texture->getWidth();
         }
 
         EMSCRIPTEN_KEEPALIVE uint32_t Texture_getHeight(TTexture *tTexture, uint32_t level)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *texture = reinterpret_cast<filament::Texture *>(tTexture);
             return texture->getHeight();
         }
 
         EMSCRIPTEN_KEEPALIVE uint32_t Texture_getDepth(TTexture *tTexture, uint32_t level)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *texture = reinterpret_cast<filament::Texture *>(tTexture);
             return texture->getDepth();
         }
 
         EMSCRIPTEN_KEEPALIVE TTextureFormat Texture_getFormat(TTexture *tTexture)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *texture = reinterpret_cast<filament::Texture *>(tTexture);
             return static_cast<TTextureFormat>(texture->getFormat());
         }
 
         EMSCRIPTEN_KEEPALIVE void Texture_generateMipMaps(TTexture *tTexture, TEngine *tEngine)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *texture = reinterpret_cast<filament::Texture *>(tTexture);
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             texture->generateMipmaps(*engine);
@@ -847,6 +852,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TTexture *RenderTarget_getColorTexture(TRenderTarget *tRenderTarget)
         {
+            THERMION_ENGINE_API_GUARD;
             auto renderTarget = reinterpret_cast<filament::RenderTarget *>(tRenderTarget);
             auto texture = renderTarget->getTexture(filament::RenderTarget::AttachmentPoint::COLOR0);
             return reinterpret_cast<TTexture *>(texture);
@@ -854,6 +860,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TTexture *RenderTarget_getDepthTexture(TRenderTarget *tRenderTarget)
         {
+            THERMION_ENGINE_API_GUARD;
             auto renderTarget = reinterpret_cast<filament::RenderTarget *>(tRenderTarget);
             auto texture = renderTarget->getTexture(filament::RenderTarget::AttachmentPoint::DEPTH);
             return reinterpret_cast<TTexture *>(texture);

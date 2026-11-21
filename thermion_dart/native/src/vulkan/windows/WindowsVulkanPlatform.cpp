@@ -62,10 +62,10 @@ VkResult WindowsVulkanPlatform::present(SwapChainPtr handle, uint32_t index, VkS
 }
 
 filament::backend::VulkanPlatform::ExtensionSet WindowsVulkanPlatform::getSwapchainInstanceExtensions() const {
-  ExtensionSet extensions;
-  extensions.insert(utils::CString(VK_KHR_SURFACE_EXTENSION_NAME));
-  extensions.insert(utils::CString(VK_KHR_WIN32_SURFACE_EXTENSION_NAME));
-  return extensions;
+  return {
+    VK_KHR_SURFACE_EXTENSION_NAME,
+    VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+  };
 }
 
 filament::backend::VulkanPlatform::SurfaceBundle WindowsVulkanPlatform::createVkSurfaceKHR(
@@ -92,6 +92,7 @@ filament::backend::VulkanPlatform::ExternalImageMetadata WindowsVulkanPlatform::
   metadata.filamentUsage = ext->filamentUsage;
   metadata.width = ext->width;
   metadata.height = ext->height;
+  metadata.mipLevels = ext->mipLevels;
   metadata.layers = ext->layers;
   metadata.samples = VK_SAMPLE_COUNT_1_BIT;
   metadata.format = ext->format;

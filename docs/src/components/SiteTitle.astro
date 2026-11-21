@@ -1,0 +1,44 @@
+---
+import Default from '@astrojs/starlight/components/SiteTitle.astro';
+import { Badge } from '@astrojs/starlight/components';
+import { getProjectVersion, getFilamentVersion } from '../project-version';
+
+// Overrides Starlight's SiteTitle (registered under `components.SiteTitle` in
+// astro.config.mjs) to append a small version badge after the logo/title. The
+// version comes from thermion_dart/pubspec.yaml (or $THERMION_VERSION, which
+// the deploy workflow sets from the same file), so it can never drift from the
+// released package.
+const version = getProjectVersion();
+const filamentVersion = getFilamentVersion();
+
+const label =
+  filamentVersion !== ''
+    ? `v${version} · Filament ${filamentVersion}`
+    : `v${version}`;
+---
+
+<Default />
+<a
+  class="site-version-badge"
+  href={`https://github.com/nmfisher/thermion/releases/tag/v${version}`}
+  title={`Thermion ${version}, built on Filament ${filamentVersion}`}
+>
+  <Badge text={label} variant="note" size="small" />
+</a>
+
+<style>
+  .site-version-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-inline-start: 0.4rem;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  @media (max-width: 50rem) {
+    /* Keep the header tidy on small screens where the badge would crowd the
+       search input — the version remains on the overview page. */
+    .site-version-badge {
+      display: none;
+    }
+  }
+</style>

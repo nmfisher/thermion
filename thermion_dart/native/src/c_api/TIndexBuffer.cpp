@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
 #include <filament/Engine.h>
 #include <filament/IndexBuffer.h>
 
@@ -15,16 +16,19 @@ namespace thermion
         // ============================================================================
 
         EMSCRIPTEN_KEEPALIVE TIndexBufferBuilder* IndexBufferBuilder_create() {
+            THERMION_ENGINE_API_GUARD;
             auto* builder = new filament::IndexBuffer::Builder();
             return reinterpret_cast<TIndexBufferBuilder*>(builder);
         }
 
         EMSCRIPTEN_KEEPALIVE void IndexBufferBuilder_indexCount(TIndexBufferBuilder* tBuilder, uint32_t count) {
+            THERMION_ENGINE_API_GUARD;
             auto* builder = reinterpret_cast<filament::IndexBuffer::Builder*>(tBuilder);
             builder->indexCount(count);
         }
 
         EMSCRIPTEN_KEEPALIVE void IndexBufferBuilder_bufferType(TIndexBufferBuilder* tBuilder, TIndexType indexType) {
+            THERMION_ENGINE_API_GUARD;
             auto* builder = reinterpret_cast<filament::IndexBuffer::Builder*>(tBuilder);
 
             // Map TIndexType to filament::IndexBuffer::IndexType (which maps to backend::ElementType)
@@ -45,6 +49,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TIndexBuffer* IndexBufferBuilder_build(TIndexBufferBuilder* tBuilder, TEngine* tEngine) {
+            THERMION_ENGINE_API_GUARD;
             auto* builder = reinterpret_cast<filament::IndexBuffer::Builder*>(tBuilder);
             auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
             auto* indexBuffer = builder->build(*engine);
@@ -52,6 +57,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void IndexBufferBuilder_destroy(TIndexBufferBuilder* tBuilder) {
+            THERMION_ENGINE_API_GUARD;
             auto* builder = reinterpret_cast<filament::IndexBuffer::Builder*>(tBuilder);
             delete builder;
         }
@@ -61,6 +67,7 @@ namespace thermion
         // ============================================================================
 
         EMSCRIPTEN_KEEPALIVE size_t IndexBuffer_getIndexCount(TIndexBuffer* tBuffer) {
+            THERMION_ENGINE_API_GUARD;
             auto* indexBuffer = reinterpret_cast<filament::IndexBuffer*>(tBuffer);
             return indexBuffer->getIndexCount();
         }
@@ -72,6 +79,7 @@ namespace thermion
             size_t sizeInBytes,
             uint32_t byteOffset
         ) {
+            THERMION_ENGINE_API_GUARD;
             auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
             auto* indexBuffer = reinterpret_cast<filament::IndexBuffer*>(tBuffer);
 
@@ -96,6 +104,7 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void IndexBuffer_destroy(TEngine* tEngine, TIndexBuffer* tBuffer) {
+            THERMION_ENGINE_API_GUARD;
             auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
             auto* indexBuffer = reinterpret_cast<filament::IndexBuffer*>(tBuffer);
             engine->destroy(indexBuffer);

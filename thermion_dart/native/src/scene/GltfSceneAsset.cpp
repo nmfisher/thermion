@@ -12,6 +12,7 @@
 #include <filament/BufferObject.h>
 #include <filament/Engine.h>
 #include <filament/RenderableManager.h>
+#include <filament/TransformManager.h>
 #include <filament/VertexBuffer.h>
 #include <filament/IndexBuffer.h>
 #include <gltfio/AssetLoader.h>
@@ -43,9 +44,13 @@ namespace thermion
                                         _assetLoader(assetLoader),
                                         _engine(engine),
                                         _ncm(ncm),
-                                        _materialInstances(materialInstances),
+                                        // Create materialInstanceCount null pointer slots for copy_n below.
+                                        // Our own array stays valid after the caller releases theirs.
+                                        // No MaterialInstance objects are created or owned here.
+                                        _materialInstances(materialInstanceCount),
                                         _materialInstanceCount(materialInstanceCount)
     {
+        if (materialInstanceCount) std::copy_n(materialInstances, materialInstanceCount, _materialInstances.data());
         const bool requiresUnwelded =
             (requiredGeometryCapabilities &
              (SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
@@ -108,6 +113,13 @@ namespace thermion
 
     GltfSceneAsset::~GltfSceneAsset()
     {
+        // gltfio destroys instance root entities but leaves their transforms.
+        // Remove the transforms before AssetLoader::destroyAsset() frees the entities.
+        auto &tm = _engine->getTransformManager();
+        for (auto &instance : _instances)
+        {
+            tm.destroy(instance->getEntity());
+        }
         _instances.clear();
         for (auto *vb : _preservedVertexBuffers)
         {
@@ -1000,11 +1012,39 @@ namespace thermion
     int GltfSceneAsset::getPrimitiveOffsetForEntity(utils::Entity entity) const
     {
         auto it = _entityToPrimitiveOffset.find(utils::Entity::smuggle(entity));
-        if (it == _entityToPrimitiveOffset.end())
+        if (it != _entityToPrimitiveOffset.end())
         {
-            return -1; // Entity not found or has no preserved geometry
+            return it->second;
         }
-        return it->second;
+
+        // _entityToPrimitiveOffset is keyed by the owner asset's entities (the
+        // primary instance). An entity of a secondary instance is mapped to the
+        // owner entity at the same index: gltfio enumerates every instance in
+        // the same node order, which is the same assumption createInstance and
+        // rebuildVertexBuffers already rely on when they copy the preserved
+        // buffers onto instances 1+. If the entity counts differ the mapping
+        // is not 1:1 and we refuse to guess.
+        const utils::Entity *ownerEntities = _asset->getEntities();
+        const size_t ownerEntityCount = _asset->getEntityCount();
+        for (const auto &instance : _instances)
+        {
+            auto *filamentInstance = instance->getInstance();
+            if (!filamentInstance || filamentInstance->getEntityCount() != ownerEntityCount)
+            {
+                continue;
+            }
+            const utils::Entity *instEntities = filamentInstance->getEntities();
+            for (size_t i = 0; i < ownerEntityCount; i++)
+            {
+                if (instEntities[i] != entity)
+                {
+                    continue;
+                }
+                auto owned = _entityToPrimitiveOffset.find(utils::Entity::smuggle(ownerEntities[i]));
+                return owned == _entityToPrimitiveOffset.end() ? -1 : static_cast<int>(owned->second);
+            }
+        }
+        return -1; // Entity not found or has no preserved geometry
     }
 
     void GltfSceneAsset::setFlatShading(bool flatShading)

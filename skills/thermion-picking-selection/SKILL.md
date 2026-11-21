@@ -5,7 +5,7 @@ description: >
   selection. Covers View.pick ray casting with PickResult (entity, depth),
   screen-to-viewport coordinate mapping, stencil highlight outlines
   (setStencilHighlight with outlineWidth, highlight overlay setup, the
-  rebuildVertices requirement), and translation gizmos. Use for click/tap
+  requiredGeometryCapabilities requirement), and translation gizmos. Use for click/tap
   detection on 3d objects, selecting meshes, selection outlines, highlighting,
   or dragging objects with a gizmo. Triggers: pick, picking, raycast, ray
   cast, click detection, tap, hit test, hit test, which object was clicked,
@@ -54,8 +54,10 @@ or tag entities on a visibility layer for coarse filtering.
 A screen-space outline around a selected asset:
 
 ```dart
-// 1) Load with rebuilt vertices (REQUIRED — barycentric-aware buffers):
-final asset = await viewer.loadGltf('assets/scene.gltf', rebuildVertices: true);
+// 1) Load with the barycentric geometry capability (REQUIRED —
+//    barycentric-aware buffers):
+final asset = await viewer.loadGltf('assets/scene.gltf',
+    requiredGeometryCapabilities: const {SceneAssetGeometryCapability.barycentrics});
 
 // 2) Enable the overlay + stencil buffer once:
 await viewer.view.setHighlightOverlayEnabled(true);
@@ -72,7 +74,7 @@ await viewer.view.removeStencilHighlight(asset);
 
 `setStencilHighlight` can target a single entity (`entity:` param) and
 primitive (`primitiveIndex:`). It **throws** if the asset wasn't loaded with
-`rebuildVertices: true`.
+`requiredGeometryCapabilities: {SceneAssetGeometryCapability.barycentrics}`.
 
 ## Gizmos (drag manipulators)
 
@@ -89,8 +91,9 @@ select, then attach the gizmo for dragging.
 
 - Pick coordinates are **top-left origin, logical pixels** — the same as
   Flutter's `localPosition`; don't flip Y yourself.
-- Stencil highlights require `loadGltf(..., rebuildVertices: true)` (~3x
-  vertex memory) — the call throws otherwise.
+- Stencil highlights require `loadGltf(..., requiredGeometryCapabilities:
+  {SceneAssetGeometryCapability.barycentrics})` (~3x vertex memory) — the
+  call throws otherwise.
 - Enable the highlight overlay **before** the first `setStencilHighlight`.
 - An entity handle of `0` in `PickResult` = no hit.
 - Pick works on what's rendered — hidden layers aren't pickable.

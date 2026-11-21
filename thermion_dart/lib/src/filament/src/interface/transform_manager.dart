@@ -69,6 +69,9 @@ abstract class TransformManager<T> extends NativeHandle<T> {
 
   /// Sets the local transform matrix on the render thread.
   ///
+  /// The values are copied before this method returns its Future, so [transform]
+  /// may be modified immediately after submission.
+  ///
   /// Use this when setting transforms from outside the render pass
   /// (e.g. bone posing from a gizmo callback) to avoid race conditions.
   ///

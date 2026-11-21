@@ -55,6 +55,12 @@ abstract class SurfaceOrientation {
 
 /// Builder for creating SurfaceOrientation instances.
 ///
+/// Input setters retain the supplied lists. Their contents are read when
+/// [build] is called, so edits made before building affect the result. Building
+/// consumes the builder; subsequent edits to the inputs do not affect the
+/// generated orientation. Keep externally allocated input storage valid until
+/// building finishes.
+///
 /// The builder allows you to configure the input data needed to generate
 /// tangent space quaternions. At a minimum, you must provide the vertex count.
 /// You can supply data in various combinations:

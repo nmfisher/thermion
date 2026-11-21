@@ -1,0 +1,641 @@
+name: Regenerate bindings and materials
+
+on:
+  # Any branch: develop gets the full regen path; feature branches get the
+  # materials-only path (the triage job decides — see the policy comment
+  # above the jobs). No workflow-level paths filter: develop must run on
+  # every push (bindings/format drift from ANY source change), so the
+  # cheap-path decision happens in triage instead.
+  push:
+    branches:
+      - '**'
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      force_full:
+        description: 'Force the full regeneration path (bindings + materials + web build/R2 upload) even on feature branches. Default triage still applies on develop.'
+        required: false
+        type: boolean
+        default: false
+  # Called by publish-pub-dev.yml on a v* tag push, with verify: true, so the
+  # release can gate publish on freshly-regenerated bindings WITHOUT this
+  # workflow self-triggering on tags (which previously tried to move the tag).
+  workflow_call:
+    inputs:
+      verify:
+        description: 'If true, regenerate as a gate and fail on any uncommitted diff instead of committing/pushing. Used by the release flow.'
+        required: false
+        type: boolean
+        default: false
+
+# This workflow is the ONLY thing that pushes auto-generated commits to the
+# branch. Formatting (previously format.yml) and analyze (previously lint.yml)
+# are folded in below so they run in the same job, after binding regeneration,
+# instead of racing it. See docs/CI_PIPELINE.md for the rationale.
+#
+# IMPORTANT: pushes here use GITHUB_TOKEN on purpose. GitHub suppresses workflow
+# runs triggered by GITHUB_TOKEN, so the mutation commit (and the web.version
+# commit below) never re-fires this workflow or the release chain. Do NOT
+# upgrade this push credential to a PAT that can trigger workflows:
+# thermion_dart/native/web/web.version always differs (it's a short SHA), so a
+# firing push would loop this workflow forever.
+#
+# develop pushes run normal CI here (regen + tests). This does NOT release —
+# releases are manual via release.yml (workflow_dispatch). master is a legacy
+# reference and does not trigger this workflow.
+#
+# Naming: the derived files regenerated here are the Dart FFI/JS bindings
+# and the filament materials (plus two side effects on develop/tags: the
+# web wasm is recompiled, uploaded to R2, and web.version committed).
+#
+# This single workflow covers BOTH former material-regeneration paths.
+# The triage job picks a mode per event:
+#
+#   full      — develop pushes, PRs to develop, tags (verify gate), and
+#               manual dispatch: bindings + materials + format/analyze +
+#               web side effects (develop/tags) — everything as before.
+#   materials — every OTHER branch, when filament.version changed: run
+#               scripts/regenerate-materials.sh and commit the result to
+#               the same-repo branch, or FAIL on fork PRs (contributor must
+#               run 'make materials' locally and push). Replaces the
+#               former regenerate-materials.yml, which had a branch-level
+#               paths filter ('filament.version') doing this triage.
+#   skip      — anything else on non-develop branches (the common case:
+#               ordinary WIP pushes) does nothing.
+#
+# The old regenerate-materials.yml is deleted; its behavior lives in the
+# materials mode of this workflow.
+#
+# Fork PRs (pull_request where head.repo != this repository) run the full
+# regeneration + tests, but skip every pushing step: the PR branch exists
+# only in the contributor's fork, which this workflow must never modify.
+permissions:
+  contents: write
+
+concurrency:
+  group: regenerate-bindings-and-materials-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    name: Triage (select mode)
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+      web_publish: ${{ steps.mode.outputs.web_publish }}
+    steps:
+      - name: Select mode
+        id: mode
+        env:
+          VERIFY: ${{ inputs.verify }}
+          FORCE_FULL: ${{ inputs.force_full }}
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          IS_FORK_PR: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          # Reusable workflows retain the caller's event/ref. A tag release is
+          # therefore a push outside develop, but verification must be full.
+          if [ "$VERIFY" = "true" ]; then
+            echo "mode=full" >> "$GITHUB_OUTPUT"
+            echo "web_publish=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          case "$EVENT" in
+            workflow_dispatch)
+              # Manual run: full regen on develop, materials-only elsewhere
+              # (matches the old split-workflow behavior for dispatches) —
+              # unless force_full was checked, which upgrades any branch to
+              # the full path (bindings + materials + format/analyze + web
+              # build with R2 upload and the web.version bump) so maintainers
+              # can regenerate-and-publish engine variants from a feature
+              # branch without merging first.
+              if [ "$FORCE_FULL" = "true" ] || [ "$REF_NAME" = "develop" ]; then
+                mode=full
+              else
+                mode=materials
+              fi ;;
+            pull_request)
+              if [ "$PR_BASE" = "develop" ]; then
+                mode=full
+              elif [ "$IS_FORK_PR" = "true" ]; then
+                mode=materials-fork
+              else
+                mode=materials
+              fi ;;
+            push)
+              if [ "$REF_NAME" = "develop" ]; then mode=full; else mode=materials; fi ;;
+            *)
+              mode=skip ;;
+          esac
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          # web_publish gates the R2 upload + web.version commit steps: true
+          # on develop/tag pushes (the original gate) and on a forced-full
+          # dispatch (this workflow's own GITHUB_TOKEN push of the web.version
+          # commit never re-fires workflows, so no loop risk).
+          if [ "$mode" = "full" ] && { [ "$EVENT" = "push" ] || [ "$EVENT" = "workflow_dispatch" ]; }; then
+            echo "web_publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "web_publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  regenerate-bindings-and-materials:
+    name: Regenerate bindings and materials
+    # Full path: develop pushes, PRs to develop, tag verify gate, dispatch
+    # on develop. Everything else is handled by the materials-only job.
+    needs: [triage]
+    if: needs.triage.outputs.mode == 'full'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Test web publication failure handling
+        run: python3 -m unittest discover -s scripts -p 'test_web_publication.py' -v
+
+      # A fork PR's head branch exists only in the contributor's fork, so no
+      # step below may git push (or fetch that branch from origin).
+      - name: Detect fork PR
+        id: fork
+        run: |
+          if [ "${{ !inputs.verify && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}" = "true" ]; then
+            echo "is-fork-pr=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is-fork-pr=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check public Filament version
+        run: python3 scripts/generate-filament-version.py --check
+
+      # Compare the generator-owned C and Dart files. Bindings are regenerated
+      # below; native assertions and Dart tests check their mappings.
+      - name: Check TBackend enum drift vs Filament
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_generate_tbackend.py' -v
+          make tbackend-check
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('thermion_dart/pubspec.lock', 'thermion_dart/pubspec.yaml') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      - name: Check for source changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          base: ${{ (github.event_name == 'pull_request' && github.event.action == 'synchronize') && github.event.before || '' }}
+          filters: |
+            native-changed:
+              - 'thermion_dart/native/**'
+              - 'filament.version'
+            materials-changed:
+              - 'materials/**'
+              - 'examples/assets/*.mat'
+              # A Filament version bump can change the material package
+              # format (MaterialDefinition panics on version mismatch), so
+              # the materials must be recompiled with the new matc even when
+              # no .mat source changed (ticket the-33h6).
+              - 'filament.version'
+
+      - name: Setup CMake
+        if: steps.changes.outputs.native-changed == 'true'
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.25.0'
+
+      # Web bindings need Emscripten headers even when native sources did not change.
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '6.0.4'
+          actions-cache-folder: 'emsdk-cache'
+
+      # Match generate-swift-bindings.yml: a floating Dart SDK can format the
+      # same generated Swift file differently and make release gates disagree.
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+
+      - name: Cache Filament build tools
+        if: steps.changes.outputs.materials-changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/thermion/filament-tools
+          key: filament-tools-${{ runner.os }}-${{ hashFiles('filament.version') }}
+
+      - name: Compile materials
+        if: steps.changes.outputs.materials-changed == 'true'
+        run: scripts/regenerate-materials.sh
+
+      - name: Generate bindings
+        run: |
+          # ffigen_js invokes libclang directly, so pass the sysroot used by emcc.
+          emscripten_sysroot="$(emcc --cflags | tr ' ' '\n' | sed -n 's/^--sysroot=//p')"
+          test -f "$emscripten_sysroot/include/emscripten.h"
+          make dart-bindings FFIGEN_JS_COMPILER_OPTS="--sysroot=$emscripten_sysroot -I$PWD/thermion_dart/native/include"
+
+      - name: Resolve Flutter formatter configuration
+        working-directory: thermion_flutter/thermion_flutter
+        run: flutter pub get
+
+      # Previously format.yml. Folded in here so only this workflow pushes to
+      # the branch (no concurrent-push race with the bindings commit). Runs
+      # after `make dart-bindings` so generated bindings are also tidied.
+      - name: Format
+        run: |
+          dart format \
+            thermion_dart/lib \
+            thermion_dart/bin \
+            thermion_dart/hook \
+            thermion_dart/tool \
+            thermion_dart/test \
+            thermion_flutter/thermion_flutter/lib
+
+      # Previously lint.yml. Run AFTER `make dart-bindings` so it analyzes the
+      # freshly-regenerated *.g.dart instead of the stale checked-in copy
+      # (which is what made lint.yml fail whenever a header change outpaced a
+      # regeneration). Always runs; --no-fatal-warnings gates on errors only.
+      - name: Analyze (thermion_dart)
+        working-directory: thermion_dart
+        run: |
+          dart pub get
+          dart analyze --no-fatal-warnings
+
+      - name: Check generated web bindings compile
+        working-directory: thermion_dart
+        run: dart compile js -o "$RUNNER_TEMP/thermion-web-bindings.js" tool/check_web_bindings.dart
+
+      - name: Ensure generated binding files are tracked
+        run: |
+          git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart
+          git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart
+
+      - name: Ensure generated material files are tracked
+        if: steps.changes.outputs.materials-changed == 'true'
+        run: |
+          git update-index --no-assume-unchanged thermion_dart/native/include/material/*.h || true
+          git update-index --no-assume-unchanged thermion_dart/native/include/material/*.c || true
+          git update-index --no-assume-unchanged thermion_dart/native/include/material/*.S || true
+          git update-index --no-assume-unchanged thermion_dart/native/include/material/*.apple.S || true
+          git update-index --no-assume-unchanged thermion_dart/native/include/material/*.bin || true
+
+      # No longer gated on changed paths: formatting changes (above) must also
+      # trigger a commit when bindings are unchanged and materials were not
+      # regenerated.
+      - name: Check for changes
+        id: git-check
+        run: |
+          git diff --exit-code || echo "changed=true" >> $GITHUB_OUTPUT
+
+      # Release gate (called with verify: true): the tag must already contain
+      # committed bindings. A diff here means bindings are stale — abort the
+      # release rather than shipping or auto-committing.
+      - name: Fail if generated artifacts are stale (verify)
+        if: ${{ inputs.verify && steps.git-check.outputs.changed == 'true' }}
+        run: |
+          echo "::error::Generated bindings/materials differ from the committed tag. Run 'make bindings' / 'make materials', commit on develop, then re-tag."
+          git --no-pager diff --stat
+          exit 1
+
+      - name: Commit and push if changed
+        # Never on the release-verify path (no commits expected); never on a
+        # fork PR (the PR branch belongs to the contributor's fork).
+        if: ${{ !inputs.verify && steps.fork.outputs.is-fork-pr != 'true' && steps.git-check.outputs.changed == 'true' }}
+        env:
+          # Pass via env (not inline) to avoid script injection from PR head refs.
+          PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Commit BEFORE rebasing: earlier steps (ffigen regeneration,
+          # dart format) leave these files modified, and `git pull
+          # --rebase` refuses to run over a dirty tree/index. Committing is
+          # local and always safe; the rebase then replays this commit onto
+          # the remote head. --autostash absorbs any remaining stray dirt
+          # (stashed for the rebase, restored after; the runner is
+          # discarded anyway).
+          git add -f thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart || true
+          git add -f thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart || true
+          git add -f thermion_dart/native/include/material/*.h || true
+          git add -f thermion_dart/native/include/material/*.c || true
+          # Only .h/.c are committed: the .S/.apple.S/.bin resgen outputs are
+          # unused (build hook and web CMakeLists compile .c only) and stay
+          # ignored, so they are never force-added back.
+          git add -f examples/assets/*.filamat || true
+          # formatting fixes (same paths as the Format step)
+          git add thermion_dart/lib thermion_dart/bin thermion_dart/hook thermion_dart/tool thermion_dart/test thermion_flutter/thermion_flutter/lib
+          git diff --cached --quiet ||
+            git commit -m "chore: update generated artifacts + format (CI)
+
+          🤖 Generated with GitHub Actions"
+          git pull --rebase --autostash origin "$PUSH_BRANCH"
+          git push origin "HEAD:$PUSH_BRANCH"
+
+      - name: Cache Filament web binaries
+        if: steps.changes.outputs.native-changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: thermion_dart/native/web/lib/release
+          # -filamat-matp: key rotation for the runtime-materials engine. The
+          # artifact zip must contain libfilamat.a (FILAMENT_BUILD_FILAMAT=ON
+          # in scripts/build_web.sh) and libmatp.a + the filament-matp headers
+          # (scripts/filament-matp-runtime.patch); older caches predate them.
+          # The pin file participates in the key: a pin flip (new content-
+          # addressed artifact) rotates the cache automatically.
+          key: filament-web-${{ hashFiles('filament.version', 'thermion_dart/filament.libs.json') }}-filamat-matp
+
+      - name: Compile web
+        if: steps.changes.outputs.native-changed == 'true'
+        run: make wasm
+
+      # Main-thread engine (commands execute on the calling thread instead of
+      # a render worker) — same invocation web-canvas-thread.yml uses. Kept as
+      # a separate build dir so it can't clobber the default worker build
+      # above (which `make wasm` just produced in build/build).
+      - name: Compile web (main-thread)
+        if: steps.changes.outputs.native-changed == 'true'
+        run: |
+          emcmake cmake -S thermion_dart/native/web \
+            -B thermion_dart/native/web/build-main-thread \
+            -DCMAKE_BUILD_TYPE=Release -DTHERMION_WEB_MAIN_THREAD=ON
+          cmake --build thermion_dart/native/web/build-main-thread --parallel 2
+
+      # Runtime-materials engine (filamat + matp linked; fetched by apps that
+      # set runtime_materials: true). Same separate-build-dir pattern as
+      # main-thread above. Self-heals a stale cache: actions/cache may have
+      # saved lib/release under this key from a pre-filamat/pre-matp artifact
+      # before the filament web zip was rebuilt — when the combined filamat
+      # archive or libmatp.a is missing after `make wasm`, re-download the zip
+      # straight from R2 (cache bypass) and re-extract, then build. (The web
+      # artifact keeps the build-tree name libfilamat_combined.a; native zips
+      # rename it to libfilamat.a.)
+      - name: Compile web (runtime-materials)
+        if: steps.changes.outputs.native-changed == 'true'
+        run: |
+          if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ] || \
+             [ ! -f thermion_dart/native/web/lib/release/libmatp.a ] || \
+             [ ! -f thermion_dart/native/web/lib/release/include/filament-matp/Includes.h ]; then
+            echo "filamat/matp missing from cached artifact; re-fetching from R2..."
+            rm -f thermion_dart/native/web/lib/release/filament-*.zip
+            # Pin-aware URL (thermion_dart/filament.libs.json): hash-suffixed
+            # immutable key when pinned, legacy key otherwise.
+            FILAMENT_WEB_URL="$(python3 scripts/filament-artifact-url.py web release)"
+            FILAMENT_WEB_ZIP="$(basename "$FILAMENT_WEB_URL")"
+            if ! curl -fL -o "thermion_dart/native/web/lib/release/${FILAMENT_WEB_ZIP}" \
+                "$FILAMENT_WEB_URL"; then
+              echo "::error::failed to fetch the Filament web zip required by the runtime-materials engine."
+              exit 1
+            fi
+            cd thermion_dart/native/web/lib/release
+            rm -rf include lib
+            unzip -o "$FILAMENT_WEB_ZIP"
+            cd "$GITHUB_WORKSPACE"
+            if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ] || \
+               [ ! -f thermion_dart/native/web/lib/release/libmatp.a ] || \
+               [ ! -f thermion_dart/native/web/lib/release/include/filament-matp/Includes.h ]; then
+              echo "::error::the Filament web artifact lacks filamat/matp. Rebuild it with build-filament.yml before publishing engines."
+              exit 1
+            fi
+          fi
+          emcmake cmake -S thermion_dart/native/web \
+            -B thermion_dart/native/web/build-runtime-materials \
+            -DCMAKE_BUILD_TYPE=Release -DTHERMION_ENABLE_RUNTIME_MATERIALS=ON
+          cmake --build thermion_dart/native/web/build-runtime-materials --parallel 2
+
+      # Combined main-thread + runtime-materials engine (web_variant:
+      # main_thread AND runtime_materials: true in the consuming app's
+      # pubspec.yaml). Same required filamat/matp checks as the
+      # runtime-materials build above (which also self-healed the cache, so
+      # by this point the archives are either present or definitively
+      # unavailable); separate build dir for the combined CMake options.
+      - name: Compile web (main-thread runtime-materials)
+        if: steps.changes.outputs.native-changed == 'true'
+        run: |
+          if [ ! -f thermion_dart/native/web/lib/release/libfilamat_combined.a ] || \
+             [ ! -f thermion_dart/native/web/lib/release/libmatp.a ] || \
+             [ ! -f thermion_dart/native/web/lib/release/include/filament-matp/Includes.h ]; then
+            echo "::error::filamat/matp unavailable for the main-thread runtime-materials engine."
+            exit 1
+          fi
+          emcmake cmake -S thermion_dart/native/web \
+            -B thermion_dart/native/web/build-main-thread-runtime-materials \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DTHERMION_WEB_MAIN_THREAD=ON \
+            -DTHERMION_ENABLE_RUNTIME_MATERIALS=ON
+          cmake --build thermion_dart/native/web/build-main-thread-runtime-materials --parallel 2
+
+      - name: Test web uploads without visible frames
+        if: steps.changes.outputs.native-changed == 'true'
+        run: |
+          emcmake cmake -S thermion_dart/native/test/web -B "$RUNNER_TEMP/thermion-web-tests" \
+            -DFILAMENT_TEST_LIB_DIR="$GITHUB_WORKSPACE/thermion_dart/native/web/lib/release" \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build "$RUNNER_TEMP/thermion-web-tests" --parallel 2
+          node "$RUNNER_TEMP/thermion-web-tests/web_upload_drain_test.js"
+
+      - name: Package and upload web artifacts to R2
+        id: publish_web
+        # web_publish is set by the triage job: develop/tag pushes (the
+        # original gate) or a force_full dispatch from any branch. The
+        # version may advance only after every engine variant is uploaded.
+        if: ${{ !inputs.verify && steps.changes.outputs.native-changed == 'true' && needs.triage.outputs.web_publish == 'true' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: https://260d4efc65af500536ea376de6452ece.r2.cloudflarestorage.com
+        run: |
+          set -euo pipefail
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          WEB_ROOT="$GITHUB_WORKSPACE/thermion_dart/native/web"
+          variants=("" "-main-thread" "-runtime-materials" "-main-thread-runtime-materials")
+          build_dirs=("build" "build-main-thread" "build-runtime-materials" "build-main-thread-runtime-materials")
+          # Check the complete set before uploading or changing web.version.
+          for build_dir in "${build_dirs[@]}"; do
+            for file in thermion_dart.js thermion_dart.wasm; do
+              test -s "$WEB_ROOT/$build_dir/build/out/$file" || {
+                echo "::error::Missing web engine output: $build_dir/$file"
+                exit 1
+              }
+            done
+          done
+          for i in "${!variants[@]}"; do
+            output_dir="$WEB_ROOT/${build_dirs[$i]}/build/out"
+            artifact="thermion_dart-${SHORT_SHA}-web${variants[$i]}.zip"
+            (
+              cd "$output_dir"
+              zip "$artifact" thermion_dart.js thermion_dart.wasm
+              aws s3 cp "$artifact" "s3://thermion/$artifact" \
+                --endpoint-url "$R2_ENDPOINT" --region auto
+            )
+          done
+          # Publish the pointer only after all four uploads succeeded.
+          echo "$SHORT_SHA" > "$WEB_ROOT/web.version"
+
+      - name: Commit web.version
+        if: ${{ !inputs.verify && steps.publish_web.outcome == 'success' }}
+        env:
+          PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Commit BEFORE rebasing: the R2 upload step has already rewritten
+          # web.version (it is dirty when this step starts), and a rebase
+          # cannot run over a dirty tree. Local commit first, then rebase
+          # onto the remote head; --autostash absorbs any other stray dirt.
+          git add -f thermion_dart/native/web/web.version
+          git diff --cached --quiet || git commit -m "chore: update web.version"
+          git pull --rebase --autostash origin "$PUSH_BRANCH"
+          git push origin "HEAD:$PUSH_BRANCH"
+
+      - name: Upload artifacts
+        if: steps.changes.outputs.native-changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-wasm-${{ github.sha }}
+          path: thermion_dart/native/web/build/build/out/
+
+  # Materials-only path (every branch except develop / PRs to develop):
+  # inherits the behavior of the former regenerate-materials.yml — run the
+  # regeneration script, commit the result to a same-repo branch, or fail
+  # loudly on a fork PR (the contributor runs 'make materials' and pushes).
+  # No bindings, no format, no web build: those never run on WIP branches.
+  regenerate-materials-only:
+    name: Regenerate materials (feature branch)
+    needs: [triage]
+    if: needs.triage.outputs.mode == 'materials'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The branch itself, not the merge ref, so a regeneration commit
+          # lands on the branch.
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
+          fetch-depth: 2
+
+      # Replaces the old workflow-level paths filter: only do work when
+      # filament.version actually changed (vs the previous commit on push,
+      # vs the PR base tip otherwise). Everything below is a no-op otherwise.
+      - name: Did filament.version change?
+        id: version-changed
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            git fetch origin "$PR_BASE" --depth=1
+            if git diff --exit-code "origin/$PR_BASE" HEAD -- filament.version > /dev/null; then
+              echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          else
+            if git diff --exit-code HEAD~1 HEAD -- filament.version > /dev/null; then
+              echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Filament build tools
+        if: steps.version-changed.outputs.changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/thermion/filament-tools
+          key: filament-tools-${{ runner.os }}-${{ hashFiles('filament.version') }}
+
+      - name: Regenerate materials
+        if: steps.version-changed.outputs.changed == 'true'
+        run: scripts/regenerate-materials.sh
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push regenerated materials
+        if: steps.git-check.outputs.changed == 'true'
+        env:
+          PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Commit BEFORE rebasing (a rebase cannot run over a dirty tree;
+          # the material regeneration leaves the outputs modified). Local
+          # commit first, then rebase onto the remote head.
+          git add -A thermion_dart/native/include/material examples/assets
+          git commit -m "chore: regenerate materials for filament.version (CI)
+
+          Regenerated by regenerate-bindings-and-materials.yml (materials
+          mode) so the committed materials always match the Filament
+          version in filament.version.
+
+          🤖 Generated with GitHub Actions"
+          git pull --rebase --autostash origin "$PUSH_BRANCH"
+          git push origin "HEAD:$PUSH_BRANCH"
+
+      # Nothing changed: normal for WIP pushes that didn't touch
+      # filament.version (matc output is deterministic).
+      - name: No changes
+        if: steps.git-check.outputs.changed != 'true'
+        run: echo "Materials already up to date; nothing to commit."
+
+  # Fork PRs cannot be pushed to with GITHUB_TOKEN — mirror the old
+  # regenerate-materials.yml behavior: fail loudly with instructions so
+  # stale materials can never silently ride into develop.
+  regenerate-materials-fork-pr:
+    name: Regenerate materials (fork PR — manual fix required)
+    needs: [triage]
+    if: needs.triage.outputs.mode == 'materials-fork'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      # Same "only on filament.version change" gate as the same-repo job.
+      - name: Did filament.version change?
+        id: version-changed
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          git fetch origin "$PR_BASE" --depth=1
+          if git diff --exit-code "origin/$PR_BASE" HEAD -- filament.version > /dev/null; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Cache Filament build tools
+        if: steps.version-changed.outputs.changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/thermion/filament-tools
+          key: filament-tools-${{ runner.os }}-${{ hashFiles('filament.version') }}
+
+      - name: Regenerate materials
+        if: steps.version-changed.outputs.changed == 'true'
+        run: scripts/regenerate-materials.sh
+
+      - name: Fail if regeneration produced a diff
+        if: steps.version-changed.outputs.changed == 'true'
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::filament.version changed but the committed materials are stale, and this PR comes from a fork so CI cannot push the regeneration. Run 'make materials' locally, commit, and push."
+            git --no-pager diff --stat
+            exit 1
+          fi
+          echo "Materials already up to date."
+
+  # NOTE: this workflow deliberately does NOT run the test suite on PRs
+  # anymore. run-dart-and-flutter-tests-on-pr.yml is the single test runner
+  # (so the pr-approval
+  # environment gate actually gates something); running the suite here as
+  # well duplicated every PR's test matrix and bypassed the approval gate,
+  # since this workflow carries no environment. The release verify path
+  # (publish-pub-dev.yml) runs its own tests directly at the tag SHA.

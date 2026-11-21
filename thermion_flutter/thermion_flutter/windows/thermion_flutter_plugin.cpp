@@ -114,7 +114,14 @@ namespace thermion::tflutter::windows
   static std::condition_variable _blitCv;
   static std::queue<BlitJob> _blitQueue;
   static std::set<int64_t> _retiringTextureIds;
-  static std::thread _blitWorker;
+  // Heap-held, never a namespace-scope std::thread: this DLL's onexit table
+  // destroys file statics at DLL_PROCESS_DETACH. When the process exits via
+  // exit()/ExitProcess while the plugin is still alive (dart:io exit(), any
+  // path that skips window teardown), ExitProcess has already killed the
+  // worker but the std::thread still holds its id, so ~thread() saw
+  // joinable() and called std::terminate -> abort -> 0xC0000409. The pointer
+  // is deliberately leaked at process exit.
+  static std::thread* _blitWorker = nullptr;
   static std::atomic<bool> _blitWorkerStarted{false};
   static std::atomic<bool> _blitWorkerShouldStop{false};
 
@@ -144,10 +151,11 @@ namespace thermion::tflutter::windows
             _retiringTextureIds.end();
       }
       if (!retiring) {
-        if (job.context) {
-          job.context->Blit(job.handle);
-        }
-        if (job.registrar) {
+        // Publish only a completed copy. When Blit skips the frame or its
+        // fence wait times out, the shared texture may hold a partial copy,
+        // so Flutter keeps showing the previous frame instead.
+        const bool copied = job.context && job.context->Blit(job.handle);
+        if (copied && job.registrar) {
           job.registrar->MarkTextureFrameAvailable(job.flutterTextureId);
         }
       }
@@ -157,7 +165,7 @@ namespace thermion::tflutter::windows
   static void EnsureBlitWorkerStarted() {
     bool expected = false;
     if (_blitWorkerStarted.compare_exchange_strong(expected, true)) {
-      _blitWorker = std::thread(BlitWorkerLoop);
+      _blitWorker = new std::thread(BlitWorkerLoop);
     }
   }
 
@@ -206,8 +214,8 @@ namespace thermion::tflutter::windows
     if (_blitWorkerStarted.load()) {
       _blitWorkerShouldStop.store(true);
       _blitCv.notify_all();
-      if (_blitWorker.joinable()) {
-        _blitWorker.join();
+      if (_blitWorker && _blitWorker->joinable()) {
+        _blitWorker->join();
       }
     }
   }
@@ -466,21 +474,29 @@ namespace thermion::tflutter::windows
           auto& swap = swapIt->second;
           swap.frameCount++;
 
+          bool copied = false;
           if (swap.frameCount < 2) {
             // Frame 1: Filament is rendering into the new RT.
             // Blit OLD handle — old RT VkImage is still valid because
             // Dart deferred its Filament texture cleanup.
             // Flutter keeps showing last valid frame via old D3D texture.
-            _context->Blit(swap.oldD3DHandle);
+            copied = _context->Blit(swap.oldD3DHandle);
           } else {
             // Frame 2+: new RT has valid content from previous render.
             // Blit new handle, swap descriptor, retire old textures.
+            // Only swap and retire once a completed copy lands in newD3DHandle;
+            // if Blit times out or fails, keep oldD3DHandle live and retry next frame.
             _context->ClearPendingFirstBlit(swap.newD3DHandle);
-            _context->Blit(swap.newD3DHandle);
+            copied = _context->Blit(swap.newD3DHandle);
+            if (copied) {
+              (*it)->SwapDescriptor(swap.newD3DHandle, swap.width, swap.height);
+              _context->DestroyRenderingSurface(swap.oldD3DHandle);
+              _pendingSwaps.erase(swapIt);
+            }
+          }
 
-            (*it)->SwapDescriptor(swap.newD3DHandle, swap.width, swap.height);
-            _context->DestroyRenderingSurface(swap.oldD3DHandle);
-            _pendingSwaps.erase(swapIt);
+          if (copied) {
+            _textureRegistrar->MarkTextureFrameAvailable(*flutterTextureId);
           }
         } else {
           // Enqueue the Blit + MarkTextureFrameAvailable on the
@@ -502,8 +518,6 @@ namespace thermion::tflutter::windows
           result->Success(flutter::EncodableValue((int64_t) nullptr));
           return;
         }
-
-        _textureRegistrar->MarkTextureFrameAvailable(*flutterTextureId);
       } else {
         std::cout << "No context" << std::endl;
       }

@@ -100,9 +100,23 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
-# Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
+# Keep host tools separate from the runtime archives built below.
+git apply "$SCRIPT_DIR/filament-no-exceptions.patch" || exit 1
+
+# Bundle smol-v into libfilamat_combined.a (omitted from upstream's
+# FILAMAT_DEPS despite the filamat target linking it) — without it every
+# consumer of the combined archive hits undefined _ZN5smolv... symbols.
+# See the same comment in build_web.sh.
+git apply "$SCRIPT_DIR/filament-smolv-combined.patch" || exit 1
+
+# Build matp (the material parser behind matc) into the runtime archives and
+# install its include-resolution headers, for runtime material compilation on
+# iOS. matp is exception-free, matching iOS's -fno-exceptions toolchain.
+git apply "$SCRIPT_DIR/filament-matp-runtime.patch" || exit 1
+
+# Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
-sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
+sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
 
 # Suppress warnings in the vendored tinyexr that trip its own -Weverything -Werror
 # (new in Filament v1.75.0; CLANG_COMPILE_FLAGS are per-source COMPILE_FLAGS,
@@ -116,19 +130,19 @@ else
   sed -i.bak 's|-Wno-unused-member-function|-Wno-unused-member-function -Wno-implicit-int-conversion -Wno-implicit-int-float-conversion -Wno-old-style-cast -Wno-sign-conversion -Wno-unused-parameter -Wno-unused-function -Wno-poison-system-directories|' "$TINYEXR_CMAKE"
 fi
 
-# Run release build (-s adds iOS simulator support, -l builds universal libraries)
+# Filament creates device-only XCFrameworks without -s or -l. Simulator
+# libraries are built and packaged separately by build_ios_simulator.sh.
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Building Filament for iOS (release)..."
-  ./build.sh -s -l -i -f -p ios release || {
+  ./build.sh -E -i -f -p ios release || {
     echo "Error: Filament release build failed"
     exit 1
   }
 fi
 
-# Run debug build (-s adds iOS simulator support, -l builds universal libraries)
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Building Filament for iOS (debug)..."
-  ./build.sh -s -l -i -f -p ios debug || {
+  ./build.sh -E -i -f -p ios debug || {
     echo "Error: Filament debug build failed"
     exit 1
   }
@@ -143,56 +157,10 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
-  # Filament v1.74.0 builds iOS XCFramework bundles (lib<name>.xcframework/)
-  # and removes the intermediate flat per-arch .a directories. Thermion links
-  # flat -l<name> .a archives, so extract the per-slice .a from each xcframework
-  # and lipo the slices into a single universal (device + simulator) .a in the
-  # target directory.
-  _LIB_DIR="out/ios-release/filament/lib"
-  for _xcf in "$_LIB_DIR"/*.xcframework; do
-    [ -d "$_xcf" ] || continue
-    _name=$(basename "$_xcf" .xcframework)
-    _slices=()
-    while IFS= read -r -d '' _a; do _slices+=("$_a"); done < <(find "$_xcf" -name '*.a' -print0)
-    [ "${#_slices[@]}" -gt 0 ] || continue
-    if [ "${#_slices[@]}" -eq 1 ]; then
-      cp "${_slices[0]}" "$TARGET_RELEASE_DIR/$_name.a"
-    else
-      # Slices can overlap in architecture — v1.75.0's simulator slices are
-      # fat (arm64 + x86_64) while the device slices are arm64-only, so
-      # lipo -create of all slices fails ("same architectures and can't be
-      # in the same fat output file"). Deduplicate by extracting a thin
-      # slice per unique architecture, then combine those.
-      _have=()
-      _inputs=()
-      _tmpdir=$(mktemp -d)
-      for _a in "${_slices[@]}"; do
-        for _arch in $(lipo -archs "$_a"); do
-          case " ${_have[*]} " in
-            *" $_arch "*) continue ;;
-          esac
-          _have+=("$_arch")
-          if [ "$(lipo -archs "$_a" | wc -w)" -eq 1 ]; then
-            _inputs+=("$_a")
-          else
-            lipo -extract "$_arch" "$_a" -output "$_tmpdir/$_name-$_arch.a" || {
-              echo "Error: failed to extract $_arch from $_a"
-              rm -rf "$_tmpdir"
-              exit 1
-            }
-            _inputs+=("$_tmpdir/$_name-$_arch.a")
-          fi
-        done
-      done
-      lipo -create "${_inputs[@]}" -output "$TARGET_RELEASE_DIR/$_name.a" || {
-        echo "Error: failed to lipo universal library $_name"
-        rm -rf "$_tmpdir"
-        exit 1
-      }
-      rm -rf "$_tmpdir"
-    fi
-  done
-  echo "Extracted universal libraries from XCFrameworks into $TARGET_RELEASE_DIR"
+  # Select the device library by XCFramework metadata. Simulator libraries
+  # are packaged separately by build_ios_simulator.sh.
+  python3 "$SCRIPT_DIR/ios_device_libraries.py" extract \
+    "out/ios-release/filament/lib" "$TARGET_RELEASE_DIR" || exit 1
 
   # Build libz for release
   echo "Building libz (release)..."
@@ -202,31 +170,18 @@ if [ "$BUILD_RELEASE" = true ]; then
   cmake -G Ninja -DIOS=1 -DIPHONEOS_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_BUILD_TYPE=Release "$FILAMENT_BASE_DIR/third_party/libz"
   ninja
 
-  # Build imageio for release
-  echo "Building imageio (release)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64-iphoneos/third_party"
-  mkdir -p imageio && cd imageio
-  cmake -G Ninja \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_STANDARD=17 \
-          -DPLATFORM_NAME="iphonesimulator" \
-          -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
-          -DZ_HAVE_UNISTD_H=1 \
-          -DUSE_ZLIB=1 \
-          -DIMPORT_EXECUTABLES_DIR=out \
-          -DCMAKE_CXX_FLAGS="-I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
-          "$FILAMENT_BASE_DIR/libs/imageio"
-  ninja
-
   # Build tinyexr for release
   echo "Building tinyexr (release)..."
   cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64-iphoneos/third_party"
   mkdir -p tinyexr && cd tinyexr
   cmake -G Ninja \
+          -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos \
+          -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 \
+          -DTINYEXR_BUILD_SAMPLE=OFF \
           -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
           -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out \
-          -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
+          -DCMAKE_CXX_FLAGS="-fno-exceptions -Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
           "$FILAMENT_BASE_DIR/third_party/tinyexr"
   ninja
 
@@ -234,10 +189,6 @@ if [ "$BUILD_RELEASE" = true ]; then
   echo "Copying release third-party libraries..."
   cd "$FILAMENT_BASE_DIR"
   cp out/cmake-ios-release-arm64-iphoneos/third_party/libz/*.a "$TARGET_RELEASE_DIR/" || echo "Warning: No libz libraries found"
-  cp out/cmake-ios-release-arm64-iphoneos/third_party/imageio/*.a "$TARGET_RELEASE_DIR/" || {
-    echo "Error: Failed to copy imageio libraries"
-    exit 1
-  }
   cp out/cmake-ios-release-arm64-iphoneos/third_party/tinyexr/*.a "$TARGET_RELEASE_DIR/" || {
     echo "Error: Failed to copy tinyexr libraries"
     exit 1
@@ -250,50 +201,10 @@ if [ "$BUILD_DEBUG" = true ]; then
     exit 1
   }
 
-  # Extract universal libs from XCFrameworks (see release block above).
-  _LIB_DIR="out/ios-debug/filament/lib"
-  for _xcf in "$_LIB_DIR"/*.xcframework; do
-    [ -d "$_xcf" ] || continue
-    _name=$(basename "$_xcf" .xcframework)
-    _slices=()
-    while IFS= read -r -d '' _a; do _slices+=("$_a"); done < <(find "$_xcf" -name '*.a' -print0)
-    [ "${#_slices[@]}" -gt 0 ] || continue
-    if [ "${#_slices[@]}" -eq 1 ]; then
-      cp "${_slices[0]}" "$TARGET_DEBUG_DIR/$_name.a"
-    else
-      # See the release block above: slices can overlap in architecture
-      # (v1.75.0's simulator slices are fat arm64+x86_64), so deduplicate by
-      # extracting a thin slice per unique architecture before combining.
-      _have=()
-      _inputs=()
-      _tmpdir=$(mktemp -d)
-      for _a in "${_slices[@]}"; do
-        for _arch in $(lipo -archs "$_a"); do
-          case " ${_have[*]} " in
-            *" $_arch "*) continue ;;
-          esac
-          _have+=("$_arch")
-          if [ "$(lipo -archs "$_a" | wc -w)" -eq 1 ]; then
-            _inputs+=("$_a")
-          else
-            lipo -extract "$_arch" "$_a" -output "$_tmpdir/$_name-$_arch.a" || {
-              echo "Error: failed to extract $_arch from $_a"
-              rm -rf "$_tmpdir"
-              exit 1
-            }
-            _inputs+=("$_tmpdir/$_name-$_arch.a")
-          fi
-        done
-      done
-      lipo -create "${_inputs[@]}" -output "$TARGET_DEBUG_DIR/$_name.a" || {
-        echo "Error: failed to lipo universal library $_name"
-        rm -rf "$_tmpdir"
-        exit 1
-      }
-      rm -rf "$_tmpdir"
-    fi
-  done
-  echo "Extracted universal libraries from XCFrameworks into $TARGET_DEBUG_DIR"
+  # Select the device library by XCFramework metadata. Simulator libraries
+  # are packaged separately by build_ios_simulator.sh.
+  python3 "$SCRIPT_DIR/ios_device_libraries.py" extract \
+    "out/ios-debug/filament/lib" "$TARGET_DEBUG_DIR" || exit 1
 
   # Build libz for debug
   echo "Building libz (debug)..."
@@ -303,31 +214,18 @@ if [ "$BUILD_DEBUG" = true ]; then
   cmake -G Ninja -DIOS=1 -DIPHONEOS_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_BUILD_TYPE=Debug "$FILAMENT_BASE_DIR/third_party/libz"
   ninja
 
-  # Build imageio for debug
-  echo "Building imageio (debug)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64-iphoneos/third_party"
-  mkdir -p imageio && cd imageio
-  cmake -G Ninja \
-          -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_CXX_STANDARD=17 \
-          -DPLATFORM_NAME="iphonesimulator" \
-          -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
-          -DZ_HAVE_UNISTD_H=1 \
-          -DUSE_ZLIB=1 \
-          -DIMPORT_EXECUTABLES_DIR=out \
-          -DCMAKE_CXX_FLAGS="-I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
-          "$FILAMENT_BASE_DIR/libs/imageio"
-  ninja
-
   # Build tinyexr for debug
   echo "Building tinyexr (debug)..."
   cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64-iphoneos/third_party"
   mkdir -p tinyexr && cd tinyexr
   cmake -G Ninja \
+          -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos \
+          -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 \
           -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 \
+          -DTINYEXR_BUILD_SAMPLE=OFF \
           -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
           -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out \
-          -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
+          -DCMAKE_CXX_FLAGS="-fno-exceptions -Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
           "$FILAMENT_BASE_DIR/third_party/tinyexr"
   ninja
 
@@ -335,10 +233,6 @@ if [ "$BUILD_DEBUG" = true ]; then
   echo "Copying debug third-party libraries..."
   cd "$FILAMENT_BASE_DIR"
   cp out/cmake-ios-debug-arm64-iphoneos/third_party/libz/*.a "$TARGET_DEBUG_DIR/" || echo "Warning: No libz libraries found"
-  cp out/cmake-ios-debug-arm64-iphoneos/third_party/imageio/*.a "$TARGET_DEBUG_DIR/" || {
-    echo "Error: Failed to copy imageio libraries"
-    exit 1
-  }
   cp out/cmake-ios-debug-arm64-iphoneos/third_party/tinyexr/*.a "$TARGET_DEBUG_DIR/" || {
     echo "Error: Failed to copy tinyexr libraries"
     exit 1
@@ -357,12 +251,6 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
-  # Copy imageio headers
-  mkdir -p "$TARGET_RELEASE_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/" || {
-    echo "Error: Failed to copy imageio headers to target"
-    exit 1
-  }
 
   # Copy stb_image.h
   mkdir -p "$TARGET_RELEASE_DIR/include/third_party/stb"
@@ -395,12 +283,6 @@ if [ "$BUILD_DEBUG" = true ]; then
     exit 1
   }
 
-  # Copy imageio headers
-  mkdir -p "$TARGET_DEBUG_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_DEBUG_DIR/include/" || {
-    echo "Error: Failed to copy imageio headers to target"
-    exit 1
-  }
 
   # Copy stb_image.h
   mkdir -p "$TARGET_DEBUG_DIR/include/third_party/stb"
@@ -431,6 +313,8 @@ fi
 
 # Create zip files
 if [ "$BUILD_RELEASE" = true ]; then
+  # Validate the final contents, including separately copied third-party libs.
+  python3 "$SCRIPT_DIR/ios_device_libraries.py" validate "$TARGET_RELEASE_DIR" || exit 1
   echo "Creating release zip..."
   cd "$TARGET_RELEASE_DIR"
   zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-ios-release.zip" . || {
@@ -440,6 +324,8 @@ if [ "$BUILD_RELEASE" = true ]; then
 fi
 
 if [ "$BUILD_DEBUG" = true ]; then
+  # Validate the final contents, including separately copied third-party libs.
+  python3 "$SCRIPT_DIR/ios_device_libraries.py" validate "$TARGET_DEBUG_DIR" || exit 1
   echo "Creating debug zip..."
   cd "$TARGET_DEBUG_DIR"
   zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-ios-debug.zip" . || {

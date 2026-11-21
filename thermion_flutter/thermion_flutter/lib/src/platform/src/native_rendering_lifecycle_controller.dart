@@ -120,11 +120,11 @@ class NativeRenderingLifecycleController with WidgetsBindingObserver {
     );
   }
 
-  Future<void> _renderFrame() async {
+  Future<void> _renderFrame(int frameTimeNanos) async {
     final app = FilamentApp.instance;
     if (app == null) return;
 
-    await app.render();
+    await app.render(frameTimeInNanos: frameTimeNanos);
     await _onFrameRendered();
   }
 

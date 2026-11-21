@@ -39,6 +39,21 @@ void main() async {
     }, bg: kRed);
   });
 
+  test('geometry instance uses the supplied material handle', () async {
+    final app = FilamentApp.instance!;
+    final material = await app.createUnlitMaterialInstance();
+    final asset = await app.createGeometry(GeometryUtils.cube());
+    try {
+      final originalMaterial = await asset.getMaterialInstanceAt();
+      final instance = await asset.createInstance(materialInstances: [material]);
+      expect((await instance.getMaterialInstanceAt()).getNativeHandle(), material.getNativeHandle());
+      expect((await asset.getMaterialInstanceAt()).getNativeHandle(), originalMaterial.getNativeHandle());
+    } finally {
+      await app.destroyAsset(asset);
+      await material.destroy();
+    }
+  });
+
   test("loadGltf throws an Exception when initialInstances is 0", () async {
     await testHelper.withViewer((viewer) async {
       await expectLater(
@@ -117,6 +132,65 @@ void main() async {
 
       var geometry = await viewer.createGeometry(GeometryUtils.cube());
       await expectLater(geometry.releaseSourceData(), throwsA(isA<StateError>()));
+    });
+  });
+
+  test('instance creation completes before a pending source-data release', () async {
+    await testHelper.withViewer((viewer) async {
+      final asset = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", addToScene: false);
+      final creation = asset.createInstance();
+      final release = asset.releaseSourceData();
+      final enumeration = asset.getInstances();
+
+      await Future.wait([creation, release, enumeration]).timeout(const Duration(seconds: 10));
+      final instance = await creation;
+      expect(await enumeration, hasLength(2));
+      expect(await enumeration, contains(same(instance)));
+      expect(instance.isDestroyed, isFalse);
+      expect(await instance.getChildEntities(), isNotEmpty);
+
+      await viewer.destroyAsset(asset).timeout(const Duration(seconds: 10));
+      expect(asset.isDestroyed, isTrue);
+      expect(instance.isDestroyed, isTrue);
+    });
+  });
+
+  test('pending source-data release rejects later creation without blocking cleanup', () async {
+    await testHelper.withViewer((viewer) async {
+      final asset = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", addToScene: false);
+      final release = asset.releaseSourceData();
+      final rejectedCreation = expectLater(
+        asset.createInstance(),
+        throwsA(isA<Exception>().having((error) => error.toString(), 'message', contains('source data'))),
+      );
+      final enumeration = asset.getInstances();
+
+      await Future.wait([release, rejectedCreation, enumeration]).timeout(const Duration(seconds: 10));
+      final instances = await enumeration;
+      expect(instances, hasLength(1));
+      expect(instances.single.isDestroyed, isFalse);
+
+      await viewer.destroyAsset(asset).timeout(const Duration(seconds: 10));
+      expect(asset.isDestroyed, isTrue);
+      expect(instances.single.isDestroyed, isTrue);
+    });
+  });
+
+  test('concurrent source-data releases reject the second call without blocking cleanup', () async {
+    await testHelper.withViewer((viewer) async {
+      final asset = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", addToScene: false);
+      final release = asset.releaseSourceData();
+      final rejectedRelease = expectLater(asset.releaseSourceData(), throwsStateError);
+      final enumeration = asset.getInstances();
+
+      await Future.wait([release, rejectedRelease, enumeration]).timeout(const Duration(seconds: 10));
+      final instances = await enumeration;
+      expect(instances, hasLength(1));
+      expect(instances.single.isDestroyed, isFalse);
+
+      await viewer.destroyAsset(asset).timeout(const Duration(seconds: 10));
+      expect(asset.isDestroyed, isTrue);
+      expect(instances.single.isDestroyed, isTrue);
     });
   });
 

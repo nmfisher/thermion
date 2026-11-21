@@ -1,6 +1,7 @@
 #pragma once
 
 #include "APIExport.h"
+#include "TBackend.h"
 #include "APIBoundaryTypes.h"
 #include "TMaterialInstance.h"
 #include "TTexture.h"
@@ -9,15 +10,6 @@
 extern "C"
 {
 #endif
-
-enum TBackend {
-    BACKEND_DEFAULT = 0,  //!< Automatically selects an appropriate driver for the platform.
-    BACKEND_OPENGL = 1,   //!< Selects the OpenGL/ES driver (default on Android)
-    BACKEND_VULKAN = 2,   //!< Selects the Vulkan driver if the platform supports it (default on Linux/Windows)
-    BACKEND_METAL = 3,    //!< Selects the Metal driver if the platform supports it (default on MacOS/iOS).
-    BACKEND_NOOP = 4,     //!< Selects the no-op driver for testing purposes.
-};
-typedef enum TBackend TBackend;
 
 EMSCRIPTEN_KEEPALIVE TEngine *Engine_create(
     TBackend backend,
@@ -57,6 +49,8 @@ EMSCRIPTEN_KEEPALIVE void Engine_destroyFence(TEngine *tEngine, TFence *tFence);
 EMSCRIPTEN_KEEPALIVE void Engine_flushAndWait(TEngine *tEngine);
 EMSCRIPTEN_KEEPALIVE void Engine_execute(TEngine *tEngine);
     
+/// Returns null for an invalid chunk layout or incompatible material version.
+/// Matching versions do not guarantee valid payloads or backend compatibility.
 EMSCRIPTEN_KEEPALIVE TMaterial *Engine_buildMaterial(TEngine *tEngine, const uint8_t* materialData, size_t length);
 EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterial(TEngine *tEngine, TMaterial *tMaterial);
 EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstance(TEngine *tEngine, TMaterialInstance *tMaterialInstance);
@@ -87,4 +81,3 @@ EMSCRIPTEN_KEEPALIVE bool DebugRegistry_getProperty_float(TDebugRegistry *tDebug
 #ifdef __cplusplus
 }
 #endif
-

@@ -75,6 +75,13 @@ workflows.
 
    Pre-release versions are fine on pub.dev (e.g. `0.5.0-pre`, `0.7.0-pre`).
 
+   The version is displayed in two places, both derived from
+   `thermion_dart/pubspec.yaml` at build time (never hardcoded): the docs-site
+   header badge (`docs/src/components/SiteTitle.astro`) and the web gallery's
+   bottom-right badge (`examples/dart/web_gallery/web/versions.dart`, baked in
+   via `-DTHERMION_VERSION` during the `deploy.yml` WASM compile). Nothing else
+   needs updating when bumping.
+
 2. **Add a changelog entry** — prepend a `## <version>` section to **both**:
    - `thermion_dart/CHANGELOG.md`
    - `thermion_flutter/thermion_flutter/CHANGELOG.md`
@@ -138,6 +145,18 @@ The tag push then fires the `Publish to pub.dev` workflow
 The same tag push fires **`Deploy site`** (`.github/workflows/deploy.yml`),
 which builds the docs site + WASM gallery and deploys them to Cloudflare Pages
 (thermion.dev).
+
+The Create Release watcher retries publish failures caused by a hosted runner
+never acquiring a job. It requires the explicit runner-acquisition error,
+no assigned runner, and no executed steps in every failed job. Test failures,
+manual cancellations, and unrelated infrastructure errors still fail immediately.
+Only failed jobs and their dependents are rerun, on the original release ref;
+the pub.dev approval remains required. The limit is **five total attempts**,
+including manual reruns, with **2, 5, 10, and 20 minute** backoffs. The watcher
+rechecks the run after each delay so it leaves a concurrent manual retry alone.
+This recovery runs inside Create Release; a standalone publish/tag push does
+not start a separate retry service. Its normal two-hour polling budget excludes
+backoff delays (up to 37 extra minutes).
 
 If a tag is pushed for a version that is already fully published, `validate`
 short-circuits with "nothing to do", so re-running a release is safe and

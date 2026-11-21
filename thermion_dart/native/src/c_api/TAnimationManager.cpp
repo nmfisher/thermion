@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
 #include "Log.hpp"
 
 #include <utils/Entity.h>
@@ -13,22 +14,26 @@ extern "C"
 #include "c_api/TAnimationManager.h"
 
     EMSCRIPTEN_KEEPALIVE TAnimationManager *AnimationManager_create(TEngine *tEngine) {
+        THERMION_ENGINE_API_GUARD;
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
         auto animationManager = new AnimationManager(engine);
         return reinterpret_cast<TAnimationManager *>(animationManager);
     }
 
     EMSCRIPTEN_KEEPALIVE void AnimationManager_destroy(TAnimationManager *tAnimationManager) {
+        THERMION_ENGINE_API_GUARD;
         delete reinterpret_cast<AnimationManager *>(tAnimationManager);
     }
 
     EMSCRIPTEN_KEEPALIVE void AnimationManager_update(TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos) {
+        THERMION_ENGINE_API_GUARD;
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         animationManager->update(frameTimeInNanos);
     }
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_addGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
     {
+        THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
             return false;
@@ -50,6 +55,7 @@ extern "C"
     }
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_removeGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
     {
+        THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
@@ -73,6 +79,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_addBoneAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
     {
+        THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
   
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
@@ -96,6 +103,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_removeBoneAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
     {
+        THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
             return false;
@@ -122,12 +130,14 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void AnimationManager_addMorphAnimationComponent(TAnimationManager *tAnimationManager, EntityId entity)
     {
+        THERMION_ENGINE_API_GUARD;
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         animationManager->addMorphAnimationComponent(utils::Entity::import(entity));
     }
 
     EMSCRIPTEN_KEEPALIVE void AnimationManager_removeMorphAnimationComponent(TAnimationManager *tAnimationManager, EntityId entity)
     {
+        THERMION_ENGINE_API_GUARD;
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         animationManager->removeMorphAnimationComponent(utils::Entity::import(entity));
     }
@@ -141,6 +151,7 @@ extern "C"
         int numFrames,
         float frameLengthInMs)
     {
+        THERMION_ENGINE_API_GUARD;
         auto entity = utils::Entity::import(entityId);
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto result = animationManager->setMorphAnimationBuffer(entity, morphData, morphIndices, numMorphTargets, numFrames, frameLengthInMs);
@@ -153,6 +164,7 @@ extern "C"
         const float *const morphData,
         int numWeights)
     {
+        THERMION_ENGINE_API_GUARD;
         auto entity = utils::Entity::import(entityId);
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         animationManager->setMorphTargetWeights(entity, morphData, numWeights);
@@ -161,6 +173,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_clearMorphAnimation(TAnimationManager *tAnimationManager, EntityId entityId)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto entity = utils::Entity::import(entityId);
         animationManager->clearMorphAnimationBuffer(entity);
@@ -169,6 +182,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPose(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         if (sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
@@ -203,6 +217,7 @@ extern "C"
         float maxDelta,
         bool loop)
     {
+        THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
             return false;
@@ -230,6 +245,7 @@ extern "C"
         float *const out,
         int numBones)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto asset = reinterpret_cast<SceneAsset *>(sceneAsset);
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf && asset->isInstance())
@@ -263,6 +279,7 @@ extern "C"
         int boneIndex,
         float *const out)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto asset = reinterpret_cast<SceneAsset *>(sceneAsset);
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf && asset->isInstance())
@@ -292,6 +309,7 @@ extern "C"
         float startOffset,
         float speed)
     {
+        THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
 
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
@@ -318,6 +336,7 @@ extern "C"
         TSceneAsset *tSceneAsset,
         int index)
     {
+        THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
             return false;
@@ -342,6 +361,7 @@ extern "C"
         int animationIndex,
         float timeInSeconds)
     {
+        THERMION_ENGINE_API_GUARD;
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         if (sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
@@ -368,6 +388,7 @@ extern "C"
         TSceneAsset *tSceneAsset,
         int animationIndex)
     {
+        THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
@@ -391,6 +412,7 @@ extern "C"
         TAnimationManager *tAnimationManager,
         TSceneAsset *tSceneAsset)
     {
+    THERMION_ENGINE_API_GUARD;
 
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
@@ -418,6 +440,7 @@ extern "C"
         char *const outPtr,
         int index)
     {
+        THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
             strcpy(outPtr, "FILAMENT_ERROR_NOT_FOUND");
@@ -439,6 +462,7 @@ extern "C"
         TAnimationManager *tAnimationManager,
         TSceneAsset *sceneAsset)
     {
+        THERMION_ENGINE_API_GUARD;
         auto instance = ((GltfSceneAssetInstance *)sceneAsset);
         ((AnimationManager *)tAnimationManager)->updateBoneMatrices(instance);
         return true;
@@ -449,6 +473,7 @@ extern "C"
         TSceneAsset *tSceneAsset,
         EntityId childEntity)
     {
+        THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
@@ -477,6 +502,7 @@ extern "C"
         char *const outPtr,
         int index)
     {
+        THERMION_ENGINE_API_GUARD;
         auto asset = ((GltfSceneAsset *)sceneAsset);
         auto names = ((AnimationManager *)tAnimationManager)->getMorphTargetNames(asset, childEntity);
         std::string name = names[index];

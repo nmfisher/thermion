@@ -1,4 +1,3 @@
-import 'package:thermion_dart/src/filament/src/implementation/highlight_overlay_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -376,7 +375,21 @@ abstract class View<T> extends NativeHandle<T> {
   Future<Viewport> getViewport();
   Future setViewport(int width, int height);
   Future<RenderTarget?> getRenderTarget();
+
+  /// Binds a render target directly to this Filament view.
+  ///
+  /// Presentation systems that can insert additional render passes should use
+  /// [setPresentationRenderTarget] for the platform-owned output target.
   Future setRenderTarget(covariant RenderTarget? renderTarget);
+
+  /// Sets the platform-owned target that should receive this view's final
+  /// presented image.
+  ///
+  /// Most views render directly into that target. Composite render pipelines
+  /// can override this method and route intermediate passes without changing
+  /// the low-level semantics of [setRenderTarget].
+  Future setPresentationRenderTarget(covariant RenderTarget? renderTarget) => setRenderTarget(renderTarget);
+
   Future setCamera(Camera? camera);
   Future<Camera> getCamera();
   Future setPostProcessing(bool enabled);
@@ -468,10 +481,6 @@ abstract class View<T> extends NativeHandle<T> {
   // Returns true if initialization succeeded, false if already enabled.
   Future setHighlightOverlayEnabled(bool enabled);
 
-  // Returns the highlight manager (or null if [setHighlightOverlayEnabled] was
-  // called with false).
-  HighlightOverlayManager? getHighlightOverlay();
-
   /// Renders a screen-space outline around [entity] with the given color.
   ///
   /// The overlay system must be enabled first via [enableHighlightOverlay].
@@ -479,13 +488,11 @@ abstract class View<T> extends NativeHandle<T> {
   /// The outline width is specified in pixels via [outlineWidth] and remains
   /// constant regardless of camera distance (screen-space expansion).
   ///
-  /// Uses a stencil-based two-pass rendering approach for clean, flicker-free
-  /// outlines.
+  /// Uses a two-pass silhouette and edge-detection rendering approach for clean,
+  /// flicker-free outlines.
   ///
-  /// Throws if the asset (or [geometrySource]) does not provide
-  /// [SceneAssetGeometryCapability.accessibleGeometryBuffers].
-  ///
-  /// The [scale] parameter is deprecated and ignored; use [outlineWidth] instead.
+  /// The [scale] and [geometrySource] parameters are deprecated and ignored;
+  /// use [outlineWidth] instead.
   Future setStencilHighlight(
     ThermionAsset asset, {
     double r = 1.0,
@@ -528,8 +535,16 @@ abstract class View<T> extends NativeHandle<T> {
   /// (or use one of the provided [InputHandler] classes which does this for you under the hood)
   ///
   /// Picking is an asynchronous operation that will usually take 2-3 frames to complete (so ensure you are calling render).
+  /// Destroying this view cancels pending picks. Their result handlers are not called.
   ///
   /// [x] and [y] must be in local logical coordinates (i.e. where 0,0 is at top-left of the viewport).
   ///
   Future pick(int x, int y, void Function(PickResult) resultHandler);
+
+  /// Registers [materialInstance] to temporarily override every non-skybox
+  /// renderable primitive in this view's scene while this view renders,
+  /// restoring original materials immediately afterward.
+  ///
+  /// Pass `null` to clear any registered override.
+  Future setMaterialOverride(MaterialInstance? materialInstance);
 }

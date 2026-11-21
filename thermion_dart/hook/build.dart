@@ -6,7 +6,13 @@ import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
+import '../lib/filament_version.dart';
+import '../lib/src/filament/src/interface/built_in_material.dart';
+import '../lib/src/hooks/built_in_materials.dart';
+import '../lib/src/hooks/filament_artifacts.dart';
 import '../lib/src/hooks/material_backend_resolution.dart';
+import '../lib/src/hooks/material_tools.dart';
+import '../lib/src/hooks/web_artifacts.dart';
 import '../lib/src/logging/log.dart';
 
 void main(List<String> args) async {
@@ -16,9 +22,113 @@ void main(List<String> args) async {
 
     final logger = createBuildLogger(pkgRootFilePath, "build.log");
 
+    // Opt-in compilation of the CONSUMING APP's own .mat files (issue #399).
+    //
+    // Set `material_compilation` under `hooks.user_defines.thermion_dart` in
+    // the app's pubspec.yaml to point thermion at user .mat sources; the
+    // hook then compiles them with the version-matched, WebGPU-capable
+    // matc/resgen pair for the HOST platform (downloaded from R2 into a
+    // per-user cache) into the configured output directory. User materials
+    // are runtime assets loaded from bytes
+    // (FilamentApp.createMaterial(Uint8List)), NOT compiled into the native
+    // library — thermion's own materials stay the committed blobs under
+    // native/include/material/.
+    //
+    // One exception: `link_generated: true` also compiles the emitted .c
+    // files straight into libthermion_dart below (the same mechanism as
+    // thermion's own materials), native builds only.
+    //
+    // A matcId (Filament tag + thermion_dart version + host platform/arch,
+    // plus the downloaded matc binary's sha256, recorded separately) in
+    // <output>/.thermion-materials.json makes repeat builds a no-op and
+    // forces a FULL rebuild whenever the toolchain changes, even if no
+    // .mat changed. Absent define -> nothing happens. Present but broken
+    // (bad paths, no network, matc failure) -> the build fails with an
+    // actionable message; it is never silently skipped.
+    //
+    // Runs before the branches below so web builds (which return early)
+    // compile their user materials too.
+    final materialCompilationRaw = input.userDefines["material_compilation"];
+    UserMaterialsResult? userMaterials;
+    if (materialCompilationRaw != null) {
+      final consumingPackageRoot = _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
+      if (consumingPackageRoot == null) {
+        throw Exception(
+          "material_compilation is configured but the consuming package root "
+          "could not be resolved from ${input.outputDirectory}; inputs/output "
+          "are resolved relative to it.",
+        );
+      }
+      final config = parseMaterialCompilationConfig(materialCompilationRaw, onLog: logger.warning);
+      // Web builds have no CBuilder to link the generated .c into (their
+      // material C is compiled into the wasm engine via CMakeLists), so
+      // link_generated on a web build must fail loudly, not silently no-op.
+      checkMaterialLinkingBuildable(buildCodeAssets: input.config.buildCodeAssets, config: config!);
+      final hostArch = await detectHostArchitecture();
+      final result = await compileUserMaterials(
+        appRoot: Directory(consumingPackageRoot),
+        config: config,
+        filamentVersion: filamentVersion,
+        packageVersion: await readPubspecVersion(Directory(pkgRootFilePath)),
+        hostOS: Platform.operatingSystem,
+        hostArch: hostArch ?? 'x64',
+        toolsPin: _loadFilamentPin(packageRoot, logger),
+        download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
+        onLog: logger.info,
+      );
+      userMaterials = result;
+      // Include discovery directories, transitive includes and generated files
+      // in runner invalidation; internal manifest checks cannot run otherwise.
+      output.dependencies.addAll(result.dependencies);
+      output.dependencies.add(File(path.join(pkgRootFilePath, 'pubspec.yaml')).uri);
+      output.dependencies.add(File(path.join(pkgRootFilePath, filamentPinFileName)).uri);
+    }
+
+    final rawMaterialsDefine = input.userDefines['materials'];
+    if (rawMaterialsDefine != null && rawMaterialsDefine is! Map<String, dynamic>) {
+      throw MaterialToolsError('materials must be a map in pubspec.yaml.');
+    }
+    final materialConfig = rawMaterialsDefine is Map<String, dynamic> ? rawMaterialsDefine : const <String, dynamic>{};
+    final knownMaterialKeys = {
+      'backends',
+      'include_defaults',
+      ...BuiltInMaterial.values.map((material) => material.key),
+    };
+    for (final MapEntry(:key, :value) in materialConfig.entries) {
+      if (!knownMaterialKeys.contains(key)) {
+        logger.warning('Unknown key materials.$key in pubspec.yaml.');
+      } else if (key != 'backends' && value is! bool) {
+        throw MaterialToolsError('materials.$key must be true or false (an unquoted YAML boolean).');
+      }
+    }
+    final optInMaterials = [
+      for (final material in BuiltInMaterial.values)
+        if (material.compiledOnDemand && materialConfig[material.key] == true) material,
+    ];
+
     if (!input.config.buildCodeAssets) {
       logger.info("buildCodeAssets is false, assumed to be building for web");
-      await _downloadWebArtifacts(input, logger);
+      final webDir = _findWebDirectory(input, logger);
+      if (webDir == null) {
+        if (optInMaterials.isNotEmpty) {
+          throw MaterialToolsError(
+            'Could not locate the app’s web/ directory. Set web_directory under '
+            'hooks.user_defines.thermion_dart in the workspace pubspec.yaml.',
+          );
+        }
+        return;
+      }
+      final engineDir = await _resolveWebEngine(input, logger);
+      output.dependencies.add(input.packageRoot.resolve('native/web/web.version'));
+      await publishWebMaterials(
+        root: Directory.fromUri(input.packageRoot),
+        engineDir: engineDir,
+        webDir: webDir,
+        materials: optInMaterials,
+        download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
+        onLog: logger.info,
+        addDependency: output.dependencies.add,
+      );
       return;
     }
 
@@ -105,6 +215,35 @@ outputDirectory : ${outputDirectory.path}
 
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
 
+    // Runtime material compilation (filamat). Opt-in because it bakes
+    // glslang/SPIRV-Tools into libthermion_dart, adding tens of MB. See the
+    // runtime_materials section in README.md.
+    //
+    // Set `runtime_materials: true` under hooks.user_defines.thermion_dart in
+    // the consuming app's pubspec.yaml.
+    final runtimeMaterialsRaw = input.userDefines["runtime_materials"];
+    var runtimeMaterials = false;
+    if (runtimeMaterialsRaw == true ||
+        runtimeMaterialsRaw == "true" ||
+        runtimeMaterialsRaw == 1 ||
+        runtimeMaterialsRaw == "1") {
+      runtimeMaterials = true;
+    } else if (runtimeMaterialsRaw != null &&
+        runtimeMaterialsRaw != false &&
+        runtimeMaterialsRaw != "false" &&
+        runtimeMaterialsRaw != 0 &&
+        runtimeMaterialsRaw != "0") {
+      logger.warning(
+        "Ignoring unrecognized runtime_materials value '$runtimeMaterialsRaw' "
+        "(expected true or false); continuing without runtime material compilation.",
+      );
+    }
+    final defines = <String, String?>{};
+    if (runtimeMaterials) {
+      logger.info("runtime_materials enabled; linking matp + filamat for runtime material compilation");
+      defines["THERMION_ENABLE_RUNTIME_MATERIALS"] = "1";
+    }
+
     final libResult = await getLibDir(
       packageRoot,
       targetOS,
@@ -160,7 +299,6 @@ outputDirectory : ${outputDirectory.path}
     //  - else the target OS default (Apple = Metal, Android = Vulkan+GL,
     //    desktop Linux/Windows = Vulkan+GL — both GL-capable platforms keep
     //    runtime backend selection working).
-    final rawMaterialsDefine = input.userDefines["materials"];
     final backendsConfig = rawMaterialsDefine is Map<String, dynamic>
         ? rawMaterialsDefine["backends"] as Map<String, dynamic>?
         : null;
@@ -175,7 +313,6 @@ outputDirectory : ${outputDirectory.path}
     final materialSuffix = materialResolution.suffix;
     final materialDefine = materialResolution.define;
 
-    final defines = <String, String?>{};
     final materialDir = path.join(pkgRootFilePath, 'native/include/material');
     // A selected variant whose blobs are missing is a hard error: silently
     // falling back would compile the wrong backends into the app.
@@ -198,26 +335,15 @@ outputDirectory : ${outputDirectory.path}
     }
 
     final materialSources = <String, String>{
-      'capture_uv': materialPath('capture_uv', materialSuffix),
-      'grid': materialPath('grid', materialSuffix),
-      'image': materialPath('image', materialSuffix),
-      'linear_depth': materialPath('linear_depth', materialSuffix),
-      'unlit_fixed_size': materialPath('unlit_fixed_size', materialSuffix),
-      'silhouette': materialPath('silhouette', materialSuffix),
-      'edge_outline': materialPath('edge_outline', materialSuffix),
-      'wireframe': materialPath('wireframe', materialSuffix),
-      'translation_axis': materialPath('translation_axis', materialSuffix),
-      // Renamed from gizmo.c to avoid a case-insensitive .obj collision
-      // with scene/Gizmo.cpp on Windows.
-      'gizmo': materialPath('gizmo_material', materialSuffix),
-      'bone_overlay': materialPath('bone_overlay', materialSuffix),
+      for (final material in BuiltInMaterial.values)
+        if (!material.compiledOnDemand)
+          // Renamed from gizmo.c to avoid a case-insensitive .obj collision
+          // with scene/Gizmo.cpp on Windows.
+          material.key: materialPath(
+            material == BuiltInMaterial.gizmo ? 'gizmo_material' : material.key,
+            materialSuffix,
+          ),
     };
-
-    // Add gizmo resources (always included)
-    sources.addAll([
-      path.join(pkgRootFilePath, "native", "include", "resources", "translation_gizmo_glb.c"),
-      path.join(pkgRootFilePath, "native", "include", "resources", "rotation_gizmo_glb.c"),
-    ]);
 
     // Add Dart API DL for port-based frame scheduling (hot restart safe)
     sources.add(path.join(pkgRootFilePath, "native", "include", "dart", "dart_api_dl.c"));
@@ -227,7 +353,30 @@ outputDirectory : ${outputDirectory.path}
     var libs = [
       "filament",
       "backend",
-      if (targetOS != OS.iOS) "filamat",
+      // matp: the .mat parser behind matc, used by
+      // MaterialCompiler_compileMaterialPackage. Opt-in with the same
+      // runtime_materials flag (never needed by debug/Linux's filamat-only
+      // uses). Must come BEFORE filamat: matp references
+      // filamat::MaterialBuilder, and GNU ld resolves archives left to right.
+      if (runtimeMaterials) "matp",
+      // Runtime material compilation (filamat::MaterialBuilder). Opt-in via
+      // the `runtime_materials` user define; see the block that parses it
+      // above. Release builds link it only when enabled (it would otherwise
+      // be dead weight — tens of MB of glslang/SPIRV-Tools), with two
+      // exceptions that must ALWAYS link it:
+      // - debug: filament's debug archives ship libmatdbg.a, whose
+      //   ShaderReplacer references filamat::Chunk.
+      // - Linux: the Linux archives deliberately exclude libzstd.a
+      //   (scripts/build_linux.sh — "bundled in Filament already"), so the
+      //   combined filamat archive is the only zstd provider for
+      //   basis_transcoder/MaterialParser/gltfio (ZSTD_* symbols).
+      if (runtimeMaterials || buildMode == BuildMode.debug || targetOS == OS.linux) "filamat",
+      // libfilamat.a references SHADERS_PACKAGE etc. from libshaders.a
+      // (the generated shader-common chunks CodeGenerator emits into every
+      // material). On Linux, "shaders" was already linked for gltfio; other
+      // platforms only need it when runtime_materials pulls the CodeGenerator
+      // in (matdbg's filamat use is Chunk-only and doesn't reach it).
+      if (runtimeMaterials && targetOS != OS.linux) "shaders",
       if (targetOS == OS.linux) "shaders",
       "utils",
       // Android links Filament's Perfetto tracing archive. utils is always
@@ -251,6 +400,11 @@ outputDirectory : ${outputDirectory.path}
       "z",
       "stb",
       "uberzlib",
+      // Linked DIRECTLY (not via the combined filamat archive): filament's
+      // combine-static-libs.sh appends members with `ar -qc`, which does not
+      // regenerate the archive symbol table, so smolv members bundled there
+      // are invisible to linker symbol lookup. Keep it AFTER "filamat" above
+      // (leaf library; left-to-right archive resolution).
       "smol-v",
       "basis_transcoder",
       "uberarchive",
@@ -337,21 +491,58 @@ outputDirectory : ${outputDirectory.path}
       );
     }
 
-    // Process materials configuration. Strip the "backends" key (consumed by
-    // resolveMaterialBackend above) so it isn't treated as a material name.
-    // An empty remainder means "no selective config" — pass null so
-    // _processMaterials includes all materials (a map, even empty, means
-    // "only materials explicitly set to true").
-    Map<String, dynamic>? materialConfigs;
-    if (rawMaterialsDefine is Map<String, dynamic>) {
-      final stripped = Map<String, dynamic>.from(rawMaterialsDefine)..remove("backends");
-      materialConfigs = stripped.isEmpty ? null : stripped;
+    final includeDefaults = materialConfig['include_defaults'] != false;
+    for (final entry in materialSources.entries) {
+      if ((materialConfig[entry.key] ?? includeDefaults) != true) continue;
+      sources.add(path.join(pkgRootFilePath, entry.value));
+      defines['${entry.key.toUpperCase()}_ENABLED'] = '1';
     }
-    _processMaterials(materialConfigs, materialSources, sources, defines, logger, pkgRootFilePath);
+    if (optInMaterials.isNotEmpty) {
+      final builtIns = await _compileBuiltInMaterials(input, output, optInMaterials, switch (materialSuffix) {
+        '_apple' => ['metal'],
+        '_opengl' || '_web_webgl' => ['opengl'],
+        '_vulkan' => ['vulkan'],
+        '_webgpu' => ['webgpu'],
+        '_web_combined' => ['opengl', 'webgpu'],
+        _ => ['opengl', 'vulkan'],
+      }, logger);
+      linkGeneratedIntoNativeBuild(
+        sources: sources,
+        includeDirs: includeDirs,
+        linkedSources: optInMaterials.map((material) => File(path.join(builtIns.path, '${material.key}.c'))).toList(),
+        outputDir: builtIns,
+      );
+      for (final material in optInMaterials) {
+        defines['${material.key.toUpperCase()}_ENABLED'] = '1';
+      }
+    }
+
+    // link_generated: compile the user's generated material .c files into
+    // libthermion_dart too — the exact same mechanism as thermion's own
+    // materials above (appended to `sources`), with the output directory on
+    // `includeDirs` so each .c resolves its own `#include "x.h"`. The files
+    // were emitted at the top of this hook, before any CBuilder work, and
+    // only the set the materials manifest vouches for is linked. Must run
+    // before CBuilder.library is constructed below (sources/includeDirs are
+    // read there), and after the platform source filters so a path that
+    // happens to contain e.g. "windows" is not filtered out.
+    if (userMaterials != null && userMaterials.linkedSources.isNotEmpty) {
+      final linkedCount = linkGeneratedIntoNativeBuild(
+        sources: sources,
+        includeDirs: includeDirs,
+        linkedSources: userMaterials.linkedSources,
+        outputDir: userMaterials.outputDir,
+      );
+      logger.info(
+        "link_generated: compiling $linkedCount generated material source(s) "
+        "into $packageName (${userMaterials.linkedSources.map((f) => path.basename(f.path)).join(', ')})",
+      );
+    }
 
     var frameworks = [];
 
     if (targetOS != OS.windows) {
+      flags.add('-fno-exceptions');
       flags.add('-stdlib=libc++');
       if (!flags.any((f) => f.contains("-std=c++"))) {
         flags.add('-std=c++17');
@@ -359,6 +550,7 @@ outputDirectory : ${outputDirectory.path}
     } else {
       defines["WIN32"] = "1";
       defines["_DLL"] = "1";
+      defines["_HAS_EXCEPTIONS"] = "0";
       if (buildMode == BuildMode.debug) {
         defines["_DEBUG"] = "1";
       } else {
@@ -367,6 +559,7 @@ outputDirectory : ${outputDirectory.path}
       }
       flags.addAll([
         "/std:c++20",
+        "/EHs-c-",
         if (buildMode == BuildMode.debug) ...["/MDd", "/Zi"],
         if (buildMode == BuildMode.release) "/MD",
         // /VERBOSE is a linker option, not a compiler one — cl.exe parses it
@@ -470,7 +663,8 @@ outputDirectory : ${outputDirectory.path}
       }
     }
 
-    var srcs = File(Directory.systemTemp.path + Platform.pathSeparator + "thermion_sources.rsp");
+    // Per-process name: concurrent builds on one machine must not share (and overwrite) one source list.
+    var srcs = File(Directory.systemTemp.path + Platform.pathSeparator + "thermion_sources_$pid.rsp");
     srcs.writeAsStringSync(sources.join("\n"));
 
     final cbuilder = CBuilder.library(
@@ -535,7 +729,13 @@ outputDirectory : ${outputDirectory.path}
           : const [],
     );
 
-    await cbuilder.run(input: input, output: output, logger: logger);
+    try {
+      await cbuilder.run(input: input, output: output, logger: logger);
+    } finally {
+      try {
+        srcs.deleteSync();
+      } catch (_) {}
+    }
 
     output.metadata.addAll({"includeDirs": includeDirs.map((dir) => path.join(pkgRootFilePath, dir)).toList()});
     output.metadata.addAll({"outputDir": outputDirectory.path});
@@ -555,26 +755,64 @@ outputDirectory : ${outputDirectory.path}
   });
 }
 
-// filament.version lives at the repo root (the parent of this package). We
-// can't derive that from `Platform.script`: when this hook runs as a *compiled
-// build hook* the script URI points at the consuming package's
-// `.dart_tool/hooks_runner/.../hook.dill`, not at this source file, so the old
-// `dirname(dirname(script))` computation landed inside the wrong package and
-// the file was never found (bare `throw Exception()`). Resolve it relative to
-// the package root that getLibDir already has instead.
-String _getFilamentVersion(Uri packageRoot) {
-  final pkgPath = packageRoot.toFilePath(windows: Platform.isWindows);
-  final versionFile = File(path.join(path.dirname(pkgPath), 'filament.version'));
-  if (versionFile.existsSync()) {
-    final parts = versionFile.readAsStringSync().trim().split(RegExp(r'\s+'));
-    // Format: "<repo> <version>" - return the version (second field)
-    return parts.length >= 2 ? parts[1] : parts[0];
+/// Loads the shipped artifact pin (filament.libs.json at the package root).
+/// Missing/malformed pins degrade to legacy artifact keys with a warning —
+/// see lib/src/hooks/filament_artifacts.dart.
+FilamentPin _loadFilamentPin(Uri packageRoot, Logger logger) {
+  final file = File(path.join(packageRoot.toFilePath(windows: Platform.isWindows), filamentPinFileName));
+  final warnings = <String>[];
+  final pin = parseFilamentPin(file.existsSync() ? file.readAsStringSync() : null, warnings: warnings);
+  for (final warning in warnings) {
+    logger.warning(warning);
   }
-  throw Exception('filament.version not found at ${versionFile.path}');
+  return pin;
 }
 
-String _getLibraryUrl(String version, String platform, String mode) {
-  return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${version}-${platform}-${mode}.zip";
+const _maxRetries = 3;
+const _connectionTimeout = Duration(seconds: 30);
+const _responseTimeout = Duration(minutes: 5);
+
+/// Download [url] to [destination] with retry and exponential backoff.
+///
+/// Retries up to [_maxRetries] times on network errors, non-200 responses,
+/// and empty downloads. Waits 2^attempt seconds between attempts.
+Future<void> _downloadWithRetry(String url, File destination, Logger logger) async {
+  for (var attempt = 1; attempt <= _maxRetries; attempt++) {
+    try {
+      final client = HttpClient()..connectionTimeout = _connectionTimeout;
+      final request = await client.getUrl(Uri.parse(url));
+      final response = await request.close().timeout(_responseTimeout);
+
+      if (response.statusCode != 200) {
+        await response.drain<void>();
+        throw Exception("HTTP ${response.statusCode} downloading $url");
+      }
+
+      await response.pipe(destination.openWrite());
+
+      if (!destination.existsSync() || destination.lengthSync() == 0) {
+        throw Exception("Downloaded file is empty: ${destination.path}");
+      }
+
+      logger.info("Download succeeded on attempt $attempt");
+      return;
+    } catch (e) {
+      // Clean up partial download.
+      if (destination.existsSync()) {
+        destination.deleteSync();
+      }
+      if (attempt == _maxRetries) {
+        logger.severe("Download failed after $_maxRetries attempts: $e");
+        rethrow;
+      }
+      final delay = Duration(seconds: 1 << attempt); // 2s, 4s, 8s
+      logger.warning(
+        "Download attempt $attempt/$_maxRetries failed ($e), "
+        "retrying in ${delay.inSeconds}s...",
+      );
+      await Future<void>.delayed(delay);
+    }
+  }
 }
 
 //
@@ -595,7 +833,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
 }) async {
   var platform = targetOS.toString().toLowerCase();
 
-  final version = _getFilamentVersion(packageRoot);
+  final version = filamentVersion;
 
   // Use separate library directory for iOS simulator (arm64 simulator
   // libraries can't be lipo'd with arm64 device libraries).
@@ -604,6 +842,14 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
   }
 
   var mode = buildMode == BuildMode.debug ? "debug" : "release";
+
+  // Content-addressed artifact resolution: a pinned entry in
+  // filament.libs.json selects an immutable hash-suffixed zip (and its
+  // full SHA-256 for download verification); unpinned entries fall back
+  // to the legacy mutable key. See lib/src/hooks/filament_artifacts.dart.
+  // Resolved AFTER the platform splits below so ios-simulator/linux-arm64
+  // use their own pin entries.
+  final pin = _loadFilamentPin(packageRoot, logger);
 
   var libDir = Directory(
     path.join(
@@ -631,8 +877,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
       throw Exception("Unsupported architecture : ${targetArchitecture}");
     }
   } else if (platform == "linux") {
-    // Linux x64 keeps the legacy zip URL + cache dir. arm64 consumers fetch
-    // the arch-suffixed zip (filament-<v>-linux-arm64-<mode>.zip) and use an
+    // Linux arm64 consumers fetch their own archive and use an
     // arch-scoped cache dir so the two never collide.
     if (targetArchitecture == Architecture.arm64) {
       platform = "linux-arm64";
@@ -642,11 +887,27 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
     }
   }
 
+  // Resolve the artifact for the FINAL platform slug (post ios-simulator /
+  // linux-arm64 split). Pinned artifacts get a hash-scoped cache directory:
+  // flipping the pin lands in a fresh dir, so the old `success` token can
+  // never mask new contents (and reverting the pin reuses the old cache).
+  // Unpinned artifacts keep the exact legacy path — existing caches stay valid.
+  final artifact = resolveFilamentArtifact(version, platform, mode, pin);
+  if (artifact.cacheSuffix.isNotEmpty) {
+    if (platform == 'android') {
+      // Every ABI shares this zip's extraction root and success token.
+      // Keep the ABI directory names exactly as packaged in the archive.
+      libDir = Directory(path.join('${libDir.parent.path}${artifact.cacheSuffix}', path.basename(libDir.path)));
+    } else {
+      libDir = Directory('${libDir.path}${artifact.cacheSuffix}');
+    }
+  }
+
   logger.info("Searching for Filament libraries under ${libDir.path}");
 
-  var url = _getLibraryUrl(version, platform, mode);
+  final url = artifact.url;
 
-  final filename = url.split("/").last;
+  final filename = artifact.zipName;
 
   // We will write an empty file called success to the unzip directory after successfully downloading/extracting the prebuilt libraries.
   // If this file already exists, we assume everything has been successfully extracted and skip
@@ -672,20 +933,32 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
     logger.info(
       "Downloading prebuilt libraries for $platform/$mode from $url to ${libraryZip}, files will be unzipped to ${unzipDir}",
     );
-    final request = await HttpClient().getUrl(Uri.parse(url));
-    final response = await request.close();
 
-    if (response.statusCode != 200) {
-      throw Exception("Libraries not found at $url");
-    }
-
-    await response.pipe(libraryZip.openWrite());
+    await _downloadWithRetry(url, libraryZip, logger);
 
     final downloadedBytes = await libraryZip.readAsBytes();
     final downloadedHash = md5.convert(downloadedBytes);
     logger.info(
       "Downloaded library zip hash: $downloadedHash, size: ${downloadedBytes.length} bytes (${libraryZip.path})",
     );
+
+    // Content-addressed artifacts are verified against the pin's full
+    // SHA-256 before extraction: a corrupt/truncated download (or a proxy
+    // serving an error page with HTTP 200) must never be cached under the
+    // success token. Legacy (unpinned) artifacts have no digest to check.
+    final expectedSha = artifact.sha256;
+    if (expectedSha != null) {
+      final actualSha = sha256.convert(downloadedBytes).toString();
+      if (actualSha != expectedSha) {
+        libraryZip.deleteSync();
+        throw Exception(
+          "SHA-256 mismatch for $filename: pin expects $expectedSha, "
+          "downloaded $actualSha. The artifact on R2 does not match "
+          "$filamentPinFileName — re-publish it or fix the pin.",
+        );
+      }
+      logger.info("SHA-256 verified against $filamentPinFileName");
+    }
 
     final archive = ZipDecoder().decodeBytes(downloadedBytes);
 
@@ -719,17 +992,26 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
       "include/bluevk/BlueVK.h is missing from the $platform/$mode artifact; "
       "fetching bluevk headers from the release artifact to repair the cache",
     );
-    final releaseUrl = _getLibraryUrl(version, platform, "release");
-    final releaseZip = File(
-      path.join(Directory.systemTemp.path, 'thermion_bluevk_repair_${path.basename(releaseUrl)}'),
-    );
+    final releaseArtifact = resolveFilamentArtifact(version, platform, "release", pin);
+    final releaseUrl = releaseArtifact.url;
+    final releaseZip = File(path.join(Directory.systemTemp.path, 'thermion_bluevk_repair_${releaseArtifact.zipName}'));
     final releaseRequest = await HttpClient().getUrl(Uri.parse(releaseUrl));
     final releaseResponse = await releaseRequest.close();
     if (releaseResponse.statusCode != 200) {
       throw Exception("Release libraries not found at $releaseUrl (needed for missing bluevk headers)");
     }
     await releaseResponse.pipe(releaseZip.openWrite());
-    final releaseArchive = ZipDecoder().decodeBytes(await releaseZip.readAsBytes());
+    final releaseBytes = await releaseZip.readAsBytes();
+    // Same pin verification as the main download when the release artifact
+    // is content-addressed.
+    if (releaseArtifact.sha256 != null && sha256.convert(releaseBytes).toString() != releaseArtifact.sha256) {
+      await releaseZip.delete();
+      throw Exception(
+        "SHA-256 mismatch for ${releaseArtifact.zipName} "
+        "(bluevk repair download) — see $filamentPinFileName.",
+      );
+    }
+    final releaseArchive = ZipDecoder().decodeBytes(releaseBytes);
     for (final file in releaseArchive) {
       if (!file.isFile) continue;
       final name = file.name;
@@ -750,10 +1032,50 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
   return (libDir: libDir, includeDir: Directory(path.join(unzipDir, 'include')));
 }
 
-const _webR2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
+// R2 base URL for the web engine artifacts lives in
+// lib/src/hooks/web_artifacts.dart (webR2BaseUrl), shared with its tests.
 
-Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
+Directory? _findWebDirectory(BuildInput input, Logger logger) {
+  final configuredPath = input.userDefines['web_directory'];
+  if (configuredPath != null) {
+    final uri = input.userDefines.path('web_directory');
+    if (configuredPath is! String || configuredPath.trim().isEmpty || uri == null || uri.scheme != 'file') {
+      throw MaterialToolsError('web_directory must be a path to the app’s existing web/ directory.');
+    }
+    final directory = Directory.fromUri(uri);
+    if (!directory.existsSync()) {
+      throw MaterialToolsError('web_directory does not exist: ${directory.path}');
+    }
+    return directory;
+  }
+
+  final root = _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
+  if (root == null) return null;
+  final directory = Directory(path.join(root, 'web'));
+  return directory.existsSync() ? directory : null;
+}
+
+Future<Directory> _resolveWebEngine(BuildInput input, Logger logger) async {
   final packageRoot = input.packageRoot.toFilePath(windows: Platform.isWindows);
+
+  // The "web_variant" user define selects which prebuilt engine to fetch:
+  //   unset / "worker" / "default" — the standard engine (render commands
+  //                                dispatched to a worker thread)
+  //   "main_thread"               — the main-thread engine (commands and
+  //                                callbacks execute on the calling thread)
+  // Unknown values warn and fall back to the default. See
+  // lib/src/hooks/web_artifacts.dart (pure logic, unit-tested).
+  //
+  // Independently, `runtime_materials: true` selects a build of that engine
+  // with filamat linked (compileMaterialSource works on web); see
+  // withRuntimeMaterials in the same file.
+  final variant = withRuntimeMaterials(
+    resolveWebVariant(input.userDefines["web_variant"]),
+    input.userDefines["runtime_materials"],
+  );
+  for (final warning in variant.warnings) {
+    logger.warning(warning);
+  }
 
   // Local-build override: skip the R2 download and copy from the emscripten
   // build output instead. Set `web_local: true` under
@@ -761,81 +1083,40 @@ Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
   // when iterating on native C++ that needs to ship to web.
   final webLocal = input.userDefines["web_local"];
   if (webLocal == true || webLocal == "true" || webLocal == 1 || webLocal == "1") {
-    final localOut = Directory(path.join(packageRoot, 'native', 'web', 'build', 'build', 'out'));
+    final localOut = Directory(
+      path.join(packageRoot, 'native', 'web', webLocalBuildDir(variant.zipSuffix), 'build', 'out'),
+    );
     if (!localOut.existsSync()) {
-      logger.warning(
+      throw MaterialToolsError(
         'web_local: true set but ${localOut.path} does not exist; '
         'build the web target first, then re-run.',
       );
-      return;
     }
-    final consumingPackageRoot = _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
-    if (consumingPackageRoot == null) {
-      logger.warning('Could not determine consuming package root');
-      return;
-    }
-    final webDir = Directory(path.join(consumingPackageRoot, 'web'));
-    if (!webDir.existsSync()) {
-      logger.info('No web/ directory at ${webDir.path}; skipping');
-      return;
-    }
-    for (final name in ['thermion_dart.js', 'thermion_dart.wasm']) {
-      final src = File(path.join(localOut.path, name));
-      if (!src.existsSync()) {
-        logger.warning('$name not found in ${localOut.path}');
-        continue;
-      }
-      src.copySync(path.join(webDir.path, name));
-      logger.info('[web_local] Copied $name from ${localOut.path}');
-    }
-    return;
+    return localOut;
   }
 
   final versionFile = File(path.join(packageRoot, 'native', 'web', 'web.version'));
   if (!versionFile.existsSync()) {
-    logger.warning('web.version not found at ${versionFile.path}; skipping web artifact download');
-    return;
+    throw MaterialToolsError('Missing web engine version at ${versionFile.path}.');
   }
   final version = versionFile.readAsStringSync().trim();
   if (version.isEmpty || version == 'pending') {
-    logger.warning('web.version contains "$version"; skipping download (CI may not have uploaded yet)');
-    return;
+    throw MaterialToolsError('No published web engine version in ${versionFile.path}.');
   }
   logger.info('Web artifact version: $version');
 
-  final consumingPackageRoot = _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
-  if (consumingPackageRoot == null) {
-    logger.warning('Could not determine consuming package root; skipping web artifact copy');
-    return;
-  }
+  // Variant-scoped cache: the default and main-thread engines must never
+  // share a directory — the success token would otherwise mask the wrong
+  // contents when switching variants.
+  final cacheDir = Directory(
+    path.join(packageRoot, '.dart_tool', 'thermion_dart', 'web', '$version${variant.cacheSuffix}'),
+  );
 
-  final cacheDir = Directory(path.join(packageRoot, '.dart_tool', 'thermion_dart', 'web', version));
-
-  try {
-    await _fetchWebZip(version, cacheDir, logger);
-  } catch (e) {
-    logger.warning('Failed to download web artifacts: $e');
-    return;
-  }
-
-  final webDir = Directory(path.join(consumingPackageRoot, 'web'));
-  if (!webDir.existsSync()) {
-    logger.info('No web/ directory at ${webDir.path}; skipping artifact copy');
-    return;
-  }
-  for (final name in ['thermion_dart.js', 'thermion_dart.wasm']) {
-    final src = File(path.join(cacheDir.path, name));
-    if (!src.existsSync()) {
-      logger.warning('$name not found in cache ${cacheDir.path}');
-      continue;
-    }
-    final dest = File(path.join(webDir.path, name));
-    src.copySync(dest.path);
-    logger.info('Copied $name to ${dest.path}');
-  }
+  await _fetchWebZip(version, variant.zipSuffix, cacheDir, logger);
+  return cacheDir;
 }
 
-Future<void> _fetchWebZip(String version, Directory cacheDir, Logger logger) async {
+Future<void> _fetchWebZip(String version, String zipSuffix, Directory cacheDir, Logger logger) async {
   final successToken = File(path.join(cacheDir.path, 'success'));
   if (successToken.existsSync()) {
     logger.info('Web artifacts already cached at ${cacheDir.path}');
@@ -846,8 +1127,8 @@ Future<void> _fetchWebZip(String version, Directory cacheDir, Logger logger) asy
     cacheDir.createSync(recursive: true);
   }
 
-  final zipName = 'thermion_dart-$version-web.zip';
-  final url = '$_webR2BaseUrl/$zipName';
+  final zipName = webArtifactZipName(version, zipSuffix);
+  final url = webArtifactUrl(version, zipSuffix);
   final zipFile = File(path.join(cacheDir.path, zipName));
 
   logger.info('Downloading $url');
@@ -898,18 +1179,8 @@ String? _extractConsumingPackageRoot(String outputDirUri, Logger logger) {
       final pubspecFile = File(path.join(currentPath, 'pubspec.yaml'));
 
       if (pubspecFile.existsSync()) {
-        logger.info("Found pubspec.yaml at: ${pubspecFile.path}");
-
-        // Verify this is a consuming package (not thermion_dart itself)
-        final pubspecContent = pubspecFile.readAsStringSync();
-
-        // Check if this is thermion_dart package itself (avoid self-detection)
-        if (pubspecContent.contains('name: thermion_dart')) {
-          logger.info("Skipping thermion_dart package itself");
-        } else if (pubspecContent.contains('thermion_dart')) {
-          logger.info("Found consuming package root: $currentPath");
-          return currentPath;
-        }
+        logger.info("Found consuming pubspec.yaml at: ${pubspecFile.path}");
+        return currentPath;
       }
 
       // Move up one directory level
@@ -1037,52 +1308,32 @@ Future<void> _processDeclarativePlugins(
   }
 }
 
-//
-// Material configuration processing functions
-//
-
-void _processMaterials(
-  Map<String, dynamic>? materialConfig,
-  Map<String, String> materialSources,
-  List<String> sources,
-  Map<String, String?> defines,
+Future<Directory> _compileBuiltInMaterials(
+  BuildInput input,
+  BuildOutputBuilder output,
+  List<BuiltInMaterial> materials,
+  List<String> backends,
   Logger logger,
-  String pkgRootFilePath,
-) {
-  // If no config provided, include all materials (default)
-  if (materialConfig == null) {
-    logger.info("No materials config specified, including all materials");
-    for (final materialName in materialSources.keys) {
-      _includeMaterial(materialName, materialSources, sources, defines, logger, pkgRootFilePath);
-    }
-    return;
-  }
-
-  // Otherwise, only include materials explicitly set to true
-  for (final entry in materialConfig.entries) {
-    final materialName = entry.key;
-    final shouldInclude = entry.value;
-
-    if (shouldInclude == true) {
-      if (materialSources.containsKey(materialName)) {
-        _includeMaterial(materialName, materialSources, sources, defines, logger, pkgRootFilePath);
-      } else {
-        logger.warning("Unknown material: $materialName");
-      }
-    }
-  }
-}
-
-void _includeMaterial(
-  String materialName,
-  Map<String, String> materialSources,
-  List<String> sources,
-  Map<String, String?> defines,
-  Logger logger,
-  String pkgRootFilePath,
-) {
-  final sourcePath = path.join(pkgRootFilePath, materialSources[materialName]!);
-  sources.add(sourcePath);
-  defines["${materialName.toUpperCase()}_ENABLED"] = "1";
-  logger.info("Included material: $materialName");
+) async {
+  final root = Directory.fromUri(input.packageRoot);
+  final result = await compileUserMaterials(
+    appRoot: root,
+    config: MaterialCompilationConfig(
+      inputs: [for (final material in materials) 'hook/materials/${material.key}.mat'],
+      output: input.outputDirectory.resolve('built_in_materials/').toFilePath(),
+      backends: backends,
+      resgen: input.config.buildCodeAssets,
+    ),
+    filamentVersion: filamentVersion,
+    packageVersion: await readPubspecVersion(root),
+    hostOS: Platform.operatingSystem,
+    hostArch: await detectHostArchitecture() ?? 'x64',
+    toolsPin: _loadFilamentPin(input.packageRoot, logger),
+    download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
+    onLog: logger.info,
+  );
+  output.dependencies.addAll(result.dependencies);
+  output.dependencies.add(input.packageRoot.resolve('pubspec.yaml'));
+  output.dependencies.add(input.packageRoot.resolve(filamentPinFileName));
+  return result.outputDir;
 }

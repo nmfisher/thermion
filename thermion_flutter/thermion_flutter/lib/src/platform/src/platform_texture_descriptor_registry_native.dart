@@ -11,9 +11,8 @@ import 'method_channel_platform_texture_descriptor.dart';
 import 'platform_texture_descriptor.dart';
 import 'platform_texture_descriptor_registry.dart';
 
-typedef TextureMutationRunner = Future<T> Function<T>(
-  Future<T> Function() operation,
-);
+typedef TextureMutationRunner =
+    Future<T> Function<T>(Future<T> Function() operation);
 
 class FilamentRenderingContext {
   const FilamentRenderingContext({
@@ -40,18 +39,21 @@ class NativePlatformTextureDescriptorRegistry
     required TextureMutationRunner runTextureMutation,
     required AndroidTextureSource Function() androidTextureSource,
     required bool Function() flipLinuxTextureVertically,
+    PlatformTextureDescriptorAllocator? allocator,
   }) : _pauseRendering = pauseRendering,
        _resumeRenderingIfReady = resumeRenderingIfReady,
        _runTextureMutation = runTextureMutation,
        super(
-         allocator: (width, height) => _allocate(
-           width,
-           height,
-           androidTextureSource(),
-           flipLinuxTextureVertically(),
-         ),
+         allocator:
+             allocator ??
+             (width, height) => _allocate(
+               width,
+               height,
+               androidTextureSource(),
+               flipLinuxTextureVertically(),
+             ),
        ) {
-    if (Platform.isAndroid) {
+    if (allocator == null && Platform.isAndroid) {
       channel.setMethodCallHandler(_handlePlatformMethodCall);
     }
   }

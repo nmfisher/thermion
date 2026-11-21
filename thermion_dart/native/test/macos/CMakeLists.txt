@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.15)
 project(thermion_dart VERSION 1.0.0 LANGUAGES CXX C)
 
+option(THERMION_ENABLE_RUNTIME_MATERIALS "Compile runtime material parser and compiler entry points" OFF)
+
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>")
+
 # Configuration variables
-set(FILAMENT_VERSION "v1.74.0")
+set(FILAMENT_VERSION "v1.77.2")
 set(PACKAGE_NAME "thermion_dart")
 set(PLATFORM "macos")
 
@@ -44,7 +48,14 @@ if(NOT EXISTS "${NATIVE_ROOT}/include/material/image_${THERMION_MATERIAL_VARIANT
     message(STATUS "Material variant ${THERMION_MATERIAL_VARIANT} not found; falling back to _native")
     set(THERMION_MATERIAL_VARIANT "native")
 endif()
-add_definitions(-DTHERMION_MATERIAL_${THERMION_MATERIAL_VARIANT})
+string(TOUPPER "${THERMION_MATERIAL_VARIANT}" THERMION_MATERIAL_DEFINE)
+add_definitions(-DTHERMION_MATERIAL_${THERMION_MATERIAL_DEFINE})
+
+add_compile_definitions(
+    CAPTURE_UV_ENABLED LINEAR_DEPTH_ENABLED UNLIT_FIXED_SIZE_ENABLED
+    IMAGE_ENABLED GRID_ENABLED GIZMO_ENABLED SILHOUETTE_ENABLED
+    EDGE_OUTLINE_ENABLED WIREFRAME_ENABLED TRANSLATION_AXIS_ENABLED BONE_OVERLAY_ENABLED
+)
 
 set(MATERIAL_SOURCES
     "${NATIVE_ROOT}/include/material/capture_uv_${THERMION_MATERIAL_VARIANT}.c"
@@ -62,12 +73,7 @@ set(MATERIAL_SOURCES
 
 set_source_files_properties(${MATERIAL_SOURCES} PROPERTIES LANGUAGE CXX)
 
-set(RESOURCE_SOURCES
-    "${NATIVE_ROOT}/include/resources/translation_gizmo_glb.c"
-    "${NATIVE_ROOT}/include/resources/rotation_gizmo_glb.c"
-)
-
-set_source_files_properties(${RESOURCE_SOURCES} PROPERTIES LANGUAGE CXX)
+set(RESOURCE_SOURCES)
 
 # Dart API DL for port-based frame scheduling (hot restart safe)
 set(DART_API_SOURCES
@@ -85,10 +91,13 @@ add_library(thermion_dart SHARED
 
 # Filament libraries path + headers, from the version-matched R2 artifact
 # extracted by thermion_dart's build hook under .dart_tool/.
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/macos/debug")
-else()
-  set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/macos/release")
+set(FILAMENT_LIB_DIR "" CACHE PATH "Filament artifact directory, including its pin hash suffix")
+if(NOT FILAMENT_LIB_DIR)
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/macos/debug")
+  else()
+    set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/macos/release")
+  endif()
 endif()
 set(FILAMENT_INCLUDE_DIR "${FILAMENT_LIB_DIR}/include")
 
@@ -106,18 +115,22 @@ set_target_properties(thermion_dart PROPERTIES
 
 # Link libraries
 target_link_directories(thermion_dart PRIVATE ${FILAMENT_LIB_DIR})
+if(THERMION_ENABLE_RUNTIME_MATERIALS)
+    target_compile_definitions(thermion_dart PRIVATE THERMION_ENABLE_RUNTIME_MATERIALS=1)
+    target_link_libraries(thermion_dart PRIVATE matp)
+endif()
 target_link_libraries(thermion_dart PRIVATE
     filament
     backend
     filameshio
     filamat
+    shaders
     utils
     filabridge
     gltfio_core
     gltfio
     filament-iblprefilter
     image
-    imageio
     tinyexr
     filaflat
     dracodec

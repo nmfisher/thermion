@@ -1,6 +1,10 @@
 // ignore_for_file: unused_local_variable
 
+import 'dart:async';
+
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_transform_manager.dart';
 import 'package:test/test.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
@@ -8,6 +12,35 @@ import 'helpers.dart';
 void main() async {
   final testHelper = TestHelper("transforms");
   await testHelper.setup();
+
+  test('FilamentApp.setParent waits for the transform manager', () async {
+    final nativeApp = FilamentApp.instance! as FFIFilamentApp;
+    final manager = _ControlledParentingManager(nativeApp);
+    final FilamentApp app = _ParentingTestApp(nativeApp, manager);
+    var completed = false;
+    final parenting = app.setParent(1, 2).then<void>((_) => completed = true);
+
+    try {
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+    } finally {
+      manager.completion.complete();
+      await parenting.timeout(const Duration(seconds: 5));
+    }
+    expect(completed, isTrue);
+  });
+
+  test('FilamentApp.setParent propagates transform manager errors', () async {
+    final nativeApp = FilamentApp.instance! as FFIFilamentApp;
+    final manager = _ControlledParentingManager(nativeApp);
+    final FilamentApp app = _ParentingTestApp(nativeApp, manager);
+    final error = StateError('parenting failed');
+    // Also handle the manager error if the app incorrectly discards its future.
+    manager.completion.future.ignore();
+    final failure = expectLater(app.setParent(1, null), throwsA(same(error)));
+    manager.completion.completeError(error);
+    await failure;
+  });
 
   test('create entity and set as parent', () async {
     await testHelper.withViewer((viewer) async {
@@ -102,18 +135,10 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       final transformManager = FilamentApp.instance!.transformManager;
 
-      // Note: Transform transactions require FFI bindings to be regenerated after
-      // adding the C API functions. Until then, the transaction methods are no-ops,
-      // but the test will still verify the basic transform functionality.
-
       // Create multiple entities for bulk transform updates
       final entities = <ThermionEntity>[];
-      final assets = <ThermionAsset>[];
 
       for (int i = 0; i < 5; i++) {
-        final entity = await FilamentApp.instance!.createEntity();
-        entities.add(entity);
-
         var materialInstance = await FilamentApp.instance!.createUnlitMaterialInstance();
         final cube = await viewer.createGeometry(
           GeometryUtils.cube(normals: false, uvs: false),
@@ -129,13 +154,13 @@ void main() async {
           1.0,
         );
 
-        // Associate the geometry with our entity
-        await transformManager.createComponent(entity);
-        assets.add(cube);
+        // Transform the rendered cube so the captures show the transaction.
+        entities.add(cube.entity);
         await viewer.addToScene(cube);
       }
 
-      await testHelper.capture(viewer.view, "before_transaction");
+      final before = await testHelper.capture(viewer.view, "before_transaction");
+      final beforePixels = Uint8List.fromList(before.values.single);
 
       // Open transaction for bulk updates
       transformManager.openLocalTransformTransaction();
@@ -159,7 +184,12 @@ void main() async {
       // Commit the transaction to apply all changes
       transformManager.commitLocalTransformTransaction();
 
-      await testHelper.capture(viewer.view, "after_transaction");
+      final after = await testHelper.capture(viewer.view, "after_transaction");
+      expect(
+        after.values.single,
+        isNot(orderedEquals(beforePixels)),
+        reason: 'The transaction must change the rendered cubes.',
+      );
 
       // Verify transforms were applied correctly by checking local transforms
       for (int i = 0; i < entities.length; i++) {
@@ -174,4 +204,39 @@ void main() async {
       }
     });
   });
+}
+
+class _ControlledParentingManager extends FFITransformManager {
+  final completion = Completer<void>();
+
+  _ControlledParentingManager(FFIFilamentApp app) : super(app.transformManager.getNativeHandle(), app);
+
+  @override
+  Future<void> setParent(ThermionEntity child, ThermionEntity? parent, {bool preserveScaling = false}) {
+    return completion.future;
+  }
+}
+
+// Shares the existing engine and replaces only the transform manager.
+class _ParentingTestApp extends FFIFilamentApp {
+  final FFITransformManager _parentingManager;
+
+  @override
+  FFITransformManager get transformManager => _parentingManager;
+
+  _ParentingTestApp(FFIFilamentApp app, this._parentingManager)
+    : super(
+        app.engine,
+        app.gltfAssetLoader,
+        app.renderer,
+        app.transformManager.getNativeHandle(),
+        app.ubershaderMaterialProvider,
+        app.renderManager.getNativeHandle(),
+        app.jobThreadHandle,
+        app.nameComponentManager,
+        app.loadResource,
+        app.lightManager.getNativeHandle(),
+        app.renderableManager.getNativeHandle(),
+        app.animationManager.getNativeHandle(),
+      );
 }

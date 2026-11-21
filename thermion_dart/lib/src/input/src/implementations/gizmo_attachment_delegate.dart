@@ -178,7 +178,8 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
           final y = pos.y.toInt();
 
           // First check if gizmo axis was clicked
-          final started = await _gizmo!.startDrag(x, y);
+          final cameraContext = await GizmoCameraContext.fetch(viewer);
+          final started = await _gizmo?.startDrag(x, y, context: cameraContext) ?? false;
           if (started) {
             _isDraggingGizmo = true;
             _reportTransformChange();
@@ -190,7 +191,7 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
 
         case MouseEvent(type: MouseEventType.buttonUp, button: MouseButton.left || null):
           if (_isDraggingGizmo) {
-            await _gizmo!.endDrag();
+            await _gizmo?.endDrag();
             _isDraggingGizmo = false;
           }
           break;
@@ -199,15 +200,18 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
           if (_isDraggingGizmo) {
             final x = event.localPosition.x.toInt();
             final y = event.localPosition.y.toInt();
-            await _gizmo!.updateDrag(x, y);
+            final cameraContext = await GizmoCameraContext.fetch(viewer);
+            await _gizmo?.updateDrag(x, y, context: cameraContext);
             _reportTransformChange();
-          } else {
-            // Update gizmo position and check for hover
-            await _gizmo?.update();
+          } else if (_gizmo != null) {
+            // Fetch camera state once and share it between the position
+            // update and hover picking to avoid redundant FFI reads.
+            final cameraContext = await GizmoCameraContext.fetch(viewer);
+            await _gizmo?.update(cameraPosition: cameraContext.cameraPosition);
             if (!_isDraggingGizmo) {
               final x = event.localPosition.x.toInt();
               final y = event.localPosition.y.toInt();
-              await _gizmo?.hover(x, y);
+              await _gizmo?.hover(x, y, context: cameraContext);
             }
           }
           break;

@@ -41,8 +41,19 @@ abstract class ThermionViewer {
   @Deprecated('Use FilamentApp.instance!.setTargetFramerate(framerate)')
   Future<void> setFrameRate(int framerate);
 
-  // Destroys/disposes the viewer (including the entire scene). You cannot use the viewer after calling this method.
-  Future dispose();
+  /// Disposes the viewer and the assets and lights created through it.
+  ///
+  /// Queued scene operations finish before resources are released.
+  /// Asset and light cleanup calls made once disposal starts do nothing.
+  /// Do not use the viewer for other work after calling this method.
+  /// Assets created directly through [FilamentApp] remain the caller's
+  /// responsibility, even if they were added to this viewer's scene.
+  ///
+  /// Cleanup continues after errors where it is safe to do so. The returned
+  /// future reports the first error after cleanup. Further errors are logged.
+  /// The viewer cannot be used again, even if cleanup fails. Repeated calls
+  /// return the same future and do not retry cleanup.
+  Future<void> dispose();
 
   // Return the textured quad used for the background image.
   Future<TexturedQuad> getBackgroundImage();
@@ -216,15 +227,21 @@ abstract class ThermionViewer {
     bool addToScene = true,
   });
 
-  // Destroys [asset] and all underlying resources
-  // (including instances, but excluding any manually created material instances).
-  //
+  /// Destroys a viewer-owned [asset], its instances, and their bounding boxes.
+  /// Manually created material instances are excluded. Instances of
+  /// viewer-owned assets are owned by this viewer too.
+  ///
+  /// Removes the asset's and its instances' bounding boxes from this scene.
+  /// Destroying the asset also releases their geometry and generated materials.
+  /// Throws [StateError] for a live asset this viewer does not own. Adding an
+  /// asset to this viewer's scene does not transfer ownership.
+  /// Does nothing for already destroyed assets or once viewer disposal starts.
+  /// Destroy app-owned assets through [FilamentApp.destroyAsset].
   Future destroyAsset(ThermionAsset asset);
 
-  // Removes/destroys all renderable entities from the scene (including cameras).
-  // All [ThermionEntity] handles will no longer be valid after this method is
-  // called; ensure you immediately discard all references to all entities once
-  // this method is complete.
+  /// Destroys all assets created or loaded through this viewer and their
+  /// instances. Their native handles are invalid after this completes.
+  /// Does nothing once viewer disposal starts.
   Future destroyAssets();
 
   // Enable/disable bloom.
@@ -276,25 +293,30 @@ abstract class ThermionViewer {
   //
   Future<ThermionAsset> createGeometry(Geometry geometry, {List<MaterialInstance>? materialInstances});
 
-  // Returns a gizmo for translating/rotating objects.
-  // Only one gizmo can be visible at any given time for this viewer.
-  Future<GizmoAsset> getGizmo(GizmoType type);
-
-  // Register a callback to be invoked when this viewer is disposed.
+  /// Register cleanup to run during disposal, before cameras, scene and view
+  /// are destroyed. Register callbacks before disposal starts.
+  ///
+  /// A callback error does not stop the remaining callbacks or viewer cleanup.
+  /// [dispose] reports the first error and logs later errors. Do not await
+  /// this viewer's [dispose] from a callback: disposal is already waiting
+  /// for that callback.
   void onDispose(Future Function() callback);
 
   // Gets the 3D axis aligned bounding box for the given entity.
   @Deprecated("Call FilamentApp.instance.getRenderableBoundingBox instead")
   Future<Aabb3> getRenderableBoundingBox(ThermionEntity entity);
 
-  // Render the bounding box for [asset] with an unlit material.
+  /// Shows the asset-owned bounding-box geometry in this viewer's scene.
   Future showBoundingBox(ThermionAsset asset);
 
-  // Removes the bounding box for [asset] from the scene.
-  //
-  // If [destroy] is true, the geometry and material instance for the asset
-  // will also be destroyed.
-  Future hideBoundingBox(ThermionAsset asset, {bool destroy = false});
+  /// Detaches the bounding box from this viewer's scene.
+  /// The asset keeps its cached box. Use [ThermionAsset.destroyBoundingBox]
+  /// to destroy the geometry and material in every scene.
+  /// The deprecated [destroy] option also destroys the box in every scene.
+  Future<void> hideBoundingBox(
+    ThermionAsset asset, {
+    @Deprecated('Use asset.destroyBoundingBox() to destroy the shared box.') bool destroy = false,
+  });
 
   // Gets the 2D bounding box (in viewport coordinates) for the given entity.
   Future<Aabb2> getViewportBoundingBox(ThermionEntity entity);
@@ -343,10 +365,11 @@ abstract class ThermionViewer {
   int getCameraCount();
 
   // Adds the asset to the scene. All renderable entities attached to
-  // the asset will be visible.
+  // the asset will be visible. This does not transfer ownership to the viewer.
   Future addToScene(covariant ThermionAsset asset);
 
   // Removes the asset from the scene. None of the renderable entities
   // attached to the asset will be visible, but the asset itself remains valid.
+  // Does nothing once viewer disposal starts.
   Future removeFromScene(covariant ThermionAsset asset);
 }

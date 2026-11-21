@@ -24,7 +24,7 @@ class FFIRenderTarget extends RenderTarget<Pointer<TRenderTarget>> {
   @override
   Future destroy() async {
     await withVoidCallback(
-      (requestId, cb) => RenderTarget_destroyRenderThread(_app.engine, renderTarget, requestId, cb),
+      (requestId, cb) => RenderTarget_destroyJobThread(_app.jobThreadHandle, _app.engine, renderTarget, requestId, cb),
     );
   }
 

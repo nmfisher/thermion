@@ -1,3 +1,6 @@
 
 # Use bd merge for beads JSONL files
 .beads/issues.jsonl merge=beads
+
+# Patches must keep LF line endings so git apply can parse them on Windows.
+scripts/*.patch text eol=lf

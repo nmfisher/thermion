@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
-import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'ffi_filament_app.dart';
 
@@ -16,15 +15,74 @@ class RenderAttachmentState {
   final _attachments = <Pointer<TSwapChain>, List<(int, View)>>{};
   final _renderable = <View, bool>{};
 
+  /// Last ordered renderable view list pushed to native for each swapchain.
+  /// Used by [dirtyRenderableSnapshot] to skip syncing swapchains whose
+  /// renderable list has not changed.
+  final _syncedViews = <Pointer<TSwapChain>, List<View>>{};
+
+  static void _stableSortByOrder(List<(int, View)> views) {
+    if (views.length <= 1) return;
+    // Insertion sort preserves relative order for equal renderOrder values
+    // across all attachment counts (Dart's List.sort is unstable above 32).
+    for (int i = 1; i < views.length; i++) {
+      final current = views[i];
+      int j = i - 1;
+      while (j >= 0 && views[j].$1 > current.$1) {
+        views[j + 1] = views[j];
+        j--;
+      }
+      views[j + 1] = current;
+    }
+  }
+
   void attach(View view, Pointer<TSwapChain> swapChain, {int renderOrder = 0}) {
     final views = _attachments.putIfAbsent(swapChain, () => []);
-    views.removeWhere((entry) => entry.$2 == view);
+    final existingIndex = views.indexWhere((entry) => entry.$2 == view);
+    if (existingIndex != -1) {
+      if (views[existingIndex].$1 == renderOrder) {
+        return;
+      }
+      views.removeAt(existingIndex);
+    }
     views.add((renderOrder, view));
-    views.sort((a, b) => a.$1.compareTo(b.$1));
+    _stableSortByOrder(views);
+  }
+
+  void setAttachments(Pointer<TSwapChain> swapChain, List<({View view, int order})> attachments) {
+    final next = <(int, View)>[];
+    for (final attachment in attachments) {
+      next.removeWhere((entry) => entry.$2 == attachment.view);
+      next.add((attachment.order, attachment.view));
+    }
+    _stableSortByOrder(next);
+    if (next.isEmpty) {
+      _attachments.remove(swapChain);
+    } else {
+      _attachments[swapChain] = next;
+    }
+  }
+
+  void updateAttachments(
+    Pointer<TSwapChain> swapChain, {
+    Iterable<({View view, int order})> attach = const [],
+    Iterable<View> detach = const [],
+  }) {
+    final detachSet = detach is Set<View> ? detach : detach.toSet();
+    final views = _attachments[swapChain];
+    if (views != null && detachSet.isNotEmpty) {
+      views.removeWhere((entry) => detachSet.contains(entry.$2));
+    }
+    for (final attachment in attach) {
+      this.attach(attachment.view, swapChain, renderOrder: attachment.order);
+    }
   }
 
   void setRenderable(View view, bool renderable) {
     _renderable[view] = renderable;
+  }
+
+  void setRenderables(Map<View, bool> renderability) {
+    _renderable.addAll(renderability);
   }
 
   void detach(View view, {Pointer<TSwapChain>? swapChain}) {
@@ -40,13 +98,89 @@ class RenderAttachmentState {
 
   void detachAll(Pointer<TSwapChain> swapChain) {
     _attachments.remove(swapChain);
+    _syncedViews.remove(swapChain);
   }
 
-  Map<Pointer<TSwapChain>, List<(int, View)>> activeSnapshot() {
+  Map<Pointer<TSwapChain>, List<(int, View)>> renderableSnapshot() {
     return {
       for (final entry in _attachments.entries)
         entry.key: entry.value.where((attachment) => _renderable[attachment.$2] ?? true).toList(),
     };
+  }
+
+  /// Returns the currently renderable views attached to [swapChain] in
+  /// `renderOrder` order (excluding paused views where `_renderable[view]` is
+  /// `false`). This is the exact ordered list passed to native
+  /// `RenderManager_setRenderable`.
+  List<View> _renderableViewsFor(Pointer<TSwapChain> swapChain) {
+    final attachments = _attachments[swapChain];
+    if (attachments == null || attachments.isEmpty) {
+      return const [];
+    }
+    return [
+      for (final attachment in attachments)
+        if (_renderable[attachment.$2] ?? true) attachment.$2,
+    ];
+  }
+
+  static bool _viewListsEqual(List<View> a, List<View> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  /// Returns an ordered renderable view list for each swapchain whose
+  /// renderable list differs from the last synced state in [_syncedViews].
+  ///
+  /// Swapchains that previously synced non-empty views and now have none are
+  /// included with an empty list so native clears their view vector once.
+  Map<Pointer<TSwapChain>, List<View>> dirtyRenderableSnapshot() {
+    final dirty = <Pointer<TSwapChain>, List<View>>{};
+    final swapChains = <Pointer<TSwapChain>>{..._attachments.keys, ..._syncedViews.keys};
+    for (final swapChain in swapChains) {
+      final current = _renderableViewsFor(swapChain);
+      final synced = _syncedViews[swapChain] ?? const <View>[];
+      if (!_viewListsEqual(current, synced)) {
+        dirty[swapChain] = List<View>.unmodifiable(current);
+      }
+    }
+    return dirty;
+  }
+
+  /// Records that [views] has been synchronized to native for [swapChain].
+  void markSynced(Pointer<TSwapChain> swapChain, List<View> views) {
+    if (views.isEmpty) {
+      _syncedViews.remove(swapChain);
+    } else {
+      _syncedViews[swapChain] = List<View>.unmodifiable(views);
+    }
+  }
+
+  ({Map<Pointer<TSwapChain>, List<(int, View)>> attachments, Map<View, bool> renderable}) _saveState() => (
+    attachments: {for (final entry in _attachments.entries) entry.key: List<(int, View)>.of(entry.value)},
+    renderable: Map<View, bool>.of(_renderable),
+  );
+
+  void _restoreState(({Map<Pointer<TSwapChain>, List<(int, View)>> attachments, Map<View, bool> renderable}) saved) {
+    _attachments
+      ..clear()
+      ..addAll(saved.attachments);
+    _renderable
+      ..clear()
+      ..addAll(saved.renderable);
+  }
+
+  List<ViewAttachment> getViewAttachments(Pointer<TSwapChain> swapChain) {
+    final attachments = _attachments[swapChain] ?? const <(int, View)>[];
+    return List.unmodifiable(
+      attachments.map(
+        (attachment) =>
+            ViewAttachment(view: attachment.$2, order: attachment.$1, renderable: _renderable[attachment.$2] ?? true),
+      ),
+    );
   }
 
   Iterable<View> getAttachedViews(Pointer<TSwapChain> swapChain) =>
@@ -63,10 +197,14 @@ class RenderAttachmentState {
   void clear() {
     _attachments.clear();
     _renderable.clear();
+    _syncedViews.clear();
   }
 }
 
 class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
+  /// Native `RenderManager_setRenderable` passes view count as `uint8_t`.
+  static const int maxRenderableViewsPerSwapChain = 255;
+
   final Pointer<TRenderManager> pointer;
 
   /// The owning app. The RenderManager wraps engine-bound resources (a
@@ -132,108 +270,145 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
     });
   }
 
-  @override
-  Future attach(View view, SwapChain swapChain, {int renderOrder = 0}) {
+  void _validateDirtyViews(Map<Pointer<TSwapChain>, List<View>> dirty) {
+    for (final views in dirty.values) {
+      if (views.length > maxRenderableViewsPerSwapChain) {
+        throw RangeError.range(
+          views.length,
+          0,
+          maxRenderableViewsPerSwapChain,
+          'views',
+          'RenderManager supports at most $maxRenderableViewsPerSwapChain renderable views per swapchain',
+        );
+      }
+    }
+  }
+
+  Future<void> _mutate(void Function() mutation) {
     return _serialize(() async {
-      _attachmentState.attach(view, swapChain.getNativeHandle(), renderOrder: renderOrder);
-      await _syncViews();
+      final saved = _attachmentState._saveState();
+      final Map<Pointer<TSwapChain>, List<View>> dirty;
+      try {
+        mutation();
+        dirty = _attachmentState.dirtyRenderableSnapshot();
+        _validateDirtyViews(dirty);
+      } catch (_) {
+        _attachmentState._restoreState(saved);
+        rethrow;
+      }
+      await _syncViews(dirty);
     });
   }
 
   @override
-  Future setRenderable(View view, bool renderable) {
-    return _serialize(() async {
-      _attachmentState.setRenderable(view, renderable);
-      await _syncViews();
-    });
-  }
+  Future attach(View view, SwapChain swapChain, {int renderOrder = 0}) =>
+      _mutate(() => _attachmentState.attach(view, swapChain.getNativeHandle(), renderOrder: renderOrder));
 
   @override
-  Future detach(View view, {SwapChain? swapChain}) {
-    return _serialize(() async {
-      _attachmentState.detach(view, swapChain: swapChain?.getNativeHandle());
-      await _syncViews();
-    });
-  }
+  Future setAttachments(SwapChain swapChain, List<({View view, int order})> attachments) =>
+      _mutate(() => _attachmentState.setAttachments(swapChain.getNativeHandle(), attachments));
 
-  Future _syncViews() async {
-    // Snapshot the keys and the per-key view list BEFORE iterating.
-    // Concurrent `attach` / `detach` calls (common in multi-viewer
-    // apps where multiple viewers mount or dispose at the same time)
-    // mutate `_attachments` while we await on the render thread
-    // round-trip. A naive `for (final h in _attachments.keys) { … }`
-    // loop yields to the event loop on the await, lets a concurrent
-    // attach/detach modify the live map, then resumes with stale
-    // iterator state — `_syncViews` ends up pushing inconsistent
-    // view lists to C++ RenderManager (some swap chains skipped,
-    // others written with old data). The downstream symptom is the
-    // `endFrame:490 — SwapChain must remain valid` precondition
-    // when the render iteration touches the inconsistent state.
-    //
-    // Snapshotting also tolerates removal: if an entry was deleted
-    // by the time we get back to it, the views list will be null
-    // and we skip it.
-    final snapshot = _attachmentState.activeSnapshot();
+  @override
+  Future updateAttachments(
+    SwapChain swapChain, {
+    Iterable<({View view, int order})> attach = const [],
+    Iterable<View> detach = const [],
+  }) => _mutate(() => _attachmentState.updateAttachments(swapChain.getNativeHandle(), attach: attach, detach: detach));
 
-    for (final swapChainHandle in snapshot.keys) {
-      final views = snapshot[swapChainHandle];
-      if (views == null) continue;
+  @override
+  Future setRenderable(View view, bool renderable) => setRenderables({view: renderable});
+
+  @override
+  Future setRenderables(Map<View, bool> renderability) => _mutate(() => _attachmentState.setRenderables(renderability));
+
+  @override
+  Future detach(View view, {SwapChain? swapChain}) =>
+      _mutate(() => _attachmentState.detach(view, swapChain: swapChain?.getNativeHandle()));
+
+  Future<void> _syncSwapChain(Pointer<TSwapChain> swapChainHandle, List<View> views) async {
+    final Pointer<PointerClass<TView>> viewPointers;
+    if (views.isEmpty) {
+      viewPointers = nullptr.cast();
+    } else {
       final pointers = allocate<PointerClass>(views.length * sizeOf<PointerClass>());
       for (int i = 0; i < views.length; i++) {
-        pointers[i] = views[i].$2.getNativeHandle();
+        pointers[i] = views[i].getNativeHandle();
       }
+      viewPointers = pointers.cast();
+    }
 
+    try {
       await withVoidCallback(
-        (requestId, cb) => RenderManager_setRenderableRenderThread(
+        (requestId, cb) => RenderManager_setRenderableJobThread(
+          app.jobThreadHandle,
           pointer,
           swapChainHandle,
-          pointers.cast(),
+          viewPointers,
           views.length,
           requestId,
           cb,
         ),
       );
-
-      free(pointers);
-      _logger.fine("""Synced ${views.length} views for swapchain $swapChainHandle""");
+    } finally {
+      if (views.isNotEmpty) {
+        free(viewPointers);
+      }
     }
+    _logger.fine("""Synced ${views.length} views for swapchain $swapChainHandle""");
   }
 
-  Future detachAll(SwapChain swapChain) {
-    return _serialize(() async {
-      await withVoidCallback(
-        (requestId, cb) =>
-            RenderManager_removeSwapChainRenderThread(pointer, swapChain.getNativeHandle(), requestId, cb),
-      );
-      _attachmentState.detachAll(swapChain.getNativeHandle());
-    });
-  }
+  Future _syncViews([Map<Pointer<TSwapChain>, List<View>>? dirtySnapshot]) async {
+    // Snapshot the keys and per-key view list BEFORE iterating.
+    // Even though mutations are serialized on `_opChain`, taking a snapshot
+    // avoids mutating live collections across async round-trips.
+    final dirty = dirtySnapshot ?? _attachmentState.dirtyRenderableSnapshot();
+    _validateDirtyViews(dirty);
 
-  void destroy() {
-    _attachmentState.clear();
-    RenderManager_destroy(pointer);
-  }
-
-  Future render() async {
-    if (FILAMENT_SINGLE_THREADED) {
-      // Web: fire-and-forget. The render completes across the next N rAF
-      // cycles (N = number of swapchains) driven by RenderThread::iter()
-      // calling RenderManager::tick(). We cannot await completion without
-      // deadlocking the worker's main loop from the main browser thread,
-      // and pre-refactor web was already fire-and-forget via requestFrame.
-      RenderManager_requestRender(pointer);
-    } else {
-      final frameTimeInNanos = DateTime.now().microsecondsSinceEpoch * 1000;
-
-      await withVoidCallback((requestId, cb) {
-        RenderManager_renderRenderThread(pointer, frameTimeInNanos.toBigInt, requestId, cb);
-      });
+    for (final entry in dirty.entries) {
+      await _syncSwapChain(entry.key, entry.value);
+      _attachmentState.markSynced(entry.key, entry.value);
     }
   }
 
   @override
+  Future detachAll(SwapChain swapChain) {
+    return _serialize(() async {
+      final swapChainHandle = swapChain.getNativeHandle();
+      await withVoidCallback(
+        (requestId, cb) =>
+            RenderManager_removeSwapChainJobThread(app.jobThreadHandle, pointer, swapChainHandle, requestId, cb),
+      );
+      _attachmentState.detachAll(swapChainHandle);
+    });
+  }
+
+  @override
+  Future<void> destroy() => _serialize(() async {
+    await withVoidCallback((requestId, callback) {
+      RenderManager_destroyJobThread(app.jobThreadHandle, pointer, requestId, callback);
+    });
+    _attachmentState.clear();
+  });
+
+  Future render({int? frameTimeInNanos}) async {
+    // Previously there was a check here for running on web (and if so, the method simply returned
+    // because the compiled Thermion web library managed its own main loop & frame rendering).
+    // This check has been moved to JobThread (which decides whether its worker owns rendering or this call
+    // drives a frame on the calling thread. Worker mode completes without queuing work).
+    final timestamp = frameTimeInNanos ?? FrameScheduler_steadyClockUs().toInt() * 1000;
+    await withVoidCallback((requestId, cb) {
+      RenderManager_renderJobThread(app.jobThreadHandle, pointer, timestamp.toBigInt, requestId, cb);
+    });
+  }
+
+  @override
   Iterable<View> getAttachedViews(SwapChain swapChain) {
-    return _attachmentState.getAttachedViews(swapChain.getNativeHandle());
+    return getViewAttachments(swapChain).map((attachment) => attachment.view);
+  }
+
+  @override
+  List<ViewAttachment> getViewAttachments(SwapChain swapChain) {
+    return _attachmentState.getViewAttachments(swapChain.getNativeHandle());
   }
 
   @override

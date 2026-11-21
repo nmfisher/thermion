@@ -1,4 +1,3 @@
-import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 /// FFI implementation for creating translation axis material instances.
@@ -25,12 +24,7 @@ class FFITranslationAxisMaterial {
     double lineLength = 100.0,
   }) async {
     // Create translation axis material
-    final material = FFIMaterial(
-      await withPointerCallback<TMaterial>(
-        (callback) => Material_createTranslationAxisMaterialRenderThread(app.engine, callback),
-      ),
-      app,
-    );
+    final material = await app.createBuiltInMaterial(BuiltInMaterial.translationAxis);
 
     // Create and configure material instance
     final instance = await material.createInstance();

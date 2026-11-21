@@ -8,7 +8,6 @@ export 'material.dart';
 export 'texture.dart';
 export 'asset.dart';
 export 'entity.dart';
-export 'gizmo.dart';
 export 'light.dart';
 export 'shadow.dart';
 export 'manipulator.dart';

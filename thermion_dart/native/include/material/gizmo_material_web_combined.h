@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 #define GIZMO_GIZMO_OFFSET 0
-#define GIZMO_GIZMO_SIZE 71468
+#define GIZMO_GIZMO_SIZE 73250
 #define GIZMO_GIZMO_DATA (GIZMO_PACKAGE + GIZMO_GIZMO_OFFSET)
 
 #endif

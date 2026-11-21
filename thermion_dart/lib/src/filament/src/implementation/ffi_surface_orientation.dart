@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import 'dart:typed_data';
 import '../../../bindings/bindings.dart' as bindings;
 import '../interface/surface_orientation.dart';
@@ -27,26 +28,24 @@ class FFISurfaceOrientation extends SurfaceOrientation {
 
     final bufferSize = quatCount * elementSize;
 
-    // Allocate buffer for output
     final output = switch (format) {
-      QuaternionFormat.FLOAT4 => bindings.makeFloat32List(bufferSize ~/ 4),
-      QuaternionFormat.SHORT4 => bindings.makeInt16List(bufferSize ~/ 2),
-      QuaternionFormat.HALF4 => bindings.makeUint16List(bufferSize ~/ 2),
+      QuaternionFormat.FLOAT4 => Float32List(bufferSize ~/ 4),
+      QuaternionFormat.SHORT4 => Int16List(bufferSize ~/ 2),
+      QuaternionFormat.HALF4 => Uint16List(bufferSize ~/ 2),
     };
-
-    final outputBytes = output.asUint8List();
-    switch (format) {
-      case QuaternionFormat.FLOAT4:
-        bindings.SurfaceOrientation_getQuats_float4(_ptr, outputBytes.address.cast(), quatCount, stride);
-        break;
-      case QuaternionFormat.SHORT4:
-        bindings.SurfaceOrientation_getQuats_short4(_ptr, outputBytes.address.cast(), quatCount, stride);
-        break;
-      case QuaternionFormat.HALF4:
-        bindings.SurfaceOrientation_getQuats_half4(_ptr, outputBytes.address.cast(), quatCount, stride);
-        break;
-    }
-
+    await output.passOutput<void>((bytes) {
+      switch (format) {
+        case QuaternionFormat.FLOAT4:
+          bindings.SurfaceOrientation_getQuats_float4(_ptr, bytes.address.cast(), quatCount, stride);
+          break;
+        case QuaternionFormat.SHORT4:
+          bindings.SurfaceOrientation_getQuats_short4(_ptr, bytes.address.cast(), quatCount, stride);
+          break;
+        case QuaternionFormat.HALF4:
+          bindings.SurfaceOrientation_getQuats_half4(_ptr, bytes.address.cast(), quatCount, stride);
+          break;
+      }
+    });
     return output;
   }
 
@@ -58,86 +57,117 @@ class FFISurfaceOrientation extends SurfaceOrientation {
 
 /// FFI implementation of SurfaceOrientationBuilder for native platforms.
 class FFISurfaceOrientationBuilder implements SurfaceOrientationBuilder {
-  bindings.Pointer<bindings.TSurfaceOrientationBuilder>? _builderPtr;
   bool _isBuilt = false;
-
-  FFISurfaceOrientationBuilder() {
-    _builderPtr = bindings.SurfaceOrientationBuilder_create();
-  }
+  int _vertexCount = 0;
+  int _triangleCount = 0;
+  Float32List? _normals, _tangents, _uvs, _positions;
+  Uint32List? _triangles32;
+  Uint16List? _triangles16;
+  int _normalStride = 0, _tangentStride = 0, _uvStride = 0, _positionStride = 0;
+  static final _emptyFloats = Float32List(0);
+  static final _emptyIndices32 = Uint32List(0);
+  static final _emptyIndices16 = Uint16List(0);
 
   void _checkNotBuilt() {
     if (_isBuilt) {
       throw StateError('Builder has already been built and cannot be reused');
-    }
-    if (_builderPtr == null || _builderPtr == bindings.nullptr) {
-      throw StateError('Builder pointer is null');
     }
   }
 
   @override
   void vertexCount(int count) {
     _checkNotBuilt();
-    bindings.SurfaceOrientationBuilder_vertexCount(_builderPtr!, count);
+    _vertexCount = count;
   }
 
   @override
   void normals(Float32List normals, {int stride = 0}) {
     _checkNotBuilt();
-    final byteData = normals.asUint8List();
-    bindings.SurfaceOrientationBuilder_normals(_builderPtr!, byteData.address.cast<bindings.Float>(), stride);
+    _normals = normals;
+    _normalStride = stride;
   }
 
   @override
   void tangents(Float32List tangents, {int stride = 0}) {
     _checkNotBuilt();
-    final byteData = tangents.asUint8List();
-    bindings.SurfaceOrientationBuilder_tangents(_builderPtr!, byteData.address.cast<bindings.Float>(), stride);
+    _tangents = tangents;
+    _tangentStride = stride;
   }
 
   @override
   void uvs(Float32List uvs, {int stride = 0}) {
     _checkNotBuilt();
-    final byteData = uvs.asUint8List();
-    bindings.SurfaceOrientationBuilder_uvs(_builderPtr!, byteData.address.cast<bindings.Float>(), stride);
+    _uvs = uvs;
+    _uvStride = stride;
   }
 
   @override
   void positions(Float32List positions, {int stride = 0}) {
     _checkNotBuilt();
-    final byteData = positions.asUint8List();
-    bindings.SurfaceOrientationBuilder_positions(_builderPtr!, byteData.address.cast<bindings.Float>(), stride);
+    _positions = positions;
+    _positionStride = stride;
   }
 
   @override
   void triangleCount(int count) {
     _checkNotBuilt();
-    bindings.SurfaceOrientationBuilder_triangleCount(_builderPtr!, count);
+    _triangleCount = count;
   }
 
   @override
   void trianglesUint32(Uint32List triangles) {
     _checkNotBuilt();
-    final byteData = triangles.asUint8List();
-    bindings.SurfaceOrientationBuilder_triangles_uint(_builderPtr!, byteData.address.cast<bindings.Uint32>());
+    _triangles32 = triangles;
   }
 
   @override
   void trianglesUint16(Uint16List triangles) {
     _checkNotBuilt();
-    final byteData = triangles.asUint8List();
-    bindings.SurfaceOrientationBuilder_triangles_ushort(_builderPtr!, byteData.address.cast<bindings.Uint16>());
+    _triangles16 = triangles;
   }
 
   @override
   Future<SurfaceOrientation> build() async {
     _checkNotBuilt();
 
-    final orientationPtr = bindings.SurfaceOrientationBuilder_build(_builderPtr!);
-
-    bindings.SurfaceOrientationBuilder_destroy(_builderPtr!);
-    _builderPtr = null;
-    _isBuilt = true;
-
-    return FFISurfaceOrientation(orientationPtr);
+    final normals = _normals ?? _emptyFloats;
+    final tangents = _tangents ?? _emptyFloats;
+    final uvs = _uvs ?? _emptyFloats;
+    final positions = _positions ?? _emptyFloats;
+    final triangles32 = _triangles32 ?? _emptyIndices32;
+    final triangles16 = _triangles16 ?? _emptyIndices16;
+    return <TypedData>[normals, tangents, uvs, positions, triangles32, triangles16].pass<SurfaceOrientation>((inputs) {
+      final normalInput = inputs[0];
+      final tangentInput = inputs[1];
+      final uvInput = inputs[2];
+      final positionInput = inputs[3];
+      final triangleInput32 = inputs[4];
+      final triangleInput16 = inputs[5];
+      final orientationPtr = bindings.SurfaceOrientation_build(
+        _vertexCount,
+        normalInput.address.cast(),
+        normals.length,
+        _normalStride,
+        tangentInput.address.cast(),
+        tangents.length,
+        _tangentStride,
+        uvInput.address.cast(),
+        uvs.length,
+        _uvStride,
+        positionInput.address.cast(),
+        positions.length,
+        _positionStride,
+        _triangleCount,
+        triangleInput32.address.cast(),
+        triangles32.length,
+        triangleInput16.address.cast(),
+        triangles16.length,
+      );
+      _isBuilt = true;
+      _normals = _tangents = _uvs = _positions = null;
+      _triangles32 = null;
+      _triangles16 = null;
+      return FFISurfaceOrientation(orientationPtr);
+    });
   }
 }

@@ -8,6 +8,9 @@ import 'ffi_filament_app.dart';
 class FFITexturedQuad<T> extends TexturedQuad<T> {
   final ThermionAsset<T> asset;
 
+  @override
+  bool get isDestroyed => asset.isDestroyed;
+
   ThermionEntity get entity => asset.entity;
 
   Texture? texture;
@@ -193,6 +196,10 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
   }
 
   @override
+  ThermionAsset? get owner => asset.owner;
+
+  @override
+  @Deprecated('Use owner. Check isInstance for native instances.')
   ThermionAsset<dynamic>? get instanceOwner => null;
 
   @override

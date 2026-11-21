@@ -18,9 +18,15 @@
 #ifdef __ANDROID__
 #include <android/choreographer.h>
 #include <android/looper.h>
+#include <dlfcn.h>
 #endif
 
 namespace thermion {
+
+static uint64_t steadyClockNanos() {
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+}
 
 // ---------------------------------------------------------------------------
 // FrameScheduler (base helpers)
@@ -36,42 +42,8 @@ void FrameScheduler::setTargetFps(int fps) {
 }
 
 void FrameScheduler::handleSourceTick(uint64_t nanos) {
-    // Framerate limiting: use an absolute deadline rather than measuring from
-    // the last dispatched vsync. This preserves the requested average on
-    // refresh rates that are not integer multiples of the target (for example,
-    // 60 fps on a 90 Hz display alternates one- and two-vsync intervals instead
-    // of collapsing to 45 fps).
-    int fps = _fpsLimit.load(std::memory_order_relaxed);
-    if (fps > 0) {
-        const uint64_t tolerance = 1000000ULL; // 1 ms
-
-        if (_appliedFpsLimit != fps || _nextDispatchNs == 0) {
-            _appliedFpsLimit = fps;
-            _dispatchIntervalNs = std::max<uint64_t>(
-                1, 1000000000ULL / static_cast<uint64_t>(fps));
-            _nextDispatchNs = nanos;
-        }
-
-        if (_nextDispatchNs > nanos &&
-            _nextDispatchNs - nanos > tolerance) {
-            return; // next target deadline has not arrived — skip
-        }
-
-        // Advance by whole target intervals, dropping any deadlines missed
-        // while the scheduler/render thread was stalled. Never burst frames to
-        // catch up.
-        if (_nextDispatchNs <= nanos) {
-            const uint64_t missedIntervals =
-                (nanos - _nextDispatchNs) / _dispatchIntervalNs + 1;
-            _nextDispatchNs += missedIntervals * _dispatchIntervalNs;
-        } else {
-            // Accepted up to [tolerance] before the deadline.
-            _nextDispatchNs += _dispatchIntervalNs;
-        }
-    } else {
-        _appliedFpsLimit = 0;
-        _dispatchIntervalNs = 0;
-        _nextDispatchNs = 0;
+    if (!_rateGate.admit(nanos, _fpsLimit.load(std::memory_order_relaxed))) {
+        return;
     }
 
     if (_tickCallback) {
@@ -82,9 +54,7 @@ void FrameScheduler::handleSourceTick(uint64_t nanos) {
 void FrameScheduler::resetState() {
     _tickCallback = nullptr;
     _tickUserData = nullptr;
-    _appliedFpsLimit = 0;
-    _dispatchIntervalNs = 0;
-    _nextDispatchNs = 0;
+    _rateGate.reset();
 }
 
 FrameScheduler* FrameScheduler::create(int targetFps) {
@@ -113,7 +83,8 @@ void TimerFrameScheduler::onTargetFpsChanged(int) {
     _wakeCondition.notify_all();
 }
 
-void TimerFrameScheduler::run() {
+void FrameScheduler::runTimerLoop(std::atomic<bool>& running, int fallbackFps,
+        std::mutex& wakeMutex, std::condition_variable& wakeCondition) {
     using Clock = std::chrono::steady_clock;
 
     int appliedSourceFps = 0;
@@ -122,11 +93,11 @@ void TimerFrameScheduler::run() {
     auto lastActual = nextWake;
     uint64_t frameCount = 0;
 
-    while (_running.load(std::memory_order_relaxed)) {
+    while (running.load(std::memory_order_relaxed)) {
         const int requestedFps = _fpsLimit.load(std::memory_order_relaxed);
         const int sourceFps = requestedFps > 0
             ? requestedFps
-            : std::max(1, _targetFps);
+            : std::max(1, fallbackFps);
         if (sourceFps != appliedSourceFps) {
             appliedSourceFps = sourceFps;
             sourceInterval = std::chrono::nanoseconds(
@@ -167,13 +138,13 @@ void TimerFrameScheduler::run() {
             nextWake += sourceInterval * missedIntervals;
         }
 
-        std::unique_lock<std::mutex> lock(_wakeMutex);
-        _wakeCondition.wait_until(lock, nextWake, [this, appliedSourceFps]() {
+        std::unique_lock<std::mutex> lock(wakeMutex);
+        wakeCondition.wait_until(lock, nextWake, [this, appliedSourceFps, fallbackFps, &running]() {
             const int requestedFps = _fpsLimit.load(std::memory_order_relaxed);
             const int sourceFps = requestedFps > 0
                 ? requestedFps
-                : std::max(1, _targetFps);
-            return !_running.load(std::memory_order_relaxed) ||
+                : std::max(1, fallbackFps);
+            return !running.load(std::memory_order_relaxed) ||
                 sourceFps != appliedSourceFps;
         });
     }
@@ -184,7 +155,9 @@ void TimerFrameScheduler::start(TickCallback tickCallback, void* userData) {
     _tickCallback = tickCallback;
     _tickUserData = userData;
     _running = true;
-    _thread = new std::thread([this]() { run(); });
+    _thread = new std::thread([this]() {
+        runTimerLoop(_running, _targetFps, _wakeMutex, _wakeCondition);
+    });
 }
 
 void TimerFrameScheduler::stop() {
@@ -209,7 +182,9 @@ void TimerFrameScheduler::stop() {
 
 void CADisplayLinkScheduler::displayLinkCallback(uint64_t frameTimeNanos, void* context) {
     auto* self = static_cast<CADisplayLinkScheduler*>(context);
-    self->handleSourceTick(frameTimeNanos);
+    const uint64_t sourceNow = CADisplayLinkWrapper_currentTimeNanos();
+    const uint64_t steadyNow = steadyClockNanos();
+    self->handleSourceTick(self->_frameTime.map(frameTimeNanos, sourceNow, steadyNow));
 }
 
 void CADisplayLinkScheduler::start(TickCallback tickCallback, void* userData) {
@@ -234,6 +209,7 @@ void CADisplayLinkScheduler::stop() {
         _wrapper = nullptr;
     }
     resetState();
+    _frameTime.reset();
 }
 
 #endif // __APPLE__ && TARGET_OS_IOS
@@ -262,6 +238,7 @@ void CVDisplayLinkScheduler::stop() {
         _displayLink = nullptr;
     }
     resetState();
+    _frameTime.reset();
 }
 
 CVReturn CVDisplayLinkScheduler::displayLinkCallback(CVDisplayLinkRef displayLink,
@@ -269,12 +246,10 @@ CVReturn CVDisplayLinkScheduler::displayLinkCallback(CVDisplayLinkRef displayLin
     CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* context) {
 
     auto* self = static_cast<CVDisplayLinkScheduler*>(context);
-    // hostTime is Mach absolute time; convert to nanoseconds so the rate gate's
-    // interval math is unit-correct on every Mac (Apple Silicon is 1:1, but
-    // don't assume it).
-    uint64_t hostTime = inOutputTime->hostTime;
-    uint64_t nanos = hostTime * self->_timebase.numer / self->_timebase.denom;
-    self->handleSourceTick(nanos);
+    const uint64_t sourceNow = machTimeNanos(mach_absolute_time(), self->_timebase);
+    const uint64_t steadyNow = steadyClockNanos();
+    self->handleSourceTick(self->_frameTime.map(
+        precedingVsyncNanos(*inOutputTime, self->_timebase), sourceNow, steadyNow));
     return kCVReturnSuccess;
 }
 
@@ -285,6 +260,10 @@ CVReturn CVDisplayLinkScheduler::displayLinkCallback(CVDisplayLinkRef displayLin
 // ---------------------------------------------------------------------------
 
 #ifdef _WIN32
+
+bool DXGIFrameScheduler::waitForVBlank(IDXGIOutput* output) {
+    return output && SUCCEEDED(output->WaitForVBlank());
+}
 
 void DXGIFrameScheduler::start(TickCallback tickCallback, void* userData) {
     stop();
@@ -309,18 +288,16 @@ void DXGIFrameScheduler::start(TickCallback tickCallback, void* userData) {
             }
         }
 
-        auto interval = std::chrono::nanoseconds(1000000000 / _targetFps);
         while (_running) {
-            if (output) {
-                output->WaitForVBlank();
-            } else {
-                std::this_thread::sleep_for(interval);
+            if (!waitForVBlank(output)) {
+                Log("DXGIFrameScheduler: VBlank unavailable, falling back to timer");
+                if (output) output->Release();
+                output = nullptr;
+                runTimerLoop(_running, _targetFps, _wakeMutex, _wakeCondition);
+                break;
             }
             if (_running) {
-                auto now = std::chrono::steady_clock::now();
-                uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    now.time_since_epoch()).count();
-                handleSourceTick(nanos);
+                handleSourceTick(steadyClockNanos());
             }
         }
 
@@ -330,8 +307,17 @@ void DXGIFrameScheduler::start(TickCallback tickCallback, void* userData) {
     });
 }
 
+void DXGIFrameScheduler::onTargetFpsChanged(int) {
+    std::lock_guard<std::mutex> lock(_wakeMutex);
+    _wakeCondition.notify_all();
+}
+
 void DXGIFrameScheduler::stop() {
-    _running = false;
+    {
+        std::lock_guard<std::mutex> lock(_wakeMutex);
+        _running = false;
+    }
+    _wakeCondition.notify_all();
     if (_thread) {
         _thread->join();
         delete _thread;
@@ -348,59 +334,58 @@ void DXGIFrameScheduler::stop() {
 
 #ifdef __ANDROID__
 
-void AChoreographerFrameScheduler::frameCallback(long frameTimeNanos, void* data) {
+// AChoreographer_postFrameCallback delivers its timestamp as `long`, which is
+// 32-bit on armeabi-v7a/x86: the vsync timestamp wraps every ~2.14 s,
+// breaking rate admission and animation elapsed-time math. API 29 adds the
+// 64-bit variant; resolve it dynamically so builds targeting a lower API
+// still run (falling back to the wrapping 32-bit callback).
+using AChoreographerFrameCallback64 = void (*)(int64_t frameTimeNanos, void* data);
+using AChoreographerPostFrameCallback64 = void (*)(
+    AChoreographer*, AChoreographerFrameCallback64, void*);
+
+static AChoreographerPostFrameCallback64 postFrameCallback64() {
+    static AChoreographerPostFrameCallback64 resolved = [] {
+        // The handle is kept for the process lifetime; the scheduler uses it
+        // on every frame, so releasing it buys nothing.
+        void* libandroid = dlopen("libandroid.so", RTLD_NOW | RTLD_LOCAL);
+        if (!libandroid) {
+            return static_cast<AChoreographerPostFrameCallback64>(nullptr);
+        }
+        return reinterpret_cast<AChoreographerPostFrameCallback64>(
+            dlsym(libandroid, "AChoreographer_postFrameCallback64"));
+    }();
+    return resolved;
+}
+
+void AChoreographerFrameScheduler::handleFrame(uint64_t nanos, void* data) {
     auto* self = static_cast<AChoreographerFrameScheduler*>(data);
     if (!self->_running) return;
 
-    uint64_t nanos = static_cast<uint64_t>(frameTimeNanos);
     self->handleSourceTick(nanos);
 
     // Re-schedule for next frame (Choreographer callbacks are one-shot)
-    self->scheduleNextFrame(nanos);
+    self->scheduleNextFrame();
 }
 
-void AChoreographerFrameScheduler::scheduleNextFrame(uint64_t lastFrameTimeNanos) {
+void AChoreographerFrameScheduler::frameCallback(long frameTimeNanos, void* data) {
+    handleFrame(static_cast<uint64_t>(frameTimeNanos), data);
+}
+
+void AChoreographerFrameScheduler::frameCallback64(int64_t frameTimeNanos, void* data) {
+    handleFrame(static_cast<uint64_t>(frameTimeNanos), data);
+}
+
+void AChoreographerFrameScheduler::scheduleNextFrame() {
     if (!_running || !_choreographer) return;
-
-    long delayMillis = 0;
-    const int fps = _fpsLimit.load(std::memory_order_relaxed);
-    if (fps > 0 && lastFrameTimeNanos != 0) {
-        const uint64_t interval = std::max<uint64_t>(
-            1, 1000000000ULL / static_cast<uint64_t>(fps));
-        if (_sourceFps != fps || _nextSourceFrameNs == 0) {
-            _sourceFps = fps;
-            _nextSourceFrameNs = lastFrameTimeNanos + interval;
-        } else if (_nextSourceFrameNs <= lastFrameTimeNanos) {
-            const uint64_t missedIntervals =
-                (lastFrameTimeNanos - _nextSourceFrameNs) / interval + 1;
-            _nextSourceFrameNs += missedIntervals * interval;
-        }
-
-        const auto now = std::chrono::steady_clock::now();
-        const uint64_t nowNanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            now.time_since_epoch()).count();
-        if (_nextSourceFrameNs > nowNanos) {
-            // Round down so the callback is eligible for the first vsync at
-            // the target deadline rather than accidentally slipping one.
-            delayMillis = static_cast<long>(
-                (_nextSourceFrameNs - nowNanos) / 1000000ULL);
-        }
-    } else {
-        _sourceFps = 0;
-        _nextSourceFrameNs = 0;
-    }
-
-    if (delayMillis > 0) {
-        AChoreographer_postFrameCallbackDelayed(
-            static_cast<AChoreographer*>(_choreographer),
-            frameCallback,
-            this,
-            delayMillis);
+    // Register immediately. Delaying registration until the target deadline
+    // can miss that vsync when the looper wakes late. handleSourceTick() owns
+    // all rate admission, including non-divisor and changing refresh rates.
+    if (auto post64 = postFrameCallback64()) {
+        post64(static_cast<AChoreographer*>(_choreographer),
+               &AChoreographerFrameScheduler::frameCallback64, this);
     } else {
         AChoreographer_postFrameCallback(
-            static_cast<AChoreographer*>(_choreographer),
-            frameCallback,
-            this);
+            static_cast<AChoreographer*>(_choreographer), frameCallback, this);
     }
 }
 
@@ -455,8 +440,6 @@ void AChoreographerFrameScheduler::stop() {
         _thread = nullptr;
     }
     resetState();
-    _sourceFps = 0;
-    _nextSourceFrameNs = 0;
     _choreographer = nullptr;
     _looper.store(nullptr, std::memory_order_release);
 }

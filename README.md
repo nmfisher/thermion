@@ -22,7 +22,173 @@
 - camera/entity manipulation with mouse (desktop) and gestures (mobile)
 - skinning + morph animations
 
-Uses the Filament PBR engine (currently v1.69.1).
+Uses the Filament PBR engine.
+
+### Filament version and custom materials
+
+Use `filamentVersion` to select the matching Filament release when compiling
+custom materials with `matc`:
+
+```dart
+import 'package:thermion_dart/filament_version.dart';
+
+void main() {
+  print(filamentVersion); // v1.77.2
+}
+```
+
+It is also exported by `package:thermion_dart/thermion_dart.dart`. The constant
+works with hosted, Git and path dependencies, and is the version used by the
+native build hook. Recompile your custom materials when it changes.
+
+After initializing Filament, `FilamentApp.instance!.materialVersion` gives the
+material format number reported by `matc --version`. This number is distinct
+from the Filament release version. Compile custom materials with `matc` from
+the same Filament release as the application.
+
+`createMaterial` rejects incompatible format versions and malformed chunk
+layouts with a Dart `FormatException` before calling Filament's material
+builder. It does not validate every payload or backend requirement; other
+invalid packages can still cause a native panic.
+
+#### Runtime material compilation (optional)
+
+Runtime packages use Filament's performance optimization (`matc`'s default,
+or `-O`), rather than the size optimization selected by `matc -S`. They are
+not promised to be byte-identical to offline packages. Both runtime APIs
+embed the compilation flags and their input source for inspection; full
+packages embed the source after in-memory includes have been resolved.
+The web runtime compiler targets WebGL (`OPENGL`); it does not generate
+WebGPU materials.
+
+Instead of precompiling `.filamat` packages with `matc`, apps that need to
+generate materials at runtime (e.g. user-authored or procedurally generated
+shaders) can compile GLSL material source directly on the device:
+
+```dart
+final material = await FilamentApp.instance!.compileMaterialSource(
+  'my_material',
+  '''
+  void material(inout MaterialInputs material) {
+    prepareMaterial(material);
+    material.baseColor.rgb = float3(1.0, 0.0, 0.0);
+  }
+  ''',
+  shading: MaterialShading.lit,
+);
+```
+
+For full `.mat` sources — the same format the `matc` tool accepts, with a
+`material { ... }` configuration block (parameters, shading model, variants,
+...) and `#include` directives — use `compileMaterialPackage`. Includes are
+resolved from an in-memory map (exact-name match, no filesystem access):
+
+```dart
+final material = await FilamentApp.instance!.compileMaterialPackage(
+  'my_material',
+  '''
+  material {
+      name : "MyMaterial",
+      shadingModel : unlit,
+      parameters : [ { type : float4, name : baseColor } ]
+  }
+  fragment {
+      #include "common.glsl"
+      void material(inout MaterialInputs material) {
+          prepareMaterial(material);
+          material.baseColor = tint(materialParams.baseColor);
+      }
+  }
+  ''',
+  includes: {
+    'common.glsl': 'vec4 tint(vec4 c) { return c * vec4(1.0, 0.9, 0.8, 1.0); }',
+  },
+);
+```
+
+Both APIs require linking `libfilamat` — Filament's offline material compiler,
+which bakes in glslang and SPIRV-Tools — plus `libmatp` (the `.mat` parser
+behind `matc`) for `compileMaterialPackage`, so they are opt-in. Add the flag
+to your app's `pubspec.yaml`:
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      runtime_materials: true
+```
+
+The flag adds roughly 8–45 MB to the native library depending on platform and
+build mode (release `libfilamat.a` is ~45 MB; less is carried into the final
+binary). `FilamentApp.instance!.runtimeMaterialsSupported` reports whether the
+loaded build has it; `compileMaterialSource` and `compileMaterialPackage`
+throw `UnsupportedError` otherwise. On web, the flag additionally selects a **filamat-enabled engine
+variant** — the build hook fetches `thermion_dart-<sha>-web-runtime-materials.zip`
+instead of the default wasm (~20 MB larger; it links `libfilamat`, the default
+build dead-code-eliminates it). Compilation
+is synchronous and CPU-intensive (hundreds of milliseconds) — run it before
+startup or from a background isolate.
+
+A live web demo — a GLSL editor that compiles and applies materials in the
+browser — is in `examples/dart/material_editor`.
+
+#### Debug/visualization materials (opt-in)
+
+`normal_color` shows world-space normals as RGB. `sharp_edge` draws the triangle
+edges selected by a per-triangle mask. Enable either helper in the root pubspec.
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      materials:
+        normal_color: true
+        sharp_edge: true
+```
+
+The build hook compiles only the debug shaders you enable. It downloads and caches
+the matching Filament tools on first use. Native builds link the generated shader
+for the selected graphics backend. `flutter run -d chrome` and
+`flutter build web` embed the selected packages in `web/thermion_dart.wasm`.
+
+For a Flutter app inside a pub workspace, set `web_directory: apps/viewer/web`
+alongside `materials` under `hooks.user_defines.thermion_dart` in the workspace
+pubspec. The path is relative to that pubspec.
+
+For plain Dart web apps, `dart compile js` only compiles the Dart entrypoint.
+Run the following to embed the selected materials in the engine, then deploy
+`thermion_dart.js` and `thermion_dart.wasm` together:
+
+```sh
+dart run thermion_dart:download_web -o web --materials normal_color,sharp_edge
+```
+
+In native builds the entries override the defaults individually. For example,
+`grid: false` removes the grid and `include_defaults: false` starts from an
+empty list.
+For a triangle with corners A, B, C, mask values 1, 2, and 4 select edges BC,
+CA, and AB respectively. Combine them with bitwise OR. This example draws only AB.
+The existing geometry helper supplies the barycentric coordinates in the first
+three components of `attribute0`. Write the same mask into the fourth component
+at each corner before uploading the geometry.
+
+```dart
+final geometry = GeometryUtils.duplicateVerticesWithBarycentrics(
+  Float32List.fromList([-1, -1, 0, 1, -1, 0, 0, 1, 0]), // A, B, C
+  [0, 1, 2],
+);
+for (var corner = 0; corner < 3; corner++) {
+  geometry.attribute0[4 * corner + 3] = 4; // AB
+}
+final material = await app.createBuiltInMaterial(BuiltInMaterial.sharpEdge);
+final instance = await material.createInstance();
+final asset = await viewer.createGeometry(geometry, materialInstances: [instance]);
+await viewer.addToScene(asset);
+```
+
+The caller owns the material and instance. Destroy the instance before destroying
+the material after removing its renderables. An omitted helper raises a
+`StateError` naming the pubspec key needed to enable it.
 
 ### Quickstart (Flutter)
 
@@ -101,6 +267,59 @@ flutter run -d chrome
 ```
 
 When set, the build hook copies `thermion_dart.{js,wasm}` from `thermion_dart/native/web/build/build/out/` into your app's `web/` directory instead of downloading from R2. Remove the flag (or set it to `false`) to go back to the pinned prebuilt.
+
+#### Main-thread rendering for standalone web clients
+
+Custom browser clients can build the web engine with
+`-DTHERMION_WEB_MAIN_THREAD=ON` (default: `OFF`). Initialize the engine and
+call Thermion from the browser's main thread. Commands and completion
+callbacks execute on that calling thread. Thermion does not create its own
+render worker or transfer the canvas to one.
+
+Serialize calls on that thread. Drive frames by calling `FilamentApp.render()`
+from the application's animation loop. Command dispatch also drains pending
+Filament commands and upload-release callbacks without requiring a frame.
+Asynchronous glTF loading yields between progress polls so decoder tasks and
+browser events can run.
+
+The default build continues rendering through its worker loop. In that
+build, `FilamentApp.render()` runs Dart's request-frame hooks but does not
+request or await a rendered frame.
+
+The main-thread option does not disable Emscripten pthread support or
+Filament's internal helpers. Enabling it requires rebuilding the Wasm engine.
+A Dart define or an existing worker bundle cannot enable it. No performance
+improvement is implied by the option.
+
+CI publishes the main-thread engine alongside the default one: the build hook
+fetches it automatically when you set `web_variant` under
+`hooks.user_defines.thermion_dart` in your app's `pubspec.yaml` — no local
+toolchain needed:
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      web_variant: main_thread
+```
+
+Unknown values log a warning and fall back to the default engine.
+`web_local: true` composes with this: it then copies from
+`native/web/build-main-thread/build/out/` (build that variant locally with
+`emcmake cmake .. -DTHERMION_WEB_MAIN_THREAD=ON` into a separate directory).
+
+#### Runtime-materials web engine
+
+`runtime_materials: true` (the same user define that enables runtime material
+compilation on native) also selects a web engine variant with `libfilamat`
+linked — `compileMaterialSource` then works in the browser. The build hook
+fetches `thermion_dart-<sha>-web-runtime-materials.zip` (~20 MB larger than
+the default engine; the default dead-code-eliminates filamat). It composes
+with `web_variant` and `web_local` like any other variant. See the live
+editor demo in `examples/dart/material_editor`.
+Once this lands, a matching `thermion_dart-<sha>-web-main-thread.zip` appears
+on R2 only after the next native-changed push to `develop` bumps
+`web.version` — until then main-thread consumers must keep building locally.
 
 #### Running the test suite on web
 

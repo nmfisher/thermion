@@ -4,8 +4,9 @@ import 'package:thermion_dart/thermion_dart.dart';
 /// flat-shaded cube (right), demonstrating material overrides via
 /// [setMaterialInstanceForAll] and [setFlatShading].
 ///
-/// Both assets are loaded with [rebuildVertices: true] so their vertex buffers
-/// include barycentric coordinates required by the wireframe material.
+/// Both assets are loaded with barycentric-aware vertex buffers
+/// (`requiredGeometryCapabilities`) so their vertex buffers include the
+/// barycentric coordinates required by the wireframe material.
 Future<void> setupWireframeAndFlatShading(
   ThermionViewer viewer, {
   required String assetsDir,
@@ -24,8 +25,12 @@ Future<void> setupWireframeAndFlatShading(
   await viewer.loadIbl("$assetsDir/default_env_ibl.ktx");
 
   // Wireframe cube on the left.
-  final wireframe =
-      await viewer.loadGltf("$assetsDir/cube.glb", rebuildVertices: true);
+  final wireframe = await viewer.loadGltf(
+    "$assetsDir/cube.glb",
+    requiredGeometryCapabilities: const {
+      SceneAssetGeometryCapability.barycentrics,
+    },
+  );
   await wireframe.transformToUnitCube();
   await wireframe.setTransform(Matrix4.translation(Vector3(-1, 0, 0)));
 
@@ -36,8 +41,12 @@ Future<void> setupWireframeAndFlatShading(
   await wireframe.setMaterialInstanceForAll(wireframeMat.materialInstance);
 
   // Flat-shaded cube on the right.
-  final flat =
-      await viewer.loadGltf("$assetsDir/cube.glb", rebuildVertices: true);
+  final flat = await viewer.loadGltf(
+    "$assetsDir/cube.glb",
+    requiredGeometryCapabilities: const {
+      SceneAssetGeometryCapability.barycentrics,
+    },
+  );
   await flat.transformToUnitCube();
   await flat.setTransform(Matrix4.translation(Vector3(1, 0, 0)));
   await flat.setFlatShading(true);

@@ -118,6 +118,10 @@ enum TransparencyMode {
   TWO_PASSES_TWO_SIDES,
 }
 
+/// Shading model for runtime-compiled materials, mirroring
+/// `filament::Shading` and the native `TShading` values.
+enum MaterialShading { unlit, lit, subsurface, cloth, specularGlossiness }
+
 abstract class Material<T> extends NativeHandle<T> {
   Future<MaterialInstance> createInstance();
   Future<bool> hasParameter(String propertyName);

@@ -1,3 +1,4 @@
+import '../../../bindings/heap_buffer.dart';
 import '../../../bindings/bindings.dart' as bindings;
 import 'package:thermion_dart/thermion_dart.dart';
 import 'ffi_buffer_object.dart';
@@ -6,28 +7,36 @@ import 'ffi_buffer_object.dart';
 class FFIVertexBuffer extends VertexBuffer {
   final bindings.Pointer<bindings.TVertexBuffer> _ptr;
   final bindings.Pointer<bindings.TEngine> _engine;
+  final bindings.Pointer<bindings.TJobThread> _jobThreadHandle;
   final bool _ownedByCaller;
 
   @override
   final VertexBufferStorageMode storageMode;
 
-  FFIVertexBuffer._(this._ptr, this._engine, {required this.storageMode, required bool ownedByCaller})
-    : _ownedByCaller = ownedByCaller;
+  FFIVertexBuffer._(
+    this._ptr,
+    this._engine,
+    this._jobThreadHandle, {
+    required this.storageMode,
+    required bool ownedByCaller,
+  }) : _ownedByCaller = ownedByCaller;
 
   factory FFIVertexBuffer.callerOwned(
     bindings.Pointer<bindings.TVertexBuffer> ptr,
-    bindings.Pointer<bindings.TEngine> engine, {
+    bindings.Pointer<bindings.TEngine> engine,
+    bindings.Pointer<bindings.TJobThread> jobThreadHandle, {
     required VertexBufferStorageMode storageMode,
   }) {
-    return FFIVertexBuffer._(ptr, engine, storageMode: storageMode, ownedByCaller: true);
+    return FFIVertexBuffer._(ptr, engine, jobThreadHandle, storageMode: storageMode, ownedByCaller: true);
   }
 
   factory FFIVertexBuffer.assetOwned(
     bindings.Pointer<bindings.TVertexBuffer> ptr,
-    bindings.Pointer<bindings.TEngine> engine, {
+    bindings.Pointer<bindings.TEngine> engine,
+    bindings.Pointer<bindings.TJobThread> jobThreadHandle, {
     required VertexBufferStorageMode storageMode,
   }) {
-    return FFIVertexBuffer._(ptr, engine, storageMode: storageMode, ownedByCaller: false);
+    return FFIVertexBuffer._(ptr, engine, jobThreadHandle, storageMode: storageMode, ownedByCaller: false);
   }
 
   /// Returns the native handle for FFI calls.
@@ -47,18 +56,20 @@ class FFIVertexBuffer extends VertexBuffer {
         'requiredGeometryCapabilities containing writableVertices.',
       );
     }
-    final byteData = data.asUint8List();
-    await withVoidCallback((requestId, cb) {
-      bindings.VertexBuffer_setBufferAtRenderThread(
-        _engine,
-        _ptr,
-        bufferIndex,
-        byteData.address.cast(),
-        byteData.lengthInBytes,
-        byteOffset,
-        requestId,
-        cb,
-      );
+    await data.pass<void>((byteData) {
+      return withVoidCallback((requestId, cb) {
+        bindings.VertexBuffer_setBufferAtJobThread(
+          _jobThreadHandle,
+          _engine,
+          _ptr,
+          bufferIndex,
+          byteData.address.cast(),
+          byteData.lengthInBytes,
+          byteOffset,
+          requestId,
+          cb,
+        );
+      });
     });
   }
 
@@ -77,7 +88,8 @@ class FFIVertexBuffer extends VertexBuffer {
       throw ArgumentError.value(bufferObject, 'bufferObject', 'must belong to the same Filament engine');
     }
     await withVoidCallback((requestId, cb) {
-      bindings.VertexBuffer_setBufferObjectAtRenderThread(
+      bindings.VertexBuffer_setBufferObjectAtJobThread(
+        _jobThreadHandle,
         _engine,
         _ptr,
         bufferIndex,
@@ -94,7 +106,7 @@ class FFIVertexBuffer extends VertexBuffer {
       throw StateError('Cannot destroy a VertexBuffer borrowed from a ThermionAsset');
     }
     await withVoidCallback((requestId, cb) {
-      bindings.VertexBuffer_destroyRenderThread(_engine, _ptr, requestId, cb);
+      bindings.VertexBuffer_destroyJobThread(_jobThreadHandle, _engine, _ptr, requestId, cb);
     });
   }
 }
@@ -103,9 +115,10 @@ class FFIVertexBuffer extends VertexBuffer {
 class FFIVertexBufferBuilder implements VertexBufferBuilder {
   bindings.Pointer<bindings.TVertexBufferBuilder>? _builderPtr;
   final bindings.Pointer<bindings.TEngine> _engine;
+  final bindings.Pointer<bindings.TJobThread> _jobThreadHandle;
   bool _isBuilt = false;
 
-  FFIVertexBufferBuilder(this._engine) {
+  FFIVertexBufferBuilder(this._engine, this._jobThreadHandle) {
     _builderPtr = bindings.VertexBufferBuilder_create();
   }
 
@@ -173,7 +186,7 @@ class FFIVertexBufferBuilder implements VertexBufferBuilder {
     final storageMode = vertexBufferStorageModeFromNative(bindings.VertexBufferBuilder_getStorageMode(_builderPtr!));
 
     final vertexBufferPtr = await withPointerCallback<bindings.TVertexBuffer>(
-      (cb) => bindings.VertexBufferBuilder_buildRenderThread(_builderPtr!, _engine, cb),
+      (cb) => bindings.VertexBufferBuilder_buildJobThread(_jobThreadHandle, _builderPtr!, _engine, cb),
     );
 
     bindings.VertexBufferBuilder_destroy(_builderPtr!);
@@ -184,7 +197,7 @@ class FFIVertexBufferBuilder implements VertexBufferBuilder {
       throw Exception('Failed to build VertexBuffer');
     }
 
-    return FFIVertexBuffer.callerOwned(vertexBufferPtr, _engine, storageMode: storageMode);
+    return FFIVertexBuffer.callerOwned(vertexBufferPtr, _engine, _jobThreadHandle, storageMode: storageMode);
   }
 
   int _vertexAttributeToInt(VertexAttribute attribute) {

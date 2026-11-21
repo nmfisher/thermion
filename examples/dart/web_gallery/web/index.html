@@ -30,8 +30,14 @@
       color: #ccc; font: 12px ui-monospace, monospace; pointer-events: none;
       text-shadow: 0 1px 2px #000;
     }
+    #version-badge {
+      position: absolute; bottom: 8px; right: 8px; z-index: 10;
+      color: #9aa6b6; font: 11px ui-monospace, monospace; pointer-events: none;
+      text-shadow: 0 1px 2px #000;
+    }
     body.embed #selector,
-    body.embed #info { display: none; }
+    body.embed #info,
+    body.embed #version-badge { display: none; }
     [hidden] { display: none !important; }
     /* Full-canvas loading overlay. Covers WASM boot + the multi-MB asset fetch
        (e.g. the animation scene pulls ~15MB), and is cleared by main.dart once
@@ -101,6 +107,7 @@
     <select id="example-select"></select>
   </div>
   <div id="info">loading…</div>
+  <div id="version-badge"></div>
   <aside id="effects-controls" hidden>
     <h2>Post-processing</h2>
     <label class="toggle"><input id="effects-fxaa" type="checkbox" checked /> FXAA</label>

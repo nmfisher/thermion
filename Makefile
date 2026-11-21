@@ -1,14 +1,20 @@
+FILAMENT_VERSION := $(word 2,$(shell cat filament.version))
+# Pin-aware artifact resolution (thermion_dart/filament.libs.json): uses the
+# immutable hash-suffixed key when pinned, else the legacy key.
+FILAMENT_WEB_ZIP := $(shell python3 scripts/filament-artifact-url.py web release --name-only)
+FILAMENT_WEB_URL := $(shell python3 scripts/filament-artifact-url.py web release)
+
 wasm:
-	@if [ ! -f thermion_dart/native/web/lib/release/filament-v1.75.0-web-release.zip ]; then \
-		echo "Downloading filament-v1.75.0-web-release.zip..."; \
+	@if [ ! -f thermion_dart/native/web/lib/release/$(FILAMENT_WEB_ZIP) ]; then \
+		echo "Downloading $(FILAMENT_WEB_ZIP)..."; \
 		mkdir -p thermion_dart/native/web/lib/release; \
-		curl -L -o thermion_dart/native/web/lib/release/filament-v1.75.0-web-release.zip \
-			https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.75.0-web-release.zip; \
+		curl -fL -o thermion_dart/native/web/lib/release/$(FILAMENT_WEB_ZIP) \
+			$(FILAMENT_WEB_URL); \
 	fi
-	@echo "Extracting filament-v1.75.0-web-release.zip..."; \
+	@echo "Extracting $(FILAMENT_WEB_ZIP)..."; \
 	cd thermion_dart/native/web/lib/release && \
 	rm -rf include lib && \
-	unzip -o filament-v1.75.0-web-release.zip
+	unzip -o $(FILAMENT_WEB_ZIP)
 	cd thermion_dart/native/web && \
 	mkdir -p build && \
 	cd build && \
@@ -31,12 +37,18 @@ swift-bindings:
 dart-bindings:
 	cd thermion_dart/ && dart pub get
 	cd thermion_dart/ && dart run ffigen --config ffigen/native.yaml
-	cd thermion_dart/ && dart run ffigen_js --config ffigen/web.yaml
+	cd thermion_dart/ && dart run ffigen_js --config ffigen/web.yaml --compiler-opts "$(FFIGEN_JS_COMPILER_OPTS)"
 flutter-bindings:
 	cd thermion_flutter/thermion_flutter && flutter pub get && flutter pub run ffigen --config ffigen/swift.yaml
 bindings: dart-bindings flutter-bindings
 shared:
 	cd thermion_dart/native && make
+
+# Compares generated TBackend.h and public Dart Backend with the pinned
+# Filament enum. Run make bindings after regenerating these files.
+# Downloads the pinned Filament artifact's header tree on first use.
+tbackend-check:
+	python3 scripts/generate_tbackend.py --check
 
 # We compile a small set of custom materials for various helpers (background image, gizmo, etc)
 # You must specify the `FILAMENT_PATH` environment variable, either the path /out/release

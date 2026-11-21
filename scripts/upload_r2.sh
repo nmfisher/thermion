@@ -3,6 +3,11 @@
 # Usage: upload_r2.sh <FILE_PATH>
 # Example: upload_r2.sh /path/to/file.zip
 #
+# WARNING: uploads under the file's EXISTING name — for Filament zips that
+# is the legacy MUTABLE key production consumers may be downloading. For
+# Filament artifacts use scripts/upload_filament_hashed.sh (content-addressed,
+# never overwrites) or the publish-filament-to-r2.yml workflow instead.
+#
 # Uses wrangler for files under 300MB, AWS CLI for larger files
 # First time setup:
 #   - wrangler login (for small files)

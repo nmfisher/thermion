@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <vector>
 
@@ -34,9 +35,13 @@ namespace thermion
             int instanceIndex = -1) : _instanceOwner(instanceOwner),
                                         _ncm(ncm), 
                                       _instance(instance),
-                                      _materialInstances(materialInstances),
+                                      // Create materialInstanceCount null pointer slots for copy_n below.
+                                      // Our own array stays valid after the caller releases theirs.
+                                      // No MaterialInstance objects are created or owned here.
+                                      _materialInstances(materialInstanceCount),
                                       _materialInstanceCount(materialInstanceCount)
         {
+            if (materialInstanceCount) std::copy_n(materialInstances, materialInstanceCount, _materialInstances.data());
         }
 
         ~GltfSceneAssetInstance();
@@ -69,7 +74,7 @@ namespace thermion
 
         MaterialInstance **getMaterialInstances() override
         {
-            return _materialInstances;
+            return _materialInstances.data();
         }
 
         size_t getMaterialInstanceCount() override
@@ -154,7 +159,8 @@ namespace thermion
         filament::Engine *_engine;
         utils::NameComponentManager *_ncm;
         gltfio::FilamentInstance *_instance;
-        MaterialInstance **_materialInstances = std::nullptr_t();
+        // Own the handle array; the material objects remain caller-owned.
+        std::vector<MaterialInstance*> _materialInstances;
         size_t _materialInstanceCount = 0;
         GltfSceneAsset *_instanceOwner = std::nullptr_t();
     };

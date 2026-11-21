@@ -26,7 +26,7 @@ on:
 
 permissions:
   id-token: write # required to mint the OIDC token for pub.dev
-  contents: write # required by the called generate-artifacts / generate-swift-bindings reusable workflows
+  contents: write # required by the called regenerate-bindings-and-materials / generate-swift-bindings reusable workflows
   actions: read # test/verify gates
 
 concurrency:
@@ -45,6 +45,9 @@ jobs:
       already-published: ${{ steps.check_pub.outputs.already_published }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check public Filament version
+        run: python3 scripts/generate-filament-version.py --check
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -131,14 +134,14 @@ jobs:
         # for resolution; only pubspec.yaml is published.
         run: flutter pub publish --dry-run
 
-  generate-artifacts:
+  regenerate-bindings-and-materials:
     # Verify gate: regenerate dart FFI/JS bindings + materials and FAIL if they
     # differ from the committed tag. Bindings must be committed on develop
     # before tagging (shift-left). See docs/CI_PIPELINE.md.
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     name: Verify generated artifacts
     needs: validate
-    uses: ./.github/workflows/generate-artifacts.yml
+    uses: ./.github/workflows/regenerate-bindings-and-materials.yml
     with:
       verify: true
 
@@ -153,19 +156,30 @@ jobs:
       verify: true
 
   tests:
-    # Full dart + flutter-build matrix. Only for a real tag push (not the
-    # dry-run manual dispatch) so releases can't ship without all checks green.
-    # Waits for both verify gates so tests run against bindings known to be fresh.
+    # Full dart test matrix. Only for a real tag push (not the dry-run
+    # manual dispatch) so releases can't ship without all checks green. Waits
+    # for both verify gates so tests run against bindings known to be fresh.
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     name: Test suite
-    needs: [validate, generate-artifacts, generate-swift-bindings]
-    uses: ./.github/workflows/run-tests.yml
+    needs: [validate, regenerate-bindings-and-materials, generate-swift-bindings]
+    uses: ./.github/workflows/run-dart-tests.yml
     with:
       ref: ${{ github.ref }}
 
+  flutter-tests-and-examples:
+    # Flutter half of the release test suite: plugin unit/integration tests
+    # followed by desktop, Android, web, and iOS example builds.
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    name: Flutter test suite
+    needs: [validate, regenerate-bindings-and-materials, generate-swift-bindings]
+    uses: ./.github/workflows/flutter-tests-and-examples.yml
+    with:
+      ref: ${{ github.ref }}
+      build_examples: true
+
   publish:
     name: Publish to pub.dev
-    needs: [validate, generate-artifacts, generate-swift-bindings, tests]
+    needs: [validate, regenerate-bindings-and-materials, generate-swift-bindings, tests, flutter-tests-and-examples]
     # Only a real tag push publishes. workflow_dispatch never reaches here.
     if: ${{ startsWith(github.ref, 'refs/tags/v') && needs.validate.outputs.already-published != 'true' }}
     runs-on: ubuntu-24.04

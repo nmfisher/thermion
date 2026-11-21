@@ -1,5 +1,4 @@
 import 'package:thermion_dart/src/filament/src/interface/animation_manager.dart';
-import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
@@ -78,11 +77,26 @@ abstract class FilamentApp<T> {
   //
   Future destroy();
 
-  //
+  /// Destroys [asset] and its instances (if any). The asset/instances will immediately be inaccessible.
+  /// Throws [StateError] if destruction has already started for the asset or its owner.
   Future destroyAsset(covariant ThermionAsset asset);
 
-  //
-  Future<RenderTarget> createRenderTarget(int width, int height, {covariant Texture? color, covariant Texture? depth});
+  /// Creates a [RenderTarget] of size [width] x [height].
+  ///
+  /// If [color] is omitted, an `RGBA8` color attachment texture is allocated
+  /// automatically with sampleable, color-attachment, and blit-source usage.
+  ///
+  /// If [depth] is omitted and [createDepth] is `true` (the default), a
+  /// `DEPTH32F` depth attachment texture is allocated automatically. Pass
+  /// `createDepth: false` (with `depth: null`) to create a color-only render
+  /// target without a depth attachment.
+  Future<RenderTarget> createRenderTarget(
+    int width,
+    int height, {
+    covariant Texture? color,
+    covariant Texture? depth,
+    bool createDepth = true,
+  });
 
   //
   Future<Texture> createTexture(
@@ -125,8 +139,102 @@ abstract class FilamentApp<T> {
 
   Future<Material> createBoneOverlayMaterial();
 
-  //
+  /// Creates a caller-owned material from an embedded helper package.
+  /// Destroy its instances before destroying the material. Throws [StateError]
+  /// if the build omits the selected package.
+  Future<Material> createBuiltInMaterial(BuiltInMaterial material);
+
+  /// Material package format version expected by the loaded native build.
+  ///
+  /// This is the number reported by `matc --version`, distinct from the
+  /// Filament release version.
+  int get materialVersion;
+
+  /// Creates a material from a compiled `.filamat` package. Native code copies
+  /// [data] before queuing the build, so the caller can reuse it after this call.
+  ///
+  /// Throws [FormatException] for malformed chunk boundaries, missing or invalid
+  /// version metadata, or a format version different from [materialVersion].
+  /// Compile materials with `matc` from the same Filament release as the application.
+  ///
+  /// This checks the package layout and version, not every payload or backend
+  /// requirement. Other invalid packages can still cause a native Filament panic.
   Future<Material> createMaterial(Uint8List data);
+
+  /// Whether the loaded native build supports compiling materials from
+  /// source at runtime (the `runtime_materials` build flag).
+  ///
+  /// False when the app was built without the flag — including the default
+  /// web engine (the filamat-enabled web variant reports true). When false,
+  /// [compileMaterialSource] and [compileMaterialPackage] throw
+  /// [UnsupportedError]; use `matc`-compiled `.filamat` packages with
+  /// [createMaterial] instead.
+  bool get runtimeMaterialsSupported;
+
+  /// Compiles GLSL material [source] to a `.filamat` package at runtime and
+  /// creates a [Material] from it.
+  ///
+  /// [source] is the GLSL of the `material()` function, the same format
+  /// accepted by `MaterialBuilder::material()`:
+  ///
+  /// ```glsl
+  /// void material(inout MaterialInputs material) {
+  ///   prepareMaterial(material);
+  ///   material.baseColor.rgb = float3(1.0, 0.0, 0.0);
+  /// }
+  /// ```
+  ///
+  /// [name] labels the material in diagnostics and generated shader names.
+  /// [shading] selects the lighting model.
+  ///
+  /// Throws [UnsupportedError] when [runtimeMaterialsSupported] is false
+  /// (builds without the `runtime_materials` flag, incl. the default web
+  /// engine). Compile failures are logged through the Filament logger and
+  /// rethrown as a [StateError].
+  ///
+  /// This is a synchronous, CPU-intensive native call (hundreds of ms).
+  /// Prefer calling before startup or from a background isolate.
+  Future<Material> compileMaterialSource(String name, String source, {MaterialShading shading = MaterialShading.lit});
+
+  /// Compiles a full `.mat` material package [source] at runtime — the same
+  /// format the `matc` tool accepts — and creates a [Material] from it.
+  ///
+  /// Unlike [compileMaterialSource] (bare `material()` GLSL), [source] is a
+  /// complete `.mat` file with a `material { ... }` configuration block
+  /// (name, shading model, parameters, variants, ...), optional
+  /// `vertex { ... }` code and a `fragment { ... }` block:
+  ///
+  /// ```
+  /// material {
+  ///     name : "MyMaterial",
+  ///     shadingModel : unlit,
+  ///     parameters : [ { type : float4, name : baseColor } ]
+  /// }
+  /// fragment {
+  ///     void material(inout MaterialInputs material) {
+  ///         prepareMaterial(material);
+  ///         material.baseColor = materialParams.baseColor;
+  ///     }
+  /// }
+  /// ```
+  ///
+  /// [includes] optionally maps include names to file contents. Every
+  /// `#include "name"` directive in [source] (and in included files) is
+  /// resolved against this map by exact name; there is no filesystem
+  /// access. Unresolvable includes fail the compile.
+  ///
+  /// [name] labels the material in diagnostics. All other compilation
+  /// settings (shading model, parameters, blending, ...) come from the
+  /// `.mat` source itself.
+  ///
+  /// Throws [UnsupportedError] when [runtimeMaterialsSupported] is false,
+  /// and [ArgumentError] for an empty [source]. Include-resolution, parse
+  /// and compile failures are logged through the Filament logger and
+  /// rethrown as a [StateError].
+  ///
+  /// This is a synchronous, CPU-intensive native call (hundreds of ms).
+  /// Prefer calling before startup or from a background isolate.
+  Future<Material> compileMaterialPackage(String name, String source, {Map<String, String>? includes});
 
   //
   Future<MaterialInstance> createUbershaderMaterialInstance({
@@ -272,12 +380,18 @@ abstract class FilamentApp<T> {
   // Returns all valid swapchains.
   Future<Iterable<SwapChain>> getSwapChains();
 
-  // Invokes one iteration of the full rendering pipeline for all
-  // registered swapchains/views. This will also advance animations
-  // by one timestep and call out to all plugins to perform their own updates.
-  //
-  // The returned [Future] will complete when the pipeline step is complete.
-  Future render();
+  /// Renders all registered swapchains/views and updates animations and plugins.
+  ///
+  /// On native platforms, [frameTimeInNanos] is a frame timestamp in nanoseconds
+  /// on the native steady clock, as supplied by Thermion's frame scheduler.
+  /// It is not a date, wall-clock time, or Flutter's adjusted animation time.
+  /// When omitted, uses the current native steady-clock time. The returned
+  /// [Future] completes when the render pipeline step has finished.
+  ///
+  /// On web, rendering runs independently on the worker's animation frames.
+  /// This method returns immediately without requesting or waiting for a frame;
+  /// [frameTimeInNanos] is ignored.
+  Future render({int? frameTimeInNanos});
 
   /// Caps the continuous-render framerate to [fps].
   ///
@@ -292,6 +406,19 @@ abstract class FilamentApp<T> {
   /// viewer: all viewers on the same engine are pace-locked to the same rate
   /// (last writer wins). Values <= 0 remove the cap.
   void setTargetFramerate(int fps);
+
+  /// Returns timing for up to [count] of the most recent frames the renderer
+  /// has processed, newest first.
+  ///
+  /// GPU times cover only Filament's work, so they include rendering into a
+  /// texture that a platform view displays, which platform frame timings
+  /// leave out. The renderer keeps a short history, so fewer than [count]
+  /// frames can be returned, and a frame appears only after the GPU reports
+  /// its timing, a few frames after it was rendered.
+  ///
+  /// Throws [RangeError] when [count] is less than 1, or when a timing value
+  /// cannot be represented exactly as an integer on web.
+  Future<List<FrameTimingInfo>> getFrameInfoHistory({int count = 1});
 
   //
   Future registerRequestFrameHook(Future Function() hook);
@@ -315,12 +442,26 @@ abstract class FilamentApp<T> {
   //
   Future setParent(ThermionEntity child, ThermionEntity? parent, {bool preserveScaling});
 
-  //
-  // Returns pixel buffer(s) for [view] (or, if null, all views associated
-  // with [swapChain] by calling [register]).
-  //
-  // Pixel buffers will be returned in RGBA float32 format.
-  //
+  /// Returns pixel buffer(s) for [view], or, when [view] is null, for the
+  /// renderable views attached to [swapChain] (in attachment order).
+  ///
+  /// When [view] is provided it is captured even if it is not attached to
+  /// [swapChain], and even if its attachment is currently non-renderable:
+  /// an explicit request renders that view when [render] is true. When
+  /// [view] is null, non-renderable attachments are skipped entirely (no
+  /// [beforeRender] callback, no render, no readback), because their targets
+  /// hold stale contents and swapchain-bound views would return duplicate
+  /// pixels.
+  ///
+  /// [beforeRender] is awaited once per captured view before its render (when
+  /// [render] is true) and readback. When [render] is false, the current
+  /// contents are read back without rendering: the view's render target if it
+  /// has one, otherwise the swapchain's framebuffer.
+  ///
+  /// Each view reads from its own render target when it has one, otherwise
+  /// from [swapChain]'s framebuffer.
+  ///
+  /// Pixel buffers will be returned in RGBA float32 format.
   Future<List<(View, Uint8List)>> capture(
     SwapChain? swapChain, {
     View? view,
@@ -356,9 +497,6 @@ abstract class FilamentApp<T> {
     bool loadResourcesAsync = false,
     String? resourceUri,
   });
-
-  //
-  Future<GizmoAsset> createGizmo(View view, GizmoType type);
 
   //
   Future<ThermionAsset> createGeometry(Geometry geometry, {List<MaterialInstance>? materialInstances});

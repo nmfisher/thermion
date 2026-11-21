@@ -73,9 +73,10 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
     final typeValue = _primitiveTypeToValue(type);
     // Runtime geometry swaps must run on the render thread (Filament asserts
     // on off-thread RenderableManager mutation), so marshal through the
-    // *RenderThread variant and read the result from the callback.
+    // *JobThread variant and read the result from the callback.
     return withBoolCallback(
-      (cb) => RenderableManager_setGeometryAtNonIndexedRenderThread(
+      (cb) => RenderableManager_setGeometryAtNonIndexedJobThread(
+        app.jobThreadHandle,
         renderableManager,
         entity,
         primitiveIndex,
@@ -222,8 +223,14 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
   @override
   Future setCastShadows(ThermionEntity entity, bool enabled) async {
     await withVoidCallback(
-      (requestId, cb) =>
-          RenderableManager_setCastShadowsRenderThread(renderableManager, entity, enabled, requestId, cb),
+      (requestId, cb) => RenderableManager_setCastShadowsJobThread(
+        app.jobThreadHandle,
+        renderableManager,
+        entity,
+        enabled,
+        requestId,
+        cb,
+      ),
     );
   }
 
@@ -235,8 +242,14 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
   @override
   Future setReceiveShadows(ThermionEntity entity, bool enabled) async {
     await withVoidCallback(
-      (requestId, cb) =>
-          RenderableManager_setReceiveShadowsRenderThread(renderableManager, entity, enabled, requestId, cb),
+      (requestId, cb) => RenderableManager_setReceiveShadowsJobThread(
+        app.jobThreadHandle,
+        renderableManager,
+        entity,
+        enabled,
+        requestId,
+        cb,
+      ),
     );
   }
 
@@ -306,7 +319,8 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
 
     try {
       await withVoidCallback(
-        (requestId, cb) => RenderableManager_setMorphWeightsRenderThread(
+        (requestId, cb) => RenderableManager_setMorphWeightsJobThread(
+          app.jobThreadHandle,
           renderableManager,
           entity,
           weightsPtr.address,
@@ -357,7 +371,8 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
     }
 
     await withVoidCallback(
-      (requestId, cb) => RenderableManager_setBonesFromMat4RenderThread(
+      (requestId, cb) => RenderableManager_setBonesFromMat4JobThread(
+        app.jobThreadHandle,
         renderableManager,
         entity,
         transformsPtr.address,
@@ -386,7 +401,8 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
     }
 
     await withVoidCallback(
-      (requestId, cb) => RenderableManager_setBonesFromBoneRenderThread(
+      (requestId, cb) => RenderableManager_setBonesFromBoneJobThread(
+        app.jobThreadHandle,
         renderableManager,
         entity,
         bonesPtr.address,
@@ -413,17 +429,17 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
 
   @override
   VertexBufferBuilder createVertexBufferBuilder() {
-    return FFIVertexBufferBuilder(app.engine);
+    return FFIVertexBufferBuilder(app.engine, app.jobThreadHandle);
   }
 
   @override
   BufferObjectBuilder createBufferObjectBuilder() {
-    return FFIBufferObjectBuilder(app.engine);
+    return FFIBufferObjectBuilder(app.engine, app.jobThreadHandle);
   }
 
   @override
   IndexBufferBuilder createIndexBufferBuilder() {
-    return FFIIndexBufferBuilder(app.engine);
+    return FFIIndexBufferBuilder(app.engine, app.jobThreadHandle);
   }
 }
 
@@ -432,6 +448,11 @@ class FFIRenderableBuilder implements RenderableBuilder {
   bindings.Pointer<TRenderableBuilder>? _builderPtr;
   final FFIFilamentApp _app;
   bool _isBuilt = false;
+  int _boneCount = 0;
+  // Keep the existing setter-time conversions in Dart. Borrow their addresses
+  // only when build() submits the data for a native copy.
+  Float32List? _skinningMatrices;
+  Float32List? _skinningBones;
 
   FFIRenderableBuilder(int primitiveCount, this._app) {
     _builderPtr = bindings.RenderableBuilder_create(primitiveCount);
@@ -590,33 +611,15 @@ class FFIRenderableBuilder implements RenderableBuilder {
   @override
   void skinning(int boneCount, List<Matrix4> transforms) {
     _checkNotBuilt();
-    final transformsData = BoneData.matricesToFloat32List(transforms);
-    final transformsPtr = makeFloat32List(transformsData.length);
-    for (int i = 0; i < transformsData.length; i++) {
-      transformsPtr[i] = transformsData[i];
-    }
-
-    bindings.RenderableBuilder_skinningFromMat4(_builderPtr!, boneCount, transformsPtr.address);
-
-    if (FILAMENT_WASM) {
-      transformsPtr.free();
-    }
+    _boneCount = boneCount;
+    _skinningMatrices = BoneData.matricesToFloat32List(transforms);
   }
 
   @override
   void skinningFromBone(int boneCount, List<BoneData> bones) {
     _checkNotBuilt();
-    final bonesData = BoneData.toFloat32List(bones);
-    final bonesPtr = makeFloat32List(bonesData.length);
-    for (int i = 0; i < bonesData.length; i++) {
-      bonesPtr[i] = bonesData[i];
-    }
-
-    bindings.RenderableBuilder_skinningFromBone(_builderPtr!, boneCount, bonesPtr.address);
-
-    if (FILAMENT_WASM) {
-      bonesPtr.free();
-    }
+    _boneCount = boneCount;
+    _skinningBones = BoneData.toFloat32List(bones);
   }
 
   @override
@@ -655,14 +658,45 @@ class FFIRenderableBuilder implements RenderableBuilder {
   Future<bool> build(ThermionEntity entity) async {
     _checkNotBuilt();
 
-    final result = await withIntCallback(
-      (cb) => bindings.RenderableBuilder_buildRenderThread(_builderPtr!, _app.engine, entity, cb.cast()),
-    );
+    // Filament prefers Bone data when both skinning overloads have been used.
+    final skinningData = _skinningBones ?? _skinningMatrices;
+    final int result;
+    if (skinningData == null) {
+      result = await withInt32Callback(
+        (cb) => bindings.RenderableBuilder_buildJobThread(
+          _app.jobThreadHandle,
+          _builderPtr!,
+          _app.engine,
+          entity,
+          cb.cast(),
+        ),
+      );
+    } else {
+      result = await withInt32Callback((cb) {
+        // Web needs a WASM-memory view for FFI; native borrows the Dart list directly.
+        final stack = FILAMENT_WASM ? stackSave() : nullptr;
+        final input = FILAMENT_WASM ? (makeFloat32List(skinningData.length)..setAll(0, skinningData)) : skinningData;
+        bindings.RenderableBuilder_buildWithSkinningJobThread(
+          _app.jobThreadHandle,
+          _builderPtr!,
+          _app.engine,
+          entity,
+          _boneCount,
+          input.address,
+          _skinningBones != null,
+          cb.cast(),
+        );
+        // The native function has copied the data before returning.
+        if (FILAMENT_WASM) stackRestore(stack);
+      });
+    }
 
     // Clean up the builder
     bindings.RenderableBuilder_destroy(_builderPtr!);
     _builderPtr = null;
     _isBuilt = true;
+    _skinningMatrices = null;
+    _skinningBones = null;
 
     // Result: 0 = Success, -1 = Error
     return result == 0;

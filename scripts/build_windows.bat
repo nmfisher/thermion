@@ -99,6 +99,29 @@ call git checkout %FILAMENT_VERSION% || (
   exit /b 1
 )
 
+REM Build native runtime host tools with the same backend configuration as the runtime.
+REM Export only Release tools so Debug runtime builds reuse those executables
+REM without globally remapping unrelated imported targets such as Python.
+call git apply "%SCRIPT_DIR%filament-no-exceptions.patch" || exit /b 1
+REM Bundle smol-v into libfilamat_combined.a (omitted from upstream's
+REM FILAMAT_DEPS despite the filamat target linking it) - without it every
+REM consumer of the combined archive hits undefined _ZN5smolv... symbols.
+REM See the same comment in build_web.sh.
+call git apply "%SCRIPT_DIR%filament-smolv-combined.patch" || exit /b 1
+REM Build matp (the material parser behind matc) into the runtime archives and
+REM install its include-resolution headers, for runtime material compilation.
+call git apply "%SCRIPT_DIR%filament-matp-runtime.patch" || exit /b 1
+REM The shipped compiler needs WebGPU for app materials. Build only the
+REM shader tools here to avoid enabling WebGPU for Filament's own shaders.
+REM Tint also requires v143 because the v142 compiler crashes building it.
+cmake -S . -B out/webgpu-host-tools -DCMAKE_CONFIGURATION_TYPES=Release -G "Visual Studio 17 2022" -T v143 -DUSE_STATIC_CRT=OFF -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_SUPPORTS_WEBGPU=ON -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=ON "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=%FILAMENT_BASE_DIR%\out\webgpu-host-tools\bin" || exit /b 1
+cmake --build out/webgpu-host-tools --config Release --target matc resgen || exit /b 1
+
+REM Export the regular tools for the OpenGL/Vulkan runtime builds. Other
+REM targets, such as filamesh, can also compile Filament's internal materials.
+cmake -S . -B out/native-host-tools -DCMAKE_CONFIGURATION_TYPES=Release -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_SUPPORTS_WEBGPU=OFF -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=ON -DFILAMENT_EXPORT_PREBUILT_EXECUTABLES_DIR=out/native-host-tools || exit /b 1
+cmake --build out/native-host-tools --config Release --target matc cmgen filamesh mipgen resgen uberz glslminifier || exit /b 1
+
 REM Patch FFilamentAsset.h to allow overriding GLTFIO_USE_FILESYSTEM at compile time
 echo Patching FFilamentAsset.h to disable GLTFIO_USE_FILESYSTEM...
 set "GLTFIO_HEADER=%FILAMENT_BASE_DIR%\libs\gltfio\src\FFilamentAsset.h"
@@ -109,12 +132,12 @@ echo target_compile_definitions(gltfio_core PRIVATE GLTFIO_USE_FILESYSTEM=0)>> "
 
 REM Create build directory
 echo Creating build directory...
-if not exist out mkdir out
-cd /d "%FILAMENT_BASE_DIR%\out" || exit /b 1
+if not exist out\runtime mkdir out\runtime
+cd /d "%FILAMENT_BASE_DIR%\out\runtime" || exit /b 1
 
 REM Run CMake configuration
 echo Configuring Filament for Windows...
-cmake -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_SUPPORTS_VULKAN=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SHORTEN_MSVC_COMPILATION=OFF .. || (
+cmake -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_SUPPORTS_VULKAN=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SHORTEN_MSVC_COMPILATION=OFF -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=OFF -DFILAMENT_IMPORT_PREBUILT_EXECUTABLES_DIR=out/native-host-tools ../.. || (
   echo Error: CMake configuration failed
   exit /b 1
 )
@@ -131,9 +154,6 @@ if "!BUILD_RELEASE!"=="true" (
   echo Building third-party libraries for release...
   cmake --build . --target tinyexr --config Release || (
     echo Warning: tinyexr release build failed
-  )
-  cmake --build . --target imageio --config Release || (
-    echo Warning: imageio release build failed
   )
 
   REM Install release to get headers in a known location
@@ -156,9 +176,6 @@ if "!BUILD_DEBUG!"=="true" (
   echo Building third-party libraries for debug...
   cmake --build . --target tinyexr --config Debug || (
     echo Warning: tinyexr debug build failed
-  )
-  cmake --build . --target imageio --config Debug || (
-    echo Warning: imageio debug build failed
   )
 
   REM Install debug to get headers in a known location
@@ -192,7 +209,7 @@ REM Copy release libraries
 if "!BUILD_RELEASE!"=="true" (
   echo Copying release libraries...
   REM Copy .lib files from Release subdirectories
-  for /r "%FILAMENT_BASE_DIR%\out" %%f in (*.lib) do (
+  for /r "%FILAMENT_BASE_DIR%\out\runtime" %%f in (*.lib) do (
     echo %%f | findstr /i "\\Release\\" >nul && (
       copy /Y "%%f" "%TARGET_RELEASE_DIR%\" >nul 2>&1
     )
@@ -209,7 +226,7 @@ if "!BUILD_RELEASE!"=="true" (
 REM Copy debug libraries
 if "!BUILD_DEBUG!"=="true" (
   echo Copying debug libraries...
-  for /r "%FILAMENT_BASE_DIR%\out" %%f in (*.lib) do (
+  for /r "%FILAMENT_BASE_DIR%\out\runtime" %%f in (*.lib) do (
     echo %%f | findstr /i "\\Debug\\" >nul && (
       copy /Y "%%f" "%TARGET_DEBUG_DIR%\" >nul 2>&1
     )
@@ -236,11 +253,6 @@ if "!BUILD_RELEASE!"=="true" (
     exit /b 1
   )
 
-  REM Copy imageio headers (libs/imageio/include/ already has the imageio/ subdir)
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "%TARGET_RELEASE_DIR%\include\" || (
-    echo Error: Failed to copy imageio headers to target
-    exit /b 1
-  )
 
   REM Copy bluevk headers (Windows-specific)
   if exist "%FILAMENT_BASE_DIR%\libs\bluevk\include\bluevk" (
@@ -282,11 +294,6 @@ if "!BUILD_DEBUG!"=="true" (
     exit /b 1
   )
 
-  REM Copy imageio headers (libs/imageio/include/ already has the imageio/ subdir)
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "%TARGET_DEBUG_DIR%\include\" || (
-    echo Error: Failed to copy imageio headers to target
-    exit /b 1
-  )
 
   REM Copy bluevk headers (Windows-specific)
   if exist "%FILAMENT_BASE_DIR%\libs\bluevk\include\bluevk" (
@@ -382,6 +389,15 @@ if "!BUILD_RELEASE!"=="true" (
 if "!BUILD_DEBUG!"=="true" (
   copy /Y "%OUTPUT_BASE_DIR%\vulkan-1.lib" "%TARGET_DEBUG_DIR%\vulkan-1.lib" >nul
   echo Copied vulkan-1.lib to debug directory
+)
+
+REM Include version-matched shader tools in the release ZIP. A debug-only
+REM build still ships the Release tool binaries alongside its runtime.
+set "TOOLS_TARGET=%TARGET_RELEASE_DIR%\bin"
+if "!BUILD_RELEASE!"=="false" set "TOOLS_TARGET=%TARGET_DEBUG_DIR%\bin"
+if not exist "%TOOLS_TARGET%" mkdir "%TOOLS_TARGET%" || exit /b 1
+for %%T in (matc resgen) do (
+  copy /Y "%FILAMENT_BASE_DIR%\out\webgpu-host-tools\bin\%%T.exe" "%TOOLS_TARGET%\" >nul || exit /b 1
 )
 
 REM Create zip files (using PowerShell)

@@ -65,7 +65,7 @@ static ThermionWindow* _window;
 
 
 static bool _running = false;
-static std::thread _renderThread;
+static std::thread _jobThread;
 
 // Add these for timing and stats
 static int _frameCount = 0;
@@ -121,7 +121,7 @@ extern "C" {
         
         // Start the render thread
         _running = true;
-        _renderThread = std::thread(RenderLoop);
+        _jobThread = std::thread(RenderLoop);
         
         return (intptr_t)_window->GetHandle();
     }
@@ -135,8 +135,8 @@ extern "C" {
        // Add a cleanup function
     THERMION_EXPORT void cleanup() {
         _running = false;
-        if (_renderThread.joinable()) {
-            _renderThread.join();
+        if (_jobThread.joinable()) {
+            _jobThread.join();
         }
         if (_window) {
             delete _window;

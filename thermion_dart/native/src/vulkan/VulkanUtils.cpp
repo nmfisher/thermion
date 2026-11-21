@@ -1,3 +1,5 @@
+#include <utils/Panic.h>
+
 #include "vulkan/VulkanUtils.h"
 
 #include "Log.hpp"
@@ -184,7 +186,7 @@ uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, V
         }
     }
     
-    throw std::runtime_error("Failed to find suitable memory type");
+    PANIC_POSTCONDITION("Failed to find suitable memory type");
 }
 
 
@@ -226,7 +228,8 @@ VkResult createVulkanInstance(VkInstance *instance)
         #ifdef _WIN32
         VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
         #endif
-        VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
+        // External-memory capabilities are core in Vulkan 1.1 (requested
+        // below). Drivers need not advertise the former extension name.
         // VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
         // VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME
         VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME};
@@ -263,7 +266,7 @@ uint32_t findGraphicsQueueFamily(VkPhysicalDevice physicalDevice) {
         }
     }
 
-    throw std::runtime_error("Failed to find graphics queue family");
+    PANIC_POSTCONDITION("Failed to find graphics queue family");
 }
 
 
@@ -273,21 +276,17 @@ CommandResources createCommandResources(VkDevice device, VkPhysicalDevice physic
     // 1. Find a suitable queue family
     resources.queueFamilyIndex = findGraphicsQueueFamily(physicalDevice);
 
-    // 2. Get the queue handle. Use the SECOND queue in the family when the
-    //    hardware has one (the device requests two — see createLogicalDevice):
-    //    queue 0 belongs to Filament's render thread via VulkanSharedContext,
-    //    and submitting to it concurrently from the platform thread is a
-    //    data race (VK_ERROR_DEVICE_LOST on newer NVIDIA drivers). Fall back
-    //    to queue 0 only on hardware exposing a single graphics queue.
-    uint32_t familyCount = 0;
-    bluevk::vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, nullptr);
-    std::vector<VkQueueFamilyProperties> families(familyCount);
-    bluevk::vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, families.data());
-    const uint32_t queueIndex =
-        families[resources.queueFamilyIndex].queueCount >= 2 ? 1u : 0u;
-    // Signal single-queue HW: the blit reuses Filament's queue 0 and so
-    // needs queue-level call serialization (see WindowsVulkanContext shim).
-    resources.queueSharedWithFilament = (queueIndex == 0);
+    // 2. Get the queue handle. Always use queue 0, the queue Filament renders
+    //    on (via VulkanSharedContext). The blit reads Filament's render target
+    //    and nothing on our side waits on a semaphore from Filament, so the
+    //    only ordering between "render", "copy" and "next render" is queue
+    //    submission order plus the pipeline barriers in Blit(). Barriers do
+    //    not order work across queues, so a blit on a second queue can read a
+    //    half-drawn frame (issue #458). Concurrent submission to one queue
+    //    from two threads is a data race (VK_ERROR_DEVICE_LOST on newer NVIDIA
+    //    drivers), so WindowsVulkanContext serializes queue calls with a shim.
+    const uint32_t queueIndex = 0;
+    resources.queueSharedWithFilament = true;
     Log("[INFO] Blit/command queue: family %d, queue index %d",
         (int)resources.queueFamilyIndex, (int)queueIndex);
 
@@ -303,7 +302,7 @@ CommandResources createCommandResources(VkDevice device, VkPhysicalDevice physic
     poolInfo.queueFamilyIndex = resources.queueFamilyIndex;
 
     if (vkCreateCommandPool(device, &poolInfo, nullptr, &resources.commandPool) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create command pool");
+        PANIC_POSTCONDITION("Failed to create command pool");
     }
 
     return resources;
@@ -329,7 +328,7 @@ void readVkImageToBitmap(
     VkBuffer stagingBuffer;
     VkResult result = vkCreateBuffer(device, &bufferInfo, nullptr, &stagingBuffer);
     if (result != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create staging buffer");
+        PANIC_POSTCONDITION("Failed to create staging buffer");
     }
 
     // Get memory requirements and properties
@@ -354,7 +353,7 @@ void readVkImageToBitmap(
 
     if (memoryTypeIndex == -1) {
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to find suitable memory type");
+        PANIC_POSTCONDITION("Failed to find suitable memory type");
     }
 
     // Allocate memory
@@ -367,7 +366,7 @@ void readVkImageToBitmap(
     result = vkAllocateMemory(device, &allocInfo, nullptr, &stagingMemory);
     if (result != VK_SUCCESS) {
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to allocate staging memory");
+        PANIC_POSTCONDITION("Failed to allocate staging memory");
     }
 
     // Bind memory to buffer
@@ -375,7 +374,7 @@ void readVkImageToBitmap(
     if (result != VK_SUCCESS) {
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to bind buffer memory");
+        PANIC_POSTCONDITION("Failed to bind buffer memory");
     }
 
     // Create command buffer
@@ -390,7 +389,7 @@ void readVkImageToBitmap(
     if (result != VK_SUCCESS) {
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to allocate command buffer");
+        PANIC_POSTCONDITION("Failed to allocate command buffer");
     }
 
     // Begin command buffer
@@ -403,7 +402,7 @@ void readVkImageToBitmap(
         vkFreeCommandBuffers(device, commandPool, 1, &cmdBuffer);
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to begin command buffer");
+        PANIC_POSTCONDITION("Failed to begin command buffer");
     }
 
     // Transition image layout for transfer
@@ -475,7 +474,7 @@ void readVkImageToBitmap(
         vkFreeCommandBuffers(device, commandPool, 1, &cmdBuffer);
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to end command buffer");
+        PANIC_POSTCONDITION("Failed to end command buffer");
     }
 
     // Submit command buffer
@@ -494,7 +493,7 @@ void readVkImageToBitmap(
         vkFreeCommandBuffers(device, commandPool, 1, &cmdBuffer);
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to create fence");
+        PANIC_POSTCONDITION("Failed to create fence");
     }
 
     // Submit with fence
@@ -504,7 +503,7 @@ void readVkImageToBitmap(
         vkFreeCommandBuffers(device, commandPool, 1, &cmdBuffer);
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to submit queue");
+        PANIC_POSTCONDITION("Failed to submit queue");
     }
 
     // Wait for the command buffer to complete execution
@@ -514,7 +513,7 @@ void readVkImageToBitmap(
         vkFreeCommandBuffers(device, commandPool, 1, &cmdBuffer);
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to wait for fence");
+        PANIC_POSTCONDITION("Failed to wait for fence");
     }
 
     // Now safe to map memory and read data
@@ -525,7 +524,7 @@ void readVkImageToBitmap(
         vkFreeCommandBuffers(device, commandPool, 1, &cmdBuffer);
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to map memory");
+        PANIC_POSTCONDITION("Failed to map memory");
     }
 
     // Create bitmap header
@@ -550,7 +549,7 @@ void readVkImageToBitmap(
         vkFreeCommandBuffers(device, commandPool, 1, &cmdBuffer);
         vkFreeMemory(device, stagingMemory, nullptr);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        throw std::runtime_error("Failed to open output file");
+        PANIC_POSTCONDITION("Failed to open output file");
     }
 
     file.write(reinterpret_cast<char*>(&header), sizeof(header));
@@ -616,8 +615,9 @@ VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevi
     // access is externally synchronized, so sharing one queue across those
     // two threads is a data race — tolerated by some drivers, but newer
     // NVIDIA drivers (observed on RTX 5090 / 610.62) fail the first
-    // concurrent submission with VK_ERROR_DEVICE_LOST. With two queues the
-    // blit gets its own (see createCommandResources).
+    // concurrent submission with VK_ERROR_DEVICE_LOST. The blit now shares
+    // queue 0 behind a serialization shim (see createCommandResources), so
+    // the second queue is currently unused.
     uint32_t familyCount = 0;
     bluevk::vkGetPhysicalDeviceQueueFamilyProperties(*physicalDevice, &familyCount, nullptr);
     std::vector<VkQueueFamilyProperties> families(familyCount);
@@ -666,7 +666,7 @@ void createDeviceWithGraphicsQueue(VkPhysicalDevice physicalDevice, uint32_t& qu
     createInfo.pEnabledFeatures = &deviceFeatures;
     
     if (vkCreateDevice(physicalDevice, &createInfo, nullptr, device) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create logical device");
+        PANIC_POSTCONDITION("Failed to create logical device");
     }
 }
 

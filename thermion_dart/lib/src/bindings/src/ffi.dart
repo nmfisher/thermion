@@ -2,6 +2,7 @@ export 'thermion_dart_ffi.g.dart';
 
 export 'dart:typed_data';
 import 'dart:async';
+import 'dart:ffi' as ffi;
 import 'dart:io';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'void_callback_registry.dart';
@@ -11,6 +12,8 @@ export 'dart:ffi' hide Size;
 const FILAMENT_SINGLE_THREADED = false;
 const FILAMENT_WASM = false;
 bool get IS_WINDOWS => Platform.isWindows;
+
+Uint8List? readEmbeddedMaterial(String sectionName) => throw UnsupportedError('Wasm material sections require web.');
 
 Uint8List makeUint8List(int length) {
   return Uint8List(length);
@@ -59,6 +62,10 @@ class CallbackHolder<T extends Function> {
 
   CallbackHolder(this.nativeCallable);
 
+  void releaseIsolate() {
+    nativeCallable.keepIsolateAlive = false;
+  }
+
   void dispose() {
     nativeCallable.close();
   }
@@ -85,13 +92,6 @@ class FinalizableUint8List implements Finalizable {
   final Uint8List data;
 
   FinalizableUint8List(this.name, this.data);
-}
-
-extension GPFBP on void Function(int, double, double, double) {
-  CallbackHolder<GizmoPickCallbackFunction> asCallback() {
-    var nativeCallable = NativeCallable<GizmoPickCallbackFunction>.listener(this);
-    return CallbackHolder(nativeCallable);
-  }
 }
 
 CallbackHolder<PickCallbackFunction> makePickCallbackFunctionPointer(DartPickCallbackFunction fn) {
@@ -134,6 +134,21 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
   return ptr;
 }
 
+/// Waits for one native size_t result and closes the callback on completion.
+/// [operation] must deliver exactly one result or throw before native code
+/// accepts the callback.
+Future<int> withSizeCallback(void Function(Pointer<NativeFunction<Void Function(ffi.Size)>>) operation) async {
+  final completer = Completer<int>();
+  void callback(int size) => completer.complete(size);
+  final nativeCallable = NativeCallable<Void Function(ffi.Size)>.listener(callback);
+  try {
+    operation(nativeCallable.nativeFunction);
+    return await completer.future;
+  } finally {
+    nativeCallable.close();
+  }
+}
+
 Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
   final completer = Completer<bool>();
   // ignore: prefer_function_declarations_over_variables
@@ -160,7 +175,8 @@ Future<double> withFloatCallback(Function(Pointer<NativeFunction<Void Function(F
   return completer.future;
 }
 
-Future<int> withIntCallback(Function(Pointer<NativeFunction<Void Function(Int32)>>) func) async {
+/// Waits for one signed 32-bit result.
+Future<int> withInt32Callback(Function(Pointer<NativeFunction<Void Function(Int32)>>) func) async {
   final completer = Completer<int>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {

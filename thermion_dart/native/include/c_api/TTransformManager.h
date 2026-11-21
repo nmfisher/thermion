@@ -11,6 +11,13 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE double4x4 TransformManager_getLocalTransform(TTransformManager *tTransformManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE double4x4 TransformManager_getWorldTransform(TTransformManager *tTransformManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void TransformManager_setTransform(TTransformManager *tTransformManager, EntityId entityId, double4x4 transform);
+    // Native handles refer to constructed mat4 objects; no boundary copy.
+    EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformNative(TTransformManager *manager, EntityId entity, TMat4 *matrix);
+    // Buffers contain 16 column-major doubles, borrowed only during the call.
+    // Missing transform components produce a zero matrix, matching the value getters.
+    EMSCRIPTEN_KEEPALIVE void TransformManager_getLocalTransformInto(TTransformManager *manager, EntityId entity, double *out16);
+    EMSCRIPTEN_KEEPALIVE void TransformManager_getWorldTransformInto(TTransformManager *manager, EntityId entity, double *out16);
+    EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformFromBuffer(TTransformManager *manager, EntityId entity, const double *matrix16);
 	EMSCRIPTEN_KEEPALIVE bool TransformManager_transformToUnitCube(TTransformManager *tTransformManager, EntityId entityId, Aabb3 boundingBox);
 	EMSCRIPTEN_KEEPALIVE void TransformManager_setParent(TTransformManager *tTransformManager, EntityId child, EntityId parent, bool preserveScaling);
 	EMSCRIPTEN_KEEPALIVE EntityId TransformManager_getParent(TTransformManager *tTransformManager, EntityId child);
@@ -29,4 +36,3 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-

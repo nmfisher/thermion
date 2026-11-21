@@ -1,3 +1,4 @@
+#include "rendering/EngineApiLock.hpp"
  
 
 #include "c_api/TSkybox.h"
@@ -17,30 +18,35 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void Skybox_setColor(TSkybox *tSkybox, double r, double g, double b, double a)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *skybox = reinterpret_cast<filament::Skybox *>(tSkybox);
             skybox->setColor(filament::math::float4 { static_cast<float>(r), static_cast<float>(g), static_cast<float>(b), static_cast<float>(a) } );
         }
 
         EMSCRIPTEN_KEEPALIVE void Skybox_setLayerMask(TSkybox *tSkybox, uint8_t select, uint8_t values)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *skybox = reinterpret_cast<filament::Skybox *>(tSkybox);
             skybox->setLayerMask(select, values);
         }
 
         EMSCRIPTEN_KEEPALIVE uint8_t Skybox_getLayerMask(TSkybox *tSkybox)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *skybox = reinterpret_cast<filament::Skybox *>(tSkybox);
             return skybox->getLayerMask();
         }
 
         EMSCRIPTEN_KEEPALIVE float Skybox_getIntensity(TSkybox *tSkybox)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *skybox = reinterpret_cast<filament::Skybox *>(tSkybox);
             return skybox->getIntensity();
         }
 
         EMSCRIPTEN_KEEPALIVE TTexture *Skybox_getTexture(TSkybox *tSkybox)
         {
+            THERMION_ENGINE_API_GUARD;
             auto *skybox = reinterpret_cast<filament::Skybox *>(tSkybox);
             return reinterpret_cast<TTexture *>(const_cast<filament::Texture *>(skybox->getTexture()));
         }

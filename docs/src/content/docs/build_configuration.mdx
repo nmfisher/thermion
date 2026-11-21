@@ -66,3 +66,18 @@ fails the build with an error naming the problem key.
   prebuilt ones, see [Web](/web/).
 - `skip_native_build: true` — skip the native C++ build entirely (used when
   running pure-Dart tooling in this package).
+
+## Native error handling
+
+Thermion and the Filament libraries it ships use the same C++ build settings in
+debug and release: C++ exceptions are disabled. This avoids including C++ error
+recovery machinery that Thermion does not use. The size saving depends on the
+platform and has not yet been measured.
+
+A Filament panic is fatal and stops the application. It cannot be recovered
+through a Dart `try`/`catch`. Ordinary errors reported through return values
+still work, as do Dart's own exceptions and failed Futures.
+
+Custom native plugins must use compatible build settings. Filament's desktop
+tools, such as `matc` and `cmgen`, run separately during development and retain
+their own build settings; they are not linked into your application.

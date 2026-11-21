@@ -9,6 +9,7 @@ import 'package:thermion_flutter/src/options.dart';
 
 import 'native_rendering_lifecycle_controller.dart';
 import 'platform_texture_descriptor.dart';
+import 'platform_texture_descriptor_registry.dart';
 import 'platform_texture_descriptor_registry_native.dart';
 
 @visibleForTesting
@@ -55,6 +56,7 @@ class NativeTextureSurfaceManager {
   NativeTextureSurfaceManager({
     required NativeRenderingLifecycleController lifecycle,
     required NativeOptions Function() options,
+    PlatformTextureDescriptorAllocator? allocator,
   }) : _lifecycle = lifecycle,
        _options = options,
        registry = NativePlatformTextureDescriptorRegistry(
@@ -63,6 +65,7 @@ class NativeTextureSurfaceManager {
          runTextureMutation: lifecycle.duringTextureMutation,
          androidTextureSource: () => options().androidTextureSource,
          flipLinuxTextureVertically: () => options().backend != Backend.VULKAN,
+         allocator: allocator,
        );
 
   static final _logger = Logger('NativeTextureSurfaceManager');
@@ -346,21 +349,17 @@ class NativeTextureSurfaceManager {
     }
   }
 
-  Future<void> _createFilamentResources(
-    PlatformTextureDescriptor descriptor,
-    View view,
-    int width,
-    int height,
-  ) async {
-    final options = _options();
-    final useExternalImage =
-        Platform.isWindows || options.backend == Backend.VULKAN;
-    final app = FilamentApp.instance;
-    if (app == null) {
-      throw StateError('Cannot bind a texture after Filament shutdown');
-    }
-
-    final existingRenderTarget = _viewRenderTargets[view];
+  Future<RenderTarget> _createPresentationRenderTarget({
+    required FilamentApp app,
+    required NativeOptions options,
+    required View view,
+    required int width,
+    required int height,
+    required int hardwareId,
+    required bool useExternalImage,
+    bool updateViewport = false,
+    bool throwOnRollbackFailure = false,
+  }) async {
     Texture? color;
     Texture? depth;
     RenderTarget? renderTarget;
@@ -368,7 +367,7 @@ class NativeTextureSurfaceManager {
       color = await app.createTexture(
         width,
         height,
-        importedTextureHandle: useExternalImage ? -1 : descriptor.hardwareId,
+        importedTextureHandle: useExternalImage ? -1 : hardwareId,
         flags: {
           TextureUsage.TEXTURE_USAGE_BLIT_SRC,
           TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
@@ -379,7 +378,7 @@ class NativeTextureSurfaceManager {
       );
 
       if (useExternalImage) {
-        await app.setExternalImage(color, descriptor.hardwareId);
+        await app.setExternalImage(color, hardwareId);
       }
 
       depth = await app.createTexture(
@@ -405,19 +404,57 @@ class NativeTextureSurfaceManager {
       // Do every operation that can reject the replacement before publishing
       // it in _viewRenderTargets or destroying the previous target.
       final swapChains = await app.getSwapChains();
-      await app.renderManager.attach(view, swapChains.first);
-      await view.setRenderTarget(renderTarget);
+      final swapChain = swapChains.first;
+      // Re-attaching an already-attached view resets its renderOrder to 0,
+      // breaking multi-pass pipelines such as HighlightOverlayManager.
+      if (!app.renderManager
+          .getViewAttachments(swapChain)
+          .any((attachment) => attachment.view == view)) {
+        await app.renderManager.attach(view, swapChain);
+      }
+      if (updateViewport) {
+        await view.setViewport(width, height);
+      }
+      await view.setPresentationRenderTarget(renderTarget);
+      return renderTarget;
     } catch (error, stackTrace) {
       final rolledBack = await _destroyCreatedRenderTarget(
         renderTarget: renderTarget,
         color: color,
         depth: depth,
       );
-      if (!rolledBack) {
+      if (throwOnRollbackFailure && !rolledBack) {
         throw _FilamentResourceRollbackFailure(error);
       }
       Error.throwWithStackTrace(error, stackTrace);
     }
+  }
+
+  Future<void> _createFilamentResources(
+    PlatformTextureDescriptor descriptor,
+    View view,
+    int width,
+    int height,
+  ) async {
+    final options = _options();
+    final useExternalImage =
+        Platform.isWindows || options.backend == Backend.VULKAN;
+    final app = FilamentApp.instance;
+    if (app == null) {
+      throw StateError('Cannot bind a texture after Filament shutdown');
+    }
+
+    final existingRenderTarget = _viewRenderTargets[view];
+    final renderTarget = await _createPresentationRenderTarget(
+      app: app,
+      options: options,
+      view: view,
+      width: width,
+      height: height,
+      hardwareId: descriptor.hardwareId,
+      useExternalImage: useExternalImage,
+      throwOnRollbackFailure: true,
+    );
 
     _viewRenderTargets[view] = renderTarget;
     if (existingRenderTarget != null) {
@@ -550,60 +587,24 @@ class NativeTextureSurfaceManager {
       height,
     );
     final existingRenderTarget = _viewRenderTargets[view];
-    Texture? color;
-    Texture? depth;
-    RenderTarget? renderTarget;
+    final RenderTarget renderTarget;
     try {
       final app = FilamentApp.instance;
       if (app == null) {
         throw StateError('Cannot resize a texture after Filament shutdown');
       }
-      final options = _options();
 
-      color = await app.createTexture(
-        width,
-        height,
-        importedTextureHandle: -1,
-        flags: {
-          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-        },
-        textureFormat: options.renderTargetColorTextureFormat,
-        textureSamplerType: TextureSamplerType.SAMPLER_2D,
+      renderTarget = await _createPresentationRenderTarget(
+        app: app,
+        options: _options(),
+        view: view,
+        width: width,
+        height: height,
+        hardwareId: externalImage,
+        useExternalImage: true,
+        updateViewport: true,
       );
-      await app.setExternalImage(color, externalImage);
-
-      depth = await app.createTexture(
-        width,
-        height,
-        flags: {
-          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-          TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
-          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-          TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
-        },
-        textureFormat: options.renderTargetDepthTextureFormat,
-        textureSamplerType: TextureSamplerType.SAMPLER_2D,
-      );
-
-      renderTarget = await app.createRenderTarget(
-        width,
-        height,
-        color: color,
-        depth: depth,
-      );
-
-      final swapChains = await app.getSwapChains();
-      await app.renderManager.attach(view, swapChains.first);
-      await view.setViewport(width, height);
-      await view.setRenderTarget(renderTarget);
     } catch (error, stackTrace) {
-      await _destroyCreatedRenderTarget(
-        renderTarget: renderTarget,
-        color: color,
-        depth: depth,
-      );
       try {
         await registry.cancelWindowsTextureResize(texture);
       } catch (cleanupError, cleanupStackTrace) {
@@ -653,12 +654,7 @@ class NativeTextureSurfaceManager {
       return;
     }
 
-    final overlay = view.getHighlightOverlay();
-    if (overlay == null) {
-      await view.setRenderTarget(null);
-    } else {
-      await overlay.overlayView.setRenderTarget(null);
-    }
+    await view.setPresentationRenderTarget(null);
     await _destroyRenderTarget(renderTarget);
     if (identical(_viewRenderTargets[view], renderTarget)) {
       _viewRenderTargets.remove(view);

@@ -4,8 +4,8 @@
 # Usage: ./zip_android.sh <OUT_DIR> <FILAMENT_VERSION> <OUTPUT_DIR>
 # Example: ./zip_android.sh /tmp/out v1.74.0 /tmp
 #
-# NOTE: imageio/tinyexr must have been cross-compiled for each Android arch
-# (placed at out/cmake-android-{release,debug}-{arch}/third_party/{imageio,tinyexr}/).
+# NOTE: tinyexr must have been cross-compiled for each Android arch
+# (placed at out/cmake-android-{release,debug}-{arch}/third_party/tinyexr/).
 # The host-compiled versions at out/cmake-{release,debug}/ are NOT compatible.
 
 if [ $# -lt 3 ]; then
@@ -37,6 +37,11 @@ for BUILD_TYPE in release debug; do
 
   for ARCH in $ARCHS; do
     CMAKE_ARCH=$(abi_to_cmake_arch "$ARCH")
+    CACHE="$OUT_DIR/cmake-android-${BUILD_TYPE}-${CMAKE_ARCH}/CMakeCache.txt"
+    if ! grep -qx 'FILAMENT_ENABLE_EXCEPTIONS:BOOL=OFF' "$CACHE"; then
+      echo "Rebuild $ARCH/$BUILD_TYPE with build_android.sh before packaging."
+      exit 1
+    fi
     mkdir -p "$STAGE_DIR/$ARCH"
 
     # Copy main Filament libraries.
@@ -53,15 +58,6 @@ for BUILD_TYPE in release debug; do
       done
     else
       echo "WARNING: $SRC not found"
-    fi
-
-    # Copy imageio (cross-compiled per-arch)
-    IMAGEIO_SRC="$OUT_DIR/cmake-android-${BUILD_TYPE}-${CMAKE_ARCH}/third_party/imageio/libimageio.a"
-    if [ -f "$IMAGEIO_SRC" ]; then
-      echo "Found imageio at $IMAGEIO_SRC"
-      cp "$IMAGEIO_SRC" "$STAGE_DIR/$ARCH/"
-    else
-      echo "WARNING: libimageio.a not found for $ARCH at $IMAGEIO_SRC"
     fi
 
     # Copy tinyexr (cross-compiled per-arch)
@@ -91,11 +87,6 @@ for BUILD_TYPE in release debug; do
     }
   fi
 
-  # Copy imageio headers
-  if [ -d "$OUT_DIR/../libs/imageio/include" ]; then
-    mkdir -p "$STAGE_DIR/include/imageio"
-    cp -R "$OUT_DIR/../libs/imageio/include"/* "$STAGE_DIR/include/imageio/" 2>/dev/null || true
-  fi
 
   # Copy stb_image.h
   if [ -f "$OUT_DIR/../third_party/stb/stb_image.h" ]; then

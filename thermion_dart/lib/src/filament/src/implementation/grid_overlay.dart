@@ -1,4 +1,3 @@
-import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/interface/defaults.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -35,7 +34,7 @@ class GridOverlay {
        _app = app;
 
   static GridOverlay? _instance;
-  static Material? _gridMaterial;
+  static Future<Material>? _gridMaterial;
   static List<LinearColor> _currentAxisColors = kDefaultAxisColors;
 
   /// The entities for each LOD level.
@@ -153,7 +152,10 @@ class GridOverlay {
     final rm = app.renderableManager;
 
     // Create or reuse the grid material
-    _gridMaterial ??= FFIMaterial(Material_createGridMaterial(app.engine), app);
+    final gridMaterial = await (_gridMaterial ??= app.createBuiltInMaterial(BuiltInMaterial.grid).onError((e, st) {
+      _gridMaterial = null;
+      Error.throwWithStackTrace(e!, st);
+    }));
 
     // Generate shared geometry
     final (positions, indices) = _generateGridGeometry();
@@ -187,7 +189,7 @@ class GridOverlay {
       final entity = await app.createEntity();
 
       // Create material instance
-      final materialInstance = await _gridMaterial!.createInstance();
+      final materialInstance = await gridMaterial.createInstance();
 
       // Configure material parameters
       await materialInstance.setParameterFloat3('gridColor', gridColor.r, gridColor.g, gridColor.b);
@@ -217,6 +219,8 @@ class GridOverlay {
       builder.geometry(0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, indices.length);
       builder.material(0, materialInstance);
       builder.priority(6);
+      // Blend small levels first so axis colors do not depend on entity IDs.
+      builder.blendOrder(0, i);
       // Layer mask: 0xFF select, 1 << 7 (Overlay layer) value
       builder.layerMask(0xFF, 1 << 7);
       // Disable culling - the shader calculates world-space coordinates

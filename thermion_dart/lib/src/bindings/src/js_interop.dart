@@ -14,11 +14,12 @@ const FILAMENT_SINGLE_THREADED = true;
 const FILAMENT_WASM = true;
 const IS_WINDOWS = false;
 
-extension type _NativeLibrary(NativeLibrary _) implements JSObject {
-  static _NativeLibrary get instance => NativeLibrary.instance as _NativeLibrary;
-
-  external void _execute_queue();
+extension type _WebMaterialReader(JSObject _) implements JSObject {
+  external JSArrayBuffer? readThermionMaterial(String sectionName);
 }
+
+Uint8List? readEmbeddedMaterial(String sectionName) =>
+    _WebMaterialReader(NativeLibrary.instance).readThermionMaterial(sectionName)?.toDart.asUint8List();
 
 typedef IntPtrList = Int32List;
 typedef Utf8 = Char;
@@ -38,6 +39,9 @@ class CallbackHolder<T extends Function> {
 
   CallbackHolder(this.pointer);
 
+  // Web callbacks have no NativeCallable isolate keep-alive to release.
+  void releaseIsolate() {}
+
   void dispose() {
     pointer.dispose();
   }
@@ -48,13 +52,6 @@ extension DPCF on DartPickCallbackFunction {
     final ptr = addFunction<DartPickCallbackFunction>(this.toJS, "viiffff");
     final cbh = CallbackHolder(ptr);
     return cbh;
-  }
-}
-
-extension GPFBP on void Function(int, double, double, double) {
-  CallbackHolder<GizmoPickCallbackFunction> asCallback() {
-    final ptr = addFunction<GizmoPickCallbackFunction>(this.toJS, "viddd");
-    return CallbackHolder(ptr);
   }
 }
 
@@ -81,10 +78,11 @@ Future<void> withVoidCallback(Function(int, Pointer<NativeFunction<Void Function
 
   _completers[requestId] = completer;
 
-  func.call(requestId, _voidCallbackPtr.cast());
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
+  try {
+    func.call(requestId, _voidCallbackPtr.cast());
+  } catch (_) {
+    _completers.remove(requestId);
+    rethrow;
   }
   await completer.future;
 }
@@ -100,17 +98,28 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
 
   final onComplete_interopFnPtr = callback.addFunction();
 
-  func.call(onComplete_interopFnPtr.cast());
+  try {
+    func.call(onComplete_interopFnPtr.cast());
 
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
+    return await completer.future;
+  } finally {
+    onComplete_interopFnPtr.dispose();
   }
+}
 
-  var ptr = await completer.future;
-  onComplete_interopFnPtr.dispose();
-
-  return ptr;
+/// Waits for one native size_t result and removes the callback on completion.
+/// [operation] must deliver exactly one result or throw before native code
+/// accepts the callback.
+Future<int> withSizeCallback(void Function(Pointer<NativeFunction<Void Function(int)>>) operation) async {
+  final completer = Completer<int>();
+  void callback(int size) => completer.complete(size);
+  final pointer = callback.addFunction();
+  try {
+    operation(pointer.cast());
+    return await completer.future;
+  } finally {
+    pointer.dispose();
+  }
 }
 
 Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
@@ -122,14 +131,13 @@ Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool
 
   final onComplete_interopFnPtr = callback.addFunction();
 
-  func.call(onComplete_interopFnPtr.cast());
+  try {
+    func.call(onComplete_interopFnPtr.cast());
 
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
+    return await completer.future;
+  } finally {
+    onComplete_interopFnPtr.dispose();
   }
-
-  return completer.future;
 }
 
 Future<double> withFloatCallback(void Function(Pointer<NativeFunction<void Function(double)>>) func) async {
@@ -139,38 +147,31 @@ Future<double> withFloatCallback(void Function(Pointer<NativeFunction<void Funct
     completer.complete(result);
   };
   var ptr = callback.addFunction();
-  func.call(ptr);
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
+  try {
+    func.call(ptr);
+    return await completer.future;
+  } finally {
+    ptr.dispose();
   }
-  return completer.future;
 }
 
-Future<int> withIntCallback(Function(Pointer<NativeFunction<void Function(int)>>) func) async {
+/// Waits for one signed 32-bit result.
+Future<int> withInt32Callback(Function(Pointer<NativeFunction<void Function(int)>>) func) async {
   final completer = Completer<int>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {
     completer.complete(result);
   };
   var ptr = callback.addFunction();
-  func.call(ptr);
-  while (!completer.isCompleted) {
-    _NativeLibrary.instance._execute_queue();
-    await Future.delayed(Duration(milliseconds: 1));
+  try {
+    func.call(ptr);
+    return await completer.future;
+  } finally {
+    ptr.dispose();
   }
-  return completer.future;
 }
 
-Pointer<T> allocate<T extends NativeType>(int byteCount) {
-  switch (T) {
-    case PointerClass:
-    case Char:
-      return malloc(byteCount);
-    default:
-      throw Exception(T.toString());
-  }
-}
+Pointer<T> allocate<T extends NativeType>(int byteCount) => malloc<T>(byteCount);
 
 Future<int> withUInt32Callback(Function(Pointer<NativeFunction<Void Function(int)>>) func) async {
   final completer = Completer<int>();
@@ -179,9 +180,12 @@ Future<int> withUInt32Callback(Function(Pointer<NativeFunction<Void Function(int
     completer.complete(result);
   };
   final ptr = callback.addFunction();
-  func.call(ptr.cast());
-  await completer.future;
-  return completer.future;
+  try {
+    func.call(ptr.cast());
+    return await completer.future;
+  } finally {
+    ptr.dispose();
+  }
 }
 
 Future<String> withCharPtrCallback(Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>) func) async {

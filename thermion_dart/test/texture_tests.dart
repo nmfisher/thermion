@@ -46,10 +46,10 @@ void main() async {
 
   test('set cubemap texture from pixel buffer', () async {
     await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((result) async {
+      // A single cubemap uses depth 1 (the default); its six faces are implicit.
       final texture = await FilamentApp.instance!.createTexture(
         1,
         1,
-        depth: 6,
         textureSamplerType: TextureSamplerType.SAMPLER_CUBEMAP,
         textureFormat: TextureFormat.RGBA32F,
       );

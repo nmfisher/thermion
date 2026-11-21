@@ -1,4 +1,6 @@
 #include "ThermionWebApi.h"
+#include "WebGLContext.hpp"
+#include "rendering/WebJobThread.hpp"
 
 #include <thread>
 #include <mutex>
@@ -20,6 +22,19 @@
 #include <emscripten/bind.h>
 
 using emscripten::val;
+
+namespace thermion {
+
+EMSCRIPTEN_WEBGL_CONTEXT_HANDLE createWebGLContextForCurrentJob() {
+  const char* selector = WebJobThread::currentCanvasSelector();
+  if (!selector) {
+    std::cerr << "Web engine creation requires a WebJobThread job" << std::endl;
+    return 0;
+  }
+  return Thermion_createGLContext(selector);
+}
+
+} // namespace thermion
 
 extern "C"
 {
@@ -61,7 +76,11 @@ extern "C"
     attr.depth = EM_TRUE;
     attr.stencil = EM_TRUE;
     attr.antialias = EM_FALSE;
+#ifdef THERMION_WEB_MAIN_THREAD
+    attr.explicitSwapControl = EM_FALSE;
+#else
     attr.explicitSwapControl = EM_TRUE;
+#endif
     attr.preserveDrawingBuffer = EM_FALSE;
     attr.proxyContextToMainThread = EMSCRIPTEN_WEBGL_CONTEXT_PROXY_DISALLOW;
     attr.enableExtensionsByDefault = EM_TRUE;
@@ -82,11 +101,6 @@ extern "C"
       std::cout << "Failed to make WebGL context current"<< std::endl;
     } else { 
       std::cout << "Made WebGL context current"<< std::endl;
-      // try {
-      //   glClearColor(0.0, 0.0, 1.0, 1.0);
-      // } catch(...) {
-      //   std::cout << "Caught err"<< std::endl;
-      // }
       glClear(GL_COLOR_BUFFER_BIT);
     }
     std::cout << "Returning context" << std::endl;

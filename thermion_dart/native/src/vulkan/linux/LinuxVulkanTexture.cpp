@@ -257,7 +257,10 @@ namespace thermion::vulkan::linux_platform
             .arrayLayers = 1,
             .samples = VK_SAMPLE_COUNT_1_BIT,
             .tiling = VK_IMAGE_TILING_OPTIMAL,
-            .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                     VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                     VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                     VK_IMAGE_USAGE_SAMPLED_BIT,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
         };
@@ -447,11 +450,12 @@ namespace thermion::vulkan::linux_platform
                   << std::endl;
 
         // The base class _image/_imageMemory holds the export image (DMA-BUF).
-        // _renderImage/_renderMemory holds the render target.
+        // _renderImage/_renderMemory holds the render target; allocation metadata
+        // describes the render target imported into Filament via ExternalVulkanImage.
         auto tex = std::make_unique<LinuxVulkanTexture>(
             exportImage, device, exportMemory, width, height,
             dmaBufFd, stride, offset, drmFormat,
-            exportMemReqs.size, exportMemReqs.memoryTypeBits,
+            renderMemReqs.size, renderMemReqs.memoryTypeBits,
             DRM_FORMAT_MOD_LINEAR);
 
         tex->_needsBlit = true;

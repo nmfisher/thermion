@@ -1,4 +1,5 @@
 output: '../lib/src/bindings/src/thermion_dart_ffi.g.dart'
+sort: true
 headers:
   entry-points:
     - '../native/include/c_api/*.h'
@@ -18,6 +19,17 @@ functions:
       # functions must not be Dart FFI leaf calls. This excludes it only from
       # isLeaf:true, not from the bindings.
       - 'FrameScheduler_stop'
+      # Frame history entry points use normal VM transitions, including the
+      # queued wrapper. Direct calls can wait for the engine API lock.
+      - 'Renderer_getFrameInfoHistory'
+      - 'Renderer_getFrameInfoHistoryJobThread'
+      - 'Renderer_getMaxFrameHistorySize'
+      # Compilation waits for a job-thread future and must let the Dart VM
+      # coordinate GC and other isolates while the native call is blocked.
+      - 'MaterialCompiler_compileMaterialSource'
+      - 'MaterialCompiler_compileMaterialPackage'
+      - 'MaterialCompiler_compileMaterialSourceWithDiagnostics'
+      - 'MaterialCompiler_compileMaterialPackageWithDiagnostics'
 enums:
   as-int:
     include:

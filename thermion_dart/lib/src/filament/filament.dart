@@ -1,9 +1,12 @@
 export 'src/interface/filament_app.dart';
+export 'src/interface/built_in_material.dart';
+export 'src/interface/frame_timing_info.dart';
 export 'src/interface/skybox.dart';
 export 'src/interface/engine.dart';
 export 'src/interface/layers.dart';
 export 'src/interface/light_manager.dart';
 export 'src/interface/light_options.dart';
+export 'src/interface/render_manager.dart';
 export 'src/interface/renderable_manager.dart';
 export 'src/interface/transform_manager.dart';
 export 'src/interface/axis.dart';

@@ -32,11 +32,12 @@ public:
                   << " memTypeBits=0x" << std::hex << extImg->memoryTypeBits << std::dec
                   << std::endl;
 
-        ExternalImageMetadata metadata;
+        ExternalImageMetadata metadata{};
         metadata.filamentFormat = extImg->filamentFormat;
         metadata.filamentUsage = extImg->filamentUsage;
         metadata.width = extImg->width;
         metadata.height = extImg->height;
+        metadata.mipLevels = extImg->mipLevels;
         metadata.layers = extImg->layers;
         metadata.samples = VK_SAMPLE_COUNT_1_BIT;
         metadata.format = extImg->format;

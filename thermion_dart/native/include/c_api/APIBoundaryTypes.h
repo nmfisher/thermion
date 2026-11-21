@@ -13,19 +13,21 @@ extern "C"
 	typedef void (*VoidCallback)(int32_t requestId);
 	
 	typedef int32_t EntityId;
+	typedef struct TMat4 TMat4;
 	typedef struct TCamera TCamera;
 	typedef struct TEngine TEngine;
+	typedef struct TJobThread TJobThread;
 	typedef struct TEntityManager TEntityManager;
 	typedef struct TViewer TViewer;
 	typedef struct TSceneManager TSceneManager;
 	typedef struct TLightManager TLightManager;
 	typedef struct TRenderManager TRenderManager;
+	typedef struct TCaptureResult TCaptureResult;
 	typedef struct TRenderer TRenderer;
 	typedef struct TFence TFence;
 	typedef struct TRenderTarget TRenderTarget;
 	typedef struct TSwapChain TSwapChain;
 	typedef struct TView TView;
-	typedef struct TGizmo TGizmo;
 	typedef struct TScene TScene;
 	typedef struct TSkybox TSkybox;
 	typedef struct TIndirectLight TIndirectLight;
@@ -102,12 +104,6 @@ extern "C"
     };
 
     typedef struct Aabb3 Aabb3;
-
-	enum TGizmoType {
-		GIZMO_TYPE_TRANSLATION,
-		GIZMO_TYPE_ROTATION
-	};
-	typedef enum TGizmoType TGizmoType;
 
 	enum TSceneAssetType {
 		SCENE_ASSET_TYPE_GLTF = 0,

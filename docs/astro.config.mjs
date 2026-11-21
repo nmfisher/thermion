@@ -13,6 +13,12 @@ export default defineConfig({
       // Astro migration (#216) — reinstated.
       logo: { src: './src/assets/logo.png', replacesTitle: true },
       customCss: ['./src/styles/custom.css'],
+      components: {
+        // Overrides Starlight's site title to append the released Thermion
+        // version (read from thermion_dart/pubspec.yaml at build time) next to
+        // the logo. See src/components/SiteTitle.astro.
+        SiteTitle: './src/components/SiteTitle.astro',
+      },
       social: [
         {
           icon: 'github',

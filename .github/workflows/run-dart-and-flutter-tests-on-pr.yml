@@ -1,0 +1,72 @@
+# Runs the Dart/Flutter tests on every pull request, gated behind
+# manual approval. GitHub Actions does not allow `environment` on a job that
+# calls a reusable workflow (run-dart-tests.yml, flutter-tests-and-examples.yml),
+# so the gate is a separate no-op job: `approval-gate` references the
+# `pr-approval` environment, whose required-reviewer rule holds the run in
+# "Waiting" state until it is approved from the PR's Checks tab (Review
+# deployments -> Approve and run). The suites are only called after the gate
+# job is approved.
+#
+# Matrix jobs expand into many check run names ("Dart Tests (Linux)", ...),
+# which is awkward to reference from branch protection. The tests-passed job
+# folds the whole suite into a single stable check name ("PR tests passed")
+# that required status checks can reference.
+name: PR Tests (Dart/Flutter)
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: read
+  # Read candidate artifacts from the current run. Reviewed baselines are
+  # release assets, downloaded with the contents:read permission above.
+  actions: read
+
+concurrency:
+  group: run-dart-and-flutter-tests-on-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  approval-gate:
+    name: Approval gate (pr-approval)
+    runs-on: ubuntu-latest
+    environment: pr-approval
+    steps:
+      - name: Await approval
+        run: echo "Approved; starting PR test suite."
+
+  tests:
+    name: Dart/Flutter tests
+    needs: [approval-gate]
+    uses: ./.github/workflows/run-dart-tests.yml
+    with:
+      ref: ${{ github.event.pull_request.head.sha }}
+    secrets: inherit
+
+  flutter:
+    name: Flutter tests
+    needs: [approval-gate]
+    uses: ./.github/workflows/flutter-tests-and-examples.yml
+    with:
+      ref: ${{ github.event.pull_request.head.sha }}
+      build_examples: false
+    secrets: inherit
+
+  tests-passed:
+    name: PR tests passed
+    needs: [tests, flutter]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate suite result
+        run: |
+          dart_result="${{ needs.tests.result }}"
+          flutter_result="${{ needs.flutter.result }}"
+          if [ "$dart_result" != "success" ] || [ "$flutter_result" != "success" ]; then
+            echo "PR test suite did not pass (dart: $dart_result, flutter: $flutter_result)."
+            exit 1
+          fi
+          echo "PR test suite passed."
