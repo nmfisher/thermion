@@ -824,7 +824,7 @@ List<String> extractToolBinaries(Archive archive, Directory destination) {
   final written = <String>[];
   for (final entry in archive) {
     if (!entry.isFile) continue;
-    final name = entry.name;
+    final name = entry.name.replaceAll('\\', '/');
     final rel = name.startsWith('./') ? name.substring(2) : name;
     if (rel != 'bin' && !rel.startsWith('bin/')) continue;
     final file = File(p.join(destination.path, rel));
