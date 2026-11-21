@@ -6,6 +6,7 @@
 #include <mutex>
 #include <future>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include <backend/Platform.h>
@@ -43,10 +44,17 @@ namespace {
 
 class ThermionWebGPUPlatform : public filament::backend::WebGPUPlatform {
 public:
+    // The canvas selector is resolved once, at platform creation (which
+    // runs on the viewer's job thread), so multi-viewer setups render to
+    // their own canvas instead of a hardcoded one. Mirrors the fallback
+    // WebJobThread uses when no selector was configured.
+    explicit ThermionWebGPUPlatform(const char* canvasSelector)
+        : _canvasSelector(canvasSelector ? canvasSelector : "#thermion_canvas") {}
+
     wgpu::Extent2D getSurfaceExtent(void* /*nativeWindow*/) const override {
         int width = 0;
         int height = 0;
-        emscripten_get_canvas_element_size("#thermion_canvas", &width, &height);
+        emscripten_get_canvas_element_size(_canvasSelector.c_str(), &width, &height);
         return wgpu::Extent2D{
             .width = static_cast<uint32_t>(width),
             .height = static_cast<uint32_t>(height),
@@ -55,7 +63,7 @@ public:
 
     wgpu::Surface createSurface(void* /*nativeWindow*/, uint64_t /*flags*/) override {
         wgpu::SurfaceDescriptorFromCanvasHTMLSelector canvasDesc{};
-        canvasDesc.selector = "#thermion_canvas";
+        canvasDesc.selector = _canvasSelector.c_str();
         wgpu::SurfaceDescriptor surfDesc{};
         surfDesc.nextInChain = &canvasDesc;
         return mInstance.CreateSurface(&surfDesc);
@@ -65,6 +73,9 @@ protected:
     std::vector<wgpu::RequestAdapterOptions> getAdapterOptions() override {
         return { wgpu::RequestAdapterOptions{} };
     }
+
+private:
+    std::string _canvasSelector;
 };
 
 } // namespace
@@ -141,8 +152,15 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void *Thermion_createWebGPUPlatform() {
-    std::cout << "Creating WebGPU platform." << std::endl;
-    return static_cast<filament::backend::Platform *>(new ThermionWebGPUPlatform());
+    // Honor the canvas selector configured for this viewer's job thread
+    // (Engine_create on the web runs inside that thread's job), falling
+    // back to the legacy default canvas.
+    const char* canvasSelector = thermion::WebJobThread::currentCanvasSelector();
+    if (!canvasSelector) {
+      canvasSelector = "#thermion_canvas";
+    }
+    std::cout << "Creating WebGPU platform for canvas " << canvasSelector << std::endl;
+    return static_cast<filament::backend::Platform *>(new ThermionWebGPUPlatform(canvasSelector));
   }
 
 }
