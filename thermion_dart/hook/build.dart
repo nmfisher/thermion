@@ -7,7 +7,7 @@ import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import '../lib/filament_version.dart';
-import '../lib/src/filament/src/interface/built_in_material.dart';
+import '../lib/src/hooks/built_in_materials.dart';
 import '../lib/src/hooks/filament_artifacts.dart';
 import '../lib/src/hooks/material_backend_resolution.dart';
 import '../lib/src/hooks/material_tools.dart';
@@ -84,27 +84,7 @@ void main(List<String> args) async {
     }
 
     final rawMaterialsDefine = input.userDefines['materials'];
-    if (rawMaterialsDefine != null && rawMaterialsDefine is! Map<String, dynamic>) {
-      throw MaterialToolsError('materials must be a map in pubspec.yaml.');
-    }
-    final materialConfig = rawMaterialsDefine is Map<String, dynamic> ? rawMaterialsDefine : const <String, dynamic>{};
-    final knownMaterialKeys = {
-      'backends',
-      'include_defaults',
-      ...BuiltInMaterial.values.map((material) => material.key),
-    };
-    for (final MapEntry(:key, :value) in materialConfig.entries) {
-      if (!knownMaterialKeys.contains(key)) {
-        logger.warning('Unknown key materials.$key in pubspec.yaml.');
-      } else if (key != 'backends' && value is! bool) {
-        throw MaterialToolsError('materials.$key must be true or false (an unquoted YAML boolean).');
-      }
-    }
-    final includeDefaults = materialConfig['include_defaults'] == true;
-    final selectedMaterials = [
-      for (final material in BuiltInMaterial.values)
-        if ((materialConfig[material.key] ?? (includeDefaults && material.isStandardDefault)) == true) material,
-    ];
+    final selectedMaterials = selectBuiltInMaterials(rawMaterialsDefine, onWarning: logger.warning);
 
     if (!input.config.buildCodeAssets) {
       logger.info("buildCodeAssets is false, assumed to be building for web");
@@ -118,7 +98,14 @@ void main(List<String> args) async {
         }
         return;
       }
-      await _publishWebMaterials(input, output, webDir, selectedMaterials, logger);
+      await publishWebMaterials(
+        root: Directory.fromUri(packageRoot),
+        webDir: webDir,
+        materials: selectedMaterials,
+        download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
+        onLog: logger.info,
+        addDependency: output.dependencies.add,
+      );
       await _downloadWebArtifacts(input, webDir, logger);
       return;
     }
@@ -450,14 +437,22 @@ outputDirectory : ${outputDirectory.path}
     }
 
     if (selectedMaterials.isNotEmpty) {
-      final builtIns = await _compileBuiltInMaterials(input, output, selectedMaterials, switch (materialSuffix) {
-        '_apple' => ['metal'],
-        '_opengl' || '_web_webgl' => ['opengl'],
-        '_vulkan' => ['vulkan'],
-        '_webgpu' => ['webgpu'],
-        '_web_combined' => ['opengl', 'webgpu'],
-        _ => ['opengl', 'vulkan'],
-      }, logger);
+      final builtIns = await compileBuiltInMaterials(
+        root: Directory.fromUri(packageRoot),
+        materials: selectedMaterials,
+        resgen: true,
+        backends: switch (materialSuffix) {
+          '_apple' => ['metal'],
+          '_opengl' || '_web_webgl' => ['opengl'],
+          '_vulkan' => ['vulkan'],
+          '_webgpu' => ['webgpu'],
+          '_web_combined' => ['opengl', 'webgpu'],
+          _ => ['opengl', 'vulkan'],
+        },
+        download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
+        onLog: logger.info,
+        addDependency: output.dependencies.add,
+      );
       for (final material in selectedMaterials) {
         final outputDir = builtIns[material]!;
         linkGeneratedIntoNativeBuild(
@@ -1285,86 +1280,5 @@ Future<void> _processDeclarativePlugins(
     defines["${pluginName.toUpperCase()}_ENABLED"] = "1";
 
     logger.info("Successfully processed plugin: $pluginName");
-  }
-}
-
-Future<Map<BuiltInMaterial, Directory>> _compileBuiltInMaterials(
-  BuildInput input,
-  BuildOutputBuilder output,
-  List<BuiltInMaterial> materials,
-  List<String> backends,
-  Logger logger,
-) async {
-  final root = Directory.fromUri(input.packageRoot);
-  final pkgRootPath = root.path;
-  final packageVersion = await readPubspecVersion(root);
-  final hostArch = await detectHostArchitecture() ?? 'x64';
-  final toolsPin = _loadFilamentPin(input.packageRoot, logger);
-  final resgen = input.config.buildCodeAssets;
-  final variantKey = '${backends.join('_')}-${resgen ? 'resgen' : 'filamat'}';
-  final outputs = <BuiltInMaterial, Directory>{};
-
-  for (final material in materials) {
-    final cacheDir = path.join(pkgRootPath, '.dart_tool', 'thermion_dart', 'materials', material.key, variantKey);
-    final result = await compileUserMaterials(
-      appRoot: root,
-      config: MaterialCompilationConfig(
-        inputs: ['hook/materials/${material.key}.mat'],
-        output: cacheDir,
-        backends: backends,
-        resgen: resgen,
-        resgenPrefixes: material.resgenPrefix != material.key ? {material.key: material.resgenPrefix} : const {},
-      ),
-      filamentVersion: filamentVersion,
-      packageVersion: packageVersion,
-      hostOS: Platform.operatingSystem,
-      hostArch: hostArch,
-      toolsPin: toolsPin,
-      download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
-      onLog: logger.info,
-    );
-    final normalizedCache = path.normalize(cacheDir);
-    for (final uri in result.dependencies) {
-      final depPath = path.normalize(uri.toFilePath(windows: Platform.isWindows));
-      // Register input dependencies (.mat sources, transitive #includes, matc)
-      // but not files written by this hook under cacheDir (which would trigger
-      // hooks_runner's "File modified during build" warning on cold builds).
-      if (depPath != normalizedCache && !path.isWithin(normalizedCache, depPath)) {
-        output.dependencies.add(uri);
-      }
-    }
-    outputs[material] = result.outputDir;
-  }
-
-  output.dependencies.add(input.packageRoot.resolve('pubspec.yaml'));
-  output.dependencies.add(input.packageRoot.resolve(filamentPinFileName));
-  return outputs;
-}
-
-Future<void> _publishWebMaterials(
-  BuildInput input,
-  BuildOutputBuilder output,
-  Directory webDir,
-  List<BuiltInMaterial> materials,
-  Logger logger,
-) async {
-  final deployDir = Directory(path.join(webDir.path, 'thermion_materials'));
-  final compiled = materials.isEmpty
-      ? null
-      : await _compileBuiltInMaterials(input, output, materials, ['opengl', 'webgpu'], logger);
-  if (compiled != null) deployDir.createSync(recursive: true);
-  for (final material in BuiltInMaterial.values) {
-    final name = '${material.key}.filamat';
-    final destination = File(path.join(deployDir.path, name));
-    final compiledDir = compiled?[material];
-    if (compiledDir != null) {
-      final source = File(path.join(compiledDir.path, name));
-      if (!destination.existsSync() ||
-          sha256.convert(source.readAsBytesSync()) != sha256.convert(destination.readAsBytesSync())) {
-        source.copySync(destination.path);
-      }
-    } else if (destination.existsSync()) {
-      destination.deleteSync();
-    }
   }
 }

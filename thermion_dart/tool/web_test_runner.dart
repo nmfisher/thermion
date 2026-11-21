@@ -28,6 +28,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:thermion_dart/src/hooks/built_in_materials.dart';
+import 'package:yaml_edit/yaml_edit.dart';
+
 // Must match emscripten's OFFSCREENCANVASES_TO_PTHREAD target id.
 const _canvasId = 'thermion_canvas';
 
@@ -154,6 +157,18 @@ Future<void> main(List<String> args) async {
     stderr.writeln('No test files found.');
     exit(1);
   }
+
+  final pubspec = YamlEditor(File('pubspec.yaml').readAsStringSync());
+  final materialConfig = pubspec.parseAt(
+    ['hooks', 'user_defines', 'thermion_dart', 'materials'],
+    orElse: () => wrapAsYamlNode(null),
+  );
+  await publishWebMaterials(
+    root: Directory.current,
+    webDir: Directory('test'),
+    materials: selectBuiltInMaterials(materialConfig.value, onWarning: stderr.writeln),
+    onLog: stderr.writeln,
+  );
 
   // 2. Generate the HTML wrappers.
   final generated = <File>[];

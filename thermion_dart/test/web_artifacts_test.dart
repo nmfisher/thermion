@@ -2,9 +2,39 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:test/test.dart';
+import 'package:thermion_dart/src/filament/src/interface/built_in_material.dart';
+import 'package:thermion_dart/src/hooks/built_in_materials.dart';
 import 'package:thermion_dart/src/hooks/web_artifacts.dart';
 
 void main() {
+  test('web publication tracks selected packages and removes only omitted built-ins', () {
+    final root = Directory.systemTemp.createTempSync('web-materials-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final deploy = Directory.fromUri(root.uri.resolve('web/thermion_materials/'));
+    final compiled = Directory.fromUri(root.uri.resolve('compiled/'))..createSync();
+    File.fromUri(compiled.uri.resolve('grid.filamat')).writeAsStringSync('grid');
+    File.fromUri(compiled.uri.resolve('image.filamat')).writeAsStringSync('image');
+
+    final dependencies = stageWebMaterialFiles(deploy, {
+      BuiltInMaterial.grid: compiled,
+      BuiltInMaterial.image: compiled,
+    });
+    final grid = File.fromUri(deploy.uri.resolve('grid.filamat'));
+    final image = File.fromUri(deploy.uri.resolve('image.filamat'));
+    final custom = File.fromUri(deploy.uri.resolve('custom.filamat'))..writeAsStringSync('custom');
+    expect(dependencies, containsAll([grid.uri, image.uri]));
+    expect(image.readAsStringSync(), 'image');
+
+    grid.deleteSync();
+    stageWebMaterialFiles(deploy, {BuiltInMaterial.grid: compiled});
+    expect(grid.readAsStringSync(), 'grid');
+    expect(image.existsSync(), isFalse);
+
+    stageWebMaterialFiles(deploy, {});
+    expect(grid.existsSync(), isFalse);
+    expect(custom.readAsStringSync(), 'custom');
+  });
+
   group('resolveWebVariant', () {
     test('null → default (no warning)', () {
       final r = resolveWebVariant(null);

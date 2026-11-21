@@ -3,10 +3,8 @@ import 'dart:isolate';
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
-import 'package:thermion_dart/filament_version.dart';
 import 'package:thermion_dart/src/filament/src/interface/built_in_material.dart';
-import 'package:thermion_dart/src/hooks/filament_artifacts.dart';
-import 'package:thermion_dart/src/hooks/material_tools.dart';
+import 'package:thermion_dart/src/hooks/built_in_materials.dart';
 
 const _r2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
 
@@ -129,47 +127,6 @@ List<BuiltInMaterial> _parseMaterials(String raw) {
   return selected.toList();
 }
 
-Future<void> _compileAndCopyMaterials(String packageRoot, String outputDir, List<BuiltInMaterial> materials) async {
-  if (materials.isEmpty) return;
-  final root = Directory(packageRoot);
-  final packageVersion = await readPubspecVersion(root);
-  final hostArch = await detectHostArchitecture() ?? 'x64';
-  final pinFile = File(path.join(packageRoot, filamentPinFileName));
-  final toolsPin = pinFile.existsSync() ? parseFilamentPin(pinFile.readAsStringSync()) : const <String, String>{};
-  final deployDir = Directory(path.join(outputDir, 'thermion_materials'))..createSync(recursive: true);
-
-  for (final material in materials) {
-    final cacheDir = path.join(
-      packageRoot,
-      '.dart_tool',
-      'thermion_dart',
-      'materials',
-      material.key,
-      'opengl_webgpu-filamat',
-    );
-    final result = await compileUserMaterials(
-      appRoot: root,
-      config: MaterialCompilationConfig(
-        inputs: ['hook/materials/${material.key}.mat'],
-        output: cacheDir,
-        backends: const ['opengl', 'webgpu'],
-        resgen: false,
-      ),
-      filamentVersion: filamentVersion,
-      packageVersion: packageVersion,
-      hostOS: Platform.operatingSystem,
-      hostArch: hostArch,
-      toolsPin: toolsPin,
-      onLog: stdout.writeln,
-    );
-    final name = '${material.key}.filamat';
-    final src = File(path.join(result.outputDir.path, name));
-    final dest = File(path.join(deployDir.path, name));
-    src.copySync(dest.path);
-    stdout.writeln('Published $name to ${dest.path}');
-  }
-}
-
 void main(List<String> args) async {
   String outputDir = 'web';
   String variant = 'default';
@@ -185,9 +142,11 @@ void main(List<String> args) async {
         variant = args[++i];
       }
     } else if (args[i] == '--materials') {
-      if (i + 1 < args.length) {
-        materialsArg = args[++i];
+      if (i + 1 >= args.length) {
+        stderr.writeln('--materials requires a material list.');
+        exit(64);
       }
+      materialsArg = args[++i];
     } else if (args[i] == '-h' || args[i] == '--help') {
       stdout.writeln('Usage: dart run thermion_dart:download_web [-o <dir>] [--variant <name>] [--materials <list>]');
       stdout.writeln('  -o, --output   Output directory (default: web/)');
@@ -222,7 +181,12 @@ void main(List<String> args) async {
 
   await _downloadToCache(version, zipSuffix, cacheDir);
   _copyToOutput(cacheDir, outputDir);
-  await _compileAndCopyMaterials(packageRoot, outputDir, materials);
+  await publishWebMaterials(
+    root: Directory(packageRoot),
+    webDir: Directory(outputDir),
+    materials: materials,
+    onLog: stdout.writeln,
+  );
 
   stdout.writeln('Done.');
 }
