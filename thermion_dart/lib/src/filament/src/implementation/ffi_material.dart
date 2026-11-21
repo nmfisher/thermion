@@ -41,12 +41,11 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
     final instance = FFIMaterialInstance(ptr, _app);
     switch (builtIn) {
       case BuiltInMaterial.normalColor:
-        await NormalColorMaterialInstance(instance).setOpacity(1.0);
+        await instance.setParameterFloat('opacity', 1.0);
       case BuiltInMaterial.sharpEdge:
-        final edges = SharpEdgeMaterialInstance(instance);
-        await edges.setEdgeColor(1, 1, 1, 1);
-        await edges.setBaseColor(0.1, 0.1, 0.1, 1);
-        await edges.setEdgeWidth(1);
+        await instance.setParameterFloat4('edgeColor', 1, 1, 1, 1);
+        await instance.setParameterFloat4('baseColor', 0.1, 0.1, 0.1, 1);
+        await instance.setParameterFloat('edgeWidth', 1);
       default:
         break;
     }

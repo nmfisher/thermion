@@ -12,7 +12,13 @@ enum BuiltInMaterial {
   silhouette(TBuiltInMaterial.BUILT_IN_SILHOUETTE, 'silhouette'),
   edgeOutline(TBuiltInMaterial.BUILT_IN_EDGE_OUTLINE, 'edge_outline'),
   wireframe(TBuiltInMaterial.BUILT_IN_WIREFRAME, 'wireframe'),
+
+  /// Visualizes world-space normals. Set the int `useAbsoluteValue` to 1 for
+  /// absolute components, or adjust the float `opacity` (default 1).
   normalColor(TBuiltInMaterial.BUILT_IN_NORMAL_COLOR, 'normal_color'),
+
+  /// Draws the triangle edges selected by the mask in `CUSTOM0.w`.
+  /// Set `edgeColor` and `baseColor` as RGBA float4s and `edgeWidth` in pixels.
   sharpEdge(TBuiltInMaterial.BUILT_IN_SHARP_EDGE, 'sharp_edge'),
   captureUv(TBuiltInMaterial.BUILT_IN_CAPTURE_UV, 'capture_uv'),
   linearDepth(TBuiltInMaterial.BUILT_IN_LINEAR_DEPTH, 'linear_depth'),
