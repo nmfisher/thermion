@@ -166,9 +166,7 @@ class TestHelper {
     // the PNG writer interprets the buffer correctly.
     // TODO: remove once Filament fixes the blitter (see docs/upstream.md).
     var effectivePixelDataType = pixelDataType;
-    if (_backend == Backend.WEBGPU &&
-        pixelDataType == PixelDataType.FLOAT &&
-        !captureRenderTarget) {
+    if (_backend == Backend.WEBGPU && pixelDataType == PixelDataType.FLOAT && !captureRenderTarget) {
       effectivePixelDataType = PixelDataType.UBYTE;
     }
     var pixelBuffers = await FilamentApp.instance!.capture(
@@ -224,10 +222,7 @@ class TestHelper {
     await initTestBindings();
 
     await FFIFilamentApp.create(
-      config: FFIFilamentConfig(
-        loadResource: loadResourceBytes,
-        backend: _backend ?? defaultTestBackend,
-      ),
+      config: FFIFilamentConfig(loadResource: loadResourceBytes, backend: _backend ?? defaultTestBackend),
     );
   }
 
