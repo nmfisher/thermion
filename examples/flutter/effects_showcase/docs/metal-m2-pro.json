@@ -1,0 +1,349 @@
+{
+  "schema": 1,
+  "scene": "storm_observatory",
+  "runner": "native_headless",
+  "recorded_at": "2026-09-26T05:19:43.570919Z",
+  "platform": "macos",
+  "os_version": "Version 26.6.2 (Build 25G83)",
+  "dart": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+  "backend_requested": "metal",
+  "width": 960,
+  "height": 640,
+  "frames_per_case": 300,
+  "warmup_frames": 120,
+  "camera_path_seconds": 20,
+  "method": "Serialized wall-clock frame time including scene updates, native submission and GPU completion. No pixel readback or PNG encoding in timed region. Not GPU timestamps or presented FPS.",
+  "resolution_note": "All presets use the same requested framebuffer size; Flutter resolution scaling is deliberately excluded.",
+  "results": [
+    {
+      "case": "low",
+      "quality": {
+        "name": "low",
+        "aurora_samples": 24,
+        "storm_samples": 16,
+        "fur_shells": 8,
+        "resolution_scale": 0.65,
+        "shadows": false
+      },
+      "disabled_effect": null,
+      "batched_updates": true,
+      "visible_fur_shells": 8,
+      "animated_materials": 14,
+      "serialized_frame_ms": {
+        "samples": 300,
+        "mean_ms": 6.091743333333328,
+        "p50_ms": 5.813,
+        "p95_ms": 8.553,
+        "max_ms": 10.724,
+        "hz": 164.15662073746827
+      },
+      "effect_update_ms": {
+        "samples": 300,
+        "mean_ms": 0.11735000000000004,
+        "p50_ms": 0.079,
+        "p95_ms": 0.345,
+        "max_ms": 1.281,
+        "hz": 8521.516829995737
+      }
+    },
+    {
+      "case": "balanced",
+      "quality": {
+        "name": "balanced",
+        "aurora_samples": 48,
+        "storm_samples": 32,
+        "fur_shells": 16,
+        "resolution_scale": 0.85,
+        "shadows": true
+      },
+      "disabled_effect": null,
+      "batched_updates": true,
+      "visible_fur_shells": 16,
+      "animated_materials": 22,
+      "serialized_frame_ms": {
+        "samples": 300,
+        "mean_ms": 9.309349999999997,
+        "p50_ms": 8.953,
+        "p95_ms": 12.493,
+        "max_ms": 14.465,
+        "hz": 107.41888531422713
+      },
+      "effect_update_ms": {
+        "samples": 300,
+        "mean_ms": 0.04894333333333334,
+        "p50_ms": 0.046,
+        "p95_ms": 0.081,
+        "max_ms": 0.201,
+        "hz": 20431.791868146833
+      }
+    },
+    {
+      "case": "high",
+      "quality": {
+        "name": "high",
+        "aurora_samples": 96,
+        "storm_samples": 56,
+        "fur_shells": 28,
+        "resolution_scale": 1.0,
+        "shadows": true
+      },
+      "disabled_effect": null,
+      "batched_updates": true,
+      "visible_fur_shells": 28,
+      "animated_materials": 34,
+      "serialized_frame_ms": {
+        "samples": 300,
+        "mean_ms": 10.518893333333335,
+        "p50_ms": 10.558,
+        "p95_ms": 12.16,
+        "max_ms": 12.952,
+        "hz": 95.06703493523399
+      },
+      "effect_update_ms": {
+        "samples": 300,
+        "mean_ms": 0.051996666666666636,
+        "p50_ms": 0.046,
+        "p95_ms": 0.088,
+        "max_ms": 0.277,
+        "hz": 19232.002051413565
+      }
+    },
+    {
+      "case": "balanced_without_aurora",
+      "quality": {
+        "name": "balanced",
+        "aurora_samples": 48,
+        "storm_samples": 32,
+        "fur_shells": 16,
+        "resolution_scale": 0.85,
+        "shadows": true
+      },
+      "disabled_effect": "aurora",
+      "batched_updates": true,
+      "visible_fur_shells": 16,
+      "animated_materials": 21,
+      "serialized_frame_ms": {
+        "samples": 300,
+        "mean_ms": 6.7350866666666676,
+        "p50_ms": 6.389,
+        "p95_ms": 9.359,
+        "max_ms": 12.205,
+        "hz": 148.47618887359033
+      },
+      "effect_update_ms": {
+        "samples": 300,
+        "mean_ms": 0.03299999999999994,
+        "p50_ms": 0.03,
+        "p95_ms": 0.05,
+        "max_ms": 0.112,
+        "hz": 30303.03030303036
+      }
+    },
+    {
+      "case": "balanced_without_storm",
+      "quality": {
+        "name": "balanced",
+        "aurora_samples": 48,
+        "storm_samples": 32,
+        "fur_shells": 16,
+        "resolution_scale": 0.85,
+        "shadows": true
+      },
+      "disabled_effect": "storm",
+      "batched_updates": true,
+      "visible_fur_shells": 16,
+      "animated_materials": 21,
+      "serialized_frame_ms": {
+        "samples": 300,
+        "mean_ms": 6.880233333333331,
+        "p50_ms": 6.394,
+        "p95_ms": 10.344,
+        "max_ms": 11.261,
+        "hz": 145.3439079101
+      },
+      "effect_update_ms": {
+        "samples": 300,
+        "mean_ms": 0.05203000000000002,
+        "p50_ms": 0.036,
+        "p95_ms": 0.132,
+        "max_ms": 0.234,
+        "hz": 19219.680953296167
+      }
+    },
+    {
+      "case": "balanced_without_cloth",
+      "quality": {
+        "name": "balanced",
+        "aurora_samples": 48,
+        "storm_samples": 32,
+        "fur_shells": 16,
+        "resolution_scale": 0.85,
+        "shadows": true
+      },
+      "disabled_effect": "cloth",
+      "batched_updates": true,
+      "visible_fur_shells": 16,
+      "animated_materials": 20,
+      "serialized_frame_ms": {
+        "samples": 300,
+        "mean_ms": 10.28594,
+        "p50_ms": 9.502,
+        "p95_ms": 15.345,
+        "max_ms": 17.994,
+        "hz": 97.22008878138507
+      },
+      "effect_update_ms": {
+        "samples": 300,
+        "mean_ms": 0.06654333333333334,
+        "p50_ms": 0.043,
+        "p95_ms": 0.25,
+        "max_ms": 0.684,
+        "hz": 15027.801432650402
+      }
+    },
+    {
+      "case": "balanced_without_glass",
+      "quality": {
+        "name": "balanced",
+        "aurora_samples": 48,
+        "storm_samples": 32,
+        "fur_shells": 16,
+        "resolution_scale": 0.85,
+        "shadows": true
+      },
+      "disabled_effect": "glass",
+      "batched_updates": true,
+      "visible_fur_shells": 16,
+      "animated_materials": 21,
+      "serialized_frame_ms": {
+        "samples": 300,
+        "mean_ms": 8.212643333333327,
+        "p50_ms": 7.532,
+        "p95_ms": 12.383,
+        "max_ms": 15.306,
+        "hz": 121.76347607124471
+      },
+      "effect_update_ms": {
+        "samples": 300,
+        "mean_ms": 0.06180333333333332,
+        "p50_ms": 0.04,
+        "p95_ms": 0.211,
+        "max_ms": 0.323,
+        "hz": 16180.357046545498
+      }
+    },
+    {
+      "case": "balanced_without_iridescence",
+      "quality": {
+        "name": "balanced",
+        "aurora_samples": 48,
+        "storm_samples": 32,
+        "fur_shells": 16,
+        "resolution_scale": 0.85,
+        "shadows": true
+      },
+      "disabled_effect": "iridescence",
+      "batched_updates": true,
+      "visible_fur_shells": 16,
+      "animated_materials": 21,
+      "serialized_frame_ms": {
+        "samples": 300,
+        "mean_ms": 11.290803333333333,
+        "p50_ms": 10.856,
+        "p95_ms": 16.369,
+        "max_ms": 18.382,
+        "hz": 88.5676572762316
+      },
+      "effect_update_ms": {
+        "samples": 300,
+        "mean_ms": 0.08754999999999992,
+        "p50_ms": 0.044,
+        "p95_ms": 0.302,
+        "max_ms": 0.92,
+        "hz": 11422.04454597374
+      }
+    },
+    {
+      "case": "balanced_without_fur",
+      "quality": {
+        "name": "balanced",
+        "aurora_samples": 48,
+        "storm_samples": 32,
+        "fur_shells": 16,
+        "resolution_scale": 0.85,
+        "shadows": true
+      },
+      "disabled_effect": "fur",
+      "batched_updates": true,
+      "visible_fur_shells": 0,
+      "animated_materials": 6,
+      "serialized_frame_ms": {
+        "samples": 300,
+        "mean_ms": 10.222543333333325,
+        "p50_ms": 9.443,
+        "p95_ms": 15.511,
+        "max_ms": 17.492,
+        "hz": 97.82301403792867
+      },
+      "effect_update_ms": {
+        "samples": 300,
+        "mean_ms": 0.057623333333333256,
+        "p50_ms": 0.027,
+        "p95_ms": 0.225,
+        "max_ms": 0.333,
+        "hz": 17354.081101405704
+      }
+    },
+    {
+      "case": "balanced_sequential_updates",
+      "quality": {
+        "name": "balanced",
+        "aurora_samples": 48,
+        "storm_samples": 32,
+        "fur_shells": 16,
+        "resolution_scale": 0.85,
+        "shadows": true
+      },
+      "disabled_effect": null,
+      "batched_updates": false,
+      "visible_fur_shells": 16,
+      "animated_materials": 22,
+      "serialized_frame_ms": {
+        "samples": 300,
+        "mean_ms": 10.04026666666667,
+        "p50_ms": 9.288,
+        "p95_ms": 15.171,
+        "max_ms": 19.268,
+        "hz": 99.5989482351066
+      },
+      "effect_update_ms": {
+        "samples": 300,
+        "mean_ms": 0.06448999999999998,
+        "p50_ms": 0.037,
+        "p95_ms": 0.246,
+        "max_ms": 0.312,
+        "hz": 15506.28004341759
+      }
+    }
+  ],
+  "verification_mae": {
+    "paused_time": 0.0,
+    "animation": 0.004207386676266904,
+    "batch_equivalence": 0.0,
+    "disable_aurora": 0.006618266281117636,
+    "restore_aurora": 0.0,
+    "disable_storm": 0.005653360878540197,
+    "restore_storm": 0.0,
+    "disable_cloth": 0.0008025152530694868,
+    "restore_cloth": 0.0,
+    "disable_glass": 5.282160540142892e-05,
+    "restore_glass": 0.0,
+    "disable_iridescence": 0.0004396318522185538,
+    "restore_iridescence": 0.0,
+    "disable_fur": 0.0001994910871043329,
+    "restore_fur": 0.0,
+    "all_disabled": 0.0
+  },
+  "device_observed_in_renderer_log": "Apple M2 Pro",
+  "working_tree_note": "Showcase implementation in this working tree; single diagnostic run, not a cross-device performance guarantee."
+}

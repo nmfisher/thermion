@@ -1,0 +1,58 @@
+material {
+    name : UnderwaterShafts,
+    shadingModel : unlit,
+    requires : [ position ],
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : shaftStrength }
+    ],
+    blending : add,
+    depthWrite : false,
+    culling : none,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+fragment {
+    float hash21(vec2 p) {
+        vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+        q += dot(q, q.yzx + 33.33);
+        return fract((q.x + q.y) * q.z);
+    }
+    float noise2(vec2 p) {
+        vec2 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash21(i), hash21(i + vec2(1, 0)), f.x),
+                   mix(hash21(i + vec2(0, 1)), hash21(i + vec2(1, 1)), f.x), f.y);
+    }
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        vec3 wp = getUserWorldPosition();
+        vec3 V = getWorldViewVector();
+        float t = materialParams.time;
+
+        // Project along the same refracted sun angle (0.32, 0.88, 0.35) so volumetric
+        // shafts align directly with the caustics dancing on the temple floor!
+        vec3 sunDir = normalize(vec3(0.32, 0.88, 0.35));
+        vec2 rayCoord = wp.xz - sunDir.xz / sunDir.y * wp.y;
+
+        float wave1 = noise2(rayCoord * 1.4 + vec2(t * 0.28, -t * 0.21));
+        float wave2 = noise2(rayCoord * 2.9 + vec2(-t * 0.19, t * 0.31));
+        float beam = pow(clamp(wave1 * 0.62 + wave2 * 0.52, 0.0, 1.0), 3.4);
+
+        // Edge & vertical envelope so curtains dissolve invisibly into the water volume.
+        float hFade = smoothstep(-0.2, 1.2, wp.y) * (1.0 - smoothstep(3.1, 4.3, wp.y));
+        float rFade = exp(-dot(wp.xz, wp.xz) * 0.055);
+
+        // Subtle suspended marine snow motes drifting lazily through the sunbeams!
+        vec2 moteGrid = wp.xz * 9.0 + vec2(wp.y * 5.0 + t * 0.35, -wp.y * 4.0 + t * 0.18);
+        vec2 cell = floor(moteGrid), f = fract(moteGrid) - 0.5;
+        float rnd = hash21(cell);
+        float mote = smoothstep(0.14, 0.02, length(f + (vec2(rnd, fract(rnd * 13.7)) - 0.5) * 0.45)) *
+                     step(0.86, rnd);
+
+        vec3 beamCol = mix(vec3(0.06, 0.52, 0.68), vec3(0.38, 0.92, 0.88), smoothstep(0.5, 3.8, wp.y));
+        vec3 rgb = beamCol * (beam * 0.026 + mote * beam * 0.045) * hFade * rFade * materialParams.shaftStrength;
+        // Fade glancing plane edges smoothly.
+        float viewFade = 1.0 - pow(abs(V.y), 2.5) * 0.5;
+        material.baseColor = vec4(rgb * viewFade, 1.0);
+    }
+}

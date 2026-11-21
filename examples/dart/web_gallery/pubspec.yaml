@@ -25,6 +25,10 @@ hooks:
   user_defines:
     thermion_dart:
       skip_native_build: true
+      material_compilation:
+        inputs: [../../assets]
+        output: ../../assets
+        backends: all
       materials:
         gizmo: true
         wireframe: true

@@ -1,0 +1,59 @@
+material {
+    name : Nebula,
+    shadingModel : unlit,
+    culling : front,
+    depthWrite : false,
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : speed },
+        { type : float, name : density },
+        { type : float, name : emissionStrength },
+        { type : float, name : dustStrength },
+        { type : float, name : colorShift },
+        { type : float, name : starAmount }
+    ],
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+fragment {
+    #include "cosmic_noise.glsl"
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        vec3 eye = (getUserWorldFromWorldMatrix() * vec4(getWorldCameraPosition(), 1)).xyz;
+        vec3 ray = normalize(getUserWorldPosition() - eye);
+        vec3 background = vec3(.00035, .0005, .0015) + cosmicStars(ray, materialParams.starAmount);
+        float t = materialParams.time * materialParams.speed;
+        float transmittance = 1.0;
+        vec3 emission = vec3(0.0);
+        const float jitter = .5;
+        // A bounded virtual cloud surrounds the sky direction. Its position
+        // ignores camera translation, as appropriate for an astronomical sky.
+        for (int i = 0; i < 48; i++) {
+            float travel = 1.5 + (float(i) + jitter) * .105;
+            vec3 p = ray * travel;
+            p.xy = mat2(.91, -.4146, .4146, .91) * p.xy;
+            vec3 flow = vec3(t * .025, -t * .018, t * .009);
+            float warp = cosmicFbm(p * .78 + flow);
+            float n = cosmicFbm(p * 2.4 + vec3(warp * 2.8) + flow);
+            float detail = cosmicNoise(p * 19.0 + flow);
+            n = n * .85 + detail * .15;
+            float ribbon = exp(-pow(abs(p.y + .55 * sin(p.x * .85) + (warp - .5) * 1.4), 2.0) * 3.2);
+            float envelope = smoothstep(1.5, 2.1, travel) * (1.0 - smoothstep(5.5, 6.5, travel));
+            float gas = smoothstep(.40, .69, n) * ribbon * envelope * materialParams.density;
+            float dustNoise = cosmicFbm(p * 2.4 - flow + vec3(21.7));
+            float dust = smoothstep(.43, .64, dustNoise) * ribbon * envelope * materialParams.dustStrength;
+            float extinction = gas * .5 + dust * 3.5;
+            float opacity = 1.0 - exp(-extinction * .105);
+            vec3 cool = mix(vec3(.035, .24, .8), vec3(.015, .65, .37), materialParams.colorShift);
+            vec3 warm = mix(vec3(.75, .075, .23), vec3(.65, .18, .025), materialParams.colorShift);
+            vec3 tint = mix(cool, warm, smoothstep(.37, .62, warp + p.x * .045));
+            float core = pow(max(n - .38, 0.0) * 3.0, 3.0);
+            vec3 light = tint * (.025 + core * .7) * gas * materialParams.emissionStrength * .24;
+            // Analytic attenuation within each step keeps emission consistent
+            // when the density changes. Dust absorbs but does not emit.
+            emission += transmittance * light * opacity / max(extinction, .0001);
+            transmittance *= 1.0 - opacity;
+            if (transmittance < .012) break;
+        }
+        material.baseColor = vec4(emission + background * transmittance, 1.0);
+    }
+}

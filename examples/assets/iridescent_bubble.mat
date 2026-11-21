@@ -1,0 +1,40 @@
+material {
+    name : IridescentBubble,
+    shadingModel : specularGlossiness,
+    blending : fade,
+    depthWrite : false,
+    culling : back,
+    requires : [ uv0, tangents ],
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : speed },
+        { type : float, name : thickness },
+        { type : float, name : variation },
+        { type : float, name : filmIor },
+        { type : float, name : strength },
+        { type : float, name : roughness }
+    ],
+    variantFilter : [ skinning ]
+}
+fragment {
+    #include "thin_film.glsl"
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        vec3 p = getUserWorldPosition();
+        float noV = max(abs(dot(getWorldNormalVector(), getWorldViewVector())), .04);
+        float flow = filmFlow(p * 1.3, materialParams.time * materialParams.speed);
+        float thickness = max(0.0, materialParams.thickness + materialParams.variation * flow);
+        vec3 film = thinFilm(noV, thickness, materialParams.filmIor, 1.0);
+        // A reflected soap-film coating over alpha-transmitted scene color,
+        // with enhanced grazing interference visibility so swirling rainbow
+        // bands read clearly against both dark and light backdrops.
+        float fresnel = pow(1.0 - noV, 2.4);
+        float filmLuma = max(max(film.r, film.g), film.b);
+        float alpha = clamp(filmLuma * 0.85 + fresnel * 0.55 + 0.08, 0.08, 0.88);
+        alpha = mix(0.06 + pow(1.0 - noV, 3.0) * 0.65, alpha, materialParams.strength);
+        vec3 soapTint = film * (0.35 + 0.95 * fresnel) * materialParams.strength;
+        material.baseColor = vec4(soapTint * alpha * 0.45, alpha);
+        material.specularColor = mix(vec3(0.04), clamp(filmSpecularF0(film, noV) * 1.45 + film * 0.35, 0.0, 0.98), materialParams.strength);
+        material.glossiness = 1.0 - materialParams.roughness;
+    }
+}

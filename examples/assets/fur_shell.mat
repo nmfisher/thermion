@@ -1,0 +1,88 @@
+material {
+    name : FurShell,
+    shadingModel : cloth,
+    blending : masked,
+    maskThreshold : 0.45,
+    requires : [ uv0, tangents ],
+    flipUV : false,
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : windSpeed },
+        { type : float, name : windStrength },
+        { type : float, name : layer },
+        { type : float, name : furLength },
+        { type : float, name : grooming },
+        { type : float, name : strandScale }
+    ],
+    variantFilter : [ skinning ]
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        float h = materialParams.layer;
+        float t = materialParams.time * materialParams.windSpeed;
+        vec3 n = normalize(material.worldNormal);
+        vec3 wind = vec3(sin(t * 1.8 + material.uv0.y * 8.0), 0,
+                         .45 * cos(t * 1.3 + material.uv0.x * 6.283185));
+        vec3 bend = wind * materialParams.windStrength * .32;
+        bend.y -= materialParams.grooming;
+        material.worldPosition.xyz += materialParams.furLength * (n * h + bend * h * h);
+    }
+}
+fragment {
+    vec2 furHash(vec2 p) {
+        return fract(sin(vec2(dot(p, vec2(127.1, 311.7)),
+                              dot(p, vec2(269.5, 183.3)))) * 43758.5453);
+    }
+    float furNoise(vec2 p) {
+        vec2 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(furHash(i).x, furHash(i + vec2(1, 0)).x, f.x),
+                   mix(furHash(i + vec2(0, 1)).x, furHash(i + vec2(1, 1)).x, f.x), f.y);
+    }
+    void material(inout MaterialInputs material) {
+        vec2 uv = getUV0();
+        float h = materialParams.layer;
+        float scale = materialParams.strandScale;
+        vec2 p = uv * vec2(scale * 2.0, scale);
+        vec2 cell = floor(p);
+        vec2 rnd = furHash(vec2(mod(cell.x, scale * 2.0), cell.y));
+        vec2 delta = fract(p) - (.22 + rnd * .56);
+        // Undercoat + longer guard hairs ( ~25% of follicles extend all the way to outer shell).
+        float maxH = mix(0.68, 1.0, step(0.72, rnd.y));
+        float relH = clamp(h / maxH, 0.0, 1.0);
+        float radius = (.26 + rnd.x * .16) * pow(max(1.0 - relH * .97, .005), 0.55);
+        float aa = max(length(fwidth(p)) * .28, .025);
+        float coverage = (1.0 - smoothstep(radius - aa, radius + aa, length(delta))) *
+                         step(h, maxH);
+        if (h < .001) coverage = 1.0;
+        if (materialParams.furLength <= .00001 && h > .001) coverage = 0.0;
+        prepareMaterial(material);
+
+        // Organic 3D-seamless pelage markings (warm tawny coat with natural dark
+        // brindle/ocelot patches and creamy countershaded underbelly, zero sine stripes).
+        vec3 sphereDir = vec3(
+            sin(uv.y * 3.14159265) * cos(uv.x * 6.2831853),
+            cos(uv.y * 3.14159265),
+            sin(uv.y * 3.14159265) * sin(uv.x * 6.2831853)
+        );
+        float warp = furNoise(sphereDir.xz * 3.2 + sphereDir.y * 2.1);
+        float blotch = furNoise(sphereDir.xy * 5.4 + vec2(warp * 1.6, sphereDir.z * 4.2));
+        float finePatch = furNoise(sphereDir.yz * 11.0 - warp * 2.0);
+        float darkMark = smoothstep(0.50, 0.76, blotch * 0.72 + finePatch * 0.28);
+        float belly = smoothstep(-0.15, -0.75, sphereDir.y);
+
+        vec3 root = mix(vec3(.048, .020, .008), vec3(.010, .005, .003), darkMark);
+        vec3 tip = mix(vec3(.32, .17, .068), vec3(.042, .022, .011), darkMark);
+        tip = mix(tip, vec3(.44, .36, .26), belly * 0.65);
+        // Frosted silver-gold guard-hair agouti tips on the longest hairs.
+        float agouti = smoothstep(0.75, 0.98, h) * step(0.78, rnd.y);
+        vec3 fiberColor = mix(root, tip, pow(h, .62)) * (.78 + rnd.x * .44);
+        fiberColor = mix(fiberColor, vec3(.52, .40, .25), agouti * 0.45);
+
+        material.baseColor = vec4(fiberColor, coverage);
+        material.roughness = .78;
+        material.sheenColor = vec3(.18, .12, .065) * (0.5 + 0.5 * h);
+        material.subsurfaceColor = vec3(.065, .030, .009) * h;
+        material.ambientOcclusion = .20 + .80 * pow(h, 0.85);
+    }
+}

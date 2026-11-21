@@ -1,0 +1,133 @@
+material {
+    name : UnderwaterCaustics,
+    shadingModel : lit,
+    requires : [ position, tangents ],
+    variables : [ objNormal ],
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : causticIntensity },
+        { type : float, name : dispersion },
+        { type : float, name : murkiness },
+        { type : float, name : isSand }
+    ],
+    culling : back,
+    variantFilter : [ skinning ]
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        vec3 pos = getPosition().xyz;
+        if (materialParams.isSand > 0.5) {
+            // Sculpted ocean-floor sand dunes & current ripples!
+            float dune = 0.22 * sin(pos.x * 0.52 + 0.4) * cos(pos.z * 0.44 - 0.3) +
+                         0.035 * sin(pos.x * 3.8 + sin(pos.z * 1.6) * 1.4);
+            float eps = 0.08;
+            float dx = 0.22 * sin((pos.x + eps) * 0.52 + 0.4) * cos(pos.z * 0.44 - 0.3) +
+                       0.035 * sin((pos.x + eps) * 3.8 + sin(pos.z * 1.6) * 1.4) - dune;
+            float dz = 0.22 * sin(pos.x * 0.52 + 0.4) * cos((pos.z + eps) * 0.44 - 0.3) +
+                       0.035 * sin(pos.x * 3.8 + sin((pos.z + eps) * 1.6) * 1.4) - dune;
+            material.worldPosition.xyz += vec3(0.0, dune, 0.0);
+            material.objNormal.xyz = normalize(vec3(-dx / eps, 1.0, -dz / eps));
+        } else {
+            material.objNormal.xyz = material.worldNormal;
+        }
+    }
+}
+fragment {
+    vec2 hash22(vec2 p) {
+        vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+        q += dot(q, q.yzx + 33.33);
+        return fract((q.xx + q.yz) * q.zy);
+    }
+
+    float noise2(vec2 p) {
+        vec2 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash22(i).x, hash22(i + vec2(1, 0)).x, f.x),
+                   mix(hash22(i + vec2(0, 1)).x, hash22(i + vec2(1, 1)).x, f.x), f.y);
+    }
+
+    // Crisp dual-layer Voronoi F2 - F1 cusp network mimicking focused surface-wave caustics!
+    float voronoiCusp(vec2 x, float t) {
+        vec2 n = floor(x), f = fract(x);
+        float f1 = 8.0, f2 = 8.0;
+        for (int j = -1; j <= 1; j++) {
+            for (int i = -1; i <= 1; i++) {
+                vec2 g = vec2(float(i), float(j));
+                vec2 o = hash22(n + g);
+                o = 0.5 + 0.42 * sin(t * 1.35 + 6.28318 * o);
+                vec2 r = g + o - f;
+                float d = dot(r, r);
+                if (d < f1) {
+                    f2 = f1;
+                    f1 = d;
+                } else if (d < f2) {
+                    f2 = d;
+                }
+            }
+        }
+        float edge = sqrt(f2) - sqrt(f1);
+        return pow(max(1.0 - edge * 2.35, 0.0), 4.2);
+    }
+
+    float causticPattern(vec2 uv, float t) {
+        vec2 warp = vec2(noise2(uv * 0.85 + t * 0.22), noise2(uv * 0.85 - t * 0.18 + 7.3)) - 0.5;
+        float a = voronoiCusp(uv * 1.15 + warp * 0.45 + vec2(t * 0.14, -t * 0.11), t);
+        float b = voronoiCusp(uv * 1.72 * mat2(0.8, -0.6, 0.6, 0.8) - warp * 0.35 + vec2(-t * 0.10, t * 0.16), t * 1.18 + 4.0);
+        return (a * 0.68 + b * 0.56) + a * b * 1.35;
+    }
+
+    void material(inout MaterialInputs material) {
+        vec3 wp = getUserWorldPosition();
+        vec3 eye = (getUserWorldFromWorldMatrix() * vec4(getWorldCameraPosition(), 1.0)).xyz;
+        vec3 n = normalize(variable_objNormal.xyz);
+        float t = materialParams.time;
+
+        // Micro-grain sand ripples or weathered mossy sunken temple stone relief!
+        float g1 = noise2(wp.xz * 12.0 + wp.y * 6.0);
+        float g2 = noise2(wp.xz * 12.0 + vec2(0.06, 0.0) + wp.y * 6.0);
+        float g3 = noise2(wp.xz * 12.0 + vec2(0.0, 0.06) + wp.y * 6.0);
+        material.normal = normalize(vec3((g1 - g2) * 0.8, (g1 - g3) * 0.8, 1.0));
+        prepareMaterial(material);
+
+        // Refracted solar projection onto world geometry from water surface at y = 4.2!
+        vec3 sunDir = normalize(vec3(0.32, 0.88, 0.35));
+        float waterDepth = max(4.2 - wp.y, 0.2);
+        vec2 projUV = (wp.xz - sunDir.xz / sunDir.y * wp.y) * 0.72;
+
+        // Chromatic dispersion: R, G, B refract at slightly different angles through surface waves!
+        vec2 dispShift = normalize(vec2(0.75, 0.66)) * (0.018 * materialParams.dispersion * (0.4 + 0.15 * waterDepth));
+        float cR = causticPattern(projUV + dispShift, t);
+        float cG = causticPattern(projUV, t);
+        float cB = causticPattern(projUV - dispShift, t);
+        vec3 caustics = vec3(cR, cG, cB) * materialParams.causticIntensity;
+
+        // Directional sun-facing projection mask + soft ambient scatter on vertical faces.
+        float sunFacing = pow(clamp(dot(n, sunDir), 0.0, 1.0), 1.35);
+        float depthAtten = exp(-waterDepth * 0.085);
+
+        vec3 albedo;
+        if (materialParams.isSand > 0.5) {
+            float shellSpeck = noise2(wp.xz * 26.0);
+            albedo = mix(vec3(0.24, 0.21, 0.15), vec3(0.38, 0.34, 0.25), shellSpeck);
+        } else {
+            // Weathered limestone ruins with marine algae on upward ledges!
+            float stoneVar = noise2(wp.xy * 3.5 + wp.z * 2.7);
+            float algae = smoothstep(0.35, 0.85, n.y) * smoothstep(0.38, 0.72, noise2(wp.xz * 4.2));
+            albedo = mix(vec3(0.11, 0.13, 0.14), vec3(0.20, 0.22, 0.21), stoneVar);
+            albedo = mix(albedo, vec3(0.035, 0.12, 0.075), algae * 0.68);
+        }
+
+        // Beer-Lambert underwater turquoise-cobalt absorption + distance murk!
+        float viewDist = length(wp - eye);
+        float fog = 1.0 - exp(-viewDist * 0.085 * materialParams.murkiness);
+        vec3 deepWaterCol = vec3(0.008, 0.068, 0.115);
+
+        vec3 waterFilter = exp(-vec3(0.24, 0.055, 0.025) * waterDepth * 0.45);
+        vec3 litCaustics = caustics * waterFilter * (0.08 + 0.92 * sunFacing) * depthAtten;
+
+        material.baseColor = vec4(mix(albedo * waterFilter, deepWaterCol, fog * 0.82), 1.0);
+        material.metallic = 0.0;
+        material.roughness = materialParams.isSand > 0.5 ? 0.85 : 0.72;
+        material.emissive = vec4(mix(litCaustics * (0.45 + 0.55 * albedo), deepWaterCol * 0.35, fog), 0.0);
+    }
+}

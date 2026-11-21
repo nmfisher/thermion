@@ -1,0 +1,36 @@
+material {
+    name : Silk,
+    shadingModel : lit,
+    requires : [ uv0, tangents ],
+    flipUV : false,
+    doubleSided : true,
+    parameters : [
+        { type : float3, name : fabricColor },
+        { type : float2, name : clothSize },
+        { type : float, name : time },
+        { type : float, name : windSpeed },
+        { type : float, name : windStrength },
+        { type : float, name : weaveScale },
+        { type : float, name : weaveStrength },
+        { type : float, name : roughness },
+        { type : float, name : anisotropy }
+    ],
+    variantFilter : [ skinning ]
+}
+vertex {
+    #include "cloth_motion.glsl"
+}
+fragment {
+    #include "cloth_weave.glsl"
+    void material(inout MaterialInputs material) {
+        float weave;
+        material.normal = threadDetail(getUV0(), materialParams.weaveScale * 2.8, weave);
+        prepareMaterial(material);
+        material.baseColor = vec4(materialParams.fabricColor * (1.0 + weave * .07), 1.0);
+        material.roughness = materialParams.roughness;
+        material.metallic = 0.0;
+        material.reflectance = .5;
+        material.anisotropy = materialParams.anisotropy;
+        material.anisotropyDirection = normalize(vec3(.12 * sin(getUV0().y * 9.0), 1.0, 0.0));
+    }
+}

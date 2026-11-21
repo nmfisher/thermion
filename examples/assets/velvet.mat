@@ -1,0 +1,36 @@
+material {
+    name : Velvet,
+    shadingModel : cloth,
+    requires : [ uv0, tangents ],
+    flipUV : false,
+    doubleSided : true,
+    parameters : [
+        { type : float3, name : fabricColor },
+        { type : float3, name : sheenColor },
+        { type : float2, name : clothSize },
+        { type : float, name : time },
+        { type : float, name : windSpeed },
+        { type : float, name : windStrength },
+        { type : float, name : weaveScale },
+        { type : float, name : weaveStrength },
+        { type : float, name : sheenStrength }
+    ],
+    variantFilter : [ skinning ]
+}
+vertex {
+    #include "cloth_motion.glsl"
+}
+fragment {
+    #include "cloth_weave.glsl"
+    void material(inout MaterialInputs material) {
+        float weave;
+        material.normal = threadDetail(getUV0(), materialParams.weaveScale * 3.5, weave);
+        prepareMaterial(material);
+        // Dark body and colored grazing sheen are the cloth BRDF's velvet
+        // response. Pile variation stays anchored to the fabric as it deforms.
+        float nap = .92 + .08 * sin(getUV0().x * 71.0 + sin(getUV0().y * 19.0));
+        material.baseColor = vec4(materialParams.fabricColor * nap, 1.0);
+        material.roughness = .78;
+        material.sheenColor = materialParams.sheenColor * materialParams.sheenStrength;
+    }
+}

@@ -17,12 +17,12 @@ if [ -z "${FILAMENT_PATH:-}" ]; then
 fi
 
 MATC="${FILAMENT_PATH}/matc"
-EXAMPLE_MATERIALS=(customattributes solidcolor viewspace proceduralquad)
 
-for material in "${EXAMPLE_MATERIALS[@]}"; do
+for mat_file in examples/assets/*.mat; do
+    material="$(basename "${mat_file}" .mat)"
     echo "=== examples/assets/$material (all platforms) ==="
-    ${MATC} -a opengl -a metal -a vulkan -a webgpu \
-        -o "examples/assets/${material}.filamat" "examples/assets/${material}.mat" || exit 1
+    "${MATC}" -a opengl -a metal -a vulkan -a webgpu \
+        -o "examples/assets/${material}.filamat" "${mat_file}" || exit 1
 done
 
 echo "=== Done ==="

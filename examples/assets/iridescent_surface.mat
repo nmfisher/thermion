@@ -1,0 +1,49 @@
+material {
+    name : IridescentSurface,
+    shadingModel : specularGlossiness,
+    requires : [ uv0, tangents ],
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : speed },
+        { type : float, name : thickness },
+        { type : float, name : variation },
+        { type : float, name : filmIor },
+        { type : float, name : strength },
+        { type : float, name : roughness },
+        { type : float, name : preset }
+    ],
+    variantFilter : [ skinning ]
+}
+fragment {
+    #include "thin_film.glsl"
+    void material(inout MaterialInputs material) {
+        float t = materialParams.time * materialParams.speed;
+        vec3 p = getUserWorldPosition();
+        float flow = filmFlow(p, t);
+        // Fine nacre relief for pearl; restrained shell ridges on the coating.
+        float pearl = step(.5, materialParams.preset) * (1.0 - step(1.5, materialParams.preset));
+        vec2 uv = getUV0();
+        float relief = sin(uv.x * 240.0 + sin(uv.y * 125.0)) * .035 * pearl;
+        material.normal = normalize(vec3(relief, relief * .5, 1));
+        prepareMaterial(material);
+        float noV = max(abs(dot(getWorldNormalVector(), getWorldViewVector())), .04);
+        float filmThickness = max(0.0, materialParams.thickness + materialParams.variation * flow);
+        // Multi-layer nacre (aragonite/conchiolin) has higher effective
+        // substrate contrast than a single dielectric interface, so pearl
+        // produces a visible soft rose/mint orient sheen instead of flat white.
+        float substrate = mix(6.0, 2.35, pearl);
+        if (materialParams.preset > 1.5) substrate = 1.34;
+        vec3 film = thinFilm(noV, filmThickness, materialParams.filmIor, substrate);
+        float baseF0 = (substrate - 1.0) / (substrate + 1.0);
+        baseF0 *= baseF0;
+        vec3 specF0 = filmSpecularF0(film, noV);
+        // Boost pearl orient contrast slightly so the soft pastel shimmer reads clearly.
+        vec3 pearlSpec = mix(specF0, clamp(film * 1.45, 0.0, 0.98), pearl * 0.65);
+        material.specularColor = mix(vec3(baseF0), pearlSpec, materialParams.strength);
+        vec3 pearlBase = mix(vec3(.24, .22, .20), vec3(.22, .21, .23) + film * .32, materialParams.strength);
+        vec3 diffuse = mix(vec3(.008, .014, .012), pearlBase, pearl);
+        if (materialParams.preset > 1.5) diffuse = vec3(.007, .008, .012);
+        material.baseColor = vec4(diffuse, 1.0);
+        material.glossiness = 1.0 - materialParams.roughness;
+    }
+}

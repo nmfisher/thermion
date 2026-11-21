@@ -1,0 +1,16 @@
+material {
+    name : AcidBubble, shadingModel : unlit,
+    requires : [ position, tangents ],
+    blending : transparent, depthWrite : false, culling : back
+}
+fragment {
+    void material(inout MaterialInputs m) {
+        prepareMaterial(m);
+        vec3 n=getWorldNormalVector(),v=getWorldViewVector();
+        float fres=pow(1.0-max(0.0,dot(n,v)),3.0);
+        float glint=pow(max(0.0,dot(reflect(-v,n),normalize(vec3(-.3,.8,.6)))),45.0);
+        float alpha=.1+fres*.55+glint*.15;
+        vec3 color=vec3(.045,.12,.009)+vec3(.18,.32,.045)*fres+vec3(.45,.5,.21)*glint;
+        m.baseColor=vec4(color*alpha,alpha);
+    }
+}

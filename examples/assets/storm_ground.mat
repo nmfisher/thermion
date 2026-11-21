@@ -1,0 +1,20 @@
+material {
+    name : StormGround,
+    shadingModel : lit,
+    requires : [ tangents ],
+    parameters : [ { type : float3, name : sandColor } ],
+    variantFilter : [ skinning ]
+}
+fragment {
+    void material(inout MaterialInputs material) {
+        vec3 p = getUserWorldPosition();
+        float wave = p.x * 24.0 + sin(p.z * 2.5) * 2.0 + sin(p.x * 2.0 + p.z) * .6;
+        float visibility = 1.0 - smoothstep(.5, 2.0, fwidth(wave));
+        float ripple = sin(wave) * visibility;
+        material.normal = normalize(vec3(ripple * .055, 0.0, 1.0));
+        prepareMaterial(material);
+        float grain = fract(sin(dot(floor(p.xz * 160.0), vec2(127.1, 311.7))) * 43758.5453);
+        material.baseColor = vec4(materialParams.sandColor * (.82 + .035 * ripple + .12 * grain), 1.0);
+        material.roughness = .9;
+    }
+}

@@ -1,0 +1,99 @@
+material {
+    name : ShockwaveDome,
+    requires : [ position, tangents ],
+    variables : [
+        surfaceNormal,
+        objPos
+    ],
+    parameters : [
+        { type : float4, name : baseColor },
+        { type : float,  name : time },
+        { type : float,  name : age }
+    ],
+    depthWrite : false,
+    depthCulling : false,
+    shadingModel : unlit,
+    blending : add,
+    culling : back,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        // Object-space position of the unit sphere (the Dart animator
+        // scales the renderable uniformly, so object space stays
+        // proportional and the equator/hemisphere logic below is
+        // scale-invariant).
+        material.objPos.xyz = getPosition().xyz;
+        material.surfaceNormal.xyz = material.worldNormal;
+
+        // Fresnel needs the view direction, but fragment-stage positions
+        // are unreliable on this pipeline (see shockwave_ground.mat).
+        // Compute the rim in the vertex stage from the view-space normal
+        // instead: the angle to the view axis (0, 0, 1) needs no position.
+        vec3 viewN = normalize((getViewFromWorldMatrix() *
+                                vec4(material.worldNormal, 0.0)).xyz);
+        float ndv = abs(viewN.z);
+        // .w channels carry the rim terms for the fragment stage.
+        material.objPos.w = 1.0 - ndv;                       // fresnel base
+        material.surfaceNormal.w = pow(1.0 - ndv, 4.0);      // hot lip
+    }
+}
+
+fragment {
+    float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
+    float noise2(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x),
+                   mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+    }
+
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec3 pos = variable_objPos.xyz;
+        float rimBase = 1.0 - abs(dot(normalize(variable_surfaceNormal.xyz), getWorldViewVector()));
+        float lip = pow(rimBase, 8.0);
+        float t = materialParams.time;
+
+        // Only the upper hemisphere: the dome rises out of the ground
+        // plane, and the equator cut sits exactly at that plane.
+        if (pos.y < 0.0) {
+            discard;
+        }
+
+        float fresnel = pow(rimBase, 2.8);
+        float sharpRim = pow(rimBase, 11.0);
+        float innerRim = pow(clamp(rimBase * 1.08, 0.0, 1.0), 6.5) * (1.0 - sharpRim);
+
+        // Radial Mach condensation ribs + rising shock filaments sweeping up the hemisphere.
+        float azim = atan(pos.z, pos.x);
+        float ribs = pow(0.5 + 0.5 * sin(azim * 18.0 + sin(pos.y * 9.0 - t * 4.0) * 1.4), 3.0);
+        float streaks = 0.45 + 0.55 * noise2(vec2(azim * 5.5, pos.y * 8.0 - t * 3.5));
+        // Tight Mach-stem contact ring where the blast wave scours the ground.
+        float machStem = exp(-pow(pos.y * 7.5, 2.0));
+
+        float age = max(materialParams.age, 0.0);
+        float fade = exp(-age * 2.0);
+        float turb = noise2(pos.xz * 10.0 + pos.y * 6.5 - t * 0.8) * 0.65 +
+                     noise2(pos.xz * 23.0 - pos.y * 12.0 + t * 1.4) * 0.35;
+        float fragments = smoothstep(age * 0.20, age * 0.20 + 0.22, turb);
+
+        // Chromatic dispersion across the pressure shell: blinding white-cyan outer shock
+        // front, electric cobalt mid-shell, and violet rarefaction wake!
+        vec3 base = materialParams.baseColor.rgb;
+        vec3 leadCol = vec3(0.82, 0.97, 1.0);
+        vec3 wakeCol = mix(base, vec3(0.45, 0.16, 1.0), 0.65);
+
+        vec3 rgb = leadCol * (sharpRim * 2.4 + machStem * 1.35) +
+                   base * (fresnel * 0.55 + ribs * fresnel * 0.65) * streaks +
+                   wakeCol * innerRim * 0.95;
+
+        material.baseColor = vec4(rgb * fade * fragments * 0.068, 1.0);
+    }
+}

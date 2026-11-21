@@ -1,0 +1,126 @@
+material {
+    name : FogLightShafts,
+    shadingModel : lit,
+    requires : [ tangents ],
+    parameters : [
+        { type : float4, name : baseColor },
+        { type : float, name : time },
+        { type : float, name : density },
+        { type : float, name : shaftStrength },
+        { type : float, name : driftSpeed },
+        { type : float, name : sourceGlow },
+        { type : float3, name : volumeMin },
+        { type : float3, name : volumeMax },
+        { type : float3, name : lightDirection },
+        { type : float3, name : fogColor },
+        { type : float3, name : lightColor },
+        { type : float3, name : occluderMin },
+        { type : float3, name : occluderMax }
+    ],
+    postLightingBlending : transparent,
+    variantFilter : [ skinning ]
+}
+fragment {
+    float fogHash(vec3 p) {
+        p = fract(p * .1031);
+        p += dot(p, p.yzx + 33.33);
+        return fract((p.x + p.y) * p.z);
+    }
+    float fogNoise(vec3 p) {
+        vec3 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(mix(fogHash(i), fogHash(i + vec3(1,0,0)), f.x),
+                       mix(fogHash(i + vec3(0,1,0)), fogHash(i + vec3(1,1,0)), f.x), f.y),
+                   mix(mix(fogHash(i + vec3(0,0,1)), fogHash(i + vec3(1,0,1)), f.x),
+                       mix(fogHash(i + vec3(0,1,1)), fogHash(i + vec3(1,1,1)), f.x), f.y), f.z);
+    }
+    vec2 boxInterval(vec3 origin, vec3 direction, vec3 lo, vec3 hi) {
+        // Preserve the sign and avoid division by zero for axis-aligned rays.
+        vec3 safeDirection = mix(vec3(-1.0), vec3(1.0), step(vec3(0.0), direction)) *
+                             max(abs(direction), vec3(.00001));
+        vec3 a = (lo - origin) / safeDirection;
+        vec3 b = (hi - origin) / safeDirection;
+        vec3 entry = min(a, b), leave = max(a, b);
+        return vec2(max(max(entry.x, entry.y), entry.z),
+                    min(min(leave.x, leave.y), leave.z));
+    }
+    float windowLight(vec3 p, vec3 lightDir) {
+        float tWall = (p.z - materialParams.volumeMin.z) / lightDir.z;
+        if (tWall <= 0.0) return 0.0;
+        vec3 window = p - lightDir * tWall;
+        // Ruler-straight geometric solar penumbra (~0.5 deg sun disc + subtle glass scatter).
+        float penumbra = 0.012 + tWall * 0.008;
+        float wx = min(abs(window.x + 2.0), min(abs(window.x), abs(window.x - 2.0)));
+        float aperture = (1.0 - smoothstep(0.43 - penumbra, 0.45 + penumbra, wx)) *
+                         smoothstep(1.72 - penumbra, 1.75 + penumbra, window.y) *
+                         (1.0 - smoothstep(3.31 - penumbra, 3.34 + penumbra, window.y));
+        if (aperture <= 0.001) return 0.0;
+
+        // Industrial casement mullions (vertical center bar + two horizontal transoms)
+        // split each shaft into crisp sub-beams slicing through the dusty air!
+        float localX = window.x - clamp(floor(window.x * 0.5 + 0.5) * 2.0, -2.0, 2.0);
+        float barW = 0.016 + tWall * 0.003;
+        float mullionX = smoothstep(barW * 0.6, barW * 1.4, abs(localX));
+        float mullionY1 = smoothstep(barW * 0.6, barW * 1.4, abs(window.y - 2.26));
+        float mullionY2 = smoothstep(barW * 0.6, barW * 1.4, abs(window.y - 2.80));
+        // Subtle dirty-glass grime streaks projected straight along the light ray.
+        float glassStreak = 0.78 + 0.22 * fogNoise(vec3(window.xy * 6.5, 1.3));
+        aperture *= mullionX * mullionY1 * mullionY2 * glassStreak;
+
+        // Analytic shadow from the central stone pillar.
+        vec2 blocker = boxInterval(p, -lightDir, materialParams.occluderMin,
+                                   materialParams.occluderMax);
+        if (blocker.y > max(blocker.x, .002) && blocker.x < tWall) {
+            aperture = 0.0;
+        }
+        return aperture * exp(-tWall * 0.09);
+    }
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        vec3 p = getUserWorldPosition();
+        vec3 eye = (getUserWorldFromWorldMatrix() * vec4(getWorldCameraPosition(), 1.0)).xyz;
+        vec3 delta = p - eye;
+        float surfaceDistance = length(delta);
+        vec3 direction = delta / max(surfaceDistance, .0001);
+        vec3 lightDir = normalize(materialParams.lightDirection);
+        vec2 segment = boxInterval(eye, direction, materialParams.volumeMin,
+                                   materialParams.volumeMax);
+        float begin = max(segment.x, 0.0);
+        float end = min(segment.y, surfaceDistance);
+        float stepLength = max(end - begin, 0.0) / 56.0;
+        float transmission = 1.0;
+        vec3 scattering = vec3(0.0);
+        float mu = dot(direction, lightDir);
+        float phase = .48 + .62 * (1.0 - .42 * .42) /
+                      pow(max(1.0 + .42 * .42 + .84 * mu, .1), 1.5);
+        vec3 wind = vec3(.22, .035, .09) * materialParams.time * materialParams.driftSpeed;
+        float jitter = fogHash(vec3(floor(getNormalizedViewportCoord().xy * getResolution().xy), 3.0));
+        for (int i = 0; i < 56; i++) {
+            vec3 samplePos = eye + direction * (begin + (float(i) + jitter) * stepLength);
+            float n1 = fogNoise(samplePos * 1.15 - wind);
+            float n2 = fogNoise(samplePos * 2.75 - wind * 1.65 + vec3(n1 * 0.6));
+            float dustCloud = smoothstep(0.16, 0.86, n1 * 0.62 + n2 * 0.38);
+            // Tiny glinting dust motes suspended inside the illuminated shaft.
+            float mote = pow(fogNoise(samplePos * 16.0 - wind * 0.8), 9.0) * 8.0;
+            float heightFog = .32 + .68 * exp(-max(samplePos.y, 0.0) * .68);
+            float extinction = max(materialParams.density, 0.0) * heightFog *
+                               (.28 + .95 * dustCloud);
+            float opacity = 1.0 - exp(-extinction * stepLength);
+            float shaft = windowLight(samplePos, lightDir);
+            vec3 beamColor = materialParams.lightColor * vec3(1.12, 0.96, 0.78);
+            vec3 illumination = materialParams.fogColor * (0.65 + 0.35 * heightFog) +
+                beamColor * shaft * materialParams.shaftStrength * phase * (0.72 + 0.58 * dustCloud + mote);
+            scattering += transmission * opacity * illumination;
+            transmission *= 1.0 - opacity;
+        }
+        float grain = fogNoise(p * 38.0);
+        // Project the paned window pattern directly onto the lit floor & pillar so
+        // the ruler-straight volumetric shafts land on matching sunlit patches!
+        float surfacePatch = materialParams.sourceGlow > 0.01 ? 0.0 : windowLight(p + vec3(0.0, 0.01, 0.0), lightDir);
+        material.baseColor = vec4(materialParams.baseColor.rgb * (.82 + grain * .18), 1.0);
+        material.roughness = .84;
+        vec3 windowBounce = materialParams.lightColor * surfacePatch * materialParams.shaftStrength * 0.55;
+        material.emissive = vec4(materialParams.lightColor * materialParams.sourceGlow + windowBounce, 0.0);
+        material.postLightingColor = vec4(scattering, 1.0 - transmission);
+    }
+}
