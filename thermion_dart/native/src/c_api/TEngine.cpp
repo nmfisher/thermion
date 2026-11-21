@@ -435,6 +435,19 @@ namespace thermion
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             engine->flushAndWait();
+#if defined(THERMION_SUPPORTS_WEBGPU) && !defined(__EMSCRIPTEN__)
+            // The WebGPU backend queues GPU→CPU staging copies (e.g. the
+            // readback in Renderer_readPixels) that only complete once Dawn
+            // has processed its events. flushAndWait() drains Filament's
+            // command stream but does not run the Dawn event loop, so
+            // readPixels callbacks would stay pending after we return.
+            // Pump the instance captured in Engine_create here — this runs
+            // after endFrame during the Dart capture() flow (see the
+            // matching comment in TRenderer.cpp).
+            if (g_webgpuPlatform) {
+                wgpuInstanceProcessEvents(g_webgpuPlatform->getInstance().Get());
+            }
+#endif
         }
         
         EMSCRIPTEN_KEEPALIVE void Engine_execute(TEngine *tEngine) {
