@@ -217,11 +217,13 @@ Future<void> setupCarPaint(
             Matrix4.rotationY(yaw),
       );
     }
-    final camAngle = 0.34 * math.sin(t * math.pi * 2 / 6.0);
-    await camera.lookAt(
-      Vector3(math.sin(camAngle) * 5.85, 2.05, math.cos(camAngle) * 5.85),
-      focus: focus,
-    );
+    if (!effectCameraUserControlled) {
+      final camAngle = 0.34 * math.sin(t * math.pi * 2 / 6.0);
+      await camera.lookAt(
+        Vector3(math.sin(camAngle) * 5.85, 2.05, math.cos(camAngle) * 5.85),
+        focus: focus,
+      );
+    }
   }
 
   await animate(0.0);

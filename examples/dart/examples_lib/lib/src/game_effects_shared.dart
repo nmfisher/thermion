@@ -216,6 +216,10 @@ class EffectCameraControls {
 
 EffectCameraControls? effectCameraControls;
 
+/// Set by interactive hosts (e.g. `web_gallery`) once the user drags or zooms
+/// the camera so auto-orbit animators yield control and never fight user input.
+bool effectCameraUserControlled = false;
+
 /// Loads one of the game-effect materials from `examples/assets` and returns
 /// a ready-to-use [MaterialInstance].
 Future<MaterialInstance> loadEffectMaterial(

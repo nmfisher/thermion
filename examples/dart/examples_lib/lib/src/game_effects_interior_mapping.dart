@@ -119,14 +119,16 @@ Future<void> setupInteriorMapping(
 
   effectAnimators.add((t) async {
     await facade.setParameterFloat('time', t);
-    // Smooth drone sweep around the 3D corner of the tower to showcase deep
-    // parallax ceilings, side walls, mid-room workstations, and blinds!
-    final sweep = 0.62 + 0.48 * math.sin(t * math.pi * 2 / 6.0);
-    final elev = 3.75 + 0.95 * math.cos(t * math.pi * 2 / 6.0);
-    const radius = 11.6;
-    await camera.lookAt(
-      Vector3(math.sin(sweep) * radius, elev, math.cos(sweep) * radius),
-      focus: focus,
-    );
+    if (!effectCameraUserControlled) {
+      // Smooth drone sweep around the 3D corner of the tower to showcase deep
+      // parallax ceilings, side walls, mid-room workstations, and blinds!
+      final sweep = 0.62 + 0.48 * math.sin(t * math.pi * 2 / 6.0);
+      final elev = 3.75 + 0.95 * math.cos(t * math.pi * 2 / 6.0);
+      const radius = 11.6;
+      await camera.lookAt(
+        Vector3(math.sin(sweep) * radius, elev, math.cos(sweep) * radius),
+        focus: focus,
+      );
+    }
   });
 }

@@ -88,11 +88,14 @@ Future<void> setupCrystalIce(
   const orbitRadius = 3.897;
   effectAnimators.add((t) async {
     await crystal.setParameterFloat('time', t);
-    final angle = baseAngle + 0.52 * math.sin(t * math.pi * 2 / 6.0);
-    final elev = 1.25 + 0.18 * math.sin(t * math.pi * 2 / 6.0);
-    await camera.lookAt(
-      Vector3(math.sin(angle) * orbitRadius, elev, math.cos(angle) * orbitRadius),
-      focus: Vector3(0, 0.15, 0),
-    );
+    if (!effectCameraUserControlled) {
+      final angle = baseAngle + 0.52 * math.sin(t * math.pi * 2 / 6.0);
+      final elev = 1.25 + 0.18 * math.sin(t * math.pi * 2 / 6.0);
+      await camera.lookAt(
+        Vector3(
+            math.sin(angle) * orbitRadius, elev, math.cos(angle) * orbitRadius),
+        focus: Vector3(0, 0.15, 0),
+      );
+    }
   });
 }

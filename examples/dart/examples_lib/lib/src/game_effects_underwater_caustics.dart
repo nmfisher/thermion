@@ -180,10 +180,13 @@ Future<void> setupUnderwaterCaustics(
     await sandMat.setParameterFloat('time', t);
     await stoneMat.setParameterFloat('time', t);
     await shaftMat.setParameterFloat('time', t);
-    final drift = 0.38 + 0.24 * math.sin(t * math.pi * 2 / 6.0);
-    await camera.lookAt(
-      Vector3(math.sin(drift) * 6.6, 1.82 + 0.15 * math.cos(t * 1.05), math.cos(drift) * 6.6),
-      focus: focus,
-    );
+    if (!effectCameraUserControlled) {
+      final drift = 0.38 + 0.24 * math.sin(t * math.pi * 2 / 6.0);
+      await camera.lookAt(
+        Vector3(math.sin(drift) * 6.6, 1.82 + 0.15 * math.cos(t * 1.05),
+            math.cos(drift) * 6.6),
+        focus: focus,
+      );
+    }
   });
 }

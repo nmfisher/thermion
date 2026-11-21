@@ -149,6 +149,11 @@ Future<void> _boot() async {
       'aurora' => 'Aurora',
       'nebula' => 'Nebula',
       'iridescence' => 'Iridescent materials',
+      'interior_mapping' => 'Interior mapping',
+      'subsurface' => 'Subsurface scattering',
+      'car_paint' => 'Multi-flake car paint',
+      'underwater_caustics' => 'Underwater caustics',
+      'ferrofluid' => 'Magnetic ferrofluid',
       'showcase' => 'Storm Observatory',
       _ => 'Material controls',
     });
@@ -191,11 +196,13 @@ Future<void> _boot() async {
   WebInputHandler(
     canvas: canvas,
     onDrag: (dx, dy) {
+      effectCameraUserControlled = true;
       azimuth -= dx * orbitSensitivity;
       elevation = (elevation - dy * orbitSensitivity).clamp(-elevMax, elevMax);
       applyCamera();
     },
     onScroll: (s) {
+      effectCameraUserControlled = true;
       if (lookAround) {
         focalLength = (focalLength * math.exp(-s * .001)).clamp(12.0, 80.0);
         camera.setLensProjection(
