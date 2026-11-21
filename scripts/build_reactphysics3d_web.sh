@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build the exact wrapper and core expected by the gallery's Dart bindings.
-gallery=examples/dart/web_gallery
-config="$gallery/.dart_tool/package_config.json"
+# Build the exact wrapper and core expected by the physics_basics Dart bindings.
+example_dir=examples/dart/physics_basics
+config="$example_dir/.dart_tool/package_config.json"
 if [[ ! -f "$config" ]]; then
-    echo "Run dart pub get in $gallery before building the gallery engine." >&2
+    echo "Run dart pub get in $example_dir before building the physics WASM engine." >&2
     exit 1
 fi
 

@@ -30,6 +30,10 @@ concurrency:
 jobs:
   deploy:
     name: Build & deploy site
+    # Any standard runner works: the web-artifact download step runs
+    # `dart run thermion_dart:download_web` with `skip_native_build` set (see
+    # examples/dart/web_gallery/pubspec.yaml + thermion_dart/hook/build.dart), so
+    # it does no host C++ compile and needs no C++ toolchain.
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
