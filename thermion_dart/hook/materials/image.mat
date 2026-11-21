@@ -33,6 +33,10 @@ material {
         {
             type : float,
             name : depth
+        },
+        {
+            type : int,
+            name : isDepthTexture
         }
     ],
     variables : [
@@ -89,6 +93,9 @@ fragment {
                 // Regular 2D texture sampling
                 uv.t = 1.0 - uv.t;
                 color = max(texture(materialParams_image, uv.st), 0.0);
+                if (materialParams.isDepthTexture != 0) {
+                    color = vec4(vec3(1.0 - color.r), 1.0);
+                }
             }
             
             color.rgb *= color.a;
