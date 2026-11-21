@@ -100,16 +100,17 @@ void main(List<String> args) async {
         throw MaterialToolsError('materials.$key must be true or false (an unquoted YAML boolean).');
       }
     }
-    final optInMaterials = [
+    final includeDefaults = materialConfig['include_defaults'] == true;
+    final selectedMaterials = [
       for (final material in BuiltInMaterial.values)
-        if (material.compiledOnDemand && materialConfig[material.key] == true) material,
+        if ((materialConfig[material.key] ?? (includeDefaults && material.isStandardDefault)) == true) material,
     ];
 
     if (!input.config.buildCodeAssets) {
       logger.info("buildCodeAssets is false, assumed to be building for web");
       final webDir = _findWebDirectory(input, logger);
       if (webDir == null) {
-        if (optInMaterials.isNotEmpty) {
+        if (selectedMaterials.isNotEmpty) {
           throw MaterialToolsError(
             'Could not locate the app’s web/ directory. Set web_directory under '
             'hooks.user_defines.thermion_dart in the workspace pubspec.yaml.',
@@ -117,7 +118,7 @@ void main(List<String> args) async {
         }
         return;
       }
-      await _publishWebMaterials(input, output, webDir, optInMaterials, logger);
+      await _publishWebMaterials(input, output, webDir, selectedMaterials, logger);
       await _downloadWebArtifacts(input, webDir, logger);
       return;
     }
@@ -301,39 +302,6 @@ outputDirectory : ${outputDirectory.path}
       logger.warning(warning);
     }
     final materialSuffix = materialResolution.suffix;
-    final materialDefine = materialResolution.define;
-
-    final materialDir = path.join(pkgRootFilePath, 'native/include/material');
-    // A selected variant whose blobs are missing is a hard error: silently
-    // falling back would compile the wrong backends into the app.
-    if (!File(path.join(materialDir, 'image$materialSuffix.c')).existsSync()) {
-      throw Exception(
-        "Material variant '$materialSuffix' (define $materialDefine) was "
-        "selected but its generated files are missing from $materialDir.\n"
-        "Run scripts/regenerate-materials.sh (or the Regenerate Materials CI "
-        "workflow) to generate all variant blobs, or adjust the "
-        "materials.backends configuration in your pubspec.yaml.",
-      );
-    }
-    defines[materialDefine] = "1";
-    String materialPath(String name, String suffix) {
-      final suffixed = path.join(materialDir, '${name}$suffix.c');
-      if (File(suffixed).existsSync()) return 'native/include/material/${name}$suffix.c';
-      // Fallback: unsuffixed .c (pre-split materials)
-      final fallbackName = name == 'gizmo' ? 'gizmo_material' : name;
-      return 'native/include/material/$fallbackName.c';
-    }
-
-    final materialSources = <String, String>{
-      for (final material in BuiltInMaterial.values)
-        if (!material.compiledOnDemand)
-          // Renamed from gizmo.c to avoid a case-insensitive .obj collision
-          // with scene/Gizmo.cpp on Windows.
-          material.key: materialPath(
-            material == BuiltInMaterial.gizmo ? 'gizmo_material' : material.key,
-            materialSuffix,
-          ),
-    };
 
     // Add Dart API DL for port-based frame scheduling (hot restart safe)
     sources.add(path.join(pkgRootFilePath, "native", "include", "dart", "dart_api_dl.c"));
@@ -481,14 +449,8 @@ outputDirectory : ${outputDirectory.path}
       );
     }
 
-    final includeDefaults = materialConfig['include_defaults'] == true;
-    for (final entry in materialSources.entries) {
-      if ((materialConfig[entry.key] ?? includeDefaults) != true) continue;
-      sources.add(path.join(pkgRootFilePath, entry.value));
-      defines['${entry.key.toUpperCase()}_ENABLED'] = '1';
-    }
-    if (optInMaterials.isNotEmpty) {
-      final builtIns = await _compileBuiltInMaterials(input, output, optInMaterials, switch (materialSuffix) {
+    if (selectedMaterials.isNotEmpty) {
+      final builtIns = await _compileBuiltInMaterials(input, output, selectedMaterials, switch (materialSuffix) {
         '_apple' => ['metal'],
         '_opengl' || '_web_webgl' => ['opengl'],
         '_vulkan' => ['vulkan'],
@@ -496,13 +458,14 @@ outputDirectory : ${outputDirectory.path}
         '_web_combined' => ['opengl', 'webgpu'],
         _ => ['opengl', 'vulkan'],
       }, logger);
-      linkGeneratedIntoNativeBuild(
-        sources: sources,
-        includeDirs: includeDirs,
-        linkedSources: optInMaterials.map((material) => File(path.join(builtIns.path, '${material.key}.c'))).toList(),
-        outputDir: builtIns,
-      );
-      for (final material in optInMaterials) {
+      for (final material in selectedMaterials) {
+        final outputDir = builtIns[material]!;
+        linkGeneratedIntoNativeBuild(
+          sources: sources,
+          includeDirs: includeDirs,
+          linkedSources: [File(path.join(outputDir.path, '${material.resgenPrefix}.c'))],
+          outputDir: outputDir,
+        );
         defines['${material.key.toUpperCase()}_ENABLED'] = '1';
       }
     }
@@ -1095,7 +1058,6 @@ Future<void> _downloadWebArtifacts(BuildInput input, Directory webDir, Logger lo
     return;
   }
 
-  final downloadVariant = withHelperMaterials(variant, input.userDefines['materials']);
   final versionFile = File(path.join(packageRoot, 'native', 'web', 'web.version'));
   if (!versionFile.existsSync()) {
     logger.warning('web.version not found at ${versionFile.path}; skipping web artifact download');
@@ -1112,11 +1074,11 @@ Future<void> _downloadWebArtifacts(BuildInput input, Directory webDir, Logger lo
   // share a directory — the success token would otherwise mask the wrong
   // contents when switching variants.
   final cacheDir = Directory(
-    path.join(packageRoot, '.dart_tool', 'thermion_dart', 'web', '$version${downloadVariant.cacheSuffix}'),
+    path.join(packageRoot, '.dart_tool', 'thermion_dart', 'web', '$version${variant.cacheSuffix}'),
   );
 
   try {
-    await _fetchWebZip(version, downloadVariant.zipSuffix, cacheDir, logger);
+    await _fetchWebZip(version, variant.zipSuffix, cacheDir, logger);
   } catch (e) {
     logger.warning('Failed to download web artifacts: $e');
     return;
@@ -1326,7 +1288,7 @@ Future<void> _processDeclarativePlugins(
   }
 }
 
-Future<Directory> _compileBuiltInMaterials(
+Future<Map<BuiltInMaterial, Directory>> _compileBuiltInMaterials(
   BuildInput input,
   BuildOutputBuilder output,
   List<BuiltInMaterial> materials,
@@ -1334,26 +1296,49 @@ Future<Directory> _compileBuiltInMaterials(
   Logger logger,
 ) async {
   final root = Directory.fromUri(input.packageRoot);
-  final result = await compileUserMaterials(
-    appRoot: root,
-    config: MaterialCompilationConfig(
-      inputs: [for (final material in materials) 'hook/materials/${material.key}.mat'],
-      output: input.outputDirectory.resolve('built_in_materials/').toFilePath(),
-      backends: backends,
-      resgen: input.config.buildCodeAssets,
-    ),
-    filamentVersion: filamentVersion,
-    packageVersion: await readPubspecVersion(root),
-    hostOS: Platform.operatingSystem,
-    hostArch: await detectHostArchitecture() ?? 'x64',
-    toolsPin: _loadFilamentPin(input.packageRoot, logger),
-    download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
-    onLog: logger.info,
-  );
-  output.dependencies.addAll(result.dependencies);
+  final pkgRootPath = root.path;
+  final packageVersion = await readPubspecVersion(root);
+  final hostArch = await detectHostArchitecture() ?? 'x64';
+  final toolsPin = _loadFilamentPin(input.packageRoot, logger);
+  final resgen = input.config.buildCodeAssets;
+  final variantKey = '${backends.join('_')}-${resgen ? 'resgen' : 'filamat'}';
+  final outputs = <BuiltInMaterial, Directory>{};
+
+  for (final material in materials) {
+    final cacheDir = path.join(pkgRootPath, '.dart_tool', 'thermion_dart', 'materials', material.key, variantKey);
+    final result = await compileUserMaterials(
+      appRoot: root,
+      config: MaterialCompilationConfig(
+        inputs: ['hook/materials/${material.key}.mat'],
+        output: cacheDir,
+        backends: backends,
+        resgen: resgen,
+        resgenPrefixes: material.resgenPrefix != material.key ? {material.key: material.resgenPrefix} : const {},
+      ),
+      filamentVersion: filamentVersion,
+      packageVersion: packageVersion,
+      hostOS: Platform.operatingSystem,
+      hostArch: hostArch,
+      toolsPin: toolsPin,
+      download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
+      onLog: logger.info,
+    );
+    final normalizedCache = path.normalize(cacheDir);
+    for (final uri in result.dependencies) {
+      final depPath = path.normalize(uri.toFilePath(windows: Platform.isWindows));
+      // Register input dependencies (.mat sources, transitive #includes, matc)
+      // but not files written by this hook under cacheDir (which would trigger
+      // hooks_runner's "File modified during build" warning on cold builds).
+      if (depPath != normalizedCache && !path.isWithin(normalizedCache, depPath)) {
+        output.dependencies.add(uri);
+      }
+    }
+    outputs[material] = result.outputDir;
+  }
+
   output.dependencies.add(input.packageRoot.resolve('pubspec.yaml'));
   output.dependencies.add(input.packageRoot.resolve(filamentPinFileName));
-  return result.outputDir;
+  return outputs;
 }
 
 Future<void> _publishWebMaterials(
@@ -1368,19 +1353,18 @@ Future<void> _publishWebMaterials(
       ? null
       : await _compileBuiltInMaterials(input, output, materials, ['opengl', 'webgpu'], logger);
   if (compiled != null) deployDir.createSync(recursive: true);
-  for (final material in BuiltInMaterial.values.where((material) => material.compiledOnDemand)) {
+  for (final material in BuiltInMaterial.values) {
     final name = '${material.key}.filamat';
     final destination = File(path.join(deployDir.path, name));
-    if (compiled != null && materials.contains(material)) {
-      final source = File(path.join(compiled.path, name));
+    final compiledDir = compiled?[material];
+    if (compiledDir != null) {
+      final source = File(path.join(compiledDir.path, name));
       if (!destination.existsSync() ||
           sha256.convert(source.readAsBytesSync()) != sha256.convert(destination.readAsBytesSync())) {
         source.copySync(destination.path);
       }
-      output.dependencies.add(destination.uri);
     } else if (destination.existsSync()) {
       destination.deleteSync();
     }
   }
-  if (deployDir.existsSync()) output.dependencies.add(deployDir.uri);
 }

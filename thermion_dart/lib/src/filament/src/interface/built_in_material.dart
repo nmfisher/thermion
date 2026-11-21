@@ -26,6 +26,12 @@ enum BuiltInMaterial {
   /// Key under hooks.user_defines.thermion_dart.materials.
   final String key;
 
-  /// Whether the build hook compiles this material from its packaged source.
-  bool get compiledOnDemand => this == normalColor || this == sharpEdge;
+  /// Whether `materials.include_defaults: true` enables this material.
+  bool get isStandardDefault => this != normalColor && this != sharpEdge;
+
+  /// Resgen symbol prefix used when compiling into native builds.
+  ///
+  /// `gizmo` uses `gizmo_material` to avoid a case-insensitive `.obj`
+  /// collision with `scene/Gizmo.cpp` on Windows.
+  String get resgenPrefix => this == gizmo ? 'gizmo_material' : key;
 }

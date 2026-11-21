@@ -5,8 +5,6 @@
 /// hook/build.dart via a relative path.
 library;
 
-import '../filament/src/interface/built_in_material.dart';
-
 /// R2 base for all prebuilt artifacts (Filament libs and web engine zips).
 const String webR2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
 
@@ -104,24 +102,6 @@ WebVariantResolution withRuntimeMaterials(WebVariantResolution variant, Object? 
   return (
     zipSuffix: '${variant.zipSuffix}-runtime-materials',
     cacheSuffix: '${variant.cacheSuffix}-runtime-materials',
-    warnings: variant.warnings,
-  );
-}
-
-/// Published engines bundle the standard helpers when a consumer selects one.
-/// Custom web builds can choose individual helpers through THERMION_MATERIALS.
-WebVariantResolution withHelperMaterials(WebVariantResolution variant, Object? materials) {
-  if (materials is! Map) return variant;
-  final includeDefaults = materials['include_defaults'] == true;
-  final needsHelpers = BuiltInMaterial.values.any(
-    (material) => !material.compiledOnDemand && (materials[material.key] ?? includeDefaults) == true,
-  );
-  if (!needsHelpers) {
-    return variant;
-  }
-  return (
-    zipSuffix: '${variant.zipSuffix}-helpers',
-    cacheSuffix: '${variant.cacheSuffix}-helpers',
     warnings: variant.warnings,
   );
 }

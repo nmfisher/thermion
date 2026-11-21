@@ -8,7 +8,6 @@ import unittest
 
 WORKFLOW = Path(__file__).resolve().parents[1] / '.github/workflows/regenerate-bindings-and-materials.yml'
 BUILD_DIRS = ['build', 'build-main-thread', 'build-runtime-materials', 'build-main-thread-runtime-materials']
-BUILD_DIRS += [directory + '-helpers' for directory in BUILD_DIRS]
 
 
 def step_script(name):

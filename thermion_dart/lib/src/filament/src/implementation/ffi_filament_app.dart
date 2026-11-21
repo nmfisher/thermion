@@ -645,7 +645,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final unavailable = StateError(
       'BuiltInMaterial.${material.name} requires materials.${material.key}: true in this build.',
     );
-    if (FILAMENT_WASM && material.compiledOnDemand) {
+    if (FILAMENT_WASM) {
       final response = await http.get(Uri.parse('thermion_materials/${material.key}.filamat'));
       if (response.statusCode == 404) {
         throw unavailable;

@@ -84,7 +84,7 @@ jobs:
         # needed. (The later `dart compile wasm` step is unaffected: the hook's
         # buildCodeAssets branch runs before the skip and still downloads for web.)
         working-directory: examples/dart/web_gallery
-        run: dart run thermion_dart:download_web --variant helpers -o web
+        run: dart run thermion_dart:download_web -o web --materials gizmo,wireframe,edge_outline,silhouette
       - name: Copy shared assets
         run: cp -r examples/assets examples/dart/web_gallery/web/assets
       - name: Compile gallery to WASM

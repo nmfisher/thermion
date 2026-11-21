@@ -139,7 +139,7 @@ and displays skyboxes and solid backgrounds with zero embedded helper packages.
 Apps using the following features must enable their helpers in the root pubspec.
 
 Set `include_defaults: true` under `materials` to include all 11 standard helpers.
-Individual keys override that setting on native builds.
+Individual keys override that setting on both native and web builds.
 
 | Feature | Material keys |
 | --- | --- |
@@ -183,35 +183,30 @@ The caller owns the material and its instances. Remove their renderables, destro
 the instances, then destroy the material. Requesting a helper omitted from the
 engine raises a `StateError` that names its pubspec key.
 
-The build hook compiles enabled `normal_color` and `sharp_edge` shaders from
-source using the cached Filament tools. It links them on native builds and puts
-their `.filamat` files in `web/thermion_materials/` for `flutter run -d chrome`
-and `flutter build web`. The slim web engine can load these files.
+The build hook compiles only the enabled helper shaders from source
+(`thermion_dart/hook/materials/*.mat`) using the version-matched, cached
+Filament tools (`matc` / `resgen`). Compiled packages are cached per material
+under `thermion_dart/.dart_tool/thermion_dart/materials/` so repeat builds,
+`flutter clean`, and config changes skip recompilation. On native builds, the
+hook links the compiled `.c` files for the selected graphics backend into
+`libthermion_dart`. On Flutter web builds (`flutter run -d chrome`,
+`flutter build web`), it publishes only the enabled `.filamat` files to
+`web/thermion_materials/` for the slim prebuilt engine to load at runtime.
 
 For a Flutter app inside a pub workspace, set `web_directory: apps/viewer/web`
 alongside `materials` under `hooks.user_defines.thermion_dart` in the workspace
 pubspec. The path is relative to that pubspec.
 
-For plain Dart web apps, `dart compile js` only compiles the Dart entrypoint.
-Use `dart run thermion_dart:download_web` to fetch the engine and compile each
-enabled shader separately with `matc` from the Filament release pinned by
-Thermion. Run these example commands from the app directory with
-`THERMION_PACKAGE` pointing at the `thermion_dart` package directory.
+For plain Dart web apps (`dart compile js` / `dart compile wasm`), pass
+`--materials` to `thermion_dart:download_web` to fetch the slim engine and
+compile the requested `.filamat` files into `web/thermion_materials/`:
 
 ```sh
-mkdir -p web/thermion_materials
-matc -a opengl -a webgpu -o web/thermion_materials/normal_color.filamat \
-  "$THERMION_PACKAGE/hook/materials/normal_color.mat"
+dart run thermion_dart:download_web -o web --materials grid,wireframe,gizmo
 ```
 
-Use `sharp_edge` in both filenames to enable that shader.
-
-On native, each standard helper can be selected individually. Selecting a standard
-helper on web downloads the prebuilt engine containing all 11 standard helpers
-for the chosen thread and runtime compiler settings. The standalone downloader accepts `--variant helpers`
-for the worker engine. For an exact subset on web, configure CMake with, for
-example, `-DTHERMION_MATERIALS="grid"` and select the local engine with
-`web_local: true`.
+Use `--materials defaults` for all 11 standard helpers or `--materials all` for
+all 13 helpers.
 
 ### Quickstart (Flutter)
 

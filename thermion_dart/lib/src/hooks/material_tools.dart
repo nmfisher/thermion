@@ -467,7 +467,9 @@ Map<File, String> checkOutputStems(List<File> inputs) {
   return stems;
 }
 
-final reservedResgenPrefixes = Set<String>.unmodifiable(BuiltInMaterial.values.map((material) => material.key));
+final reservedResgenPrefixes = Set<String>.unmodifiable({
+  for (final material in BuiltInMaterial.values) ...[material.key, material.resgenPrefix],
+});
 
 /// The resgen symbol prefix an input compiles with: the explicit
 /// `resgen_prefixes` override keyed by stem (or file stem), else the
