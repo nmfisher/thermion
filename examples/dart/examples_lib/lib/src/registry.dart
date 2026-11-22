@@ -8,9 +8,11 @@ import 'headless_capture.dart';
 import 'highlight_effects.dart';
 import 'input_handlers.dart';
 import 'instancing.dart';
+import 'interior_mapping_glass.dart';
 import 'materials_and_lighting.dart';
 import 'materials_pbr.dart';
 import 'morph_targets.dart';
+import 'parallax.dart';
 import 'picking.dart';
 import 'post_processing.dart';
 import 'render_targets.dart';
@@ -126,11 +128,13 @@ final Map<String, ExampleSetup> registry = {
   'highlight_effects': setupHighlightEffects,
   'input_handlers': setupInputHandlers,
   'instancing': setupInstancing,
+  'interior_mapping_glass': setupInteriorMappingGlass,
   'lighting_setup': setupLightingSetup,
   'load_gltf': setupLoadGltf,
   'load_via_assimp': setupLoadViaAssimp,
   'materials_pbr': setupMaterialsPbr,
   'morph_targets': setupMorphTargets,
+  'parallax': setupParallax,
   'picking': setupPicking,
   'post_processing': setupPostProcessing,
   'render_targets': setupRenderTargets,
@@ -185,6 +189,8 @@ final Map<String, ExampleSetup> galleryScenes = {
   'nebula': setupNebula,
   'iridescence': setupIridescence,
   'interior_mapping': setupInteriorMapping,
+  'interior_mapping_glass': setupInteriorMappingGlass,
+  'parallax': setupParallax,
   'subsurface': setupSubsurface,
   'car_paint': setupCarPaint,
   'underwater_caustics': setupUnderwaterCaustics,
