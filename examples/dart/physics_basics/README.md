@@ -22,16 +22,22 @@ dart run bin/physics_basics.dart 800 600 --video 5 30
 
 ## Web (WASM)
 
-The web build links ReactPhysics3D into a dedicated Thermion WASM module. Activate Emscripten 6.0.4 and run from the repository root:
+No Emscripten build is required — both `thermion_dart` and `reactphysics3d_dart` ship prebuilt WASM modules:
 
 ```sh
-(cd examples/dart/physics_basics && dart pub get)
-make wasm-physics
+cd examples/dart/physics_basics
+dart pub get
 
-cp thermion_dart/native/web/build/physics/build/out/thermion_dart.{js,wasm} examples/dart/physics_basics/web/
-cp -R examples/assets examples/dart/physics_basics/web/assets
+# 1. Download Thermion's prebuilt WASM module into web/
+dart run thermion_dart:download_web --output=web
 
-(cd examples/dart/physics_basics && dart compile wasm web/main.dart -o web/main.wasm)
+# 2. Copy ReactPhysics3D's prebuilt WASM module from the resolved pub package into web/
+RP3D_DIR=$(python3 -c 'import json; from pathlib import Path; from urllib.parse import unquote, urljoin, urlsplit; c = Path(".dart_tool/package_config.json").resolve(); print(next(unquote(urlsplit(urljoin(c.as_uri(), p["rootUri"])).path) for p in json.loads(c.read_text())["packages"] if p["name"] == "reactphysics3d_dart"))')
+cp "$RP3D_DIR"/native/web/reactphysics3d_dart.{js,wasm} web/
+
+# 3. Copy shared skybox/IBL assets and compile the Dart WASM app
+cp -R ../../assets web/assets
+dart compile wasm web/main.dart -o web/main.wasm
 ```
 
 Serve `examples/dart/physics_basics/web/` with Cross-Origin Isolation headers (`Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`).

@@ -61,13 +61,15 @@
     canvas.height = canvas.clientHeight;
   </script>
   <script src="thermion_dart.js"></script>
+  <script src="reactphysics3d_dart.js"></script>
   <script type="module">
     try {
       window.thermion_dart = await thermion_dart();
+      window.rp3d = await reactphysics3d_dart();
     } catch (err) {
       const el = document.getElementById('error');
-      el.textContent = 'Failed to load thermion_dart.js: ' + err +
-        '\n\nBuild the physics WASM module (`make wasm-physics`) and serve with COOP/COEP headers.';
+      el.textContent = 'Failed to load WASM modules: ' + err +
+        '\n\nEnsure thermion_dart.{js,wasm} and reactphysics3d_dart.{js,wasm} are in web/ and serve with COOP/COEP headers.';
       el.style.display = 'block';
       throw err;
     }

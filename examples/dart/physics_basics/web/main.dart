@@ -4,6 +4,8 @@ import 'dart:math' as math;
 
 import 'package:logging/logging.dart';
 import 'package:physics_basics/physics_scene.dart';
+import 'package:reactphysics3d_dart/reactphysics3d_dart.dart'
+    show initializeReactPhysics3DWeb;
 import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/thermion_dart.dart'
@@ -28,6 +30,7 @@ Future<void> _boot() async {
   Logger.root.onRecord.listen((record) => print(record));
 
   NativeLibrary.initBindings('thermion_dart');
+  initializeReactPhysics3DWeb();
 
   final canvas =
       document.getElementById('thermion_canvas') as HTMLCanvasElement;
