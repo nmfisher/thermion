@@ -530,7 +530,11 @@ outputDirectory : ${outputDirectory.path}
       flags.add('-fno-exceptions');
       flags.add('-stdlib=libc++');
       if (!flags.any((f) => f.contains("-std=c++"))) {
-        flags.add('-std=c++17');
+        // Dawn's headers (dawn/webgpu_cpp.h and friends) use C++20 library
+        // features (std::span), so the native WebGPU opt-in compiles the
+        // glue sources as C++20. Default builds stay on C++17; Windows
+        // already passes /std:c++20 unconditionally below.
+        flags.add(webgpuEnabled ? '-std=c++20' : '-std=c++17');
       }
     } else {
       defines["WIN32"] = "1";
