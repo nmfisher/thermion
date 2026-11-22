@@ -1,0 +1,10 @@
+output/
+web/thermion_dart.js
+web/thermion_dart.wasm
+web/reactphysics3d_dart.js
+web/reactphysics3d_dart.wasm
+web/main.wasm
+web/main.wasm.map
+web/main.mjs
+web/main.support.js
+web/assets/
