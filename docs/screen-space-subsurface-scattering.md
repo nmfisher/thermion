@@ -143,7 +143,10 @@ noise remain visible. Fixtures share physical dimensions, projection and light.
 
 ## Supported scope and verification
 
-Initial scope: opaque standard-lit selection, one SSS view per engine, with
+The experimental path supports opaque standard-lit selection on Metal, Vulkan
+and OpenGL, with one SSS view per engine. WebGPU currently rejects enabling
+the effect because its depth attachment needs a compatible texture binding.
+Configure the view with
 MSAA, fog, stereo, SSR and transparent/refractive composition disabled. Unsupported
 selection and existing incompatible view settings are rejected. Subsequent scene
 changes must continue to honor engine preconditions. Masked surfaces may occlude
@@ -156,7 +159,8 @@ silhouettes, bones/morphs, independent texture/shadow boundaries, transport grou
 and scene units. Measurements are written to
 `thermion_dart/test/output/sss_replacement/audit.json`.
 
-The Metal suite and visual demo passed all 19 cases. The indirect-specular
+The Metal suite and visual demo passed all 19 cases. Vulkan on a GTX 1080 and
+OpenGL on Mesa llvmpipe each passed all 18 regression cases. The indirect-specular
 fixture compares ordinary rendering with SSS enabled
 both before and after selecting the sphere. It requires zero pixels above
 1/255 with geometric specular AA. The CPU oracle runs with

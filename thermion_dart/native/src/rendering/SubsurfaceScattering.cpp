@@ -48,6 +48,9 @@ EMSCRIPTEN_KEEPALIVE bool View_configureSss(TEngine* tEngine, TView* tView, bool
 #if defined(FILAMENT_HAS_DIFFUSE_SSS) && FILAMENT_HAS_DIFFUSE_SSS >= 2
     auto* view = reinterpret_cast<filament::View*>(tView);
     auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
+    // The diffusion pass samples scene depth as a float texture. WebGPU requires
+    // a depth-compatible binding and rejects the current attachment binding.
+    if (enabled && engine->getBackend() == filament::backend::Backend::WEBGPU) return false;
     auto a = activeViews.find(engine);
     if (enabled && a != activeViews.end() && a->second != view) return false;
     if (enabled && (view->getMultiSampleAntiAliasingOptions().enabled ||

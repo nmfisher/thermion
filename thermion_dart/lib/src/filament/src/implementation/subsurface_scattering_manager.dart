@@ -82,7 +82,7 @@ class SubsurfaceScatteringManager {
     );
     if (!ok) {
       throw UnsupportedError(
-        'SSS requires the matching diffuse-SSS Filament build, and matching opaque scene materials, with MSAA, fog and SSR disabled, and one SSS view per engine',
+        'SSS requires the matching diffuse-SSS Filament build on Metal, Vulkan or OpenGL, matching opaque scene materials, MSAA, fog and SSR disabled, and one SSS view per engine',
       );
     }
     _parameters = parameters;
