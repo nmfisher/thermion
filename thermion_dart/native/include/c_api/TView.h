@@ -10,6 +10,19 @@ extern "C"
 
 #include "APIBoundaryTypes.h"
 
+// Default member initializers below are C++-only syntax. ffigen parses
+// these headers as C, where "float distance = 0.0f;" is a hard parse
+// error ("expected ';' at end of declaration list") that cascades
+// through every entry-point header including TView.h (and eventually
+// hits clang's "too many errors" bail-out, blocking binding regen).
+// Expand to nothing in C so the field lists parse cleanly; C++ sources
+// keep the defaults.
+#ifdef __cplusplus
+#define T_DEFAULT(value) = value
+#else
+#define T_DEFAULT(value)
+#endif
+
 struct TViewport { 
     int32_t left;
     int32_t bottom;
@@ -22,21 +35,22 @@ typedef struct TViewport TViewport;
  * Copied from FogOptions in View.h
  */
 struct TFogOptions {
-    float distance = 0.0f;
-    float cutOffDistance = INFINITY;
-    float maximumOpacity = 1.0f;
-    float height = 0.0f;
-    float heightFalloff = 1.0f;
-    float density = 0.1f;
-    float inScatteringStart = 0.0f;
-    float inScatteringSize = -1.0f;
-    TTexture* skyColor = nullptr;
-    float linearColorR = 1.0;
-    float linearColorG = 1.0;
-    float linearColorB = 1.0;
-    bool fogColorFromIbl = 0;
-    bool enabled = 0;
+    float distance T_DEFAULT(0.0f);
+    float cutOffDistance T_DEFAULT(INFINITY);
+    float maximumOpacity T_DEFAULT(1.0f);
+    float height T_DEFAULT(0.0f);
+    float heightFalloff T_DEFAULT(1.0f);
+    float density T_DEFAULT(0.1f);
+    float inScatteringStart T_DEFAULT(0.0f);
+    float inScatteringSize T_DEFAULT(-1.0f);
+    TTexture* skyColor T_DEFAULT(nullptr);
+    float linearColorR T_DEFAULT(1.0);
+    float linearColorG T_DEFAULT(1.0);
+    float linearColorB T_DEFAULT(1.0);
+    bool fogColorFromIbl T_DEFAULT(0);
+    bool enabled T_DEFAULT(0);
 };
+typedef struct TFogOptions TFogOptions;
 
 typedef struct TToneMapper TToneMapper;
 
@@ -189,19 +203,20 @@ EMSCRIPTEN_KEEPALIVE void View_setFrontFaceWindingInverted(TView *tView, bool in
  * Ambient shadows from dominant light
  */
 struct TSsct {
-    float lightConeRad = 1.0f;       //!< full cone angle in radian, between 0 and pi/2
-    float shadowDistance = 0.3f;     //!< how far shadows can be cast
-    float contactDistanceMax = 1.0f; //!< max distance for contact
-    float intensity = 0.8f;          //!< intensity
-    float lightDirectionX = 0.0f;    //!< light direction X
-    float lightDirectionY = -1.0f;   //!< light direction Y
-    float lightDirectionZ = 0.0f;    //!< light direction Z
-    float depthBias = 0.01f;         //!< depth bias in world units (mitigate self shadowing)
-    float depthSlopeBias = 0.01f;    //!< depth slope bias (mitigate self shadowing)
-    uint8_t sampleCount = 4;         //!< tracing sample count, between 1 and 255
-    uint8_t rayCount = 1;            //!< # of rays to trace, between 1 and 255
-    bool enabled = false;            //!< enables or disables SSCT
+    float lightConeRad T_DEFAULT(1.0f);       //!< full cone angle in radian, between 0 and pi/2
+    float shadowDistance T_DEFAULT(0.3f);     //!< how far shadows can be cast
+    float contactDistanceMax T_DEFAULT(1.0f); //!< max distance for contact
+    float intensity T_DEFAULT(0.8f);          //!< intensity
+    float lightDirectionX T_DEFAULT(0.0f);    //!< light direction X
+    float lightDirectionY T_DEFAULT(-1.0f);   //!< light direction Y
+    float lightDirectionZ T_DEFAULT(0.0f);    //!< light direction Z
+    float depthBias T_DEFAULT(0.01f);         //!< depth bias in world units (mitigate self shadowing)
+    float depthSlopeBias T_DEFAULT(0.01f);    //!< depth slope bias (mitigate self shadowing)
+    uint8_t sampleCount T_DEFAULT(4);         //!< tracing sample count, between 1 and 255
+    uint8_t rayCount T_DEFAULT(1);            //!< # of rays to trace, between 1 and 255
+    bool enabled T_DEFAULT(false);           //!< enables or disables SSCT
 };
+typedef struct TSsct TSsct;
 
 enum TAmbientOcclusionType {
     SAO,
@@ -213,33 +228,34 @@ typedef enum TAmbientOcclusionType TAmbientOcclusionType;
  * Ground Truth-based Ambient Occlusion (GTAO) options
  */
 struct TGtao {
-    uint8_t sampleSliceCount = 4;        //!< number of slices; higher values reduce noise
-    uint8_t sampleStepsPerSlice = 3;     //!< integration steps per slice; higher values reduce bias
-    float thicknessHeuristic = 0.004f;   //!< ignored when visibility bitmasks are enabled
-    bool useVisibilityBitmasks = false;  //!< enables visibility bitmasks mode
-    float constThickness = 0.5f;         //!< world-space thickness used by visibility bitmasks
-    bool linearThickness = false;        //!< increases thickness with distance
+    uint8_t sampleSliceCount T_DEFAULT(4);        //!< number of slices; higher values reduce noise
+    uint8_t sampleStepsPerSlice T_DEFAULT(3);     //!< integration steps per slice; higher values reduce bias
+    float thicknessHeuristic T_DEFAULT(0.004f);   //!< ignored when visibility bitmasks are enabled
+    bool useVisibilityBitmasks T_DEFAULT(false);  //!< enables visibility bitmasks mode
+    float constThickness T_DEFAULT(0.5f);         //!< world-space thickness used by visibility bitmasks
+    bool linearThickness T_DEFAULT(false);        //!< increases thickness with distance
 };
+typedef struct TGtao TGtao;
 
 /**
  * Options for ambient occlusion, Screen Space Cone Tracing (SSCT), and GTAO
  */
 struct TAmbientOcclusionOptions {
-    float radius = 0.3f;            //!< Ambient Occlusion radius in meters, between 0 and ~10
-    float power = 1.0f;             //!< Controls ambient occlusion's contrast. Must be positive
-    float bias = 0.0005f;           //!< Self-occlusion bias in meters. Use to avoid self-occlusion. Between 0 and a few mm
-    float resolution = 0.5f;        //!< How each dimension of the AO buffer is scaled. Must be either 0.5 or 1.0
-    float intensity = 1.0f;         //!< Strength of the Ambient Occlusion effect
-    float bilateralThreshold = 0.05f; //!< depth distance that constitute an edge for filtering
-    TQualityLevel quality = LOW;    //!< affects # of samples used for AO
-    TQualityLevel lowPassFilter = MEDIUM; //!< affects AO smoothness
-    TQualityLevel upsampling = LOW; //!< affects AO buffer upsampling quality
-    bool enabled = false;           //!< enables or disables screen-space ambient occlusion
-    bool bentNormals = false;       //!< enables bent normals computation from AO, and specular AO
-    float minHorizonAngleRad = 0.0f; //!< min angle in radian to consider
+    float radius T_DEFAULT(0.3f);            //!< Ambient Occlusion radius in meters, between 0 and ~10
+    float power T_DEFAULT(1.0f);             //!< Controls ambient occlusion's contrast. Must be positive
+    float bias T_DEFAULT(0.0005f);           //!< Self-occlusion bias in meters. Use to avoid self-occlusion. Between 0 and a few mm
+    float resolution T_DEFAULT(0.5f);        //!< How each dimension of the AO buffer is scaled. Must be either 0.5 or 1.0
+    float intensity T_DEFAULT(1.0f);         //!< Strength of the Ambient Occlusion effect
+    float bilateralThreshold T_DEFAULT(0.05f); //!< depth distance that constitute an edge for filtering
+    TQualityLevel quality T_DEFAULT(LOW);    //!< affects # of samples used for AO
+    TQualityLevel lowPassFilter T_DEFAULT(MEDIUM); //!< affects AO smoothness
+    TQualityLevel upsampling T_DEFAULT(LOW); //!< affects AO buffer upsampling quality
+    bool enabled T_DEFAULT(false);           //!< enables or disables screen-space ambient occlusion
+    bool bentNormals T_DEFAULT(false);       //!< enables bent normals computation from AO, and specular AO
+    float minHorizonAngleRad T_DEFAULT(0.0f); //!< min angle in radian to consider
     TSsct ssct;
     TGtao gtao;
-    TAmbientOcclusionType aoType = SAO; //!< ambient occlusion algorithm
+    TAmbientOcclusionType aoType T_DEFAULT(SAO); //!< ambient occlusion algorithm
 };
 
 typedef struct TAmbientOcclusionOptions TAmbientOcclusionOptions;

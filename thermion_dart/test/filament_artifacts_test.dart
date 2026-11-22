@@ -35,6 +35,17 @@ void main() {
       expect(warnings, isEmpty);
     });
 
+    test('webgpu-suffixed keys accepted; other suffixes rejected', () {
+      final warnings = <String>[];
+      final pin = parseFilamentPin(
+        jsonEncode({'macos-webgpu/release': shaA, 'linux-webgpu/debug': shaB, 'macos-dawn/release': shaA}),
+        warnings: warnings,
+      );
+      expect(pin, {'macos-webgpu/release': shaA, 'linux-webgpu/debug': shaB});
+      expect(warnings, hasLength(1));
+      expect(warnings.single, contains('macos-dawn/release'));
+    });
+
     test('malformed JSON → empty pin + warning (legacy fallback)', () {
       final warnings = <String>[];
       expect(parseFilamentPin('{oops', warnings: warnings), isEmpty);
@@ -110,6 +121,35 @@ void main() {
         'filament-v1.77.2-ios-simulator-debug-0123456789abcdef.zip',
       );
       expect(resolveFilamentArtifact('v1.77.2', 'linux-arm64', 'release', pin).cacheSuffix, '-ffffffffffffffff');
+    });
+
+    test('webgpu unpinned → legacy -webgpu URL, no digest', () {
+      final r = resolveFilamentArtifact('v1.77.2', 'macos', 'release', {}, webgpu: true);
+      expect(r.zipName, 'filament-v1.77.2-macos-release-webgpu.zip');
+      expect(r.url, endsWith(r.zipName));
+      expect(r.sha256, isNull);
+      expect(r.cacheSuffix, '');
+    });
+
+    test('webgpu pinned → hash-suffixed URL after the -webgpu suffix', () {
+      final r = resolveFilamentArtifact('v1.77.2', 'linux', 'release', {'linux-webgpu/release': shaA}, webgpu: true);
+      expect(r.zipName, 'filament-v1.77.2-linux-release-webgpu-0123456789abcdef.zip');
+      expect(r.url, endsWith(r.zipName));
+      expect(r.sha256, shaA);
+      expect(r.cacheSuffix, '-0123456789abcdef');
+    });
+
+    test('webgpu resolution ignores the canonical pin entry and vice versa', () {
+      final pin = {'macos/release': shaA, 'macos-webgpu/release': shaB};
+      // Canonical request must not pick up the webgpu entry...
+      expect(resolveFilamentArtifact('v1.77.2', 'macos', 'release', pin).sha256, shaA);
+      // ...and the webgpu request must not pick up the canonical entry.
+      expect(resolveFilamentArtifact('v1.77.2', 'macos', 'release', pin, webgpu: true).sha256, shaB);
+      // Canonical pin only → webgpu falls back to the legacy key.
+      expect(
+        resolveFilamentArtifact('v1.77.2', 'linux', 'release', {'linux/release': shaA}, webgpu: true).sha256,
+        isNull,
+      );
     });
   });
 

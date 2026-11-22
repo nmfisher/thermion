@@ -13,8 +13,10 @@ name: Publish Filament to R2 (from artifacts)
 #      artifact, computes its SHA-256, uploads
 #        s3://thermion/filament-<v>-<platform>-<variant>-<hash16>.zip
 #      (skipping keys that already exist) and merges the digests into
-#      filament.libs.json. The merged pin is uploaded as the
-#      'filament-libs-pin' workflow artifact.
+#      filament.libs.json. -webgpu suffixed artifacts from webgpu build
+#      runs are published the same way, recorded under
+#      "<platform>-webgpu/<variant>" pin keys. The merged pin is uploaded
+#      as the 'filament-libs-pin' workflow artifact.
 #   4. Roll out by committing the pin: set commit_pin true to push the pin
 #      update to the branch this workflow is dispatched from, or download
 #      the pin artifact and commit it yourself. Consumers on that revision
@@ -133,8 +135,12 @@ jobs:
               echo "=== $platform: no run ID provided -- skipping ==="
               return 0
             fi
+            # Canonical artifacts first, then the -webgpu suffixed variants
+            # (present when the build run was dispatched with webgpu: true);
+            # those record under "<platform>-webgpu/<variant>" pin keys.
+            for suffix in "" "-webgpu"; do
             for variant in release debug; do
-              local name="filament-${platform}-${variant}"
+              local name="filament-${platform}-${variant}${suffix}"
               echo "=== $name: downloading from run $run_id ==="
               if ! gh run download -R "$GITHUB_REPOSITORY" "$run_id" -n "$name" -D "./$name"; then
                 echo "WARN: artifact $name not found in run $run_id -- skipping"
@@ -169,7 +175,8 @@ jobs:
                 aws s3 cp "$zip" "s3://${R2_BUCKET_NAME}/${key}" --endpoint-url "$R2_ENDPOINT"
                 published=$((published + 1))
               fi
-              printf '"%s/%s" "%s"\n' "$platform" "$variant" "$sha" >> pin-entries.jsonl
+              printf '"%s%s/%s" "%s"\n' "$platform" "$suffix" "$variant" "$sha" >> pin-entries.jsonl
+            done
             done
           }
 

@@ -25,13 +25,21 @@ dependencies:
 
 dev_dependencies:
   ffigen: ^18.1.0
-  test: ^1.28.0
+  test: ^1.31.1
   mockito: ^5.0.0
   build_runner: ^2.0.0
   yaml_edit: ^2.2.4
 
 # Material factories exercised by this package's native integration tests.
 # Consuming applications select their own helpers in their root pubspec.
+#
+# Local WebGPU testing: set `backend: webgpu` here and run the webgpu
+# tests explicitly. The build hook then defines THERMION_SUPPORTS_WEBGPU,
+# links Dawn and downloads the pinned -webgpu Filament artifact (built
+# with FILAMENT_SUPPORTS_WEBGPU=ON) into
+# .dart_tool/thermion_dart/lib/<version>/<platform>/<mode>/.
+# Keep it off otherwise — it swaps the Dawn-linked artifact in for every
+# native build of this package.
 hooks:
   user_defines:
     thermion_dart:

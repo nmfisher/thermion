@@ -34,6 +34,11 @@ on:
         required: false
         default: true
         type: boolean
+      webgpu:
+        description: 'Build Filament with FILAMENT_SUPPORTS_WEBGPU=ON (macOS, Linux)'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.platform || 'all' }}
@@ -70,6 +75,21 @@ jobs:
           # Override individually if provided
           [ -n "${{ inputs.filament_repo }}" ] && REPO="${{ inputs.filament_repo }}"
           [ -n "${{ inputs.filament_version }}" ] && VERSION="${{ inputs.filament_version }}"
+          # Resolve VERSION=latest to the newest v*.* tag on the chosen repo.
+          # The per-platform jobs do `git clone --branch $VERSION` so we must
+          # produce a concrete tag here, not the literal string "latest".
+          if [ "$VERSION" = "latest" ]; then
+            echo "Resolving latest tag on $REPO..."
+            VERSION=$(git ls-remote --tags --refs --sort=-version:refname \
+              "$REPO" 'v*' \
+              | awk -F/ '{print $NF}' \
+              | head -1)
+            if [ -z "$VERSION" ]; then
+              echo "Error: could not resolve latest tag on $REPO"
+              exit 1
+            fi
+            echo "Resolved latest -> $VERSION"
+          fi
           echo "repo=$REPO" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building Filament repo: $REPO ref: $VERSION"
@@ -109,39 +129,75 @@ jobs:
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
 
+      - name: Compute zip suffix
+        run: |
+          if [ "${{ inputs.webgpu }}" = "true" ]; then
+            echo "ZIP_SUFFIX=-webgpu" >> $GITHUB_ENV
+          else
+            echo "ZIP_SUFFIX=" >> $GITHUB_ENV
+          fi
+
+      - name: Free disk space
+        # The WebGPU build zips huge Dawn debug artifacts and ran out of disk
+        # (zip I/O error - No space left on device). jlumbroso/free-disk-space
+        # is Ubuntu-only, so delete the large preinstalled toolchains this
+        # build does not need: extra Xcode versions (keep the selected one),
+        # Android SDK/NDK, simulator runtimes, dotnet and ghcup.
+        run: |
+          df -h / | tail -1
+          SELECTED_XCODE=$(basename "$(dirname "$(dirname "$(xcode-select -p)")")")
+          echo "Keeping $SELECTED_XCODE"
+          for xcode in /Applications/Xcode*.app; do
+            if [ "$(basename "$xcode")" != "$SELECTED_XCODE" ]; then
+              echo "Removing $xcode"
+              sudo rm -rf "$xcode"
+            fi
+          done
+          sudo rm -rf /usr/local/lib/android /Users/runner/Library/Android
+          sudo rm -rf /Library/Developer/CoreSimulator /Users/runner/Library/Developer/CoreSimulator
+          sudo rm -rf /usr/local/share/dotnet /usr/local/.ghcup /usr/local/share/boost
+          df -h / | tail -1
+
       - name: Build Filament
         run: |
           mkdir -p output
           chmod +x scripts/build_macos.sh
-          scripts/build_macos.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+          EXTRA_FLAGS=""
+          if [ "${{ inputs.webgpu }}" = "true" ]; then
+            EXTRA_FLAGS="--webgpu"
+          fi
+          scripts/build_macos.sh filament ${{ env.FILAMENT_VERSION }} output --clean $EXTRA_FLAGS
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: filament-macos-release
-          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-release.zip
+          name: filament-macos-release${{ env.ZIP_SUFFIX }}
+          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-release${{ env.ZIP_SUFFIX }}.zip
           retention-days: 7
 
       - name: Upload debug artifact
         uses: actions/upload-artifact@v4
         with:
-          name: filament-macos-debug
-          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
+          name: filament-macos-debug${{ env.ZIP_SUFFIX }}
+          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-debug${{ env.ZIP_SUFFIX }}.zip
           retention-days: 7
 
       - name: Verify packaged universal matc and resgen
         run: |
           python3 scripts/verify-material-host-tools.py \
-            output/filament-${{ env.FILAMENT_VERSION }}-macos-release.zip \
-            output/filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
+            output/filament-${{ env.FILAMENT_VERSION }}-macos-release${{ env.ZIP_SUFFIX }}.zip \
+            output/filament-${{ env.FILAMENT_VERSION }}-macos-debug${{ env.ZIP_SUFFIX }}.zip
 
       - name: Upload to R2
         if: inputs.upload_to_r2
         run: |
           pip3 install --break-system-packages awscli
           for variant in release debug; do
+            # Content-addressed keys for every artifact, including the
+            # -webgpu suffixed zips (record them into the pin via
+            # publish-filament-to-r2.yml, same as the canonical ones).
             bash scripts/upload_filament_hashed.sh \
-              "output/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}.zip"
+              "output/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}${{ env.ZIP_SUFFIX }}.zip"
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -332,10 +388,21 @@ jobs:
           # (azure.archive.ubuntu.com); cap each command and retry the batch.
           retry() { for i in 1 2 3; do "$@" && return 0; echo "retry $i/3 failed: $*" >&2; sleep 20; done; return 1; }
           retry sudo apt-get update -o Acquire::http::Timeout=30 -o Acquire::Retries=3
+          # Base X11 + Mesa for Filament's own OpenGL/Vulkan paths.
+          # The libxcb-* set is for Dawn's X11/XCB backend (DAWN_USE_X11)
+          # — Dawn pulls in dri3, present, randr, sync, shape, xfixes,
+          # shm-fence and friends. Adding them all up front to avoid the
+          # one-at-a-time CI ping-pong.
           retry sudo apt-get install -y -o Acquire::http::Timeout=30 \
             ca-certificates wget ninja-build \
-            libx11-dev libx11-xcb-dev libxcursor-dev libxrandr-dev libxinerama-dev \
-            libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev \
+            libx11-dev libx11-xcb-dev \
+            libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev \
+            libxxf86vm-dev libgl1-mesa-dev libglu1-mesa-dev \
+            libxcb1-dev libxcb-dri3-dev libxcb-present-dev \
+            libxcb-randr0-dev libxcb-sync-dev libxcb-shape0-dev \
+            libxcb-xfixes0-dev libxcb-image0-dev libxcb-render0-dev \
+            libxcb-keysyms1-dev libxcb-util-dev libxcb-xkb-dev \
+            libxshmfence-dev libxkbcommon-dev libxkbcommon-x11-dev \
             libgbm-dev
           # clang-18 + libc++ 18 from apt.llvm.org (jammy's distro clang is
           # 14, too old for Filament). See the runs-on comment above.
@@ -350,11 +417,23 @@ jobs:
           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 200
           clang --version
 
+      - name: Compute zip suffix
+        run: |
+          if [ "${{ inputs.webgpu }}" = "true" ]; then
+            echo "ZIP_SUFFIX=-webgpu" >> $GITHUB_ENV
+          else
+            echo "ZIP_SUFFIX=" >> $GITHUB_ENV
+          fi
+
       - name: Build Filament
         run: |
           mkdir -p output
           chmod +x scripts/build_linux.sh
-          scripts/build_linux.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+          EXTRA_FLAGS=""
+          if [ "${{ inputs.webgpu }}" = "true" ]; then
+            EXTRA_FLAGS="--webgpu"
+          fi
+          scripts/build_linux.sh filament ${{ env.FILAMENT_VERSION }} output --clean $EXTRA_FLAGS
 
       - name: Reject glibc symbol references newer than 2.35
         # Guards the glibc baseline described in the runs-on comment above:
@@ -410,23 +489,26 @@ jobs:
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: filament-linux-release
-          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-release.zip
+          name: filament-linux-release${{ env.ZIP_SUFFIX }}
+          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-release${{ env.ZIP_SUFFIX }}.zip
           retention-days: 7
 
       - name: Upload debug artifact
         uses: actions/upload-artifact@v4
         with:
-          name: filament-linux-debug
-          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-debug.zip
+          name: filament-linux-debug${{ env.ZIP_SUFFIX }}
+          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-debug${{ env.ZIP_SUFFIX }}.zip
           retention-days: 7
 
       - name: Upload to R2
         if: inputs.upload_to_r2
         run: |
           for variant in release debug; do
+            # Content-addressed keys for every artifact, including the
+            # -webgpu suffixed zips (record them into the pin via
+            # publish-filament-to-r2.yml, same as the canonical ones).
             bash scripts/upload_filament_hashed.sh \
-              "output/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}.zip"
+              "output/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}${{ env.ZIP_SUFFIX }}.zip"
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}

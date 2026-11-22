@@ -14,6 +14,14 @@ option(THERMION_WEB_MAIN_THREAD
 option(THERMION_ENABLE_RUNTIME_MATERIALS
   "Compile materials from GLSL source at runtime (links filamat)" OFF)
 
+# WebGPU (Dawn) backend alongside WebGL2. Opt-in: requires a Filament web
+# artifact built with FILAMENT_SUPPORTS_WEBGPU=ON and pulls in Emscripten's
+# WebGPU JS glue (-sUSE_WEBGPU), which is not part of the default WebGL2
+# build matrix. When OFF, the engine is WebGL2-only and the WebGPU platform
+# code is compiled out (Engine_create with Backend.WEBGPU returns null).
+option(THERMION_ENABLE_WEBGPU
+  "Enable the WebGPU backend (requires a Filament web artifact built with FILAMENT_SUPPORTS_WEBGPU=ON)" OFF)
+
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif(NOT CMAKE_BUILD_TYPE)
@@ -46,6 +54,11 @@ set(EMCC_CFLAGS ${EMCC_CFLAGS} -fno-exceptions)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sASYNCIFY=0)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMIN_WEBGL_VERSION=2)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMAX_WEBGL_VERSION=2)
+if(THERMION_ENABLE_WEBGPU)
+  # Emscripten's WebGPU headers + JS glue; only linked for WebGPU-capable
+  # engines (the WebGL2-only matrix must not carry the dependency).
+  set(EMCC_CFLAGS ${EMCC_CFLAGS} -sUSE_WEBGPU=1)
+endif()
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFETCH=0)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSHARED_MEMORY=0)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFILESYSTEM=0)
@@ -154,6 +167,12 @@ add_executable(${MODULE_NAME} ${SOURCES})
 set_property(TARGET ${MODULE_NAME} APPEND PROPERTY LINK_DEPENDS "${MATERIAL_READER}")
 if(THERMION_WEB_MAIN_THREAD)
   target_compile_definitions(${MODULE_NAME} PRIVATE THERMION_WEB_MAIN_THREAD=1)
+endif()
+if(THERMION_ENABLE_WEBGPU)
+  # Same gate the native build hook uses (hook/build.dart); ThermionWebApi.cpp
+  # compiles the WebGPU platform in/out on it.
+  target_compile_definitions(${MODULE_NAME} PRIVATE THERMION_SUPPORTS_WEBGPU=1)
+  message(STATUS "WebGPU backend enabled (THERMION_ENABLE_WEBGPU=ON)")
 endif()
 
 set_target_properties(${MODULE_NAME} PROPERTIES

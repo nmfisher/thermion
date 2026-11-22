@@ -64,12 +64,13 @@ class TestHelper {
   late String outDirPath;
   late String testDir;
   late String assetsDir;
+  final Backend? _backend;
 
   /// ColorGradings attached by [createViewer]; caller-owned (like Filament),
   /// so [disposeColorGradings] must run once the viewers are destroyed.
   final List<ColorGrading> _colorGradings = [];
 
-  TestHelper(String? subDir) {
+  TestHelper(String? subDir, {Backend? backend}) : _backend = backend {
     final packageUri = findPackageRoot('thermion_dart').toFilePath();
     assetsDir = p.normalize(p.join(packageUri, '..', 'examples', 'assets'));
     if (subDir != null) {
@@ -159,12 +160,21 @@ class TestHelper {
     bool captureRenderTarget = false,
     bool render = true,
   }) async {
+    // WebGPU workaround: the blitter fails on format conversions involving
+    // non-blendable formats (e.g. RGBA32Float), so capture() auto-downgrades
+    // FLOAT to UBYTE when reading from the swapchain.  Mirror that here so
+    // the PNG writer interprets the buffer correctly.
+    // TODO: remove once Filament fixes the blitter (see docs/upstream.md).
+    var effectivePixelDataType = pixelDataType;
+    if (_backend == Backend.WEBGPU && pixelDataType == PixelDataType.FLOAT && !captureRenderTarget) {
+      effectivePixelDataType = PixelDataType.UBYTE;
+    }
     var pixelBuffers = await FilamentApp.instance!.capture(
       swapChain,
       view: view,
       beforeRender: beforeRender,
       pixelDataFormat: pixelDataFormat,
-      pixelDataType: pixelDataType,
+      pixelDataType: effectivePixelDataType,
       captureRenderTarget: captureRenderTarget,
       render: render,
     );
@@ -183,7 +193,7 @@ class TestHelper {
           vp.width,
           vp.height,
           outPath,
-          isFloat: pixelDataType == PixelDataType.FLOAT,
+          isFloat: effectivePixelDataType == PixelDataType.FLOAT,
           hasAlpha: pixelDataFormat == PixelDataFormat.RGBA,
           numChannels: numChannels,
         );
@@ -212,7 +222,7 @@ class TestHelper {
     await initTestBindings();
 
     await FFIFilamentApp.create(
-      config: FFIFilamentConfig(loadResource: loadResourceBytes, backend: defaultTestBackend),
+      config: FFIFilamentConfig(loadResource: loadResourceBytes, backend: _backend ?? defaultTestBackend),
     );
   }
 

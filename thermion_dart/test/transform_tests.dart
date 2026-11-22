@@ -238,5 +238,6 @@ class _ParentingTestApp extends FFIFilamentApp {
         app.lightManager.getNativeHandle(),
         app.renderableManager.getNativeHandle(),
         app.animationManager.getNativeHandle(),
+        backend: app.backend,
       );
 }

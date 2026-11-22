@@ -20,7 +20,10 @@ if [ ! -f "$zip" ]; then
 fi
 base="$(basename "$zip" .zip)"
 case "$base" in
+  # Canonical artifacts plus the WebGPU (-webgpu suffixed) variants built
+  # by build-filament.yml's webgpu input.
   filament-*-release|filament-*-debug) ;;
+  filament-*-release-webgpu|filament-*-debug-webgpu) ;;
   *) echo "ERROR: not a Filament artifact name: $base" >&2; exit 1 ;;
 esac
 

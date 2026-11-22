@@ -14,6 +14,14 @@ void Thermion_destroyCanvas(const char *canvasSelector);
 EMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext(const char *canvasSelector);
 EMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_getGLContext();
 
+// Returns a heap-allocated filament::backend::WebGPUPlatform subclass cast to void*.
+// Ownership transfers to Engine::create, which destroys it when the engine shuts down.
+// Only defined when the engine was built with THERMION_SUPPORTS_WEBGPU
+// (-DTHERMION_ENABLE_WEBGPU=ON for the web build).
+#if defined(THERMION_SUPPORTS_WEBGPU)
+void *Thermion_createWebGPUPlatform();
+#endif
+
 
 #ifdef __cplusplus
 }

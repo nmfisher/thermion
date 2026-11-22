@@ -86,6 +86,39 @@ void main(List<String> args) async {
     final rawMaterialsDefine = input.userDefines['materials'];
     final selectedMaterials = selectBuiltInMaterials(rawMaterialsDefine, onWarning: logger.warning);
 
+    // Detect the rendering backend early — it affects which R2 artifact we
+    // download, which static libs we link, which web engine variant we
+    // fetch, and which material variant we compile. Resolved before the web
+    // branch below so web builds honor it too.
+    //
+    // The "backend" user define selects the material/shader variant:
+    //   "native"  (default) — per-platform GLSL/SPIR-V/MSL set: Metal on
+    //                         iOS/macOS, Vulkan+OpenGL on Android and desktop
+    //   "webgpu"            — WebGPU only (WGSL). Enables native Dawn linking.
+    //   "webgl2"            — WebGL2 only (GLSL). Web-only, smallest variant.
+    //   "hybrid"            — WebGL2 + WebGPU combined (GLSL + WGSL). Web-only,
+    //                         enables runtime backend selection.
+    //
+    // It accepts either a string (today's form — a global fallback applied to
+    // every target OS) or a map keyed by target OS incl. web:
+    //   backend: {web: webgpu, macos: native}
+    // A per-OS entry wins; uncovered targets fall back to "native".
+    //
+    // Legacy spelling kept for older pubspecs: `webgpu: true` (bool or
+    // string) maps to backend: "webgpu" when no explicit backend applies.
+    final targetOSName = input.config.buildCodeAssets
+        ? input.config.code.targetOS.toString().split('.').last.toLowerCase()
+        : 'web';
+    final backendResolution = resolveBackendUserDefine(
+      raw: input.userDefines["backend"],
+      targetOS: targetOSName,
+      legacyWebgpu: input.userDefines["webgpu"],
+    );
+    for (final warning in backendResolution.warnings) {
+      logger.warning(warning);
+    }
+    final backend = backendResolution.backend;
+
     if (!input.config.buildCodeAssets) {
       logger.info("buildCodeAssets is false, assumed to be building for web");
       final webDir = _findWebDirectory(input, logger);
@@ -98,13 +131,16 @@ void main(List<String> args) async {
         }
         return;
       }
-      final engineDir = await _resolveWebEngine(input, logger);
+      final engineDir = await _resolveWebEngine(input, logger, backend);
       output.dependencies.add(input.packageRoot.resolve('native/web/web.version'));
       await publishWebMaterials(
         root: Directory.fromUri(input.packageRoot),
         engineDir: engineDir,
         webDir: webDir,
         materials: selectedMaterials,
+        // The resolved backend also picks the material variant embedded
+        // into the staged engine (WGSL/GLSL/both).
+        backend: backend,
         download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
         onLog: logger.info,
         addDependency: output.dependencies.add,
@@ -166,32 +202,11 @@ outputDirectory : ${outputDirectory.path}
 
     logger.info("Building Thermion for ${targetOS} in mode ${buildMode.name}");
 
-    // Detect backend early — it affects which R2 artifact we download,
-    // which static libs we link, and which material variant we compile.
-    //
-    // The "backend" user define selects the material/shader variant:
-    //   "native"  (default) — per-platform GLSL/SPIR-V/MSL set: Metal on
-    //                         iOS/macOS, Vulkan+OpenGL on Android and desktop
-    //   "webgpu"            — WebGPU only (WGSL). Enables native Dawn linking.
-    //   "webgl2"            — WebGL2 only (GLSL). Web-only, smallest variant.
-    //   "hybrid"            — WebGL2 + WebGPU combined (GLSL + WGSL). Web-only,
-    //                         enables runtime backend selection.
-    //
-    // Legacy: "webgpu: true" is equivalent to backend: "webgpu".
-    final backendRaw = input.userDefines["backend"];
-    final legacyWebgpu = input.userDefines["webgpu"];
-    final String backend;
-    if (backendRaw == "webgpu" || backendRaw == "WebGPU") {
-      backend = "webgpu";
-    } else if (backendRaw == "webgl2" || backendRaw == "WebGL2") {
-      backend = "webgl2";
-    } else if (backendRaw == "hybrid" || backendRaw == "combined") {
-      backend = "hybrid";
-    } else if (legacyWebgpu == true || legacyWebgpu == "true" || legacyWebgpu == 1 || legacyWebgpu == "1") {
-      backend = "webgpu"; // legacy compat
-    } else {
-      backend = "native";
-    }
+    // Native WebGPU (Dawn) opt-in: a resolved backend of "webgpu" (from the
+    // per-OS map, the global string, or the legacy `webgpu: true` spelling).
+    // Resolved above, before the web branch, so getLibDir below can download
+    // the -webgpu suffixed zip from R2 instead of the canonical artifact.
+    final webgpuEnabled = backend == "webgpu";
 
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
 
@@ -231,6 +246,7 @@ outputDirectory : ${outputDirectory.path}
       logger,
       buildMode,
       isIOSSimulator: isIOSSimulator,
+      webgpuEnabled: webgpuEnabled,
     );
     var libDir = libResult.libDir.path;
     // Version-matched Filament headers extracted from the same R2 artifact as
@@ -284,7 +300,7 @@ outputDirectory : ${outputDirectory.path}
         : null;
     final materialResolution = resolveMaterialBackend(
       backendsConfig: backendsConfig,
-      targetOS: targetOS.toString().split('.').last.toLowerCase(),
+      targetOS: targetOSName,
       backendOverride: backend == "native" ? null : backend,
     );
     for (final warning in materialResolution.warnings) {
@@ -396,6 +412,25 @@ outputDirectory : ${outputDirectory.path}
       defines["ENABLE_TRACING"] = "1";
     }
 
+    // Opt-in native WebGPU support. Requires a Filament build with
+    // FILAMENT_SUPPORTS_WEBGPU=ON whose Dawn static libs are co-located
+    // with the regular filament libs in libDir. Intended for local
+    // testing only — shipping native builds should continue to use
+    // Metal/Vulkan/OpenGL. (webgpuEnabled is detected above, before
+    // getLibDir, so the -webgpu artifact is downloaded.)
+    if (webgpuEnabled) {
+      logger.info("Enabling native WebGPU (Dawn)");
+      defines["THERMION_SUPPORTS_WEBGPU"] = "1";
+      // libwebgpu_dawn.a is a "monolithic" archive built by Dawn's
+      // `webgpu_dawn` target — it already includes dawn_native,
+      // dawn_proc, dawn_common, dawn_platform, dawn_wire AND the full
+      // Tint compiler stack. Linking the granular libs alongside it
+      // produces multiple-definition errors. Use the monolith alone;
+      // add abseil because it's required by webgpu_dawn but exported
+      // as a separate archive.
+      libs.addAll(<String>["webgpu_dawn", "abseil"]);
+    }
+
     // Check for plugin configuration. Plugin sources are compiled directly
     // into libthermion_dart and can call RegisterPlugin during initialization.
     // Prebuilt libraries currently use ordinary linker semantics; static
@@ -495,7 +530,11 @@ outputDirectory : ${outputDirectory.path}
       flags.add('-fno-exceptions');
       flags.add('-stdlib=libc++');
       if (!flags.any((f) => f.contains("-std=c++"))) {
-        flags.add('-std=c++17');
+        // Dawn's headers (dawn/webgpu_cpp.h and friends) use C++20 library
+        // features (std::span), so the native WebGPU opt-in compiles the
+        // glue sources as C++20. Default builds stay on C++17; Windows
+        // already passes /std:c++20 unconditionally below.
+        flags.add(webgpuEnabled ? '-std=c++20' : '-std=c++17');
       }
     } else {
       defines["WIN32"] = "1";
@@ -543,6 +582,18 @@ outputDirectory : ${outputDirectory.path}
       ]);
     } else if (targetOS == OS.linux) {
       libs.addAll(["bluevk", "bluegl", "drm", "EGL", "GL", "gbm"]);
+      // The -webgpu archives compile Filament's WebGPU backend with X11
+      // surface support (only the host-tools build disables DAWN_USE_X11 —
+      // scripts/build_linux.sh). libbackend.a's WebGPUPlatformLinux dlopens
+      // libX11 at runtime but calls XGetWindowAttributes directly, so the
+      // link line needs -lX11; without it the -Wl,-z,defs link below fails
+      // with "undefined reference to XGetWindowAttributes" (the machine
+      // needs libx11-dev for the libX11.so symlink). Dawn resolves its own
+      // X11/XCB entry points dynamically (libX11.so.6 / libX11-xcb.so.1),
+      // so no xcb library belongs on the link line.
+      if (webgpuEnabled) {
+        libs.add("X11");
+      }
       flags.add("-I/usr/include/libdrm");
     }
 
@@ -552,6 +603,21 @@ outputDirectory : ${outputDirectory.path}
 
     if (targetOS == OS.linux) {
       flags.add("-Wl,--export-dynamic");
+      // Dawn's webgpu_dawn monolithic archive is built without RTTI, so
+      // Thermion's WebGPUPlatform subclasses must match it to keep vtables
+      // consistent. The canonical Filament artifacts are built with
+      // FILAMENT_ENABLE_RTTI=ON (scripts/build_linux.sh), so default
+      // (non-WebGPU) builds keep RTTI enabled and only gate these flags on
+      // the WebGPU opt-in.
+      if (webgpuEnabled) {
+        flags.add("-fno-rtti");
+        // Dawn's webgpu_dawn monolithic archive bundles its own copy of
+        // SPIRV-Tools, which collides at link time with the SPIRV-Tools
+        // objects that Filament's filamat bundles. Let the linker pick
+        // one — both copies are compatible for symbol resolution and we
+        // don't care which gets exported.
+        flags.add("-Wl,--allow-multiple-definition");
+      }
     }
 
     frameworks = frameworks.expand((f) => ["-framework", f]).toList();
@@ -780,6 +846,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
   Logger logger,
   BuildMode buildMode, {
   bool isIOSSimulator = false,
+  bool webgpuEnabled = false,
 }) async {
   var platform = targetOS.toString().toLowerCase();
 
@@ -842,19 +909,30 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
   // flipping the pin lands in a fresh dir, so the old `success` token can
   // never mask new contents (and reverting the pin reuses the old cache).
   // Unpinned artifacts keep the exact legacy path — existing caches stay valid.
-  final artifact = resolveFilamentArtifact(version, platform, mode, pin);
-  if (artifact.cacheSuffix.isNotEmpty) {
+  // WebGPU (Dawn) builds download a different zip (-webgpu suffix); keep
+  // their cache separate from the canonical artifact's.
+  final artifact = resolveFilamentArtifact(version, platform, mode, pin, webgpu: webgpuEnabled);
+  var cacheSuffix = artifact.cacheSuffix;
+  if (webgpuEnabled) {
+    cacheSuffix = '$cacheSuffix-webgpu';
+  }
+  if (cacheSuffix.isNotEmpty) {
     if (platform == 'android') {
       // Every ABI shares this zip's extraction root and success token.
       // Keep the ABI directory names exactly as packaged in the archive.
-      libDir = Directory(path.join('${libDir.parent.path}${artifact.cacheSuffix}', path.basename(libDir.path)));
+      libDir = Directory(path.join('${libDir.parent.path}$cacheSuffix', path.basename(libDir.path)));
     } else {
-      libDir = Directory('${libDir.path}${artifact.cacheSuffix}');
+      libDir = Directory('${libDir.path}$cacheSuffix');
     }
   }
 
   logger.info("Searching for Filament libraries under ${libDir.path}");
 
+  // WebGPU (Dawn) artifacts resolve against the same filament.libs.json pin
+  // as the canonical ones (<platform>-webgpu/<variant> entries, published
+  // under content-addressed keys by build-filament.yml + publish-filament-
+  // to-r2.yml); an absent pin entry falls back to the legacy mutable
+  // -webgpu suffixed key, exactly like unpinned canonical artifacts.
   final url = artifact.url;
 
   final filename = artifact.zipName;
@@ -895,7 +973,8 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
     // Content-addressed artifacts are verified against the pin's full
     // SHA-256 before extraction: a corrupt/truncated download (or a proxy
     // serving an error page with HTTP 200) must never be cached under the
-    // success token. Legacy (unpinned) artifacts have no digest to check.
+    // success token. Legacy (unpinned) artifacts — canonical or -webgpu
+    // suffixed — have no digest to check.
     final expectedSha = artifact.sha256;
     if (expectedSha != null) {
       final actualSha = sha256.convert(downloadedBytes).toString();
@@ -1005,7 +1084,7 @@ Directory? _findWebDirectory(BuildInput input, Logger logger) {
   return directory.existsSync() ? directory : null;
 }
 
-Future<Directory> _resolveWebEngine(BuildInput input, Logger logger) async {
+Future<Directory> _resolveWebEngine(BuildInput input, Logger logger, String backend) async {
   final packageRoot = input.packageRoot.toFilePath(windows: Platform.isWindows);
 
   // The "web_variant" user define selects which prebuilt engine to fetch:
@@ -1019,9 +1098,14 @@ Future<Directory> _resolveWebEngine(BuildInput input, Logger logger) async {
   // Independently, `runtime_materials: true` selects a build of that engine
   // with filamat linked (compileMaterialSource works on web); see
   // withRuntimeMaterials in the same file.
-  final variant = withRuntimeMaterials(
-    resolveWebVariant(input.userDefines["web_variant"]),
-    input.userDefines["runtime_materials"],
+  //
+  // The resolved `backend` user define (per-OS map or global string) selects
+  // the WebGPU-capable engine for webgpu/hybrid targets — built with
+  // THERMION_ENABLE_WEBGPU=ON (Emscripten's -sUSE_WEBGPU glue) and fetched
+  // under a -webgpu suffix. webgl2/native keep the default WebGL2 engine.
+  final variant = withWebBackend(
+    withRuntimeMaterials(resolveWebVariant(input.userDefines["web_variant"]), input.userDefines["runtime_materials"]),
+    backend,
   );
   for (final warning in variant.warnings) {
     logger.warning(warning);

@@ -2,7 +2,24 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten/html5.h>
 #include "WebGLContext.hpp"
+#include "ThermionWebApi.h"
 #include <backend/platforms/PlatformWebGL.h>
+#endif
+
+// Native WebGPU support is opt-in: consuming app must set
+// `hooks.user_defines.thermion_dart.backend: webgpu` in pubspec, which
+// causes the build hook to define THERMION_SUPPORTS_WEBGPU and link the
+// Dawn libs.
+#if defined(THERMION_SUPPORTS_WEBGPU) && !defined(__EMSCRIPTEN__)
+  #if defined(__APPLE__)
+    #include <backend/platforms/WebGPUPlatformApple.h>
+  #elif defined(__linux__)
+    #include <backend/platforms/WebGPUPlatformLinux.h>
+  #elif defined(_WIN32)
+    #include <backend/platforms/WebGPUPlatformWindows.h>
+  #elif defined(__ANDROID__)
+    #include <backend/platforms/WebGPUPlatformAndroid.h>
+  #endif
 #endif
 
 #include "c_api/TEngine.h"
@@ -10,6 +27,13 @@
 
 #include <filament/Camera.h>
 #include <backend/DriverEnums.h>
+
+// Global WebGPU platform pointer, set during Engine_create when the WebGPU
+// backend is selected.  Other translation units (e.g. TRenderer.cpp) can
+// use this to access the Dawn wgpu::Instance for event processing.
+#if defined(THERMION_SUPPORTS_WEBGPU) && !defined(__EMSCRIPTEN__)
+filament::backend::WebGPUPlatform* g_webgpuPlatform = nullptr;
+#endif
 #include <filament/DebugRegistry.h>
 #include <filament/Engine.h>
 #include <filament/Fence.h>
@@ -89,10 +113,34 @@ namespace thermion
         {
             THERMION_ENGINE_API_GUARD;
             #ifdef __EMSCRIPTEN__
-            auto handle = createWebGLContextForCurrentJob();
-            if (!handle) return nullptr;
-            tSharedContext = (void*)handle;
-            tPlatform = (backend::Platform *)new filament::backend::PlatformWebGL();
+            if (backend == BACKEND_WEBGPU) {
+                #if defined(THERMION_SUPPORTS_WEBGPU)
+                tPlatform = Thermion_createWebGPUPlatform();
+                tSharedContext = nullptr;
+                #else
+                Log("ERROR - Backend::WEBGPU requested but this engine was built without WebGPU support (build with -DTHERMION_ENABLE_WEBGPU=ON)");
+                return nullptr;
+                #endif
+            } else {
+                auto handle = createWebGLContextForCurrentJob();
+                if (!handle) return nullptr;
+                tSharedContext = (void*)handle;
+                tPlatform = (backend::Platform *)new filament::backend::PlatformWebGL();
+            }
+            #elif defined(THERMION_SUPPORTS_WEBGPU)
+            if (backend == BACKEND_WEBGPU && !tPlatform) {
+                #if defined(__APPLE__)
+                tPlatform = new filament::backend::WebGPUPlatformApple();
+                #elif defined(__linux__)
+                tPlatform = new filament::backend::WebGPUPlatformLinux();
+                #elif defined(_WIN32)
+                tPlatform = new filament::backend::WebGPUPlatformWindows();
+                #elif defined(__ANDROID__)
+                tPlatform = new filament::backend::WebGPUPlatformAndroid();
+                #endif
+                g_webgpuPlatform =
+                    static_cast<filament::backend::WebGPUPlatform*>(tPlatform);
+            }
             #endif
             filament::Engine::Config config;
             config.stereoscopicEyeCount = stereoscopicEyeCount;
@@ -393,6 +441,19 @@ namespace thermion
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             engine->flushAndWait();
+#if defined(THERMION_SUPPORTS_WEBGPU) && !defined(__EMSCRIPTEN__)
+            // The WebGPU backend queues GPU→CPU staging copies (e.g. the
+            // readback in Renderer_readPixels) that only complete once Dawn
+            // has processed its events. flushAndWait() drains Filament's
+            // command stream but does not run the Dawn event loop, so
+            // readPixels callbacks would stay pending after we return.
+            // Pump the instance captured in Engine_create here — this runs
+            // after endFrame during the Dart capture() flow (see the
+            // matching comment in TRenderer.cpp).
+            if (g_webgpuPlatform) {
+                wgpuInstanceProcessEvents(g_webgpuPlatform->getInstance().Get());
+            }
+#endif
         }
         
         EMSCRIPTEN_KEEPALIVE void Engine_execute(TEngine *tEngine) {

@@ -23,7 +23,10 @@
 ///
 /// Keys are `<platform>/<variant>` using the hook's platform slugs:
 /// macos, ios, ios-simulator, android, linux, linux-arm64, windows, web;
-/// variants release/debug.
+/// variants release/debug. WebGPU (Dawn) artifacts use the same shape
+/// with a `-webgpu` platform suffix (e.g. `macos-webgpu/release`) and
+/// the zips carry the suffix after the variant instead (e.g.
+/// filament-1.77.2-macos-release-webgpu.zip).
 ///
 /// Resolution: a pinned entry selects the hash-suffixed key and the hook
 /// verifies the download against the full digest. An absent entry falls
@@ -60,6 +63,9 @@ const Set<String> filamentPlatforms = {
   'windows',
   'web',
 };
+
+/// Suffix marking the WebGPU (Dawn) variant of a platform's artifact.
+const String filamentWebgpuSuffix = '-webgpu';
 
 /// A parsed pin: `<platform>/<variant>` → full lowercase SHA-256 hex.
 typedef FilamentPin = Map<String, String>;
@@ -139,7 +145,13 @@ FilamentPin parseFilamentPin(String? contents, {List<String>? warnings}) {
 bool _validPinKey(String key) {
   final parts = key.split('/');
   if (parts.length != 2) return false;
-  return filamentPlatforms.contains(parts[0]) && (parts[1] == 'release' || parts[1] == 'debug');
+  var platform = parts[0];
+  // Optional WebGPU variant suffix (e.g. "macos-webgpu").
+  final webgpu = platform.endsWith(filamentWebgpuSuffix);
+  if (webgpu) {
+    platform = platform.substring(0, platform.length - filamentWebgpuSuffix.length);
+  }
+  return filamentPlatforms.contains(platform) && (parts[1] == 'release' || parts[1] == 'debug');
 }
 
 bool _isSha256Hex(String value) {
@@ -154,26 +166,36 @@ bool _isSha256Hex(String value) {
 }
 
 /// Legacy (mutable) zip name — kept for already-published thermion
-/// versions and as the fallback when the pin has no entry.
-String legacyFilamentZipName(String version, String platform, String variant) =>
-    'filament-$version-$platform-$variant.zip';
+/// versions and as the fallback when the pin has no entry. WebGPU
+/// artifacts keep the `-webgpu` suffix after the variant.
+String legacyFilamentZipName(String version, String platform, String variant, {bool webgpu = false}) =>
+    'filament-$version-$platform-$variant${webgpu ? filamentWebgpuSuffix : ''}.zip';
 
 /// Content-addressed zip name for a full SHA-256 digest.
-String hashedFilamentZipName(String version, String platform, String variant, String sha256) =>
-    'filament-$version-$platform-$variant-${sha256.substring(0, filamentHashPrefixLength)}.zip';
+String hashedFilamentZipName(String version, String platform, String variant, String sha256, {bool webgpu = false}) =>
+    'filament-$version-$platform-$variant${webgpu ? filamentWebgpuSuffix : ''}-${sha256.substring(0, filamentHashPrefixLength)}.zip';
 
 /// Resolves the artifact for [version]/[platform]/[variant] against [pin].
 ///
 /// Pinned → hash-suffixed URL + full digest + `-<hash16>` cache suffix.
 /// Unpinned → legacy URL, no digest, no cache suffix (byte-compatible with
-/// the pre-pin hook, including existing caches).
-FilamentArtifactResolution resolveFilamentArtifact(String version, String platform, String variant, FilamentPin pin) {
-  final sha = pin['$platform/$variant'];
+/// the pre-pin hook, including existing caches). WebGPU requests resolve
+/// against the `<platform>-webgpu/<variant>` pin entry and fall back to
+/// the legacy `-webgpu` suffixed mutable key.
+FilamentArtifactResolution resolveFilamentArtifact(
+  String version,
+  String platform,
+  String variant,
+  FilamentPin pin, {
+  bool webgpu = false,
+}) {
+  final suffix = webgpu ? filamentWebgpuSuffix : '';
+  final sha = pin['$platform$suffix/$variant'];
   if (sha == null) {
-    final name = legacyFilamentZipName(version, platform, variant);
+    final name = legacyFilamentZipName(version, platform, variant, webgpu: webgpu);
     return (url: '$filamentR2BaseUrl/$name', zipName: name, sha256: null, cacheSuffix: '', warnings: const []);
   }
-  final name = hashedFilamentZipName(version, platform, variant, sha);
+  final name = hashedFilamentZipName(version, platform, variant, sha, webgpu: webgpu);
   return (
     url: '$filamentR2BaseUrl/$name',
     zipName: name,

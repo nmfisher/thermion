@@ -624,6 +624,25 @@ namespace thermion
     mEngine->flush();
     mEngine->execute();
     mEngine->pumpMessageQueues();
+#else
+#if defined(THERMION_SUPPORTS_WEBGPU)
+    // The WebGPU backend completes readPixels through Dawn buffer-map
+    // callbacks, which only fire when Dawn processes its events. On native
+    // (non-Emscripten) builds nothing pumps Dawn between frames — the
+    // engine thread blocks in waitForCommands() after executing the frame —
+    // so the readback below would stay pending forever and the capture
+    // would never complete (observed as a hang on llvmpipe/lavapipe).
+    //
+    // Engine::flushAndWait() is the sanctioned pump: it dispatches
+    // WebGPUDriver::finish(), which loops wgpuInstanceProcessEvents() until
+    // every pending readback map has completed, then drains the scheduled
+    // readback callbacks via Driver::purge(). By the time it returns, each
+    // CaptureReadbackHandler::onBufferReady has run.
+    if (state->remaining.load(std::memory_order_acquire) > 1)
+    {
+      mEngine->flushAndWait();
+    }
+#endif
 #endif
 
     if (state->remaining.fetch_sub(1, std::memory_order_acq_rel) == 1)

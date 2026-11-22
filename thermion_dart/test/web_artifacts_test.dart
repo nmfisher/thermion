@@ -216,4 +216,45 @@ void main() {
       );
     });
   });
+
+  group('withWebBackend', () {
+    test('webgpu and hybrid append the -webgpu suffix', () {
+      for (final backend in ['webgpu', 'hybrid']) {
+        final r = withWebBackend(resolveWebVariant(null), backend);
+        expect(r.zipSuffix, '-webgpu', reason: 'backend=$backend');
+        expect(r.cacheSuffix, '-webgpu');
+        expect(r.warnings, isEmpty);
+      }
+    });
+
+    test('native and webgl2 keep the default engine', () {
+      for (final backend in ['native', 'webgl2']) {
+        final r = withWebBackend(resolveWebVariant(null), backend);
+        expect(r.zipSuffix, '', reason: 'backend=$backend');
+        expect(r.cacheSuffix, '');
+        expect(r.warnings, isEmpty);
+      }
+    });
+
+    test('composes after web_variant and runtime-materials', () {
+      final r = withWebBackend(withRuntimeMaterials(resolveWebVariant('main_thread'), true), 'webgpu');
+      expect(r.zipSuffix, '-main-thread-runtime-materials-webgpu');
+      expect(webArtifactZipName('v', r.zipSuffix), 'thermion_dart-v-web-main-thread-runtime-materials-webgpu.zip');
+      expect(r.cacheSuffix, '-main-thread-runtime-materials-webgpu');
+      expect(webLocalBuildDir(r.zipSuffix), 'build-main-thread-runtime-materials-webgpu');
+    });
+
+    test('webLocalBuildDir maps the plain webgpu variant to its build dir', () {
+      // The directory web_local copies from for a WebGPU-enabled engine,
+      // built with -DTHERMION_ENABLE_WEBGPU=ON.
+      expect(webLocalBuildDir('-webgpu'), 'build-webgpu');
+    });
+
+    test('preserves warnings from the underlying variant', () {
+      final base = resolveWebVariant('mono_thread');
+      final r = withWebBackend(base, 'webgpu');
+      expect(r.warnings, hasLength(1));
+      expect(r.zipSuffix, '-webgpu');
+    });
+  });
 }
