@@ -277,4 +277,89 @@ void main() {
       );
     });
   });
+
+  group('backend user define (flat string + per-OS map)', () {
+    test('null → native (no warning)', () {
+      final r = resolveBackendUserDefine(raw: null, targetOS: 'linux');
+      expect(r.backend, 'native');
+      expect(r.warnings, isEmpty);
+    });
+
+    test('string form keeps working for every OS', () {
+      for (final os in ['ios', 'macos', 'android', 'linux', 'windows', 'web']) {
+        final r = resolveBackendUserDefine(raw: 'webgpu', targetOS: os);
+        expect(r.backend, 'webgpu', reason: 'os=$os');
+        expect(r.warnings, isEmpty);
+      }
+    });
+
+    test('string values are case-insensitive and trimmed; combined → hybrid', () {
+      expect(resolveBackendUserDefine(raw: 'WebGPU', targetOS: 'macos').backend, 'webgpu');
+      expect(resolveBackendUserDefine(raw: ' webgl2 ', targetOS: 'web').backend, 'webgl2');
+      expect(resolveBackendUserDefine(raw: 'combined', targetOS: 'web').backend, 'hybrid');
+      expect(resolveBackendUserDefine(raw: 'native', targetOS: 'linux').backend, 'native');
+    });
+
+    test('unknown string warns and falls back to native', () {
+      final r = resolveBackendUserDefine(raw: 'voodoographics', targetOS: 'linux');
+      expect(r.backend, 'native');
+      expect(r.warnings.single, contains('voodoographics'));
+    });
+
+    test('legacy webgpu: true maps to webgpu', () {
+      for (final legacy in [true, 'true', 1, '1']) {
+        final r = resolveBackendUserDefine(raw: null, targetOS: 'linux', legacyWebgpu: legacy);
+        expect(r.backend, 'webgpu', reason: 'legacy=$legacy');
+      }
+    });
+
+    test('explicit backend beats legacy webgpu', () {
+      final r = resolveBackendUserDefine(raw: 'webgl2', targetOS: 'linux', legacyWebgpu: true);
+      expect(r.backend, 'webgl2');
+    });
+
+    test('per-OS entry wins; uncovered targets fall back to native', () {
+      final raw = {'web': 'webgpu', 'macos': 'native'};
+      expect(resolveBackendUserDefine(raw: raw, targetOS: 'web').backend, 'webgpu');
+      expect(resolveBackendUserDefine(raw: raw, targetOS: 'macos').backend, 'native');
+      expect(resolveBackendUserDefine(raw: raw, targetOS: 'linux').backend, 'native');
+      expect(resolveBackendUserDefine(raw: raw, targetOS: 'android').backend, 'native');
+    });
+
+    test('map entry beats legacy webgpu; legacy still covers uncovered OSes', () {
+      final raw = {'web': 'webgl2'};
+      expect(resolveBackendUserDefine(raw: raw, targetOS: 'web', legacyWebgpu: true).backend, 'webgl2');
+      expect(resolveBackendUserDefine(raw: raw, targetOS: 'linux', legacyWebgpu: true).backend, 'webgpu');
+    });
+
+    test('keys and values are case-insensitive', () {
+      final r = resolveBackendUserDefine(raw: {'Web': 'WebGPU'}, targetOS: 'web');
+      expect(r.backend, 'webgpu');
+      expect(r.warnings, isEmpty);
+    });
+
+    test('apple alias covers ios and macos; explicit key wins', () {
+      final raw = {'apple': 'webgpu', 'macos': 'webgl2'};
+      expect(resolveBackendUserDefine(raw: raw, targetOS: 'ios').backend, 'webgpu');
+      expect(resolveBackendUserDefine(raw: raw, targetOS: 'macos').backend, 'webgl2');
+    });
+
+    test('unknown OS key throws (even when it does not affect the target)', () {
+      expect(
+        () => resolveBackendUserDefine(raw: {'androi': 'webgpu'}, targetOS: 'linux'),
+        throwsA(isA<MaterialBackendError>().having((e) => e.message, 'message', contains('androi'))),
+      );
+    });
+
+    test('unknown map value throws naming the key', () {
+      expect(
+        () => resolveBackendUserDefine(raw: {'web': 'voodoographics'}, targetOS: 'web'),
+        throwsA(isA<MaterialBackendError>().having((e) => e.message, 'message', contains('backend.web'))),
+      );
+    });
+
+    test('non-string map value throws', () {
+      expect(() => resolveBackendUserDefine(raw: {'web': true}, targetOS: 'web'), throwsA(isA<MaterialBackendError>()));
+    });
+  });
 }

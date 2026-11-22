@@ -78,6 +78,30 @@ GLSL and WGSL material sets so the backend can be chosen at runtime. Web
 `-DTHERMION_ENABLE_WEBGPU=ON`; in `webgl2`-only builds the WebGPU platform
 is compiled out and engine creation with `Backend.WEBGPU` fails.
 
+**Per-OS backends.** `backend` also accepts a map keyed by target OS —
+including `web` — so one pubspec can request WebGPU on the web while native
+platforms keep their default Metal/Vulkan/OpenGL set:
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      backend:
+        web: webgpu
+        macos: native
+```
+
+A per-OS entry wins; targets without an entry keep the default. The flat
+string form still works and acts as a global fallback for every target OS
+(including web), and the deprecated `webgpu: true` spelling keeps mapping
+to `backend: webgpu`. Everything follows the resolved backend: natively the
+`-webgpu` Filament artifact, Dawn linking, and the default material
+variant; on the web the WebGPU-enabled engine (`-sUSE_WEBGPU`, fetched
+under a `-webgpu` artifact suffix; `web_local` copies from `build-webgpu`)
+and the material variant embedded into it (WGSL for `webgpu`, GLSL for
+`webgl2`, both for `hybrid`/`native`). `materials.backends` still takes
+precedence for material variants on the OSes it covers.
+
 **Selecting the backend at runtime.** Pass `Backend.WEBGPU` where the engine
 is created — `FFIFilamentConfig(backend: Backend.WEBGPU)` in plain Dart
 apps, or `WebOptions(backend: Backend.WEBGPU)` in Flutter web apps. The

@@ -85,17 +85,29 @@ Future<Map<BuiltInMaterial, Directory>> compileBuiltInMaterials({
   return outputs;
 }
 
+/// Compiles and stages the built-in materials for a web build.
+///
+/// [backend] is the resolved `backend` user define for the web target: it
+/// picks the material variant embedded into the staged engine (WGSL only for
+/// `webgpu`, GLSL only for `webgl2`, both for `hybrid`/`native` so runtime
+/// backend selection keeps working). The default preserves the historical
+/// both-variants behavior.
 Future<void> publishWebMaterials({
   required Directory root,
   required Directory engineDir,
   required Directory webDir,
   required List<BuiltInMaterial> materials,
   required void Function(String) onLog,
+  String backend = 'native',
   UrlDownloader? download,
   void Function(Uri)? addDependency,
 }) async {
   final compiled = await compileBuiltInMaterials(
-    backends: const ['opengl', 'webgpu'],
+    backends: switch (backend) {
+      'webgpu' => const ['webgpu'],
+      'webgl2' => const ['opengl'],
+      _ => const ['opengl', 'webgpu'],
+    },
     resgen: false,
     root: root,
     materials: materials,

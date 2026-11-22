@@ -86,6 +86,39 @@ void main(List<String> args) async {
     final rawMaterialsDefine = input.userDefines['materials'];
     final selectedMaterials = selectBuiltInMaterials(rawMaterialsDefine, onWarning: logger.warning);
 
+    // Detect the rendering backend early — it affects which R2 artifact we
+    // download, which static libs we link, which web engine variant we
+    // fetch, and which material variant we compile. Resolved before the web
+    // branch below so web builds honor it too.
+    //
+    // The "backend" user define selects the material/shader variant:
+    //   "native"  (default) — per-platform GLSL/SPIR-V/MSL set: Metal on
+    //                         iOS/macOS, Vulkan+OpenGL on Android and desktop
+    //   "webgpu"            — WebGPU only (WGSL). Enables native Dawn linking.
+    //   "webgl2"            — WebGL2 only (GLSL). Web-only, smallest variant.
+    //   "hybrid"            — WebGL2 + WebGPU combined (GLSL + WGSL). Web-only,
+    //                         enables runtime backend selection.
+    //
+    // It accepts either a string (today's form — a global fallback applied to
+    // every target OS) or a map keyed by target OS incl. web:
+    //   backend: {web: webgpu, macos: native}
+    // A per-OS entry wins; uncovered targets fall back to "native".
+    //
+    // Legacy spelling kept for older pubspecs: `webgpu: true` (bool or
+    // string) maps to backend: "webgpu" when no explicit backend applies.
+    final targetOSName = input.config.buildCodeAssets
+        ? input.config.code.targetOS.toString().split('.').last.toLowerCase()
+        : 'web';
+    final backendResolution = resolveBackendUserDefine(
+      raw: input.userDefines["backend"],
+      targetOS: targetOSName,
+      legacyWebgpu: input.userDefines["webgpu"],
+    );
+    for (final warning in backendResolution.warnings) {
+      logger.warning(warning);
+    }
+    final backend = backendResolution.backend;
+
     if (!input.config.buildCodeAssets) {
       logger.info("buildCodeAssets is false, assumed to be building for web");
       final webDir = _findWebDirectory(input, logger);
@@ -98,13 +131,16 @@ void main(List<String> args) async {
         }
         return;
       }
-      final engineDir = await _resolveWebEngine(input, logger);
+      final engineDir = await _resolveWebEngine(input, logger, backend);
       output.dependencies.add(input.packageRoot.resolve('native/web/web.version'));
       await publishWebMaterials(
         root: Directory.fromUri(input.packageRoot),
         engineDir: engineDir,
         webDir: webDir,
         materials: selectedMaterials,
+        // The resolved backend also picks the material variant embedded
+        // into the staged engine (WGSL/GLSL/both).
+        backend: backend,
         download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
         onLog: logger.info,
         addDependency: output.dependencies.add,
@@ -166,38 +202,10 @@ outputDirectory : ${outputDirectory.path}
 
     logger.info("Building Thermion for ${targetOS} in mode ${buildMode.name}");
 
-    // Detect backend early — it affects which R2 artifact we download,
-    // which static libs we link, and which material variant we compile.
-    //
-    // The "backend" user define selects the material/shader variant:
-    //   "native"  (default) — per-platform GLSL/SPIR-V/MSL set: Metal on
-    //                         iOS/macOS, Vulkan+OpenGL on Android and desktop
-    //   "webgpu"            — WebGPU only (WGSL). Enables native Dawn linking.
-    //   "webgl2"            — WebGL2 only (GLSL). Web-only, smallest variant.
-    //   "hybrid"            — WebGL2 + WebGPU combined (GLSL + WGSL). Web-only,
-    //                         enables runtime backend selection.
-    final backendRaw = input.userDefines["backend"];
-    // Legacy spelling kept for older pubspecs: `webgpu: true` (bool or
-    // string) maps to backend: "webgpu". New configurations should set
-    // `backend: webgpu`.
-    final legacyWebgpu = input.userDefines["webgpu"];
-    final String backend;
-    if (backendRaw == "webgpu" || backendRaw == "WebGPU") {
-      backend = "webgpu";
-    } else if (backendRaw == "webgl2" || backendRaw == "WebGL2") {
-      backend = "webgl2";
-    } else if (backendRaw == "hybrid" || backendRaw == "combined") {
-      backend = "hybrid";
-    } else if (legacyWebgpu == true || legacyWebgpu == "true" || legacyWebgpu == 1 || legacyWebgpu == "1") {
-      backend = "webgpu"; // legacy compat
-    } else {
-      backend = "native";
-    }
-
-    // Native WebGPU (Dawn) opt-in: the `backend: "webgpu"` user define
-    // (or its legacy `webgpu: true` spelling). Detected before getLibDir
-    // so the build hook can download the -webgpu suffixed zip from R2
-    // instead of the canonical artifact.
+    // Native WebGPU (Dawn) opt-in: a resolved backend of "webgpu" (from the
+    // per-OS map, the global string, or the legacy `webgpu: true` spelling).
+    // Resolved above, before the web branch, so getLibDir below can download
+    // the -webgpu suffixed zip from R2 instead of the canonical artifact.
     final webgpuEnabled = backend == "webgpu";
 
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
@@ -292,7 +300,7 @@ outputDirectory : ${outputDirectory.path}
         : null;
     final materialResolution = resolveMaterialBackend(
       backendsConfig: backendsConfig,
-      targetOS: targetOS.toString().split('.').last.toLowerCase(),
+      targetOS: targetOSName,
       backendOverride: backend == "native" ? null : backend,
     );
     for (final warning in materialResolution.warnings) {
@@ -1060,7 +1068,7 @@ Directory? _findWebDirectory(BuildInput input, Logger logger) {
   return directory.existsSync() ? directory : null;
 }
 
-Future<Directory> _resolveWebEngine(BuildInput input, Logger logger) async {
+Future<Directory> _resolveWebEngine(BuildInput input, Logger logger, String backend) async {
   final packageRoot = input.packageRoot.toFilePath(windows: Platform.isWindows);
 
   // The "web_variant" user define selects which prebuilt engine to fetch:
@@ -1074,9 +1082,14 @@ Future<Directory> _resolveWebEngine(BuildInput input, Logger logger) async {
   // Independently, `runtime_materials: true` selects a build of that engine
   // with filamat linked (compileMaterialSource works on web); see
   // withRuntimeMaterials in the same file.
-  final variant = withRuntimeMaterials(
-    resolveWebVariant(input.userDefines["web_variant"]),
-    input.userDefines["runtime_materials"],
+  //
+  // The resolved `backend` user define (per-OS map or global string) selects
+  // the WebGPU-capable engine for webgpu/hybrid targets — built with
+  // THERMION_ENABLE_WEBGPU=ON (Emscripten's -sUSE_WEBGPU glue) and fetched
+  // under a -webgpu suffix. webgl2/native keep the default WebGL2 engine.
+  final variant = withWebBackend(
+    withRuntimeMaterials(resolveWebVariant(input.userDefines["web_variant"]), input.userDefines["runtime_materials"]),
+    backend,
   );
   for (final warning in variant.warnings) {
     logger.warning(warning);

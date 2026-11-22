@@ -5,9 +5,109 @@
 /// imported by hook/build.dart via a relative path.
 library;
 
-/// Thrown when a `materials.backends` user-define configuration is invalid.
+/// Thrown when a `materials.backends` or `backend` user-define configuration
+/// is invalid.
 class MaterialBackendError extends FormatException {
   MaterialBackendError(super.message);
+}
+
+/// A resolved `backend` user define for one target OS.
+typedef BackendUserDefineResolution = ({String backend, List<String> warnings});
+
+/// Target-OS keys accepted by the per-OS `backend` map (incl. `web`, and the
+/// `apple` alias covering ios + macos).
+const List<String> validBackendOsKeys = ['ios', 'macos', 'apple', 'android', 'linux', 'windows', 'web'];
+
+/// Resolves the `backend` user define for [targetOS] (a lowercase OS name,
+/// incl. `web`).
+///
+/// [raw] accepts either form:
+///  - a string (today's form): a global fallback applied to every target OS;
+///  - a map keyed by target OS, e.g. `{web: webgpu, macos: native}`. A
+///    per-OS entry wins; targets without an entry resolve to `native`.
+///
+/// [legacyWebgpu] is the deprecated `webgpu: true` spelling; it applies only
+/// when no explicit backend covers the target.
+///
+/// The resolved value drives the -webgpu Filament artifact (zip suffix), Dawn
+/// linking, the WebGPU-enabled web engine (-sUSE_WEBGPU), and the default
+/// material variant. Unknown flat-string values warn and fall back to
+/// `native` (matching the hook's historical leniency); invalid map keys or
+/// values throw [MaterialBackendError] so typos in the structured form
+/// surface.
+BackendUserDefineResolution resolveBackendUserDefine({
+  required Object? raw,
+  required String targetOS,
+  Object? legacyWebgpu,
+}) {
+  final warnings = <String>[];
+  if (raw is Map) {
+    // Normalize keys so lookups and validation agree on case; validate up
+    // front so typos surface even when they don't affect the current target.
+    final normalized = <String, dynamic>{
+      for (final entry in raw.entries) entry.key.toString().toLowerCase(): entry.value,
+    };
+    for (final key in normalized.keys) {
+      if (!validBackendOsKeys.contains(key)) {
+        throw MaterialBackendError("Unknown OS key '$key' in backend. Valid keys: ${validBackendOsKeys.join(', ')}.");
+      }
+    }
+    // The apple alias covers both ios and macos; an explicit ios/macos key
+    // wins over it.
+    final key = normalized.containsKey(targetOS)
+        ? targetOS
+        : (targetOS == 'ios' || targetOS == 'macos') && normalized.containsKey('apple')
+        ? 'apple'
+        : null;
+    if (key != null) {
+      final value = _backendValue(normalized[key], 'backend.$key', warnings, strict: true);
+      if (value != null) {
+        return (backend: value, warnings: warnings);
+      }
+    }
+  } else if (raw != null) {
+    final value = _backendValue(raw, 'backend', warnings);
+    if (value != null) {
+      return (backend: value, warnings: warnings);
+    }
+  }
+  if (legacyWebgpu == true || legacyWebgpu == 'true' || legacyWebgpu == 1 || legacyWebgpu == '1') {
+    return (backend: 'webgpu', warnings: warnings); // legacy compat
+  }
+  return (backend: 'native', warnings: warnings);
+}
+
+/// Normalizes one backend value (the flat string form, or a map entry) to
+/// native/webgpu/webgl2/hybrid. Null when unset; unknown strings warn and
+/// return null (falling back to the default) in the lenient flat form but
+/// throw in [strict] mode (map entries), while non-strings always throw.
+String? _backendValue(Object? raw, String where, List<String> warnings, {bool strict = false}) {
+  if (raw == null) return null;
+  if (raw is! String) {
+    throw MaterialBackendError(
+      "$where must be a backend name (native, webgpu, webgl2, hybrid), got ${raw.runtimeType}.",
+    );
+  }
+  switch (raw.trim().toLowerCase()) {
+    case 'native':
+      return 'native';
+    case 'webgpu':
+      return 'webgpu';
+    case 'webgl2':
+      return 'webgl2';
+    case 'hybrid':
+    case 'combined':
+      return 'hybrid';
+    default:
+      if (strict) {
+        throw MaterialBackendError("Unknown backend '$raw' in $where. Valid values: native, webgpu, webgl2, hybrid.");
+      }
+      warnings.add(
+        "Ignoring unrecognized $where value '$raw' "
+        "(expected native, webgpu, webgl2, or hybrid); using the default.",
+      );
+      return null;
+  }
 }
 
 /// The variant to compile in: a resource-file suffix (e.g. `_apple`) plus the
