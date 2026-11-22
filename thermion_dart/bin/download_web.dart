@@ -108,6 +108,8 @@ void main(List<String> args) async {
   String outputDir = 'web';
   String variant = 'default';
   String? materialsArg;
+  String? engineDirArg;
+  String backend = 'native';
 
   for (var i = 0; i < args.length; i++) {
     if (args[i] == '-o' || args[i] == '--output') {
@@ -118,6 +120,22 @@ void main(List<String> args) async {
       if (i + 1 < args.length) {
         variant = args[++i];
       }
+    } else if (args[i] == '--engine-dir') {
+      if (i + 1 >= args.length) {
+        stderr.writeln('--engine-dir requires a path.');
+        exit(64);
+      }
+      engineDirArg = args[++i];
+    } else if (args[i] == '--backend') {
+      if (i + 1 >= args.length) {
+        stderr.writeln('--backend requires a backend name.');
+        exit(64);
+      }
+      backend = args[++i];
+      if (!const ['native', 'webgpu', 'webgl2', 'hybrid'].contains(backend)) {
+        stderr.writeln("Unknown backend '$backend'. Valid: native, webgpu, webgl2, hybrid.");
+        exit(1);
+      }
     } else if (args[i] == '--materials') {
       if (i + 1 >= args.length) {
         stderr.writeln('--materials requires a material list.');
@@ -125,12 +143,20 @@ void main(List<String> args) async {
       }
       materialsArg = args[++i];
     } else if (args[i] == '-h' || args[i] == '--help') {
-      stdout.writeln('Usage: dart run thermion_dart:download_web [-o <dir>] [--variant <name>] [--materials <list>]');
+      stdout.writeln('Usage: dart run thermion_dart:download_web [-o <dir>] [--variant <name>] [--backend <name>] [--engine-dir <dir>] [--materials <list>]');
       stdout.writeln('  -o, --output   Output directory (default: web/)');
       stdout.writeln('  --variant      Engine variant: ${_variants.keys.join(', ')} (default: default)');
       stdout.writeln('                runtime-materials = filamat-enabled engine for');
       stdout.writeln('                runtime material compilation (~20 MB larger).');
       stdout.writeln('                main-thread-runtime-materials = both combined.');
+      stdout.writeln('  --backend      Material variant embedded into the staged engine:');
+      stdout.writeln('                webgpu = WGSL only, webgl2 = GLSL only,');
+      stdout.writeln('                native/hybrid = both (default: native).');
+      stdout.writeln('  --engine-dir   Stage a locally built engine (thermion_dart.js/wasm)');
+      stdout.writeln('                from this directory instead of downloading the');
+      stdout.writeln('                prebuilt zip from R2 — e.g. the WebGPU engine from');
+      stdout.writeln('                native/web/build-webgpu/build/out, built with');
+      stdout.writeln('                THERMION_ENABLE_WEBGPU=ON.');
       stdout.writeln('  --materials    Comma-separated helper keys, for example gizmo,image.');
       stdout.writeln('                 Available keys: ${BuiltInMaterial.values.map((m) => m.key).join(', ')}');
       return;
@@ -146,21 +172,42 @@ void main(List<String> args) async {
   final materials = materialsArg == null ? const <BuiltInMaterial>[] : _parseMaterials(materialsArg);
 
   final packageRoot = await _getPackageRoot();
-  final version = await _getWebVersion(packageRoot);
-  stdout.writeln('Web artifact version: $version (variant: $variant)');
-
   outputDir = path.normalize(outputDir);
 
-  // Cache under .dart_tool/thermion_dart/web/{version}{suffix}/ — variants
-  // never share a directory (the success token would mask the wrong files).
-  final cacheDir = Directory(path.join('.dart_tool', 'thermion_dart', 'web', '$version$zipSuffix'));
+  // A local engine directory skips the R2 download entirely (used for the
+  // WebGPU engine, whose zip is not published); the version is only needed
+  // to name the download cache.
+  final Directory engineDir;
+  if (engineDirArg != null) {
+    final local = Directory(path.normalize(engineDirArg));
+    final js = File(path.join(local.path, 'thermion_dart.js'));
+    final wasm = File(path.join(local.path, 'thermion_dart.wasm'));
+    if (!js.existsSync() || !wasm.existsSync()) {
+      stderr.writeln('--engine-dir: $local does not contain thermion_dart.js and thermion_dart.wasm.');
+      exit(1);
+    }
+    if (path.equals(local.absolute.path, Directory(outputDir).absolute.path)) {
+      stderr.writeln('--engine-dir must differ from the output directory.');
+      exit(1);
+    }
+    engineDir = local;
+    stdout.writeln('Staging local engine from ${local.path} (backend: $backend)');
+  } else {
+    final version = await _getWebVersion(packageRoot);
+    stdout.writeln('Web artifact version: $version (variant: $variant)');
 
-  await _downloadToCache(version, zipSuffix, cacheDir);
+    // Cache under .dart_tool/thermion_dart/web/{version}{suffix}/ — variants
+    // never share a directory (the success token would mask the wrong files).
+    final cacheDir = Directory(path.join('.dart_tool', 'thermion_dart', 'web', '$version$zipSuffix'));
+
+    engineDir = await _downloadToCache(version, zipSuffix, cacheDir);
+  }
   await publishWebMaterials(
     root: Directory(packageRoot),
-    engineDir: cacheDir,
+    engineDir: engineDir,
     webDir: Directory(outputDir),
     materials: materials,
+    backend: backend,
     onLog: stdout.writeln,
   );
 

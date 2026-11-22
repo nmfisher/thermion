@@ -16,6 +16,11 @@ const _kFilamentVersion = String.fromEnvironment(
   defaultValue: 'v1.77.2',
 );
 
+/// The rendering backend of this gallery build (`-DTHERMION_BACKEND=...`,
+/// see main.dart). The WebGPU copy at /gallery/webgpu/ marks itself
+/// experimental in the badge; WebGL builds are unaffected.
+const _kBackend = String.fromEnvironment('THERMION_BACKEND', defaultValue: 'opengl');
+
 /// Populate the bottom-right version badge in index.html.
 ///
 /// In embed mode (docs-site showcase iframes) the badge is hidden by CSS so it
@@ -23,6 +28,7 @@ const _kFilamentVersion = String.fromEnvironment(
 void installVersionBadge() {
   final el = document.getElementById('version-badge');
   if (el == null) return;
-  el.textContent = 'Thermion v$_kThermionVersion · Filament $_kFilamentVersion';
+  final backendLabel = _kBackend == 'webgpu' ? ' · WebGPU (experimental)' : '';
+  el.textContent = 'Thermion v$_kThermionVersion · Filament $_kFilamentVersion$backendLabel';
   el.setAttribute('title', 'Built from Thermion v$_kThermionVersion');
 }

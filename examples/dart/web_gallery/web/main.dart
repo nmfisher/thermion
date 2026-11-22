@@ -18,6 +18,18 @@ import 'web_input_handler.dart';
 /// resource loader fetches them over HTTP).
 const assetsDir = "assets";
 
+/// The rendering backend for this build, injected at compile time by
+/// `dart compile wasm -DTHERMION_BACKEND=<backend>` (see deploy.yml).
+/// The WebGL gallery at /gallery/ compiles without the define (OpenGL);
+/// the experimental WebGPU gallery at /gallery/webgpu/ compiles with
+/// `webgpu` against an engine built with THERMION_ENABLE_WEBGPU=ON.
+const _kBackend = String.fromEnvironment('THERMION_BACKEND', defaultValue: 'opengl');
+
+Backend get _configuredBackend => switch (_kBackend) {
+      'webgpu' => Backend.WEBGPU,
+      _ => Backend.OPENGL,
+    };
+
 Future<void> main() async {
   // Surface any failure into the DOM so headless verification can read it
   // (headless Chrome does not surface page console.log on stderr).
@@ -101,7 +113,7 @@ Future<void> _boot() async {
   canvas.height = h0;
 
   await FFIFilamentApp.create(
-    config: FFIFilamentConfig(backend: Backend.OPENGL),
+    config: FFIFilamentConfig(backend: _configuredBackend),
   );
   final app = FilamentApp.instance! as FFIFilamentApp;
 

@@ -4,6 +4,10 @@ name: Deploy site
 # gallery under /gallery/ in the docs output, and deploys both to a single
 # Cloudflare Pages project (thermion-docs → thermion.dev).
 #
+# A second, experimental copy of the gallery is compiled against the WebGPU
+# engine (built from source here — see the WebGPU section below) and staged
+# under /gallery/webgpu/.
+#
 # The whole site is already cross-origin-isolated via docs/public/_headers
 # (COOP same-origin + COEP credentialless on /*), so the gallery's
 # SharedArrayBuffer (multithreaded WASM) works without any path-scoped headers.
@@ -30,10 +34,12 @@ concurrency:
 jobs:
   deploy:
     name: Build & deploy site
-    # Any standard runner works: the web-artifact download step runs
-    # `dart run thermion_dart:download_web` with `skip_native_build` set (see
-    # examples/dart/web_gallery/pubspec.yaml + thermion_dart/hook/build.dart), so
-    # it does no host C++ compile and needs no C++ toolchain.
+    # The WebGL gallery path needs no C++ toolchain (the web-artifact download
+    # step runs `dart run thermion_dart:download_web` with `skip_native_build`
+    # set — see examples/dart/web_gallery/pubspec.yaml + thermion_dart/hook/build.dart).
+    # The WebGPU section below is the exception: it compiles Filament and the
+    # engine with Emscripten on the runner (~20 min) because no prebuilt
+    # WebGPU web artifact exists on R2 yet.
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -94,7 +100,7 @@ jobs:
         # FILAMENT_VERSION must match thermion_dart/lib/filament_version.dart
         # (generated from /filament.version); it's display-only here.
         run: |
-          FILAMENT_VERSION="$(cat filament.version | awk '{print $2}')"
+          FILAMENT_VERSION="$(awk '{print $2}' ../../../filament.version)"
           dart compile wasm web/main.dart -o web/main.wasm \
             -DTHERMION_VERSION="$THERMION_VERSION" \
             -DFILAMENT_VERSION="$FILAMENT_VERSION"
@@ -102,6 +108,86 @@ jobs:
         run: |
           mkdir -p docs/dist/gallery
           cp -r examples/dart/web_gallery/web/. docs/dist/gallery/
+
+      # --- examples gallery (WASM, WebGPU) — experimental ---
+      # A second copy of the same gallery compiled against the WebGPU engine
+      # and staged under /gallery/webgpu/. The prebuilt -webgpu engine zip
+      # (thermion_dart-<web.version>-web-webgpu.zip, per
+      # thermion_dart/lib/src/hooks/web_artifacts.dart) is NOT published to
+      # R2, and the pinned Filament web artifact it would be built from has
+      # no WebGPU backend compiled in — so this workflow builds the chain
+      # from source instead of downloading it:
+      #   1. Filament web with FILAMENT_SUPPORTS_WEBGPU=ON (build_web.sh
+      #      --webgpu, same script build-filament.yml uses to publish it)
+      #   2. the Thermion engine with THERMION_ENABLE_WEBGPU=ON into
+      #      native/web/build-webgpu
+      #   3. the gallery WASM: download_web stages the local engine with the
+      #      WGSL-only built-in materials (--engine-dir/--backend, added for
+      #      this), then `dart compile wasm -DTHERMION_BACKEND=webgpu` bakes
+      #      Backend.WEBGPU + the experimental badge into main.wasm.
+      # No cache is used for the Filament build on purpose: caches are shared
+      # across workflows per branch, and saving the WebGPU-flavored
+      # libs under thermion_dart/native/web/lib/release could be restored by
+      # regenerate-bindings-and-materials.yml's WebGL2 cache key.
+      - name: Checkout Filament
+        run: |
+          FILAMENT_VERSION="$(awk '{print $2}' filament.version)"
+          git clone --depth 1 --branch "$FILAMENT_VERSION" https://github.com/google/filament.git filament
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '6.0.4'
+          actions-cache-folder: 'emsdk-cache'
+      # Same package set as the build-web job in build-filament.yml (covers
+      # build_web.sh's build-desktop-tools-from-source fallback path). Retry
+      # wrapper for the runner-network DNS blackholes that job sees.
+      - name: Install build dependencies
+        run: |
+          retry() { for i in 1 2 3; do "$@" && return 0; echo "retry $i/3 failed: $*" >&2; sleep 20; done; return 1; }
+          retry sudo apt-get update -o Acquire::http::Timeout=30 -o Acquire::Retries=3
+          retry sudo apt-get install -y -o Acquire::http::Timeout=30 clang libc++-dev libc++abi-dev ninja-build
+      - name: Build Filament web (WebGPU)
+        run: |
+          set -euo pipefail
+          FILAMENT_VERSION="$(awk '{print $2}' filament.version)"
+          mkdir -p filament-webgpu-output
+          scripts/build_web.sh filament "$FILAMENT_VERSION" filament-webgpu-output --clean --release --webgpu
+          # Install the WebGPU-capable libs where the engine CMake expects
+          # them (same layout `make wasm` produces from the canonical zip).
+          cd thermion_dart/native/web/lib/release
+          rm -rf include lib
+          unzip -o "$GITHUB_WORKSPACE/filament-webgpu-output/filament-$FILAMENT_VERSION-web-release-webgpu.zip"
+          cd "$GITHUB_WORKSPACE"
+          # Free the ~2GB clone; only lib/release is needed from here on.
+          rm -rf filament
+      - name: Compile web engine (WebGPU)
+        run: |
+          set -euo pipefail
+          emcmake cmake -S thermion_dart/native/web \
+            -B thermion_dart/native/web/build-webgpu \
+            -DCMAKE_BUILD_TYPE=Release -DTHERMION_ENABLE_WEBGPU=ON
+          cmake --build thermion_dart/native/web/build-webgpu --parallel 2
+      - name: Stage WebGPU engine + compile gallery to WASM
+        working-directory: examples/dart/web_gallery
+        # `dart compile wasm` does not re-run the build hook's web branch, so
+        # the engine + built-in materials are staged the same way the WebGL
+        # build above does it: via download_web. --engine-dir points it at
+        # the locally built WebGPU engine instead of an R2 zip, and
+        # --backend webgpu embeds the WGSL-only material variant.
+        run: |
+          dart run thermion_dart:download_web -o web \
+            --engine-dir ../../../thermion_dart/native/web/build-webgpu/build/out \
+            --backend webgpu \
+            --materials gizmo,wireframe,edge_outline,silhouette
+          FILAMENT_VERSION="$(awk '{print $2}' ../../../filament.version)"
+          dart compile wasm web/main.dart -o web/main.wasm \
+            -DTHERMION_VERSION="$THERMION_VERSION" \
+            -DFILAMENT_VERSION="$FILAMENT_VERSION" \
+            -DTHERMION_BACKEND=webgpu
+      - name: Stage WebGPU gallery under docs output
+        run: |
+          mkdir -p docs/dist/gallery/webgpu
+          cp -r examples/dart/web_gallery/web/. docs/dist/gallery/webgpu/
 
       # --- deploy a single Cloudflare Pages project ---
       - name: Deploy to Cloudflare Pages
