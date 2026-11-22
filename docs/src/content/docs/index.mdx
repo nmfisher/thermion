@@ -20,6 +20,12 @@ and stops when you scroll away, so only the scenes near the viewport are running
 orbit, scroll to zoom. They're the same `examples_lib` scenes that power the standalone
 [gallery](/gallery/), each running in its own cross-origin-isolated iframe.
 
+The same gallery is also built against Thermion's experimental
+[WebGPU engine](/gallery/webgpu/)<span class="badge-experimental">Experimental</span> —
+same scenes, rendered through Filament's WebGPU backend instead of WebGL2. It needs a
+browser with WebGPU enabled (Chrome 113+, Edge 113+, or Firefox with
+`dom.webgpu.enabled`).
+
 <ThermionShowcase />
 
 ## Use it at the level you need

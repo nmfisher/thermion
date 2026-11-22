@@ -33,6 +33,25 @@ header.header {
   letter-spacing: -0.04em;
 }
 
+/* "Experimental" marker for the WebGPU gallery link ---------------------- */
+
+.badge-experimental {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--sl-color-accent) 55%, transparent);
+  color: var(--sl-color-accent);
+  background: color-mix(in srgb, var(--sl-color-accent) 12%, transparent);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.5;
+  transform: translateY(-0.1rem);
+}
+
 /* Stacked interactive example showcase ---------------------------------- */
 
 .thermion-showcase {
