@@ -731,6 +731,33 @@ void main() {
       expect(File(downloads.first).existsSync(), isFalse);
     });
 
+    test('replaces a stale previous generation and cleans install/swap leftovers', () async {
+      final tools = FakeTools();
+      final spec = resolveMaterialToolsSpec(version: 'v1.77.2', hostOS: 'linux', hostArch: 'x64');
+      final cacheRoot = Directory(p.join(tempDir.path, 'stale_swap'));
+      // A previous generation that fails the smoke test (wrong matc) plus
+      // leftovers of an interrupted install and of an old move-then-swap.
+      final binDir = Directory(p.join(cacheRoot.path, spec.cacheDirName, 'bin'))..createSync(recursive: true);
+      File(p.join(binDir.path, 'matc'))..writeAsStringSync('stale');
+      File(p.join(binDir.path, 'resgen'))..writeAsStringSync('stale');
+      final oldInstall = Directory(p.join(cacheRoot.path, '.thermion-tools-install-123'))..createSync();
+      final oldSwap = Directory(p.join(cacheRoot.path, '.thermion-tools-old-123'))..createSync();
+      File(p.join(oldSwap.path, 'matc')).writeAsStringSync('stale');
+
+      final result = await ensureMaterialTools(
+        spec: spec,
+        cacheRoot: cacheRoot,
+        download: tools.downloader(),
+        runProcess: tools.run,
+      );
+
+      expect(result.downloaded, isTrue);
+      expect(result.matc.path, p.join(cacheRoot.path, spec.cacheDirName, 'bin', 'matc'));
+      expect(oldInstall.existsSync(), isFalse);
+      expect(oldSwap.existsSync(), isFalse);
+      expect(cacheRoot.listSync().whereType<Directory>().map((d) => p.basename(d.path)), [spec.cacheDirName]);
+    });
+
     test('reuses a cache that passes the smoke test without downloading', () async {
       final tools = FakeTools();
       final spec = resolveMaterialToolsSpec(version: 'v1.77.2', hostOS: 'linux', hostArch: 'x64');

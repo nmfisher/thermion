@@ -937,10 +937,20 @@ Future<MaterialTools> ensureMaterialTools({
     }
 
     // Only installers holding the cache lock own these directories. Remove
-    // leftovers from interrupted installs, then use a private download path.
+    // leftovers from interrupted installs (and stale generations moved
+    // aside by _publishToolsDirectory), then use a private download path.
+    // Best-effort: a locked leftover fails the next publish anyway, which
+    // reports the underlying error.
     const prefix = '.thermion-tools-install-';
+    const stalePrefix = '.thermion-tools-old-';
     for (final entry in cacheRoot.listSync().whereType<Directory>()) {
-      if (p.basename(entry.path).startsWith(prefix)) entry.deleteSync(recursive: true);
+      final name = p.basename(entry.path);
+      if (!name.startsWith(prefix) && !name.startsWith(stalePrefix)) continue;
+      try {
+        entry.deleteSync(recursive: true);
+      } on FileSystemException catch (e) {
+        log('Could not remove stale directory ${entry.path}: $e');
+      }
     }
     final staging = cacheRoot.createTempSync(prefix);
     final installation = Directory(p.join(staging.path, 'tools'))..createSync();
@@ -983,14 +993,88 @@ Future<MaterialTools> ensureMaterialTools({
         );
       }
       // Readers also hold this lock. Publish only the complete, validated
-      // directory, on the same filesystem; a partial extraction is never live.
-      if (toolsDir.existsSync()) toolsDir.deleteSync(recursive: true);
-      installation.renameSync(toolsDir.path);
+      // directory, on the same filesystem; a partial extraction is never
+      // live. Retried inside because Windows can hold transient handles
+      // into the just-executed matc (antivirus/indexer scan).
+      await _publishToolsDirectory(installation, toolsDir, log);
       return (matc: binary(toolsDir, 'matc'), resgen: binary(toolsDir, 'resgen'), downloaded: true);
     } finally {
-      if (staging.existsSync()) staging.deleteSync(recursive: true);
+      // Best-effort: a locked staging directory must not fail an install
+      // that already published its tools; the prefix cleanup above removes
+      // leftovers on the next run.
+      if (staging.existsSync()) {
+        try {
+          staging.deleteSync(recursive: true);
+        } on FileSystemException catch (e) {
+          log('Could not remove staging directory ${staging.path}: $e');
+        }
+      }
     }
   });
+}
+
+/// Moves the validated [installation] directory to the live [toolsDir]
+/// path, replacing any previous generation.
+///
+/// A one-shot delete+rename fails intermittently on Windows: the smoke
+/// test just executed matc from both directories, and antivirus or the
+/// search indexer can keep handles open for a short while after the
+/// process exits ("Rename failed ... .thermion-tools-install-...: The
+/// process cannot access the file"). Retry with backoff, and when the old
+/// generation refuses to be deleted, swap — move it aside so the new
+/// install still lands at the live path — then clean the stale copy up.
+Future<void> _publishToolsDirectory(
+  Directory installation,
+  Directory toolsDir,
+  void Function(String message) log,
+) async {
+  const stalePrefix = '.thermion-tools-old-';
+  const attempts = 5;
+  Object? lastError;
+  for (var attempt = 1; attempt <= attempts; attempt++) {
+    var destinationExists = toolsDir.existsSync();
+    if (destinationExists) {
+      try {
+        toolsDir.deleteSync(recursive: true);
+        destinationExists = false;
+      } on FileSystemException catch (e) {
+        lastError = e;
+        log('Could not delete previous matc/resgen cache at ${toolsDir.path} (attempt $attempt): $e');
+      }
+    }
+    try {
+      if (destinationExists) {
+        // Move-then-swap: renaming the stubborn directory aside may work
+        // where deleting it did not, and the new generation takes the live
+        // path immediately either way.
+        final aside = Directory(
+          p.join(p.dirname(toolsDir.path), '$stalePrefix${DateTime.now().microsecondsSinceEpoch}'),
+        );
+        toolsDir.renameSync(aside.path);
+        installation.renameSync(toolsDir.path);
+        try {
+          aside.deleteSync(recursive: true);
+        } on FileSystemException catch (e) {
+          // Not fatal: the stale-prefix cleanup on the next install
+          // (or a future swap) removes it.
+          log('Could not delete the previous matc/resgen cache moved to ${aside.path}: $e');
+        }
+      } else {
+        installation.renameSync(toolsDir.path);
+      }
+      return;
+    } on FileSystemException catch (e) {
+      lastError = e;
+      log('Could not publish matc/resgen at ${toolsDir.path} (attempt $attempt): $e');
+    }
+    if (attempt < attempts) {
+      await Future<void>.delayed(Duration(milliseconds: 200 * (1 << (attempt - 1))));
+    }
+  }
+  throw MaterialToolsError(
+    'Could not install the downloaded matc/resgen at ${toolsDir.path} ($lastError). '
+    'Another process (antivirus, search indexer) may be holding the directory open; re-run the build.',
+  );
 }
 
 /// The archive package does not preserve the executable bit, and zip entries
