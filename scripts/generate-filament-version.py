@@ -11,7 +11,7 @@ args = parser.parse_args()
 
 root = Path(__file__).resolve().parent.parent
 _, version = (root / "filament.version").read_text().split()
-if not re.fullmatch(r"v\d+\.\d+\.\d+", version):
+if not re.fullmatch(r"v\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?", version):
     parser.error(f"Expected a Filament release tag, got {version!r}")
 
 target = root / "thermion_dart/lib/filament_version.dart"

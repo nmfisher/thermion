@@ -45,7 +45,7 @@ args = parser.parse_args()
 version = args.version
 if version is None:
     _, version = (root / "filament.version").read_text().split()
-if not re.fullmatch(r"v\d+\.\d+\.\d+", version):
+if not re.fullmatch(r"v\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?", version):
     parser.error(f"Expected a Filament release tag, got {version!r}")
 
 name = f"filament-{version}-{args.platform}-{args.variant}.zip"
