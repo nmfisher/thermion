@@ -35,7 +35,7 @@ on:
         default: true
         type: boolean
       webgpu:
-        description: 'Build Filament with FILAMENT_SUPPORTS_WEBGPU=ON (macOS, Linux)'
+        description: 'Build Filament with FILAMENT_SUPPORTS_WEBGPU=ON (macOS, Linux, Web)'
         required: false
         default: false
         type: boolean
@@ -759,24 +759,36 @@ jobs:
         with:
           version: '6.0.4'
 
+      - name: Compute zip suffix
+        run: |
+          if [ "${{ inputs.webgpu }}" = "true" ]; then
+            echo "ZIP_SUFFIX=-webgpu" >> $GITHUB_ENV
+          else
+            echo "ZIP_SUFFIX=" >> $GITHUB_ENV
+          fi
+
       - name: Build Filament
         run: |
           mkdir -p output
           chmod +x scripts/build_web.sh
-          scripts/build_web.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+          EXTRA_FLAGS=""
+          if [ "${{ inputs.webgpu }}" = "true" ]; then
+            EXTRA_FLAGS="--webgpu"
+          fi
+          scripts/build_web.sh filament ${{ env.FILAMENT_VERSION }} output --clean $EXTRA_FLAGS
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: filament-web-release
-          path: output/filament-${{ env.FILAMENT_VERSION }}-web-release.zip
+          name: filament-web-release${{ env.ZIP_SUFFIX }}
+          path: output/filament-${{ env.FILAMENT_VERSION }}-web-release${{ env.ZIP_SUFFIX }}.zip
           retention-days: 7
 
       - name: Upload debug artifact
         uses: actions/upload-artifact@v4
         with:
-          name: filament-web-debug
-          path: output/filament-${{ env.FILAMENT_VERSION }}-web-debug.zip
+          name: filament-web-debug${{ env.ZIP_SUFFIX }}
+          path: output/filament-${{ env.FILAMENT_VERSION }}-web-debug${{ env.ZIP_SUFFIX }}.zip
           retention-days: 7
 
       - name: Upload to R2
@@ -784,7 +796,7 @@ jobs:
         run: |
           for variant in release debug; do
             bash scripts/upload_filament_hashed.sh \
-              "output/filament-${{ env.FILAMENT_VERSION }}-web-${variant}.zip"
+              "output/filament-${{ env.FILAMENT_VERSION }}-web-${variant}${{ env.ZIP_SUFFIX }}.zip"
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}

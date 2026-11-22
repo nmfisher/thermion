@@ -12,12 +12,17 @@ if [ $# -lt 3 ]; then
   echo "Example: $0 /path/to/filament v1.74.0 /path/to/output"
   echo "         $0 /path/to/filament v1.74.0 /path/to/output --clean"
   echo "         $0 /path/to/filament v1.74.0 /path/to/output --release"
+  echo "         $0 /path/to/filament v1.74.0 /path/to/output --webgpu"
   echo "         $0 /path/to/filament v1.74.0 /path/to/output --tools-dir /path/to/tools"
   echo ""
   echo "Options:"
   echo "  --clean         Remove existing target directories before building"
   echo "  --release       Build release only"
   echo "  --debug         Build debug only"
+  echo "  --webgpu        Build with FILAMENT_SUPPORTS_WEBGPU=ON (backend/src/webgpu"
+  echo "                  + the WASM WebGPU platform). The output zips get a"
+  echo "                  -webgpu suffix so they can be published and pinned"
+  echo "                  beside the WebGL2-only artifact (web-webgpu/<variant>)."
   echo "  --tools-dir DIR Use prebuilt desktop tools from DIR (skips desktop build)"
   echo "                  DIR must contain ImportExecutables-Release.cmake and tools/"
   echo "  (default)       Build both release and debug"
@@ -37,6 +42,8 @@ CLEAN_FLAG=""
 BUILD_RELEASE=true
 BUILD_DEBUG=true
 TOOLS_DIR=""
+ZIP_SUFFIX=""
+WEBGPU_FLAG=""
 
 while [ $# -gt 0 ]; do
   case $1 in
@@ -48,6 +55,14 @@ while [ $# -gt 0 ]; do
       ;;
     --debug)
       BUILD_RELEASE=false
+      ;;
+    --webgpu)
+      # FILAMENT_SUPPORTS_WEBGPU=ON compiles backend/src/webgpu with the WASM
+      # WebGPU platform (WebGPUPlatformWasm). The engine then links these libs
+      # under THERMION_ENABLE_WEBGPU=ON (thermion_dart/native/web/CMakeLists.txt)
+      # with Emscripten's -sUSE_WEBGPU JS glue.
+      ZIP_SUFFIX="-webgpu"
+      WEBGPU_FLAG="-DFILAMENT_SUPPORTS_WEBGPU=ON"
       ;;
     --tools-dir)
       shift
@@ -271,6 +286,7 @@ if [ "$BUILD_RELEASE" = true ]; then
     -DFILAMENT_ENABLE_EXCEPTIONS=OFF \
     -DFILAMENT_SKIP_SAMPLES=1 -DFILAMENT_BUILD_TESTING=OFF \
     -DFILAMENT_BUILD_FILAMAT=ON \
+    $WEBGPU_FLAG \
     -DCMAKE_CXX_STANDARD=20 \
     -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
@@ -391,6 +407,7 @@ if [ "$BUILD_DEBUG" = true ]; then
     -DFILAMENT_ENABLE_EXCEPTIONS=OFF \
     -DFILAMENT_SKIP_SAMPLES=1 -DFILAMENT_BUILD_TESTING=OFF \
     -DFILAMENT_BUILD_FILAMAT=ON \
+    $WEBGPU_FLAG \
     -DCMAKE_CXX_STANDARD=20 \
     -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
@@ -588,7 +605,7 @@ fi
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Creating release zip..."
   cd "$TARGET_RELEASE_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-release.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-release${ZIP_SUFFIX}.zip" . || {
     echo "Error: Failed to create release zip"
     exit 1
   }
@@ -597,7 +614,7 @@ fi
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Creating debug zip..."
   cd "$TARGET_DEBUG_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-debug.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-debug${ZIP_SUFFIX}.zip" . || {
     echo "Error: Failed to create debug zip"
     exit 1
   }
@@ -606,9 +623,9 @@ fi
 echo "Build completed successfully!"
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Release libraries: $TARGET_RELEASE_DIR"
-  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-release.zip"
+  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-release${ZIP_SUFFIX}.zip"
 fi
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Debug libraries: $TARGET_DEBUG_DIR"
-  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-debug.zip"
+  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-debug${ZIP_SUFFIX}.zip"
 fi
