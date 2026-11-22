@@ -143,7 +143,9 @@ void main(List<String> args) async {
       }
       materialsArg = args[++i];
     } else if (args[i] == '-h' || args[i] == '--help') {
-      stdout.writeln('Usage: dart run thermion_dart:download_web [-o <dir>] [--variant <name>] [--backend <name>] [--engine-dir <dir>] [--materials <list>]');
+      stdout.writeln(
+        'Usage: dart run thermion_dart:download_web [-o <dir>] [--variant <name>] [--backend <name>] [--engine-dir <dir>] [--materials <list>]',
+      );
       stdout.writeln('  -o, --output   Output directory (default: web/)');
       stdout.writeln('  --variant      Engine variant: ${_variants.keys.join(', ')} (default: default)');
       stdout.writeln('                runtime-materials = filamat-enabled engine for');
