@@ -668,14 +668,21 @@ jobs:
       - name: Setup build environment (Linux)
         uses: ./.github/actions/setup-build-env
 
-      - name: Install libc++, EGL headers and Mesa lavapipe
+      - name: Install libc++, EGL headers, Mesa lavapipe and X11 dev
         run: |
           sudo apt-get update -y
           # libc++/EGL match the Linux job above (the glue build needs both);
           # libvulkan1 + mesa-vulkan-drivers provide the loader and lavapipe,
           # the software Vulkan device Dawn renders through.
+          # libx11-dev + libxcb1-dev: the -webgpu Filament archives build
+          # Dawn/Filament's WebGPU backend with X11 surface support (only
+          # the host tools disable DAWN_USE_X11), so libbackend.a references
+          # XGetWindowAttributes and the libthermion_dart.so link line adds
+          # -lX11 (see hook/build.dart). That needs the libX11.so symlink
+          # from libx11-dev; libxcb1-dev provides the xcb headers the X11
+          # stack builds against.
           sudo apt-get install -y libegl1 libegl1-mesa-dev libc++-dev libc++abi-dev \
-            libvulkan1 mesa-vulkan-drivers
+            libvulkan1 mesa-vulkan-drivers libx11-dev libxcb1-dev
           # Register the lavapipe ICD explicitly instead of relying on the
           # loader's default scan, and fail here (not mid-test) if apt
           # moves it.

@@ -582,6 +582,18 @@ outputDirectory : ${outputDirectory.path}
       ]);
     } else if (targetOS == OS.linux) {
       libs.addAll(["bluevk", "bluegl", "drm", "EGL", "GL", "gbm"]);
+      // The -webgpu archives compile Filament's WebGPU backend with X11
+      // surface support (only the host-tools build disables DAWN_USE_X11 —
+      // scripts/build_linux.sh). libbackend.a's WebGPUPlatformLinux dlopens
+      // libX11 at runtime but calls XGetWindowAttributes directly, so the
+      // link line needs -lX11; without it the -Wl,-z,defs link below fails
+      // with "undefined reference to XGetWindowAttributes" (the machine
+      // needs libx11-dev for the libX11.so symlink). Dawn resolves its own
+      // X11/XCB entry points dynamically (libX11.so.6 / libX11-xcb.so.1),
+      // so no xcb library belongs on the link line.
+      if (webgpuEnabled) {
+        libs.add("X11");
+      }
       flags.add("-I/usr/include/libdrm");
     }
 
