@@ -635,6 +635,86 @@ jobs:
             ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5
 
+  # Native WebGPU (Dawn) coverage on Linux. The `backend: webgpu` user
+  # define (see the "Enable ... WebGPU backend" step below) makes the build
+  # hook define THERMION_SUPPORTS_WEBGPU, link Dawn (the webgpu_dawn
+  # monolith + abseil) and download the -webgpu suffixed Filament zip from
+  # R2 instead of the canonical artifact (pinned under linux-webgpu/<variant>
+  # once publish-filament-to-r2.yml records it). Dawn's Linux backend drives
+  # Vulkan, so the job installs Mesa's lavapipe software rasterizer and
+  # registers its ICD via VK_ICD_FILENAMES — the only "GPU" on a GitHub
+  # runner. The tests render through headless swapchains, so unlike the
+  # jobs above there is no display server to fake with xvfb.
+  # webgpu_smoke_test.dart probes whether the engine actually has the
+  # WebGPU driver and skips when it does not; the capture tests assume it,
+  # which holds here because this job always builds it in.
+  dart-tests-webgpu:
+    name: Dart Tests (Linux WebGPU)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('thermion_dart/pubspec.lock', 'thermion_dart/pubspec.yaml') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      - name: Setup build environment (Linux)
+        uses: ./.github/actions/setup-build-env
+
+      - name: Install libc++, EGL headers and Mesa lavapipe
+        run: |
+          sudo apt-get update -y
+          # libc++/EGL match the Linux job above (the glue build needs both);
+          # libvulkan1 + mesa-vulkan-drivers provide the loader and lavapipe,
+          # the software Vulkan device Dawn renders through.
+          sudo apt-get install -y libegl1 libegl1-mesa-dev libc++-dev libc++abi-dev \
+            libvulkan1 mesa-vulkan-drivers
+          # Register the lavapipe ICD explicitly instead of relying on the
+          # loader's default scan, and fail here (not mid-test) if apt
+          # moves it.
+          lvp_icd=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+          test -f "$lvp_icd"
+          echo "VK_ICD_FILENAMES=$lvp_icd" >> "$GITHUB_ENV"
+
+      - name: Enable debug mode and WebGPU backend for tests
+        working-directory: thermion_dart
+        run: |
+          dart pub get
+          dart --packages=.dart_tool/package_config.json tool/configure_material_tests.dart
+          # `backend: webgpu` selects the _webgpu material variant, defines
+          # THERMION_SUPPORTS_WEBGPU and switches the artifact download to
+          # the -webgpu zip (hook/build.dart detects it before getLibDir).
+          sed -i 's/^    thermion_dart:$/    thermion_dart:\n      backend: webgpu/' pubspec.yaml
+          grep -n -A4 'user_defines' pubspec.yaml
+
+      - name: Clean cached Filament libraries
+        run: rm -rf thermion_dart/.dart_tool/thermion_dart/lib
+
+      - name: Run WebGPU smoke and capture tests (Linux)
+        working-directory: thermion_dart
+        run: |
+          dart pub get
+          dart test -j1 \
+            test/webgpu_smoke_test.dart \
+            test/capture_tests_webgpu.dart \
+            --concurrency=1
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-dart-Linux-WebGPU
+          path: |
+            ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
+
   compare-dart-test-output:
     name: Compare Dart Test Output (${{ matrix.name }})
     needs:
