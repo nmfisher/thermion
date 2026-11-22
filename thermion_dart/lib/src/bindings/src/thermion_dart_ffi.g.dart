@@ -5529,6 +5529,56 @@ external void VertexBuffer_setBufferObjectAtJobThread(
   VoidCallback onComplete,
 );
 
+@ffi.Native<
+  ffi.Bool Function(
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<TView>,
+    ffi.Bool,
+    ffi.Float,
+    ffi.Float,
+    ffi.Float,
+    ffi.Float,
+    ffi.Int,
+  )
+>(isLeaf: true)
+external bool View_configureSss(
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TView> view,
+  bool enabled,
+  double distanceR,
+  double distanceG,
+  double distanceB,
+  double strength,
+  int debugOutput,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<TView>,
+    ffi.Bool,
+    ffi.Float,
+    ffi.Float,
+    ffi.Float,
+    ffi.Float,
+    ffi.Int,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>,
+  )
+>(isLeaf: true)
+external void View_configureSssJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TView> view,
+  bool enabled,
+  double distanceR,
+  double distanceG,
+  double distanceB,
+  double strength,
+  int debugOutput,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
+);
+
 @ffi.Native<TAmbientOcclusionOptions Function(ffi.Pointer<TView>)>(isLeaf: true)
 external TAmbientOcclusionOptions View_getAmbientOcclusionOptions(ffi.Pointer<TView> tView);
 
@@ -5874,6 +5924,41 @@ external void View_setSoftShadowOptionsJobThread(
   TSoftShadowOptions options,
   int requestId,
   VoidCallback onComplete,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TEngine>, ffi.Pointer<TView>, EntityId, ffi.Int, ffi.Bool, ffi.Int)>(
+  isLeaf: true,
+)
+external bool View_setSssPrimitive(
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TView> view,
+  int entity,
+  int primitive,
+  bool enabled,
+  int group,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<TView>,
+    EntityId,
+    ffi.Int,
+    ffi.Bool,
+    ffi.Int,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>,
+  )
+>(isLeaf: true)
+external void View_setSssPrimitiveJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TView> view,
+  int entity,
+  int primitive,
+  bool enabled,
+  int group,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)

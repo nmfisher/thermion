@@ -60,6 +60,7 @@ class FFIView extends View<Pointer<TView>> {
     _destroyRequested = true;
     _pickRequests?.fillRange(0, _pickRequests!.length, null);
     await _nameOperations;
+    await setSubsurfaceScatteringEnabled(false);
     if (_hasMaterialOverride) {
       await setMaterialOverride(null);
     }
@@ -629,6 +630,27 @@ class FFIView extends View<Pointer<TView>> {
     } else {
       await _disableHighlightOverlay();
     }
+  }
+
+  SubsurfaceScatteringManager? _subsurfaceScatteringManager;
+
+  @override
+  SubsurfaceScatteringManager? getSubsurfaceScattering() => _subsurfaceScatteringManager;
+
+  @override
+  Future setSubsurfaceScatteringEnabled(bool enabled) async {
+    if (enabled == (_subsurfaceScatteringManager != null)) {
+      return;
+    }
+
+    if (!enabled) {
+      final manager = _subsurfaceScatteringManager;
+      _subsurfaceScatteringManager = null;
+      await manager?.destroy();
+      return;
+    }
+
+    _subsurfaceScatteringManager = await SubsurfaceScatteringManager.create(_app, this);
   }
 
   // Highlights an entity with a screen-space outline.

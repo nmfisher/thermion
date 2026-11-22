@@ -1,4 +1,5 @@
 #include "rendering/EngineApiLock.hpp"
+#include "rendering/SubsurfaceScattering.hpp"
 #ifdef __EMSCRIPTEN__
 #include <emscripten/html5.h>
 #include "WebGLContext.hpp"
@@ -252,6 +253,7 @@ namespace thermion
             THERMION_ENGINE_API_GUARD;
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *view = reinterpret_cast<View *>(tView);
+            releaseSubsurfaceSelections(engine, view);
             engine->destroy(view);
         }
 
