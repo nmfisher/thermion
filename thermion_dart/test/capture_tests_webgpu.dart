@@ -10,6 +10,7 @@
 //
 // Drive with:
 //   dart test test/capture_tests_webgpu.dart
+import 'package:image/image.dart' as img;
 import 'package:logging/logging.dart';
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -24,16 +25,36 @@ void main() async {
   final testHelper = TestHelper("capture_webgpu", backend: Backend.WEBGPU);
   await testHelper.setup();
 
+  // Runs [fn] with the viewer AND its swapchain (unlike withViewer, which
+  // only exposes the viewer). The capture tests must pass the swapchain to
+  // capture() explicitly: FFIFilamentApp.capture refuses to pick one when
+  // multiple swapchains are registered, and a failed/timed-out test can leak
+  // its swapchain and leave more than one registered for the next test.
+  Future<void> withViewerAndSwapChain(
+    Future Function(ThermionViewer viewer, SwapChain swapChain) fn, {
+    img.Color? bg,
+  }) async {
+    final (viewer, swapChain) = await testHelper.createViewer(bg: bg);
+    try {
+      await fn(viewer, swapChain);
+    } finally {
+      await viewer.dispose();
+      await testHelper.disposeColorGradings();
+      await FilamentApp.instance!.destroySwapChain(swapChain);
+    }
+  }
+
   // The headless swapchain uses RGBA8Unorm.  Requesting UBYTE avoids the
   // format-conversion blit in Filament's WebGPU blitter (which currently
   // fails because it enables blending on non-blendable formats).
   test("WebGPU capture with RGBA UBYTE", timeout: Timeout(Duration(minutes: 2)), () async {
-    await testHelper.withViewer((viewer) async {
+    await withViewerAndSwapChain((viewer, swapChain) async {
       final result = await testHelper.capture(
         viewer.view,
         "webgpu_rgba_ubyte",
         pixelDataFormat: PixelDataFormat.RGBA,
         pixelDataType: PixelDataType.UBYTE,
+        swapChain: swapChain,
       );
       final pixels = result.values.first;
       int nonZero = 0;
@@ -54,12 +75,13 @@ void main() async {
     "WebGPU capture with FLOAT (auto-downgraded to UBYTE by workaround)",
     timeout: Timeout(Duration(minutes: 2)),
     () async {
-      await testHelper.withViewer((viewer) async {
+      await withViewerAndSwapChain((viewer, swapChain) async {
         final result = await testHelper.capture(
           viewer.view,
           "webgpu_float_to_ubyte",
           pixelDataFormat: PixelDataFormat.RGBA,
           pixelDataType: PixelDataType.FLOAT, // capture() downgrades to UBYTE
+          swapChain: swapChain,
         );
         final pixels = result.values.first;
         final viewport = await viewer.view.getViewport();
