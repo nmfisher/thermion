@@ -2,11 +2,12 @@
 #include "WebGLContext.hpp"
 #include "rendering/WebJobThread.hpp"
 
-#include <thread>
+#include <map>
 #include <mutex>
+#include <string>
+#include <thread>
 #include <future>
 #include <iostream>
-#include <string>
 
 #include <backend/Platform.h>
 #include <backend/platforms/PlatformWebGL.h>
@@ -35,10 +36,74 @@ EMSCRIPTEN_WEBGL_CONTEXT_HANDLE createWebGLContextForCurrentJob() {
   return Thermion_createGLContext(selector);
 }
 
+// ---------------------------------------------------------------------------
+// Hidden canvas backing a SKIP_PRESENT (offscreen) swapchain. One canvas per
+// viewer canvas, created on first use and reused by later swapchains.
+// ---------------------------------------------------------------------------
+
+// DOM id of the hidden canvas for a viewer canvas selector: the viewer's id
+// (minus the leading '#') plus a fixed suffix, so JavaScript can also locate
+// it directly. Selectors that are not a plain "#id" share one canvas.
+static std::string offscreenCanvasId(const char *canvasSelector) {
+  std::string id = (canvasSelector && canvasSelector[0] == '#') ? canvasSelector + 1 : "thermion_canvas";
+  return id + "__thermion_offscreen";
+}
+
+// Creates the hidden canvas for [canvasSelector] unless it already exists.
+// Returns false when the page has no document (e.g. running in a worker
+// without DOM access), in which case offscreen swapchains are unavailable.
+static bool ensureOffscreenCanvas(const char *canvasSelector) {
+  val document = val::global("document");
+  if (document.isUndefined() || document.isNull()) return false;
+  val body = document["body"];
+  if (body.isUndefined() || body.isNull()) return false;
+
+  const std::string id = offscreenCanvasId(canvasSelector);
+  val existing = document.call<val>("querySelector", val("#" + id));
+  if (!existing.isNull() && !existing.isUndefined()) return true;
+
+  val canvas = document.call<val>("createElement", val("canvas"));
+  canvas.set("id", val(id));
+  // Start at the viewer canvas' size; Filament reconfigures the surface
+  // (and so resizes this canvas) whenever the viewer canvas changes size.
+  if (canvasSelector) {
+    val visible = document.call<val>("querySelector", val(std::string(canvasSelector)));
+    if (!visible.isNull() && !visible.isUndefined()) {
+      canvas.set("width", visible["width"]);
+      canvas.set("height", visible["height"]);
+    }
+  }
+  // Never visible: the browser skips presenting it, JavaScript composites
+  // the frames itself.
+  canvas["style"].set("display", val("none"));
+  body.call<void>("appendChild", canvas);
+  return true;
+}
+
+// Selector -> stable storage for the returned const char*, alive until the
+// viewer canvas is destroyed.
+static std::mutex offscreenSelectorsMutex;
+static std::map<std::string, std::string> offscreenSelectors;
+
+static void removeOffscreenCanvas(const char *canvasSelector) {
+  {
+    std::lock_guard<std::mutex> lock(offscreenSelectorsMutex);
+    offscreenSelectors.erase(canvasSelector ? canvasSelector : "");
+  }
+  val document = val::global("document");
+  if (document.isUndefined() || document.isNull()) return;
+  val canvas = document.call<val>("querySelector", val("#" + offscreenCanvasId(canvasSelector)));
+  if (!canvas.isNull() && !canvas.isUndefined()) {
+    canvas.call<void>("remove");
+  }
+}
+
 } // namespace thermion
 
 extern "C"
 {
+
+  EMSCRIPTEN_KEEPALIVE uint64_t TSWAP_CHAIN_CONFIG_SKIP_PRESENT = THERMION_SWAP_CHAIN_CONFIG_SKIP_PRESENT;
 
   EMSCRIPTEN_KEEPALIVE void Thermion_setCanvasElementSize(const char *elementName, int width, int height) {
     if(emscripten_set_canvas_element_size(elementName, width, height) == EM_TRUE) {
@@ -50,6 +115,10 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void Thermion_destroyCanvas(const char *canvasSelector) {
+    // The hidden canvas for offscreen swapchains belongs to this viewer
+    // canvas; it must not outlive it.
+    thermion::removeOffscreenCanvas(canvasSelector);
+
     val document = val::global("document");
     val canvas = document.call<val>("querySelector", val(std::string(canvasSelector)));
     if (!canvas.isNull() && !canvas.isUndefined()) {
@@ -106,6 +175,20 @@ extern "C"
     }
     std::cout << "Returning context" << std::endl;
     return _context;
+  }
+
+  EMSCRIPTEN_KEEPALIVE const char *Thermion_getOffscreenCanvasSelector(const char *canvasSelector) {
+    if (!thermion::ensureOffscreenCanvas(canvasSelector)) {
+      std::cerr << "Offscreen swapchains need a document body to host their canvas" << std::endl;
+      return nullptr;
+    }
+    std::lock_guard<std::mutex> lock(thermion::offscreenSelectorsMutex);
+    // Operator[] keeps the stored string's address stable across calls.
+    std::string &selector = thermion::offscreenSelectors[canvasSelector ? canvasSelector : ""];
+    if (selector.empty()) {
+      selector = "#" + thermion::offscreenCanvasId(canvasSelector);
+    }
+    return selector.c_str();
   }
 
 #if !defined(THERMION_SUPPORTS_WEBGPU)

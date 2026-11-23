@@ -16,11 +16,28 @@ public:
         : _canvasSelector(canvasSelector) {}
 
     wgpu::Extent2D getSurfaceExtent(void* /*nativeWindow*/) const override {
+        // Always the viewer canvas' size, also for offscreen swapchains, so
+        // the hidden canvas tracks what the viewer would have shown.
         return WebGPUPlatformWasm::getSurfaceExtent(const_cast<char*>(_canvasSelector.c_str()));
     }
 
     wgpu::Surface createSurface(void* /*nativeWindow*/, uint64_t flags) override {
-        return WebGPUPlatformWasm::createSurface(_canvasSelector.data(), flags);
+        const char* selector = _canvasSelector.c_str();
+        if (flags & THERMION_SWAP_CHAIN_CONFIG_SKIP_PRESENT) {
+            // Offscreen swapchain: surface on the hidden canvas instead of the
+            // viewer's, so nothing is presented and JavaScript composites the
+            // rendered texture itself (see ThermionWebApi.h).
+            const char* offscreen = Thermion_getOffscreenCanvasSelector(selector);
+            if (offscreen) {
+                selector = offscreen;
+            } else {
+                std::cerr << "Offscreen swapchain requested but no document is available; "
+                             "presenting to the viewer canvas instead" << std::endl;
+            }
+        }
+        // Same cast as getSurfaceExtent: the Wasm platform takes the canvas
+        // selector through the void* nativeWindow parameter.
+        return WebGPUPlatformWasm::createSurface(const_cast<char*>(selector), flags);
     }
 
 private:

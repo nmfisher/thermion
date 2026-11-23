@@ -23,6 +23,41 @@ EMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_getGLContext();
 void *Thermion_createWebGPUPlatform();
 #endif
 
+// ---------------------------------------------------------------------------
+// Offscreen (present-skip) swapchains and WebGPU device export.
+//
+// Both features are web-only. They exist so a JavaScript-side compositor
+// (e.g. a ray-tracing sidecar) can drive the final image: Thermion renders
+// into a texture that is never presented, and shares the GPUDevice the
+// WebGPU backend runs on.
+// ---------------------------------------------------------------------------
+
+// Thermion-owned swapchain flag, OR-ed into the `flags` argument of
+// Engine_createSwapChain / Engine_createHeadlessSwapChain.
+//
+// When set, the swapchain is offscreen: every frame is rendered into the
+// hidden canvas returned by Thermion_getOffscreenCanvasSelector instead of
+// the viewer's canvas, so nothing is ever presented to the user. JavaScript
+// composites the frame itself, e.g. by sampling the hidden canvas's WebGPU
+// context (context.getCurrentTexture() returns the frame's GPUTexture for the
+// current task) or drawing the canvas.
+//
+// Only the WebGPU backend honours the flag (build with
+// -DTHERMION_ENABLE_WEBGPU=ON); other backends ignore it and present as usual.
+// The bit sits above every filament::backend::SWAP_CHAIN_CONFIG_* flag so it
+// never changes meaning for Filament. TSWAP_CHAIN_CONFIG_SKIP_PRESENT exports
+// the same value for bindings, like the TSWAP_CHAIN_CONFIG_* variables.
+#define THERMION_SWAP_CHAIN_CONFIG_SKIP_PRESENT ((uint64_t)1 << 62)
+extern uint64_t TSWAP_CHAIN_CONFIG_SKIP_PRESENT;
+
+// Selector ("#id") of the hidden canvas that receives the frames of the
+// SKIP_PRESENT swapchain created for the canvas [canvasSelector] (e.g.
+// "#thermion_canvas_0"). The canvas is created on first use and kept for the
+// lifetime of the page so it can be reused by later swapchains; it is sized
+// by Filament to match [canvasSelector] and is never visible.
+// Returns nullptr when the page has no document/body (e.g. a worker).
+const char *Thermion_getOffscreenCanvasSelector(const char *canvasSelector);
+
 // Hands the GPUDevice used by Filament's WebGPU backend to JavaScript.
 //
 // The browser creates the device (Module['preinitializedWebGPUDevice'], see
@@ -30,8 +65,8 @@ void *Thermion_createWebGPUPlatform();
 // WGPUDevice handle. This exports that handle back to JavaScript the same
 // way the runtime resolves every wgpu* call (WebGPU.getJsObject): the
 // GPUDevice object is stored on Module['thermionWebGPUDevice'] so another
-// module (e.g. a ray-tracing sidecar renderer) can import it with
-// WebGPU.importJsDevice and share GPU resources with Thermion.
+// module (e.g. a sidecar renderer) can import it with WebGPU.importJsDevice
+// and share GPU resources with Thermion.
 //
 // Returns the raw WGPUDevice handle, or 0 when there is no WebGPU device:
 // a WebGL2 build, or no engine created with Backend.WEBGPU yet.
