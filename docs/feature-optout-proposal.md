@@ -546,6 +546,28 @@ v1 behaviour:
   web engine only pays for what the prebuilt C references — the win on web
   comes from the same C guards, whenever a slim variant is shipped.
 
+**Web engine release is a hard dependency of the probe (decision D4).**
+Dart calls `Thermion_getEnabledFeatures()` during initialization (§6), so
+**every currently supported browser engine archive** — default,
+`-main-thread`, `-runtime-materials`, `-webgpu` and their combinations —
+must export the new symbol *before* the Dart code that requires it ships.
+This holds even though v1 adds **zero** slim web variants. Required sequence:
+
+1. add the probe to `native/web/CMakeLists.txt`'s sources (always compiled);
+2. rebuild and publish **all** existing variant zips at a new
+   `native/web/web.version` (the publication workflow already commits that
+   file);
+3. only then merge the Dart `supports()`/init changes pinned to that
+   `web.version`.
+
+Compatibility path for older engines (cached zips under
+`.dart_tool/thermion_dart/web/<version>`, or a pinned older `web.version`):
+Dart resolves the `Thermion_getEnabledFeatures` symbol **lazily inside a
+try/catch**; if it is absent, the bitmask defaults to **all features
+enabled** (which is true of every pre-probe engine) and a one-line warning
+notes the legacy engine. `runtimeMaterialsSupported` keeps using
+`MaterialCompiler_isSupported()` as today, so legacy behaviour is unchanged.
+
 ## 5. C guard and stub design
 
 ### 5.1 Macro convention
@@ -795,8 +817,11 @@ EMSCRIPTEN_KEEPALIVE uint32_t Thermion_getEnabledFeatures();
 
 Returns the compile-time bitmask. Regenerate the ffigen bindings once; the
 generated files serve every feature combination because the symbol always
-exists (§5.2). `MaterialCompiler_isSupported()` stays as-is (bit 3 mirrors
-it).
+exists (§5.2) in every build made **from this proposal onward**. Older
+prebuilt web engines do not export it: all supported web variants must be
+rebuilt/published and `web.version` advanced before Dart requires the probe,
+with the lazy-lookup fallback for legacy engines — see §4.6 (decision D4).
+`MaterialCompiler_isSupported()` stays as-is (bit 3 mirrors it).
 
 ### 6.2 Public API
 
@@ -910,6 +935,7 @@ Risks and mitigations:
 | glTF loads with missing texture providers (mixed configs) | combination rejected at hook time in v1 (D2); enabling it later requires the §5.3 completion/failure criteria, tested sync and async |
 | Filament upgrade changes transitive deps (e.g. gltfio stops using Draco) | re-run `.scratch/closure_size.py` per artifact bump; the map in §3 is version-pinned to v1.77.2 |
 | Per-OS feature demand later | flat schema extends to per-OS maps without breaking (§4.1) |
+| Dart init requires a probe older web engines lack | all supported web variants rebuilt/published and `web.version` advanced **before** the Dart probe lands; lazy lookup + all-enabled default for legacy engines (§4.6, D4) |
 
 Open questions (deliberately not decided here):
 
@@ -932,3 +958,4 @@ do not re-open them during implementation.
 | D1 | Procedural scene assets stay in the core: `TSceneAsset.cpp` uses local guards (Pattern B), not a whole-file stub; shared `SceneAsset_createFromBuffers`, entity access, instancing and destruction stay live. A slim-build test creates, instances, renders and destroys procedural geometry. | §3.1, §5.2, §5.4, §5.7 (criterion 4), §6.2 |
 | D2 | Mixed builds (`gltf: true` with `ktx: false` or `image_decoding: false`) are **deferred**: hard error at hook time in v1. Filament v1.77.2 stalls async progress at 0 with an empty provider map (even textureless assets) and log-and-skips missing providers. Re-enabling requires defined+tested completion for textureless assets and a clear propagated failure for assets needing a disabled decoder, sync and async. | §4.2, §4.3, §5.3, §5.7, §7 (informational row), §8 risk table |
 | D3 | `THERMION_ENABLE_RUNTIME_MATERIALS` keeps presence semantics: **undefined when off**, `=1` when on; no default in `ThermionFeatures.h`. Defining it to 0 would still enable the real compiler and Windows compiler pragmas under their `#ifdef`/`#if defined` guards. A value-check migration is only allowed as one atomic change covering every guard. `smol-v` stays **unconditional** (core `filaflat::DictionaryReader` decoder). | §3.7, §4.4, §5.1 |
+| D4 | The web engine release is a **dependency of the probe**: rebuild and publish every currently supported web variant with `Thermion_getEnabledFeatures` and advance `native/web/web.version` before Dart requires it (even with zero slim web variants in v1). Legacy engines get a lazy-lookup fallback: missing symbol → all features enabled + warning. | §4.6, §6.1, §8 (rollout + risk table) |
