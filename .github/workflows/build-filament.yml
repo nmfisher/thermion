@@ -772,6 +772,29 @@ jobs:
         with:
           version: '6.0.4'
 
+      - name: Reuse pinned host tools for upstream WebGPU builds
+        if: inputs.webgpu && inputs.filament_repo == '' && inputs.filament_version == ''
+        run: |
+          set -euo pipefail
+          if [ "$FILAMENT_REPO" != https://github.com/google/filament ]; then exit 0; fi
+          tools="$RUNNER_TEMP/webgpu-host-tools"
+          official="$RUNNER_TEMP/filament-desktop.tgz"
+          pinned="$RUNNER_TEMP/filament-pinned-linux.zip"
+          release="https://github.com/google/filament/releases/download/$FILAMENT_VERSION/filament-$FILAMENT_VERSION-linux.tgz"
+          sha=$(python3 -c 'import json; print(json.load(open("thermion_dart/filament.libs.json")).get("linux/release", ""))')
+          mkdir -p "$tools"
+          # The pinned matc supports WGSL. The other tools come from the same upstream release.
+          if [ -n "$sha" ] &&
+             curl -fLsS --retry 2 "$release" -o "$official" &&
+             tar -xzf "$official" -C "$tools" --strip-components=1 filament/bin &&
+             curl -fLsS --retry 2 "$(python3 scripts/filament-artifact-url.py linux release)" -o "$pinned" &&
+             printf '%s  %s\n' "$sha" "$pinned" | sha256sum --check --status &&
+             unzip -oq "$pinned" bin/matc bin/resgen -d "$tools"; then
+            echo "WEBGPU_HOST_TOOLS=$tools" >> "$GITHUB_ENV"
+          else
+            echo "Matching downloads unavailable. Building the WebGPU host tools from source."
+          fi
+
       - name: Build Filament
         run: |
           set -euo pipefail
@@ -779,6 +802,7 @@ jobs:
           args=()
           if [ "$WEBGPU" = true ]; then
             args+=(--webgpu --release)
+            if [ -n "${WEBGPU_HOST_TOOLS:-}" ]; then args+=(--tools-dir "$WEBGPU_HOST_TOOLS"); fi
           fi
           scripts/build_web.sh filament "$FILAMENT_VERSION" output --clean "${args[@]}"
 

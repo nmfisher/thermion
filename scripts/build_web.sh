@@ -157,17 +157,11 @@ git checkout "${FILAMENT_VERSION}" || {
 # Keep host tools separate from the runtime archives built below.
 git apply "$SCRIPT_DIR/filament-no-exceptions.patch" || exit 1
 
-# Bundle smol-v into libfilamat_combined.a: upstream's FILAMAT_DEPS list
-# (used by combine_static_libs) omits it even though the filamat target
-# links it (target_link_libraries ... smol-v zstd), so every consumer of
-# the combined archive gets undefined _ZN5smolv... symbols — this aborts
-# runtime material compilation on web. Leaf libraries must come last in
-# a combined archive; smol-v has no deps among the bundled libs.
-git apply "$SCRIPT_DIR/filament-smolv-combined.patch" || exit 1
-
-# Build matp (the material parser behind matc) into the runtime archives and
-# install its include-resolution headers, for runtime material compilation.
-git apply "$SCRIPT_DIR/filament-matp-runtime.patch" || exit 1
+if [ "$BUILD_FILAMAT" = ON ]; then
+  # Package dependencies and parser headers for runtime material compilation.
+  git apply "$SCRIPT_DIR/filament-smolv-combined.patch" || exit 1
+  git apply "$SCRIPT_DIR/filament-matp-runtime.patch" || exit 1
+fi
 
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
