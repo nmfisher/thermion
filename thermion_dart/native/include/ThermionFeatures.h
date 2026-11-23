@@ -6,10 +6,10 @@
 // The build hook (hook/build.dart, `features` user define) passes
 // -DTHERMION_ENABLE_<FEATURE>=0 only for DISABLED features. Enabled features
 // and default builds pass nothing, so their compile command lines are
-// unchanged. Every switch is a value macro with a header default of 1 so that
-// each guarded translation unit (and ThermionWin32.h) sees the same value,
-// and a typo in an `#if` fails loudly under -Wundef instead of silently
-// disabling a feature.
+// unchanged. Every switch is a value macro so each guarded translation unit
+// sees the same value, and a typo in an `#if` fails loudly under -Wundef
+// instead of silently disabling a feature. The three opt-out switches default
+// to 1; THERMION_ENABLE_RUNTIME_MATERIALS is opt-in and defaults to 0 (below).
 //
 // What a switch gates when it is 0:
 //   THERMION_ENABLE_GLTF           gltfio_core/uberarchive/dracodec/uberzlib:
@@ -37,9 +37,13 @@
 #define THERMION_ENABLE_IMAGE_DECODING 1
 #endif
 
-// THERMION_ENABLE_RUNTIME_MATERIALS is deliberately NOT defaulted here. It
-// keeps its existing presence semantics: defined (=1) when runtime_materials
-// is enabled, UNDEFINED when off. Its guards are `#ifdef` /
-// `#if defined(...)` checks (TMaterialCompiler.cpp, ThermionWin32.h), so
-// defining it to 0 would still select the real compiler. Migrating those to
-// value checks is only allowed as one atomic change covering every guard.
+// Runtime material compilation is opt-in and off by default. It uses the
+// same value-macro convention as the three switches above: the header
+// defaults it to 0 and hook/build.dart passes -DTHERMION_ENABLE_RUNTIME_MATERIALS=1
+// only when `runtime_materials: true`. This is the atomic migration allowed
+// by proposal §5.1 (decision D3): every guard — TMaterialCompiler.cpp,
+// TThermionFeatures.cpp and the web CMake options — is a value check now, so
+// a macro defined to 0 selects the stub instead of the real compiler.
+#ifndef THERMION_ENABLE_RUNTIME_MATERIALS
+#define THERMION_ENABLE_RUNTIME_MATERIALS 0
+#endif

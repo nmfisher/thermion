@@ -413,10 +413,14 @@ if(THERMION_ENABLE_RUNTIME_MATERIALS)
   set_property(TARGET matp PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libmatp.a")
   set_property(TARGET matp PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libmatp.a")
   set_property(TARGET matp PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libmatp.a")
-  target_compile_definitions(${MODULE_NAME} PRIVATE THERMION_ENABLE_RUNTIME_MATERIALS=1)
   target_link_libraries(${MODULE_NAME} matp filamat shaders smol_v)
   message(STATUS "Runtime material compilation enabled (matp + filamat + smol-v linked)")
 endif()
+
+# The macro is a value check now (proposal §5.1, decision D3): always pass 0
+# or 1 so a build with the option off cannot fall back to presence semantics.
+target_compile_definitions(${MODULE_NAME}
+  PRIVATE THERMION_ENABLE_RUNTIME_MATERIALS=$<BOOL:${THERMION_ENABLE_RUNTIME_MATERIALS}>)
 
 # Feature opt-outs: only DISABLED features are passed (=0); the header defaults
 # every switch to 1, so the all-on build defines nothing (see
