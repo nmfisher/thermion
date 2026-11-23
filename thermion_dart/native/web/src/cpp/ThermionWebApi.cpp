@@ -12,8 +12,7 @@
 #include <backend/Platform.h>
 #include <backend/platforms/PlatformWebGL.h>
 #if defined(THERMION_SUPPORTS_WEBGPU)
-#include <backend/platforms/WebGPUPlatform.h>
-#include <webgpu/webgpu_cpp.h>
+#include <backend/platforms/WebGPUPlatformWasm.h>
 #endif
 
 #define GL_GLEXT_PROTOTYPES
@@ -45,7 +44,7 @@ EMSCRIPTEN_WEBGL_CONTEXT_HANDLE createWebGLContextForCurrentJob() {
 namespace {
 
 #if defined(THERMION_SUPPORTS_WEBGPU)
-class ThermionWebGPUPlatform : public filament::backend::WebGPUPlatform {
+class ThermionWebGPUPlatform : public filament::backend::WebGPUPlatformWasm {
 public:
     // The canvas selector is resolved once, at platform creation (which
     // runs on the viewer's job thread), so multi-viewer setups render to
@@ -55,26 +54,11 @@ public:
         : _canvasSelector(canvasSelector ? canvasSelector : "#thermion_canvas") {}
 
     wgpu::Extent2D getSurfaceExtent(void* /*nativeWindow*/) const override {
-        int width = 0;
-        int height = 0;
-        emscripten_get_canvas_element_size(_canvasSelector.c_str(), &width, &height);
-        return wgpu::Extent2D{
-            .width = static_cast<uint32_t>(width),
-            .height = static_cast<uint32_t>(height),
-        };
+        return WebGPUPlatformWasm::getSurfaceExtent(const_cast<char*>(_canvasSelector.c_str()));
     }
 
     wgpu::Surface createSurface(void* /*nativeWindow*/, uint64_t /*flags*/) override {
-        wgpu::SurfaceDescriptorFromCanvasHTMLSelector canvasDesc{};
-        canvasDesc.selector = _canvasSelector.c_str();
-        wgpu::SurfaceDescriptor surfDesc{};
-        surfDesc.nextInChain = &canvasDesc;
-        return mInstance.CreateSurface(&surfDesc);
-    }
-
-protected:
-    std::vector<wgpu::RequestAdapterOptions> getAdapterOptions() override {
-        return { wgpu::RequestAdapterOptions{} };
+        return WebGPUPlatformWasm::createSurface(_canvasSelector.data(), 0);
     }
 
 private:
@@ -157,6 +141,10 @@ extern "C"
 
 #if defined(THERMION_SUPPORTS_WEBGPU)
   EMSCRIPTEN_KEEPALIVE void *Thermion_createWebGPUPlatform() {
+    if (!EM_ASM_INT({ return Boolean(Module['preinitializedWebGPUDevice']); })) {
+      std::cerr << "WebGPU requires a browser GPU adapter and device" << std::endl;
+      return nullptr;
+    }
     // Honor the canvas selector configured for this viewer's job thread
     // (Engine_create on the web runs inside that thread's job), falling
     // back to the legacy default canvas.

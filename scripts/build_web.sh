@@ -12,17 +12,13 @@ if [ $# -lt 3 ]; then
   echo "Example: $0 /path/to/filament v1.74.0 /path/to/output"
   echo "         $0 /path/to/filament v1.74.0 /path/to/output --clean"
   echo "         $0 /path/to/filament v1.74.0 /path/to/output --release"
-  echo "         $0 /path/to/filament v1.74.0 /path/to/output --webgpu"
   echo "         $0 /path/to/filament v1.74.0 /path/to/output --tools-dir /path/to/tools"
   echo ""
   echo "Options:"
   echo "  --clean         Remove existing target directories before building"
   echo "  --release       Build release only"
   echo "  --debug         Build debug only"
-  echo "  --webgpu        Build with FILAMENT_SUPPORTS_WEBGPU=ON (backend/src/webgpu"
-  echo "                  + the WASM WebGPU platform). The output zips get a"
-  echo "                  -webgpu suffix so they can be published and pinned"
-  echo "                  beside the WebGL2-only artifact (web-webgpu/<variant>)."
+  echo "  --webgpu        Build WebGPU libraries and bundle the matching Dawn port"
   echo "  --tools-dir DIR Use prebuilt desktop tools from DIR (skips desktop build)"
   echo "                  DIR must contain ImportExecutables-Release.cmake and tools/"
   echo "  (default)       Build both release and debug"
@@ -42,8 +38,7 @@ CLEAN_FLAG=""
 BUILD_RELEASE=true
 BUILD_DEBUG=true
 TOOLS_DIR=""
-ZIP_SUFFIX=""
-WEBGPU_FLAG=""
+WEB_BACKEND=webgl
 
 while [ $# -gt 0 ]; do
   case $1 in
@@ -57,12 +52,7 @@ while [ $# -gt 0 ]; do
       BUILD_RELEASE=false
       ;;
     --webgpu)
-      # FILAMENT_SUPPORTS_WEBGPU=ON compiles backend/src/webgpu with the WASM
-      # WebGPU platform (WebGPUPlatformWasm). The engine then links these libs
-      # under THERMION_ENABLE_WEBGPU=ON (thermion_dart/native/web/CMakeLists.txt)
-      # with Emscripten's -sUSE_WEBGPU JS glue.
-      ZIP_SUFFIX="-webgpu"
-      WEBGPU_FLAG="-DFILAMENT_SUPPORTS_WEBGPU=ON"
+      WEB_BACKEND=webgpu
       ;;
     --tools-dir)
       shift
@@ -118,8 +108,15 @@ if [ ! -f "$EMSCRIPTEN_CMAKE" ]; then
 fi
 
 # Check if target directories already exist
-TARGET_RELEASE_DIR="$OUTPUT_BASE_DIR/$FILAMENT_VERSION/web/release"
-TARGET_DEBUG_DIR="$OUTPUT_BASE_DIR/$FILAMENT_VERSION/web/debug"
+SUFFIX=""
+WEBGPU_OPTION=()
+DAWN_PORT_FLAG=""
+if [ "$WEB_BACKEND" = webgpu ]; then
+  SUFFIX="-webgpu"
+  WEBGPU_OPTION=(-DFILAMENT_SUPPORTS_WEBGPU=ON)
+fi
+TARGET_RELEASE_DIR="$OUTPUT_BASE_DIR/$FILAMENT_VERSION/web$SUFFIX/release"
+TARGET_DEBUG_DIR="$OUTPUT_BASE_DIR/$FILAMENT_VERSION/web$SUFFIX/debug"
 
 if [ "$BUILD_RELEASE" = true ] && [ -d "$TARGET_RELEASE_DIR" ]; then
   if [ "$CLEAN_FLAG" = "--clean" ]; then
@@ -193,6 +190,15 @@ if [ -n "$TOOLS_DIR" ]; then
   # Use prebuilt tools from a local directory
   TOOLS_DIR=$(cd "$TOOLS_DIR" && pwd)
   echo "Using prebuilt desktop tools from: $TOOLS_DIR"
+elif [ "$WEB_BACKEND" = webgpu ]; then
+  # The official desktop tools lack WGSL support. Use Filament's split-build
+  # export format and build the host tools from the same source as the port.
+  cmake -G Ninja -S . -B out/prebuilt-tools-release \
+    -DCMAKE_BUILD_TYPE=Release -DFILAMENT_SUPPORTS_WEBGPU=ON \
+    -DFILAMENT_ENABLE_EXCEPTIONS=ON -DFILAMENT_SKIP_SAMPLES=ON \
+    -DFILAMENT_BUILD_TESTING=OFF \
+    -DFILAMENT_EXPORT_PREBUILT_EXECUTABLES_DIR=out/prebuilt-tools-release && \
+    cmake --build out/prebuilt-tools-release --target matc cmgen filamesh mipgen resgen uberz glslminifier || exit 1
 elif [ ! -d "$FILAMENT_BASE_DIR/out/cmake-release/tools" ]; then
   # Download official Filament release to get prebuilt tools
   echo "Downloading official Filament release for desktop tools..."
@@ -250,8 +256,15 @@ CMAKE_EOF
   done
 fi
 
-# Verify ImportExecutables file exists
+# Filament's split desktop build exports source-built tools separately.
+IMPORT_OPTION="-DIMPORT_EXECUTABLES_DIR=out"
 IMPORT_FILE="$FILAMENT_BASE_DIR/out/ImportExecutables-Release.cmake"
+SOURCE_TOOLS_DIR="out/prebuilt-tools-release"
+SOURCE_IMPORT_FILE="$FILAMENT_BASE_DIR/$SOURCE_TOOLS_DIR/ImportExecutables-Prebuilt.cmake"
+if [ -z "$TOOLS_DIR" ] && [ -f "$SOURCE_IMPORT_FILE" ]; then
+  IMPORT_OPTION="-DFILAMENT_IMPORT_PREBUILT_EXECUTABLES_DIR=$SOURCE_TOOLS_DIR"
+  IMPORT_FILE="$SOURCE_IMPORT_FILE"
+fi
 if [ ! -f "$IMPORT_FILE" ]; then
   echo "Error: ImportExecutables-Release.cmake not found at: $IMPORT_FILE"
   echo "Contents of $FILAMENT_BASE_DIR/out/:"
@@ -260,6 +273,21 @@ if [ ! -f "$IMPORT_FILE" ]; then
 fi
 echo "Found ImportExecutables file: $IMPORT_FILE"
 
+# Build the port from Filament's Dawn revision, as Filament's own WebGPU
+# build does. Bundle it with the archive so clients use the same ABI and glue.
+if [ "$WEB_BACKEND" = webgpu ]; then
+  DAWN_BUILD="$FILAMENT_BASE_DIR/out/cmake-wasm-dawn"
+  cmake -G Ninja -S "$FILAMENT_BASE_DIR/third_party/dawn" -B "$DAWN_BUILD" \
+    -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
+    -DDAWN_ABSEIL_DIR="$FILAMENT_BASE_DIR/third_party/abseil" \
+    -DDAWN_BUILD_TESTS=OFF -DDAWN_BUILD_SAMPLES=OFF \
+    -DDAWN_BUILD_PROTOBUF=OFF -DDAWN_SUPPORTS_CXX_MODULES=OFF \
+    -DTINT_BUILD_TESTS=OFF -DTINT_BUILD_BENCHMARKS=OFF && \
+    cmake --build "$DAWN_BUILD" --target emdawnwebgpu_pkg || exit 1
+  DAWN_PACKAGE="$DAWN_BUILD/emdawnwebgpu_pkg"
+  DAWN_PORT_FLAG=" --use-port=\"$DAWN_PACKAGE/emdawnwebgpu.port.py\""
+fi
+
 # Build release
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Building Filament for Web (release)..."
@@ -267,8 +295,8 @@ if [ "$BUILD_RELEASE" = true ]; then
   cd "$FILAMENT_BASE_DIR"
 
   # Create release build directory
-  mkdir -p out/cmake-webgl-release
-  cd out/cmake-webgl-release
+  mkdir -p out/cmake-${WEB_BACKEND}-release
+  cd out/cmake-${WEB_BACKEND}-release
 
   # Link tools directory
   if [ ! -L tools ]; then
@@ -286,17 +314,17 @@ if [ "$BUILD_RELEASE" = true ]; then
     -DFILAMENT_ENABLE_EXCEPTIONS=OFF \
     -DFILAMENT_SKIP_SAMPLES=1 -DFILAMENT_BUILD_TESTING=OFF \
     -DFILAMENT_BUILD_FILAMAT=ON \
-    $WEBGPU_FLAG \
+    "${WEBGPU_OPTION[@]}" \
     -DCMAKE_CXX_STANDARD=20 \
     -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
-    -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory" \
-    -DCMAKE_CXX_FLAGS="-fno-exceptions -pthread -matomics -mbulk-memory" \
+    -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory$DAWN_PORT_FLAG" \
+    -DCMAKE_CXX_FLAGS="-fno-exceptions -pthread -matomics -mbulk-memory$DAWN_PORT_FLAG" \
     -DIS_HOST_PLATFORM=0 \
     -DZ_HAVE_UNISTD_H=1 \
     -DUSE_ZLIB=1 \
-    -DIMPORT_EXECUTABLES_DIR=out \
-    -DCMAKE_INSTALL_PREFIX="$FILAMENT_BASE_DIR/out/webgl-release/filament" \
+    "$IMPORT_OPTION" \
+    -DCMAKE_INSTALL_PREFIX="$FILAMENT_BASE_DIR/out/${WEB_BACKEND}-release/filament" \
     -DWASM=1 \
     -DWASM_PTHREADS=0 \
     ../../ || {
@@ -315,7 +343,7 @@ if [ "$BUILD_RELEASE" = true ]; then
   }
 
   # Build libz
-  cd "$FILAMENT_BASE_DIR/out/cmake-webgl-release"
+  cd "$FILAMENT_BASE_DIR/out/cmake-${WEB_BACKEND}-release"
   mkdir -p third_party/libz
   cd third_party/libz
 
@@ -336,7 +364,7 @@ if [ "$BUILD_RELEASE" = true ]; then
   }
 
   # Build libpng
-  cd "$FILAMENT_BASE_DIR/out/cmake-webgl-release/third_party"
+  cd "$FILAMENT_BASE_DIR/out/cmake-${WEB_BACKEND}-release/third_party"
   mkdir -p libpng
   cd libpng
 
@@ -360,7 +388,7 @@ if [ "$BUILD_RELEASE" = true ]; then
   }
 
   # Build tinyexr
-  cd "$FILAMENT_BASE_DIR/out/cmake-webgl-release/third_party"
+  cd "$FILAMENT_BASE_DIR/out/cmake-${WEB_BACKEND}-release/third_party"
   mkdir -p tinyexr
   cd tinyexr
 
@@ -391,8 +419,8 @@ if [ "$BUILD_DEBUG" = true ]; then
   cd "$FILAMENT_BASE_DIR"
 
   # Create debug build directory
-  mkdir -p out/cmake-webgl-debug
-  cd out/cmake-webgl-debug
+  mkdir -p out/cmake-${WEB_BACKEND}-debug
+  cd out/cmake-${WEB_BACKEND}-debug
 
   # Link tools directory
   if [ ! -L tools ]; then
@@ -407,17 +435,17 @@ if [ "$BUILD_DEBUG" = true ]; then
     -DFILAMENT_ENABLE_EXCEPTIONS=OFF \
     -DFILAMENT_SKIP_SAMPLES=1 -DFILAMENT_BUILD_TESTING=OFF \
     -DFILAMENT_BUILD_FILAMAT=ON \
-    $WEBGPU_FLAG \
+    "${WEBGPU_OPTION[@]}" \
     -DCMAKE_CXX_STANDARD=20 \
     -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
     -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
-    -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory" \
-    -DCMAKE_CXX_FLAGS="-fno-exceptions -pthread -matomics -mbulk-memory" \
+    -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory$DAWN_PORT_FLAG" \
+    -DCMAKE_CXX_FLAGS="-fno-exceptions -pthread -matomics -mbulk-memory$DAWN_PORT_FLAG" \
     -DIS_HOST_PLATFORM=0 \
     -DZ_HAVE_UNISTD_H=1 \
     -DUSE_ZLIB=1 \
-    -DIMPORT_EXECUTABLES_DIR=out \
-    -DCMAKE_INSTALL_PREFIX="$FILAMENT_BASE_DIR/out/webgl-debug/filament" \
+    "$IMPORT_OPTION" \
+    -DCMAKE_INSTALL_PREFIX="$FILAMENT_BASE_DIR/out/${WEB_BACKEND}-debug/filament" \
     -DWASM=1 \
     -DWASM_PTHREADS=0 \
     ../../ || {
@@ -436,7 +464,7 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 
   # Build libz for debug
-  cd "$FILAMENT_BASE_DIR/out/cmake-webgl-debug"
+  cd "$FILAMENT_BASE_DIR/out/cmake-${WEB_BACKEND}-debug"
   mkdir -p third_party/libz
   cd third_party/libz
 
@@ -457,7 +485,7 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 
   # Build libpng for debug
-  cd "$FILAMENT_BASE_DIR/out/cmake-webgl-debug/third_party"
+  cd "$FILAMENT_BASE_DIR/out/cmake-${WEB_BACKEND}-debug/third_party"
   mkdir -p libpng
   cd libpng
 
@@ -481,7 +509,7 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 
   # Build tinyexr for debug
-  cd "$FILAMENT_BASE_DIR/out/cmake-webgl-debug/third_party"
+  cd "$FILAMENT_BASE_DIR/out/cmake-${WEB_BACKEND}-debug/third_party"
   mkdir -p tinyexr
   cd tinyexr
 
@@ -528,7 +556,7 @@ if [ "$BUILD_RELEASE" = true ]; then
   cd "$FILAMENT_BASE_DIR"
 
   # Copy main filament libraries (.a files for web)
-  find out/cmake-webgl-release -name "*.a" -type f -exec cp {} "$TARGET_RELEASE_DIR/" \; || {
+  find "out/cmake-${WEB_BACKEND}-release" -name "*.a" -type f -exec cp {} "$TARGET_RELEASE_DIR/" \; || {
     echo "Error: Failed to copy release libraries"
     exit 1
   }
@@ -543,7 +571,7 @@ if [ "$BUILD_RELEASE" = true ]; then
   fi
 
   # Copy .bc (bitcode) files if they exist
-  find out/cmake-webgl-release -name "*.bc" -type f -exec cp {} "$TARGET_RELEASE_DIR/" \; 2>/dev/null
+  find "out/cmake-${WEB_BACKEND}-release" -name "*.bc" -type f -exec cp {} "$TARGET_RELEASE_DIR/" \; 2>/dev/null
 fi
 
 # Copy debug libraries
@@ -552,7 +580,7 @@ if [ "$BUILD_DEBUG" = true ]; then
   cd "$FILAMENT_BASE_DIR"
 
   # Copy main filament libraries (.a files for web)
-  find out/cmake-webgl-debug -name "*.a" -type f -exec cp {} "$TARGET_DEBUG_DIR/" \; || {
+  find "out/cmake-${WEB_BACKEND}-debug" -name "*.a" -type f -exec cp {} "$TARGET_DEBUG_DIR/" \; || {
     echo "Error: Failed to copy debug libraries"
     exit 1
   }
@@ -564,7 +592,7 @@ if [ "$BUILD_DEBUG" = true ]; then
   fi
 
   # Copy .bc (bitcode) files if they exist
-  find out/cmake-webgl-debug -name "*.bc" -type f -exec cp {} "$TARGET_DEBUG_DIR/" \; 2>/dev/null
+  find "out/cmake-${WEB_BACKEND}-debug" -name "*.bc" -type f -exec cp {} "$TARGET_DEBUG_DIR/" \; 2>/dev/null
 fi
 
 # Bundle the Filament header tree into each target zip directory so the web
@@ -575,7 +603,7 @@ fi
 # hand-committed tree that can drift on version bumps.
 copy_web_headers() {
   local target_dir="$1"    # $TARGET_RELEASE_DIR or $TARGET_DEBUG_DIR
-  local header_src="$2"    # out/webgl-<mode>/filament/include
+  local header_src="$2"
   local inc="$target_dir/include"
 
   echo "Bundling Filament headers into $inc ..."
@@ -584,6 +612,10 @@ copy_web_headers() {
     echo "Error: Failed to copy Filament headers"
     exit 1
   }
+
+  if [ "$WEB_BACKEND" = webgpu ]; then
+    cp -R "$DAWN_PACKAGE" "$target_dir/" || exit 1
+  fi
 
   # stb_image.h (third-party header used by TTexture.cpp)
   mkdir -p "$inc/third_party/stb"
@@ -595,17 +627,17 @@ copy_web_headers() {
 }
 
 if [ "$BUILD_RELEASE" = true ]; then
-  copy_web_headers "$TARGET_RELEASE_DIR" "out/webgl-release/filament/include"
+  copy_web_headers "$TARGET_RELEASE_DIR" "out/${WEB_BACKEND}-release/filament/include"
 fi
 if [ "$BUILD_DEBUG" = true ]; then
-  copy_web_headers "$TARGET_DEBUG_DIR" "out/webgl-debug/filament/include"
+  copy_web_headers "$TARGET_DEBUG_DIR" "out/${WEB_BACKEND}-debug/filament/include"
 fi
 
 # Create zip files
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Creating release zip..."
   cd "$TARGET_RELEASE_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-release${ZIP_SUFFIX}.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-release${SUFFIX}.zip" . || {
     echo "Error: Failed to create release zip"
     exit 1
   }
@@ -614,7 +646,7 @@ fi
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Creating debug zip..."
   cd "$TARGET_DEBUG_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-debug${ZIP_SUFFIX}.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-debug${SUFFIX}.zip" . || {
     echo "Error: Failed to create debug zip"
     exit 1
   }
@@ -623,9 +655,9 @@ fi
 echo "Build completed successfully!"
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Release libraries: $TARGET_RELEASE_DIR"
-  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-release${ZIP_SUFFIX}.zip"
+  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-release${SUFFIX}.zip"
 fi
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Debug libraries: $TARGET_DEBUG_DIR"
-  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-debug${ZIP_SUFFIX}.zip"
+  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-web-debug${SUFFIX}.zip"
 fi
