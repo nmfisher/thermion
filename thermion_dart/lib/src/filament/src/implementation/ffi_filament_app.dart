@@ -254,19 +254,18 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final nameComponentManager = NameComponentManager_create();
 
-    // gltfio is compiled out of `features.gltf: false` builds
-    // (docs/feature-optout-proposal.md §5.5): skip the loader round-trip and
-    // the provider lookup entirely instead of creating stub handles. Both
-    // handles stay null for the lifetime of this app; every Dart API that
-    // needs them throws UnsupportedError via checkSupported.
-    var gltfAssetLoader = nullptr.cast<TGltfAssetLoader>();
-    var ubershaderMaterialProvider = nullptr.cast<TMaterialProvider>();
-    if (buildSupports(ThermionFeature.gltf)) {
-      gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
-        (cb) => GltfAssetLoader_createJobThread(jobThreadHandle, engine, nullptr, nameComponentManager, cb),
-      );
-      ubershaderMaterialProvider = GltfAssetLoader_getMaterialProvider(gltfAssetLoader);
-    } else {
+    // The gltfio loader is also the carrier for the material provider handle.
+    // In a `features.gltf: false` build the C stub returns an
+    // UnlitFallbackProvider holding the engine, so this handle is non-null in
+    // every build and createUnlitMaterialInstance can go through the same
+    // context-free MaterialProvider_createMaterialInstance entry point
+    // (docs/feature-optout-proposal.md §5.5, §10.1 deviation 3). glTF loading
+    // itself still throws UnsupportedError via checkSupported.
+    var gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
+      (cb) => GltfAssetLoader_createJobThread(jobThreadHandle, engine, nullptr, nameComponentManager, cb),
+    );
+    var ubershaderMaterialProvider = GltfAssetLoader_getMaterialProvider(gltfAssetLoader);
+    if (!buildSupports(ThermionFeature.gltf)) {
       _logger.warning(
         "This build has glTF support disabled (features.gltf: false): glTF loading, "
         "glTF animation and ubershader materials are unavailable; procedural geometry "
@@ -982,7 +981,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     bool hasIOR = false,
     bool hasVolume = false,
   }) async {
-    checkSupported(ThermionFeature.gltf, 'createUbershaderMaterialInstance');
+    // The unlit variant is the procedural fallback in a `features.gltf:
+    // false` build: MaterialProvider_createMaterialInstance's stub builds the
+    // precompiled UNLIT_FALLBACK package from the provider's engine. Every
+    // other key is a genuine ubershader request and stays guarded.
+    if (!unlit) {
+      checkSupported(ThermionFeature.gltf, 'createUbershaderMaterialInstance');
+    }
     final materialInstance = await withPointerCallback<TMaterialInstance>((cb) {
       MaterialProvider_createMaterialInstanceJobThread(
         jobThreadHandle,
@@ -1040,51 +1045,21 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return instance;
   }
 
-  FFIMaterial? _unlitFallbackMaterial;
-
   /// The unlit material procedural code depends on (createGeometry without an
   /// explicit material, bounding-box helpers, TextureProjection).
   ///
   /// With glTF support this is the gltfio ubershader's unlit variant. Without
-  /// it (features.gltf: false) there is no ubershader, so the instance comes
-  /// from the small precompiled package the hook compiled for exactly this
-  /// case (hook/materials/unlit_fallback.mat, UNLIT_FALLBACK_ENABLED /
-  /// BUILT_IN_UNLIT_FALLBACK) — same parameter name, same opaque unlit look
-  /// (docs/feature-optout-proposal.md §5.6, decision D5). Only the explicit
-  /// ubershader requests ([createUbershaderMaterialInstance]) throw.
-  //
+  /// it (features.gltf: false) the same context-free C entry point returns an
+  /// instance of the small precompiled package the hook compiled for exactly
+  /// this case (hook/materials/unlit_fallback.mat, UNLIT_FALLBACK_ENABLED /
+  /// BUILT_IN_UNLIT_FALLBACK) — the fallback lives in
+  /// MaterialProvider_createMaterialInstance's stub, so there is no
+  /// Dart-side branch here (docs/feature-optout-proposal.md §5.6, decision
+  /// D5; §10.1 deviation 3). Only explicit ubershader requests
+  /// ([createUbershaderMaterialInstance] with `unlit: false`) throw.
+  @override
   Future<MaterialInstance> createUnlitMaterialInstance() async {
-    if (supports(ThermionFeature.gltf)) {
-      return createUbershaderMaterialInstance(unlit: true, hasVertexColors: false);
-    }
-    _unlitFallbackMaterial ??= await _createUnlitFallbackMaterial();
-    return _unlitFallbackMaterial!.createInstance();
-  }
-
-  Future<FFIMaterial> _createUnlitFallbackMaterial() async {
-    if (FILAMENT_WASM) {
-      // Web engines are prebuilt with every feature; a web build that gets
-      // here is a custom slim engine without the embedded package support.
-      throw UnsupportedError(
-        'createUnlitMaterialInstance needs glTF support (features.gltf) or the '
-        'unlit fallback material; neither is available in this web engine.',
-      );
-    }
-    late final bool included;
-    final ptr = await withPointerCallback<TMaterial>((cb) {
-      included = Material_createBuiltInJobThread(jobThreadHandle, engine, TBuiltInMaterial.BUILT_IN_UNLIT_FALLBACK, cb);
-    });
-    if (!included) {
-      throw StateError(
-        'This build has glTF support disabled (features.gltf: false) but the unlit '
-        'fallback material was not compiled into libthermion_dart. Rebuild so the '
-        'thermion_dart build hook compiles hook/materials/unlit_fallback.mat.',
-      );
-    }
-    if (ptr == nullptr) {
-      throw StateError('Filament could not build the unlit fallback material.');
-    }
-    return FFIMaterial(ptr, this);
+    return createUbershaderMaterialInstance(unlit: true, hasVertexColors: false);
   }
 
   @override

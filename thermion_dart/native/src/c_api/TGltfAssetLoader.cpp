@@ -28,6 +28,8 @@
 #include "scene/GltfSceneAsset.hpp"
 #endif
 
+#include "material/UnlitFallbackProvider.hpp"
+
 #include <utils/EntityManager.h>
 #include <utils/NameComponentManager.h>
 
@@ -201,17 +203,32 @@ EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tS
 
 #else // !THERMION_ENABLE_GLTF
 // Stub contract (docs/feature-optout-proposal.md §5.2/§5.4): the same C
-// symbols with the same signatures, no gltfio references. Loaders and
-// providers return null so the *JobThread wrappers complete their Dart
-// callbacks with null instead of hanging; Dart's guards turn those into
-// UnsupportedError before any of this is reached.
+// symbols with the same signatures, no gltfio references.
+//
+// The loader handle doubles as the unlit fallback material provider: it
+// captures the engine so MaterialProvider_createMaterialInstance can build the
+// precompiled UNLIT_FALLBACK package without an Engine parameter (§10.1,
+// deviation 3). glTF loading itself still returns null; Dart's guards turn
+// that into UnsupportedError before any of it is reached.
 
 EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, TMaterialProvider *tMaterialProvider, TNameComponentManager *tNameComponentManager) {
-    Log("GltfAssetLoader_create: glTF support is disabled in this build (features.gltf: false)");
-    return nullptr;
+    THERMION_ENGINE_API_GUARD;
+    (void)tMaterialProvider;
+    (void)tNameComponentManager;
+    return reinterpret_cast<TGltfAssetLoader *>(new UnlitFallbackProvider{
+        reinterpret_cast<filament::Engine *>(tEngine), nullptr});
 }
 
 EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_destroy(TGltfAssetLoader *tAssetLoader) {
+    THERMION_ENGINE_API_GUARD;
+    auto *provider = reinterpret_cast<UnlitFallbackProvider *>(tAssetLoader);
+    if (!provider) {
+        return;
+    }
+    if (provider->unlitMaterial && provider->engine) {
+        provider->engine->destroy(provider->unlitMaterial);
+    }
+    delete provider;
 }
 
 EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
@@ -221,16 +238,23 @@ EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
     size_t length,
     uint32_t numInstances)
 {
+    (void)tEngine;
+    (void)tAssetLoader;
+    (void)data;
+    (void)length;
+    (void)numInstances;
     Log("GltfAssetLoader_load: glTF support is disabled in this build (features.gltf: false)");
     return nullptr;
 }
 
 EMSCRIPTEN_KEEPALIVE TMaterialInstance *GltfAssetLoader_getMaterialInstance(TRenderableManager *tRenderableManager, TFilamentAsset *tAsset) {
+    (void)tRenderableManager;
+    (void)tAsset;
     return nullptr;
 }
 
 EMSCRIPTEN_KEEPALIVE TMaterialProvider *GltfAssetLoader_getMaterialProvider(TGltfAssetLoader *tAssetLoader) {
-    return nullptr;
+    return reinterpret_cast<TMaterialProvider *>(tAssetLoader);
 }
 
 EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createFromFilamentAsset(
