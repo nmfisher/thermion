@@ -26,7 +26,7 @@ class FilamentConfig<T, U> {
 ///
 /// Each one can be switched off when building the consuming app, under
 /// `hooks.user_defines.thermion_dart.features` in its pubspec.yaml (all on
-/// by default; see docs/feature-optout-proposal.md §4):
+/// by default; see "Compile-time feature opt-outs" in the package README):
 ///
 /// ```yaml
 /// hooks:

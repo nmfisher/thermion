@@ -151,9 +151,10 @@ hooks:
 ```
 
 Each disabled feature removes its Filament archives from the link line
-(`gltf: false` alone saves roughly 2.5 MB of the Linux x64 release
-`libthermion_dart.so`), while the C entry points stay exported as no-op stubs
-so the Dart FFI bindings are the same in every variant.
+(measured on the stripped Linux x64 release `libthermion_dart.so`:
+`gltf: false` alone takes it from 7.84 MB to 6.81 MB, all three off to
+5.69 MB), while the C entry points stay exported as no-op stubs so the Dart
+FFI bindings are the same in every variant.
 `FilamentApp.instance!.supports(ThermionFeature.gltf)` (and `.ktx`,
 `.imageDecoding`, `.runtimeMaterials`) reports what the loaded build has;
 APIs that need a disabled feature throw an `UnsupportedError` naming the key
@@ -161,7 +162,7 @@ instead of failing deeper in the FFI layer:
 
 | Disabled | Throws `UnsupportedError` | Keeps working |
 | --- | --- | --- |
-| `gltf` | `loadGltfFromBuffer`, `ThermionViewer.loadGltf*`, `ThermionViewerWidget.assetPath`, `createUbershaderMaterialInstance`/`createUbershaderMaterial`, glTF/bone/morph animation, `getBones`/`releaseSourceData` | `createGeometry`, instancing, `parseGltf`/`GltfMeshData`, and `createUnlitMaterialInstance` — the latter from a small **precompiled unlit material** the build hook compiles only for `gltf: false` builds (`hook/materials/unlit_fallback.mat`), so procedural code never needs the ubershader |
+| `gltf` | `loadGltfFromBuffer`, `ThermionViewer.loadGltf*`, `ThermionViewerWidget.assetPath`, `createUbershaderMaterialInstance`/`createUbershaderMaterial`, glTF/bone/morph animation, `getBones`/`releaseSourceData` | `createGeometry`, instancing, `parseGltf`/`GltfMeshData`, and `createUnlitMaterialInstance` — the latter from a small **precompiled unlit material** the build hook compiles only for `gltf: false` builds (`hook/materials/unlit_fallback.mat`; same semantics as the ubershader's unlit variant: opaque white until `baseColorFactor` is set, vertex colours ignored). `createGeometry` without `materialInstances` never needed either: it renders with Filament's default material |
 | `ktx` | `loadKtx2`, `loadKtx`/`createIblFromKtx` | `createImage`, `Texture.setLinearImage`/`loadImage` |
 | `image_decoding` | `decodeImage` | `createImage`, `Texture.setLinearImage`/`loadImage` |
 
