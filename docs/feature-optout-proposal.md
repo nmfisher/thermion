@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| Status | **Implementing on `feature-opt-libs`** (round 3). The native `gltf: false` prototype, the `features` schema, the C guards/probe, the unlit fallback, the Dart `supports()`/`UnsupportedError` surface and the slim-build test are landed; §10 records what the Linux proof measured, where the implementation deviated from this text, and what remains (Android arm64 measurement, CI wiring, web engine republication). |
+| Status | **Implementing on `feature-opt-libs`** (round 4). The native `gltf: false` prototype, the `features` schema, the C guards/probe, the unlit fallback, the Dart `supports()`/`UnsupportedError` surface and the slim-build test are landed; round 4 resolved every §10.1 deviation (neutral math header, single-sourced Windows link list, self-sufficient ffigen_js regeneration, context-free unlit fallback in C, value-check runtime-materials guards). §10 records what was measured, where the implementation deviated from this text, and what remains (Android arm64 measurement, CI wiring, web engine republication). |
 | Branch | `feature-opt-libs` (branched from `origin/develop` at `9029ba90`) |
 | Filament | v1.77.2 (`filament.version`) |
 | Supersedes | The open ideas in `.tickets/the-0rkw.md` (optional libraries for binary size). This document uses the real link list and measured archive closures. |
@@ -87,17 +87,19 @@ app calls.
 | `zstd` | `!linux` | `filament::ZstdHelper` / `MaterialParser` (`ZSTD_*`) — core; on Linux the combined `libfilamat.a` is the provider |
 | `matp`, `filamat`, `shaders` | `runtime_materials`, plus `filamat` in **debug** (matdbg `ShaderReplacer`) and on **Linux** (zstd provider) | `TMaterialCompiler.cpp` (guarded by `THERMION_ENABLE_RUNTIME_MATERIALS`); `TMaterialPackage.cpp` uses only the header constant `filamat::MaterialVersion` |
 | `matdbg`, `fgviewer` | debug on macOS/Android (and Linux debug via `libraries`) | Filament debug builds only |
-| `meshoptimizer`, `mikktspace` | Windows only (`#pragma comment(lib)` in `native/include/ThermionWin32.h`) | gltfio (meshopt extension, tangents) |
+| `meshoptimizer`, `mikktspace` | Windows only (in the hook's `libs` list, passed to CBuilder's `libraries`; formerly `#pragma comment(lib)` in `native/include/ThermionWin32.h`) | gltfio (meshopt extension, tangents) |
 
 Platform extras (`bluegl`/`bluevk`, Android `GLESv3`/`EGL`/`perfetto`, Linux
 `drm`/`EGL`/`GL`/`gbm`, `webgpu_dawn`/`abseil` for the WebGPU backend) are
 core and unaffected by this proposal.
 
-Windows differs in one way: `ThermionWin32.h` links `matp.lib` and
+Windows differs in one way: `ThermionWin32.h` used to link `matp.lib` and
 `filamat.lib` unconditionally (lines 14-15), regardless of `runtime_materials`.
-As with every archive, this costs nothing unless referenced, but the pragma
-should move under the same `THERMION_ENABLE_RUNTIME_MATERIALS` guard as the
-glslang/SPIRV pragmas below it for consistency (§5.5).
+As with every archive, this cost nothing unless referenced. Round 3 moved
+those pragmas under the same `THERMION_ENABLE_RUNTIME_MATERIALS` guard as the
+glslang/SPIRV pragmas below them; round 4 removed the whole pragma list and
+moved every Windows link input into the hook's single `libs` list
+(§4.4, §10.4).
 
 ### 2.2 Web (`native/web/CMakeLists.txt`, `target_link_libraries`, lines 365-407)
 
@@ -178,7 +180,8 @@ through the two texture providers — `stb`, `ktxreader` and `basis_transcoder`.
 `toFloatArray`, … — are called anywhere in Thermion, so the include can simply
 be dropped; **correction during implementation (§10):** `decomposeMatrix` /
 `composeMatrix` *are* called there. They are header-only `inline` functions, so
-this is still compile-time only — the include stays, nothing is linked),
+this is still compile-time only — **round 4** hoisted those two helpers into
+the neutral `native/include/MathUtils.hpp` and dropped the include entirely),
 `scene/GeometrySceneAsset.cpp/.hpp` (`MaterialProvider.h`),
 `include/scene/SceneAsset.hpp` (`FilamentAsset.h`),
 `include/material/FileMaterialProvider.hpp` (unused class deriving from
@@ -197,7 +200,7 @@ this is still compile-time only — the include stays, nothing is linked),
 
 **Verdict: opt-out as `features.gltf`.** When off, the hook drops
 `gltfio_core`, `gltfio`, `uberarchive`, `dracodec`, `uberzlib` (and the
-Windows-only `meshoptimizer`/`mikktspace` pragmas); `geometry` stays because
+Windows-only `meshoptimizer`/`mikktspace` libs); `geometry` stays because
 `TSurfaceOrientation`/`CustomGeometry` use it. Two things must be solved so
 procedural apps keep working (§5.6): engine init must not create the loader,
 and `createUnlitMaterialInstance` needs a non-gltfio fallback (a precompiled
@@ -328,9 +331,10 @@ are extracted. Debug builds reference `matdbg`, whose `ShaderReplacer` needs
 review decision D3: (1) **`smol-v` stays unconditional** — the core material
 reader (`filaflat::DictionaryReader`) uses its decoder in every build, so it
 must not move under `runtime_materials`; only `matp` and the Windows
-`matp.lib`/`filamat.lib` pragmas move under the same conditions as the other
-platforms so the link lists tell the truth (the pragma guards remain
-**presence checks**, see §5.1 — the macro stays undefined when off);
+`matp.lib`/`filamat.lib` entries move under the same conditions as the other
+platforms so the link lists tell the truth. Round 3 did that with guarded
+pragmas; round 4 replaced the whole Windows pragma list with the hook's `libs`
+list and migrated the macro to value checks (§4.4, §5.1);
 (2) when `features.ktx` and `features.gltf` are both off and
 `runtime_materials` is off, the Linux "zstd provider" rule is the only reason
 left to list `filamat` — keep it (it is free) rather than special-casing the
@@ -374,7 +378,7 @@ filamat / matp / shaders         features.runtime_materials (existing) + debug (
 smol-v                           core (filaflat::DictionaryReader)
 z, zstd                          core (material packages, KTX1 inflate)
 filameshio                       nothing
-* Windows pragmas only
+* Windows libs only
 ```
 
 | Library | Archive(s) removed from the link line | Guard macro | Stub behaviour |
@@ -447,7 +451,7 @@ branch), so both branches see it. Cross-feature rules:
   texture, which never surfaces the promised load error to Dart. The error
   message names both keys and points at §5.3. `ktx`/`image_decoding` remain
   independently switchable when `gltf: false`.
-- `gltf: false` implies Draco, meshoptimizer/mikktspace (Windows pragmas) and
+- `gltf: false` implies Draco, meshoptimizer/mikktspace (Windows libs) and
   `uberzlib` drop regardless of other keys — they have no other client.
 - `runtime_materials: true` is orthogonal; no interaction rules needed
   (filamat never references gltfio).
@@ -485,31 +489,30 @@ the same fail-fast property `runtime_materials` already has.
 
 ### 4.4 Windows
 
-`ThermionWin32.h` gains the same guards around the corresponding
-`#pragma comment(lib, ...)` lines:
+Round 4 removed the separate Windows link list. `ThermionWin32.h` no longer
+contains `#pragma comment(lib, ...)` directives; every Windows link input
+(system import libraries, `bluegl`/`bluevk`, the `filamat` shader-compiler
+split, `meshoptimizer`/`mikktspace`, `vulkan-1`/`dxgi`/`d3d11`) lives in the
+same `libs` list in `hook/build.dart` as the other platforms, and the hook
+passes that list to CBuilder's `libraries` for Windows. The feature conditions
+are therefore written once (`if (features.gltf)`, `if (runtimeMaterials)`, …)
+instead of being duplicated between Dart and C:
 
-```c
-#if THERMION_ENABLE_GLTF
-#pragma comment(lib, "gltfio_core.lib")
-#pragma comment(lib, "dracodec.lib")
-#pragma comment(lib, "uberarchive.lib")
-#pragma comment(lib, "uberzlib.lib")
-#pragma comment(lib, "meshoptimizer.lib")
-#pragma comment(lib, "mikktspace.lib")
-#endif
-#if THERMION_ENABLE_KTX
-#pragma comment(lib, "ktxreader.lib")
-#pragma comment(lib, "basis_transcoder.lib")
-#endif
-#if THERMION_ENABLE_IMAGE_DECODING
-#pragma comment(lib, "stb.lib")
-#endif
+```dart
+if (features.gltf) ...[
+  "gltfio_core",
+  "dracodec",
+  if (targetOS == OS.windows) ...["meshoptimizer", "mikktspace"],
+],
+if (features.ktx) ...["ktxreader", "basis_transcoder"],
+if (features.imageDecoding) "stb",
 ```
 
-and the unconditional `matp.lib`/`filamat.lib` pragmas (lines 14-15) move
-under the existing `#if defined(THERMION_ENABLE_RUNTIME_MATERIALS)` block
-(§2.1 consistency fix). That block stays a **presence check**: the macro is
-undefined when `runtime_materials` is off (D3, §5.1), never defined to 0.
+`matp`/`filamat` and the glslang/SPIRV compiler libraries stay under the same
+`runtimeMaterials` condition. That condition keeps its **presence semantics**
+in the sense that the macro is only *passed* as `=1` when enabled; after the
+round-4 value-check migration (§5.1, D3) the header defaults it to `0`, so a
+Windows build with the option off cannot select the compiler block by accident.
 
 ### 4.5 Caching and artifact identity
 
@@ -593,27 +596,23 @@ translation unit (and by `ThermionWin32.h`):
 #ifndef THERMION_ENABLE_IMAGE_DECODING
 #define THERMION_ENABLE_IMAGE_DECODING 1
 #endif
-// THERMION_ENABLE_RUNTIME_MATERIALS is deliberately NOT defaulted here
-// (decision D3): it keeps its existing presence semantics — defined (=1)
-// when runtime_materials is enabled, UNDEFINED when off.
+#ifndef THERMION_ENABLE_RUNTIME_MATERIALS
+#define THERMION_ENABLE_RUNTIME_MATERIALS 0
+#endif
 ```
 
-Two deliberate differences from the existing `TMaterialCompiler.cpp` style
-(`#ifdef`): value macros with header defaults **for the three new switches
-only**, because (a) `ThermionWin32.h` must see the same defaults for its
-pragmas, and (b) `#if` typos fail loudly with `-Wundef` instead of silently
-disabling a feature.
+All four switches are value macros, so `#if` typos fail loudly with `-Wundef`
+instead of silently disabling a feature. The three opt-out switches default to
+`1`; `THERMION_ENABLE_RUNTIME_MATERIALS` is opt-in and defaults to `0`.
 
-**`THERMION_ENABLE_RUNTIME_MATERIALS` must stay undefined when off
-(decision D3).** Its existing guards are presence checks —
-`#ifdef` in `TMaterialCompiler.cpp` and `#if defined(...)` in
-`ThermionWin32.h` (line 16, the glslang/SPIRV compiler pragmas). Defining it
-to `0` would still select the real compiler and the Windows compiler
-pragmas under those checks. So `ThermionFeatures.h` gives it **no default**,
-and the hook keeps today's behaviour: pass `=1` only when enabled, pass
-nothing otherwise. Migrating every guard to value checks (`#if`) is allowed
-only as a single atomic change that migrates *all* of them (C, Windows
-header, web CMake) together — not as optional per-file cleanup.
+**`THERMION_ENABLE_RUNTIME_MATERIALS` uses value checks after round 4
+(decision D3).** D3 allowed exactly one atomic migration from presence
+semantics to value checks, covering every guard together; round 4 performed
+it: `TMaterialCompiler.cpp` (`#if`), `TThermionFeatures.cpp` (`#if`) and the
+web/macOS CMake definitions (`=0`/`=1` via `$<BOOL:...>`) all moved in the
+same change. The hook still passes `=1` only when `runtime_materials` is
+enabled, so an all-default build's compile command is unchanged; the header's
+`0` default is what selects the stub when the option is off.
 
 Web: `native/web/CMakeLists.txt` maps its `option()`s to the same
 `target_compile_definitions`, so one macro set serves both build systems.
@@ -658,7 +657,7 @@ Stub rules (so the binary stays loadable and the Dart bindings stay valid):
 `TTexture.cpp` (`Image_decode` body, `Ktx1Bundle_*`, `Ktx1Reader_*`,
 `Ktx2Reader_*`), `TSceneAsset.cpp`'s glTF-specific entry points (see Pattern A
 note above), `TGltfResourceLoader.cpp`'s provider registration (§5.3),
-`TScene.cpp` (`Scene_addFilamentAsset`), `ThermionWin32.h` pragmas (§4.4).
+`TScene.cpp` (`Scene_addFilamentAsset`), and the Windows link list (§4.4; the pragmas are gone after round 4).
 Includes of feature headers move under the same guard so a disabled build
 cannot accidentally re-introduce a link reference.
 
@@ -749,9 +748,14 @@ the proposal makes it explicit:
 - C: `AnimationManager_create` under `!THERMION_ENABLE_GLTF` returns a
   zero-cost object whose `tick`/`addAnimation` do nothing (Pattern C), so
   `RenderManager_addAnimationManager` at init stays valid;
-- Dart: `init` skips `GltfAssetLoader_createJobThread` and
+- Dart: round 3 skipped `GltfAssetLoader_createJobThread` and
   `GltfAssetLoader_getMaterialProvider` when `!supports(ThermionFeature.gltf)`
-  (§6), storing null — one fewer job-thread round-trip at startup.
+  (§6), storing null. **Round 4 changed this:** the stub loader now doubles as
+  the `UnlitFallbackProvider` for the precompiled unlit material, so init
+  creates it in every build and the provider handle is non-null. glTF loading
+  is still guarded by `checkSupported`; the extra job-thread round-trip is the
+  cost of serving procedural geometry's unlit material through the same
+  context-free C entry point (§10.4).
 
 ### 5.6 Procedural-only apps: the unlit material fallback
 
@@ -782,13 +786,15 @@ Fix, using machinery that already exists, **compiled only when glTF is off**
    precompiled blob instead of the ubershader provider when
    `!THERMION_ENABLE_GLTF`. The Dart API is unchanged;
    `createUbershaderMaterialInstance` (explicit ubershader requests) still
-   returns null / throws (§6). **Implemented in Dart, not in
-   `MaterialProvider_createMaterialInstance`'s stub (§10):** that C entry
-   point has no `Engine`, which `Material::Builder::build` needs, so the
-   fallback branches in `FFIFilamentApp.createUnlitMaterialInstance` and builds
-   the blob through the existing `Material_createBuiltInJobThread(engine,
-   BUILT_IN_UNLIT_FALLBACK)` path — no new C symbol; the stub stays a plain
-   null-returning stub.
+   returns null / throws (§6). **Round 3 implemented this in Dart, not in
+   `MaterialProvider_createMaterialInstance`'s stub (§10.1):** that C entry
+   point has no `Engine`, which `Material::Builder::build` needs. **Round 4
+   moved it into the stub:** `GltfAssetLoader_create`'s stub returns an
+   `UnlitFallbackProvider` carrying the engine, and
+   `MaterialProvider_createMaterialInstance`'s stub builds the precompiled
+   package from that engine on first use — still no new C symbol, and the C
+   entry point stays context-free (no `Engine` parameter). Dart no longer
+   branches on `supports(gltf)` for this path (§10.4).
 
 Cost: one small precompiled material package (single-digit KB) in slim
 builds only, no new archives, no compiler dependency for default apps.
@@ -938,11 +944,13 @@ Implementation order, revised by review decisions D4/D5 (each step
 independently mergeable; **the prototype gates the rest**):
 
 1. **Free wins, no schema**: drop the unreferenced `gltfio` archive from the
-   desktop link list; move Windows `matp`/`filamat` pragmas under the
-   existing `#if defined(THERMION_ENABLE_RUNTIME_MATERIALS)` block (macro
-   stays undefined when off, D3); drop unused gltfio includes
-   (`TTransformManager.cpp`, `FileMaterialProvider.hpp`). `smol-v` stays
-   unconditional (D3).
+   desktop link list; move Windows `matp`/`filamat` under the
+   `THERMION_ENABLE_RUNTIME_MATERIALS` condition (done in round 3 with
+   pragmas; round 4 replaced the pragma list with the hook's `libs` list and
+   migrated the macro to value checks, D3); drop unused gltfio includes
+   (`TTransformManager.cpp` — its two used helpers were hoisted to
+   `MathUtils.hpp` in round 4 — and `FileMaterialProvider.hpp`). `smol-v`
+   stays unconditional (D3).
 2. **Native `gltf: false` prototype (D5) — before any schema/API rollout**:
    hand-built `libthermion_dart` with `THERMION_ENABLE_GLTF=0` and the
    reduced link line, **texture decoders left available** (`ktx` and
@@ -998,11 +1006,11 @@ do not re-open them during implementation.
 | --- | --- | --- |
 | D1 | Procedural scene assets stay in the core: `TSceneAsset.cpp` uses local guards (Pattern B), not a whole-file stub; shared `SceneAsset_createFromBuffers`, entity access, instancing and destruction stay live. A slim-build test creates, instances, renders and destroys procedural geometry. | §3.1, §5.2, §5.4, §5.7 (criterion 4), §6.2 |
 | D2 | Mixed builds (`gltf: true` with `ktx: false` or `image_decoding: false`) are **deferred**: hard error at hook time in v1. Filament v1.77.2 stalls async progress at 0 with an empty provider map (even textureless assets) and log-and-skips missing providers. Re-enabling requires defined+tested completion for textureless assets and a clear propagated failure for assets needing a disabled decoder, sync and async. | §4.2, §4.3, §5.3, §5.7, §7 (informational row), §8 risk table |
-| D3 | `THERMION_ENABLE_RUNTIME_MATERIALS` keeps presence semantics: **undefined when off**, `=1` when on; no default in `ThermionFeatures.h`. Defining it to 0 would still enable the real compiler and Windows compiler pragmas under their `#ifdef`/`#if defined` guards. A value-check migration is only allowed as one atomic change covering every guard. `smol-v` stays **unconditional** (core `filaflat::DictionaryReader` decoder). | §3.7, §4.4, §5.1 |
+| D3 | `THERMION_ENABLE_RUNTIME_MATERIALS` keeps presence semantics **until the one atomic value-check migration D3 allows**: undefined when off, `=1` when on; no default in `ThermionFeatures.h`. Defining it to 0 would still enable the real compiler and Windows compiler pragmas under their `#ifdef`/`#if defined` guards. The migration is only allowed as one atomic change covering every guard. **Round 4 performed that migration** (§5.1): all guards are value checks and the header defaults the macro to 0. `smol-v` stays **unconditional** (core `filaflat::DictionaryReader` decoder). | §3.7, §4.4, §5.1, §10.4 |
 | D4 | The web engine release is a **dependency of the probe**: rebuild and publish every currently supported web variant with `Thermion_getEnabledFeatures` and advance `native/web/web.version` before Dart requires it (even with zero slim web variants in v1). Legacy engines get a lazy-lookup fallback: missing symbol → all features enabled + warning. | §4.6, §6.1, §8 (rollout + risk table) |
 | D5 | **Prototype first**: start with a native `gltf: false` build, texture decoders left available, and measure the stripped library + packaged size on a real target (Android arm64) before rolling out schema/API; the Linux archive model is an estimate. The unlit fallback blob is **precompiled and built only when gltf is off** — an unconditional blob in the hook would add a matc/resgen dependency to default apps that skip it today. | §4.5, §5.6, §7 (caveat), §8 (rollout order, open questions) |
 
-## 10. Implementation log (round 3, `feature-opt-libs`)
+## 10. Implementation log (rounds 3–4, `feature-opt-libs`)
 
 Implementation of §4–§6 as settled in §9, in commit order. Each step was
 verified on Linux x64 (release Filament v1.77.2 artifact, `xvfb-run` +
@@ -1013,7 +1021,7 @@ llvmpipe for anything that renders).
 | 1 | `hook: features user defines` | `lib/src/hooks/feature_flags.dart` (`resolveFeatures`, D2 rule, `disabledFeatureDefines`, web warning), conditional `libs` in `hook/build.dart`, full-archive `gltfio` dropped, `test/feature_flags_test.dart` (11 cases) |
 | 2 | `native: THERMION_ENABLE_* guards` | `native/include/ThermionFeatures.h`, probe `c_api/ThermionFeatures.h` + `TThermionFeatures.cpp`, Pattern A/B/C guards, `ThermionWin32.h` pragmas, web CMake options, compile-time-only includes dropped, `FileMaterialProvider.hpp` deleted |
 | 3 | `hook: precompiled unlit fallback` | `hook/materials/unlit_fallback.mat`, `compileUnlitFallbackMaterial` (only when `gltf: false`), `BUILT_IN_UNLIT_FALLBACK`, `UNLIT_FALLBACK_ENABLED`, bindings regenerated |
-| 4 | `dart: supports() + UnsupportedError` | `ThermionFeature`, `FilamentApp.supports`, legacy-engine fallback (D4), init/destroy skip the loader (§5.5), `checkSupported` on every affected API, fallback in `createUnlitMaterialInstance` |
+| 4 | `dart: supports() + UnsupportedError` | `ThermionFeature`, `FilamentApp.supports`, legacy-engine fallback (D4), init/destroy skip the loader (§5.5; changed in round 4 — the loader now doubles as the fallback provider), `checkSupported` on every affected API, fallback in `createUnlitMaterialInstance` (moved into C in round 4) |
 | 2b | `native: compile the vendored cgltf` | Fix for the one missed link reference found by the first slim link (below) |
 | 5 | `test: slim-build test` | `test/slim_build_test.dart` (§5.7 criterion 4) |
 
@@ -1033,15 +1041,20 @@ All found while proving the build; the relevant sections carry a short
    as intended.
 2. **`TTransformManager.cpp` does use `gltfio/math.h`** (`decomposeMatrix`,
    `composeMatrix`). They are header-only `inline` functions — still no
-   link-time reference — so the include stays instead of being dropped.
+   link-time reference — so round 3 kept the include. **Resolved in round 4:**
+   the two helpers were hoisted into the neutral
+   `native/include/MathUtils.hpp` and the gltfio include is gone.
 3. **The unlit fallback branches in Dart, not in
    `MaterialProvider_createMaterialInstance`'s stub** (§5.6 item 3): that C
    entry point receives no `Engine`, which `Material::Builder::build` needs.
-   `FFIFilamentApp.createUnlitMaterialInstance` builds the precompiled
-   package through the existing `Material_createBuiltInJobThread(engine,
-   BUILT_IN_UNLIT_FALLBACK)` path and caches the `Material`; no new C symbol,
-   the stub stays a plain null-returning stub. Measured fallback package:
-   109 KB for the opengl+vulkan pair (§5.6 guessed single-digit KB).
+   Round 3 built the precompiled package through the existing
+   `Material_createBuiltInJobThread(engine, BUILT_IN_UNLIT_FALLBACK)` path and
+   cached the `Material` in Dart. Measured fallback package: 109 KB for the
+   opengl+vulkan pair (§5.6 guessed single-digit KB). **Resolved in round 4:**
+   the stub's provider now carries the engine (an `UnlitFallbackProvider`
+   returned by `GltfAssetLoader_create`'s stub), so the same context-free C
+   entry point builds the package and returns an instance; the Dart branches
+   and the fallback cache are gone (§10.4).
 4. **Morph component add/remove stay unguarded** in Dart: `FFIAsset`'s
    destroy path calls `removeMorphAnimationComponent` for *every* asset type,
    procedural geometry included. The C stubs are no-ops, so these keep
@@ -1050,8 +1063,12 @@ All found while proving the build; the relevant sections carry a short
    component removals without gltf so it does not log bogus failures.
 5. **JS interop bindings were extended by hand** (`Thermion_getEnabledFeatures`,
    `BUILT_IN_UNLIT_FALLBACK`) in ffigen_js's exact output form: `ffigen_js`
-   needs the emscripten sysroot that only CI has. The native bindings were
-   regenerated with ffigen and formatted; the only diff is the two additions.
+   needs the emscripten sysroot that only CI has. **Resolved in round 4:**
+   `ffigen/emscripten_stub` provides a parse-only Emscripten/freestanding
+   header set and `ffigen/web.yaml` points ffigen_js at it (plus
+   `-Inative/include`), so `make dart-bindings` regenerates both binding files
+   on any machine; `ignore-source-errors` is off so a missing include fails
+   instead of silently generating `int` types.
 
 ### 10.2 Linux x64 proof (§5.7 criteria 1–4)
 
@@ -1114,6 +1131,40 @@ like), `-Wl,-z,defs`.
   engine variant with `Thermion_getEnabledFeatures` and advance
   `native/web/web.version`; until then Dart's lazy fallback treats an older
   engine as "all features on", which is true for every existing engine, so
-  nothing breaks either way. Regenerate the JS interop bindings in CI
-  (`make dart-bindings`) to confirm the hand-added entries.
-- Windows: the pragma guards compile-check only on a Windows runner (CI).
+  nothing breaks either way. JS interop regeneration no longer needs a
+  hand-edited file: `make dart-bindings` (or `make bindings-check`) uses the
+  parse-only stubs in `thermion_dart/ffigen/emscripten_stub` (§10.4).
+- Windows: the link list now lives in `hook/build.dart` (§4.4), but its
+  CBuilder `libraries` path still needs a Windows runner to compile-check the
+  hook and link (CI).
+
+### 10.4 Round 4: deviations resolved
+
+Round 4 addressed each §10.1 deviation and the two follow-ups that could be
+closed without a Windows runner or an Android device. One commit per step:
+
+| Step | Commit | What changed |
+| --- | --- | --- |
+| 1 | `native: hoist the gltfio TRS math helpers into MathUtils.hpp` | `decomposeMatrix`/`composeMatrix` copied into the neutral `MathUtils.hpp` (namespace `thermion`); `TTransformManager.cpp` no longer includes `<gltfio/math.h>`. Still header-only inline — no link reference in any build. |
+| 2 | `hook: single-source the Windows link list in build.dart` | The `#pragma comment(lib)` list in `ThermionWin32.h` is gone; every Windows input (system import libs, `bluegl`/`bluevk`, the filamat shader-compiler split, `meshoptimizer`/`mikktspace`, `vulkan-1`/`dxgi`/`d3d11`) is in the hook's `libs` list and passed to CBuilder's `libraries`. Same feature conditions, one source of truth. |
+| 3 | `build: make ffigen_js regeneration self-sufficient` | `ffigen/emscripten_stub/` (`emscripten.h`, `html5_webgl.h`, `stdint.h`, `stddef.h`, `stdbool.h`), `ffigen/web.yaml` (`-Iffigen/emscripten_stub -Inative/include`, `ignore-source-errors: false`), Makefile (`FFIGEN_JS_COMPILER_OPTS` optional, format after regen, `bindings-check`), CI no longer needs the emcc sysroot for bindings. Both binding files were regenerated; the only differences from the hand-maintained file are the generator's sort order and the doc comment now sourced from `c_api/ThermionFeatures.h`. |
+| 4 | `native: serve the unlit fallback from the context-free C entry point` + `dart: keep explicit ubershader requests guarded in slim builds` | `GltfAssetLoader_create`'s stub returns an `UnlitFallbackProvider` carrying the engine; `MaterialProvider_createMaterialInstance`'s stub builds the precompiled `UNLIT_FALLBACK` package from it on first use (cached, destroyed with the loader). Dart init always has a provider, `createUnlitMaterialInstance` calls the private `_createMaterialInstance(unlit: true)` directly, and `_unlitFallbackMaterial`/`_createUnlitFallbackMaterial` are gone. Explicit `createUbershaderMaterialInstance` calls still throw `UnsupportedError`. |
+| 5 | `native: migrate runtime-materials guards to value checks` | The atomic D3 migration: `ThermionFeatures.h` defaults `THERMION_ENABLE_RUNTIME_MATERIALS` to 0; `TMaterialCompiler.cpp`, `TThermionFeatures.cpp`, the web CMake and the macOS test CMake all use `#if`/`=0|1` value checks. The hook still passes `=1` only when enabled, so default compile commands are unchanged. |
+
+### 10.5 Round 4 verification (Linux x64)
+
+Same configuration as §10.2: release Filament v1.77.2, Linux x64, the
+package's 13 helper materials on, `-Wl,-z,defs`, `xvfb-run` + llvmpipe.
+
+| Check | Result |
+| --- | --- |
+| `dart analyze` (thermion_dart) | 46 pre-existing warnings/infos, no errors |
+| default build (`features` absent) | links; `dart test test/slim_build_test.dart` runs (4 tests correctly skipped) |
+| `features.gltf: false` slim build | links; `dart test test/slim_build_test.dart` **4/4 pass** |
+| all three off slim build | links; `dart test test/slim_build_test.dart` **4/4 pass** |
+| default regression set (`geometry_tests`, `instancing_tests`, `asset_tests`, `gltf_animation_tests`, `bone_animation_tests`, `morph_animation_tests`, `ktx_upload_lifetime_test`, `image_tests`, `slim_build_test`, `feature_flags_test`) | **58 passed, 9 skipped** — identical to round 3 |
+
+The default and slim builds were also re-run after the unlit fallback moved
+into C: the procedural cube, its instances, the explicit
+`createUnlitMaterialInstance` material and the glTF `UnsupportedError`
+contracts all behave as in round 3.
