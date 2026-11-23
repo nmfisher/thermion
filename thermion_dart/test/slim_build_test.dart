@@ -9,9 +9,9 @@ import 'helpers.dart';
 /// On a `features.gltf: false` build the gltfio archives are not linked:
 /// procedural geometry must still create, instance, render and destroy
 /// through the shared TSceneAsset entry points (only the glTF branches are
-/// stubbed), using the precompiled unlit fallback in place of the gltfio
-/// ubershader, and the glTF-only Dart surface must fail with
-/// [UnsupportedError] instead of returning garbage.
+/// stubbed), `createUnlitMaterialInstance` must serve the precompiled unlit
+/// fallback with the ubershader's semantics, and the glTF-only Dart surface
+/// must fail with [UnsupportedError] instead of returning garbage.
 ///
 /// Every test is skipped on a default (gltf enabled) build. To run it, make
 /// the package itself a slim consumer by rewriting the `hooks:` block of
@@ -71,6 +71,24 @@ void main() async {
       // The synchronous animation getters throw before returning.
       expect(() => app.animationManager.getGltfAnimationCount(geometry), throwsA(isA<UnsupportedError>()));
       await expectLater(geometry.releaseSourceData(), throwsA(isA<UnsupportedError>()));
+      // Asset-level glTF surfaces report the disabled feature first, even on
+      // a procedural asset (which would otherwise look like "no animations").
+      await expectLater(
+        geometry.getGltfAnimationNames(),
+        throwsA(isA<UnsupportedError>().having((e) => e.message, 'message', contains('features.gltf'))),
+      );
+      await expectLater(
+        geometry.getGltfAnimationDuration(0),
+        throwsA(isA<UnsupportedError>().having((e) => e.message, 'message', contains('features.gltf'))),
+      );
+      await expectLater(
+        geometry.getBones(),
+        throwsA(isA<UnsupportedError>().having((e) => e.message, 'message', contains('features.gltf'))),
+      );
+      await expectLater(
+        geometry.getBoneNames(),
+        throwsA(isA<UnsupportedError>().having((e) => e.message, 'message', contains('getBoneNames'))),
+      );
       await viewer.destroyAsset(geometry);
     }, bg: kBlue);
   }, skip: skip);
@@ -81,8 +99,11 @@ void main() async {
     ).setBackgroundColor(kBlue).setCameraLookAt(Vector3(0, 0, 4), focus: Vector3.zero()).execute((result) async {
       final viewer = result.viewer;
 
-      // 1. create — no explicit material: goes through the precompiled unlit
-      //    fallback (createUnlitMaterialInstance) instead of the ubershader.
+      // 1. create — no explicit material. GeometrySceneAsset passes
+      //    materialInstanceCount = 0 to RenderableManager, so Filament's
+      //    engine default material (80% white, lit) is used; the precompiled
+      //    unlit fallback is only reached through createUnlitMaterialInstance
+      //    (next test).
       final asset = await viewer.createGeometry(GeometryUtils.cube());
       expect(asset.type, SceneAssetType.geometry);
       expect(asset.isInstance, isFalse);
@@ -137,14 +158,100 @@ void main() async {
     });
   }, skip: skip);
 
-  test('createUnlitMaterialInstance works for explicit procedural materials', () async {
-    await testHelper.withViewer((viewer) async {
-      final material = await app.createUnlitMaterialInstance();
-      await material.setParameterFloat4("baseColorFactor", 1, 0, 0, 1);
-      final asset = await viewer.createGeometry(GeometryUtils.cube(), materialInstances: [material]);
-      expect(await asset.getMaterialInstanceAt(), isNotNull);
-      await viewer.destroyAsset(asset);
-      await material.destroy();
-    }, bg: kBlue);
+  test('createUnlitMaterialInstance has the ubershader unlit semantics', () async {
+    // createUnlitMaterialInstance() requests (unlit: true, hasVertexColors:
+    // false) and the gltfio UbershaderProvider that serves it in a default
+    // build starts baseColorFactor at opaque white. The precompiled fallback
+    // must behave the same: a .mat uniform parameter is zero-initialised, so
+    // the C stub sets baseColorFactor to white on every instance, and the
+    // material neither requires nor multiplies vertex colours (a Geometry
+    // built with createDummyColors: false leaves the COLOR buffer at zero).
+    await ViewerBuilder(testHelper)
+        .setBackgroundColor(kBlue)
+        .setCameraLookAt(Vector3(0, 0, 4), focus: Vector3.zero())
+        .setToneMapping(await ToneMapper.linear(app))
+        .execute((result) async {
+          final viewer = result.viewer;
+          const centre = (viewportSize ~/ 2, viewportSize ~/ 2);
+
+          (double, double, double) rgb(Float32List pixels, int x, int y) {
+            final i = (y * viewportSize + x) * 4;
+            return (pixels[i], pixels[i + 1], pixels[i + 2]);
+          }
+
+          bool isWhite((double, double, double) c) => c.$1 > 0.9 && c.$2 > 0.9 && c.$3 > 0.9;
+          bool isRed((double, double, double) c) => c.$1 > 0.9 && c.$2 < 0.1 && c.$3 < 0.1;
+
+          /// Adds a cube with [material] and returns its centre pixel colour.
+          Future<(double, double, double)> renderCentre(
+            Geometry geometry,
+            MaterialInstance material,
+            String name,
+          ) async {
+            final asset = await viewer.createGeometry(geometry, materialInstances: [material]);
+            await viewer.addToScene(asset);
+            try {
+              final pixels = asFloats((await testHelper.capture(viewer.view, name))[viewer.view]!);
+              expect(isBackground(pixels, 8, 8), isTrue, reason: 'corner stays background');
+              return rgb(pixels, centre.$1, centre.$2);
+            } finally {
+              await viewer.destroyAsset(asset);
+            }
+          }
+
+          // 1. Default baseColorFactor: opaque white, not transparent black.
+          final material = await app.createUnlitMaterialInstance();
+          expect(
+            await renderCentre(GeometryUtils.cube(), material, "slim_unlit_default"),
+            predicate(isWhite),
+            reason: 'default baseColorFactor is opaque white',
+          );
+          await material.destroy();
+
+          // 2. Geometry without vertex colours (COLOR declared, never
+          //    uploaded): still white — the fallback must not read it.
+          final cube = GeometryUtils.cube();
+          final uncoloured = Geometry(
+            cube.vertices,
+            cube.indices,
+            normals: cube.normals,
+            uvs: cube.uvs,
+            createDummyColors: false,
+          );
+          expect(uncoloured.colors, isEmpty);
+          final material2 = await app.createUnlitMaterialInstance();
+          expect(
+            await renderCentre(uncoloured, material2, "slim_unlit_no_colors"),
+            predicate(isWhite),
+            reason: 'a zero-filled colour buffer must not tint the material',
+          );
+          await material2.destroy();
+
+          // 3. Geometry WITH non-white vertex colours: ignored as well
+          //    (hasVertexColors: false), so the result is still white.
+          // One green RGBA colour per vertex.
+          final green = Float32List(cube.vertices.length ~/ 3 * 4);
+          for (var v = 0; v < green.length; v += 4) {
+            green.setRange(v, v + 4, [0, 1, 0, 1]);
+          }
+          final tinted = Geometry(cube.vertices, cube.indices, normals: cube.normals, uvs: cube.uvs, colors: green);
+          final material3 = await app.createUnlitMaterialInstance();
+          expect(
+            await renderCentre(tinted, material3, "slim_unlit_tinted_vertices"),
+            predicate(isWhite),
+            reason: 'vertex colours are ignored',
+          );
+          await material3.destroy();
+
+          // 4. An explicit baseColorFactor on the instance is applied.
+          final red = await app.createUnlitMaterialInstance();
+          await red.setParameterFloat4("baseColorFactor", 1, 0, 0, 1);
+          expect(
+            await renderCentre(GeometryUtils.cube(), red, "slim_unlit_red"),
+            predicate(isRed),
+            reason: 'baseColorFactor set by the caller is used',
+          );
+          await red.destroy();
+        });
   }, skip: skip);
 }
