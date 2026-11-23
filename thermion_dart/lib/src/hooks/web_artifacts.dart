@@ -76,10 +76,7 @@ String webLocalBuildDir(String zipSuffix) {
     case '-main-thread-runtime-materials':
       return 'build-main-thread-runtime-materials';
     case '-webgpu':
-    case '-main-thread-webgpu':
       return 'build-webgpu';
-    case '-main-thread-runtime-materials-webgpu':
-      return 'build-runtime-materials-webgpu';
     default:
       // Unknown suffixes still resolve to a (nonexistent) directory, which
       // the web_local copy step reports as a warning.
