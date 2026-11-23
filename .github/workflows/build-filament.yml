@@ -911,6 +911,8 @@ jobs:
   verify-webgpu-engine:
     name: Verify and publish the WebGPU engine
     needs: build-webgpu-engine
+    # Reusing an archive skips Build Web, an indirect dependency of this job.
+    if: ${{ !cancelled() && needs.build-webgpu-engine.result == 'success' }}
     permissions:
       actions: read
       contents: read
