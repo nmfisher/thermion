@@ -2515,10 +2515,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext(Pointer<Char> canvasSelector);
   external void _Thermion_destroyCanvas(Pointer<Char> canvasSelector);
-
   /// Compile-time feature bitmask of the loaded engine: bit 0 gltf, bit 1 ktx,
   /// bit 2 image_decoding, bit 3 runtime_materials (c_api/ThermionFeatures.h).
   external int _Thermion_getEnabledFeatures();
+  external int _Thermion_exportWebGPUDevice();
   external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_getGLContext();
   external void _Thermion_setCanvasElementSize(Pointer<Char> name, int width, int height);
   external Pointer<TToneMapper> _ToneMapper_createACES(Pointer<TEngine> tEngine);
@@ -9373,6 +9373,11 @@ void Thermion_destroyCanvas(Pointer<Char> canvasSelector) {
 /// bit 2 image_decoding, bit 3 runtime_materials (c_api/ThermionFeatures.h).
 int Thermion_getEnabledFeatures() {
   final result = GeneratedBindings.instance._Thermion_getEnabledFeatures();
+  return result;
+}
+
+int Thermion_exportWebGPUDevice() {
+  final result = GeneratedBindings.instance._Thermion_exportWebGPUDevice();
   return result;
 }
 
