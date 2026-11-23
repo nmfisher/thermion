@@ -258,8 +258,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // UnlitFallbackProvider holding the engine, so this handle is non-null in
     // every build and createUnlitMaterialInstance can go through the same
     // context-free MaterialProvider_createMaterialInstance entry point
-    // (docs/feature-optout-proposal.md §5.5, §10.1 deviation 3). glTF loading
-    // itself still throws UnsupportedError via checkSupported.
+    // (docs/feature-optout-proposal.md §5.5, §5.6). glTF loading itself
+    // still throws UnsupportedError via checkSupported.
     var gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
       (cb) => GltfAssetLoader_createJobThread(jobThreadHandle, engine, nullptr, nameComponentManager, cb),
     );
@@ -267,7 +267,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (!buildSupports(ThermionFeature.gltf)) {
       _logger.warning(
         "This build has glTF support disabled (features.gltf: false): glTF loading, "
-        "glTF animation and ubershader materials are unavailable; procedural geometry "
+        "glTF animation and ubershader materials are unavailable; createUnlitMaterialInstance "
         "uses the precompiled unlit fallback material.",
       );
     }
@@ -1110,8 +1110,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return instance;
   }
 
-  /// The unlit material procedural code depends on (createGeometry without an
-  /// explicit material, bounding-box helpers, TextureProjection).
+  /// An unlit, opaque material instance for procedural code: explicit
+  /// materials passed to [createGeometry], the bounding-box helpers and
+  /// TextureProjection. ([createGeometry] without `materialInstances` does
+  /// not come through here; it renders with Filament's engine default
+  /// material.)
   ///
   /// With glTF support this is the gltfio ubershader's unlit variant. Without
   /// it (features.gltf: false) the same context-free C entry point returns an
@@ -1120,8 +1123,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   /// BUILT_IN_UNLIT_FALLBACK) — the fallback lives in
   /// MaterialProvider_createMaterialInstance's stub, so there is no
   /// Dart-side branch here (docs/feature-optout-proposal.md §5.6, decision
-  /// D5; §10.1 deviation 3). Only explicit ubershader requests
-  /// ([createUbershaderMaterialInstance] with `unlit: false`) throw.
+  /// D5). Both variants have the same semantics: `baseColorFactor` starts at
+  /// opaque white (set it on the instance to colour the material) and vertex
+  /// colours are ignored (`hasVertexColors: false`). In a slim build only the
+  /// explicit ubershader request ([createUbershaderMaterialInstance], for
+  /// any `unlit` value) throws [UnsupportedError].
   @override
   Future<MaterialInstance> createUnlitMaterialInstance() async {
     return _createMaterialInstance(unlit: true, hasVertexColors: false);

@@ -124,14 +124,14 @@ namespace thermion
         // (createUbershaderMaterialInstance / createUbershaderMaterial on the
         // Dart side) get null; Dart turns that into UnsupportedError.
         //
-        // The unlit variant is different: it is the material procedural
-        // geometry depends on (createGeometry without an explicit material,
-        // bounding-box helpers, TextureProjection). GltfAssetLoader_create's
-        // stub handed Dart an UnlitFallbackProvider carrying the engine, so
-        // this context-free entry point (no Engine parameter) can build the
-        // precompiled UNLIT_FALLBACK package on first use and return an
-        // instance from it. The Material is cached on the provider, which
-        // GltfAssetLoader_destroy tears down (§10.1, deviation 3).
+        // The unlit variant is different: it is the material procedural code
+        // requests through createUnlitMaterialInstance() (bounding-box
+        // helpers, TextureProjection, explicit materials for createGeometry).
+        // GltfAssetLoader_create's stub handed Dart an UnlitFallbackProvider
+        // carrying the engine, so this context-free entry point (no Engine
+        // parameter) can build the precompiled UNLIT_FALLBACK package on first
+        // use and return an instance from it. The Material is cached on the
+        // provider, which GltfAssetLoader_destroy tears down (§5.6).
         EMSCRIPTEN_KEEPALIVE TMaterialInstance *MaterialProvider_createMaterialInstance(
             TMaterialProvider *tMaterialProvider, 
             bool doubleSided,
@@ -227,7 +227,14 @@ namespace thermion
                 Log("MaterialProvider_createMaterialInstance: the precompiled unlit fallback material is not compiled into this build (features.gltf: false without UNLIT_FALLBACK_ENABLED)");
                 return nullptr;
             }
-            return reinterpret_cast<TMaterialInstance *>(provider->unlitMaterial->createInstance());
+            auto *instance = provider->unlitMaterial->createInstance();
+            // Same default as the gltfio ubershader's unlit variant
+            // (UbershaderProvider starts baseColorFactor at opaque white).
+            // A .mat uniform parameter is zero-initialised, so an instance
+            // handed out untouched would otherwise render transparent black
+            // instead of white (unlit_fallback.mat).
+            instance->setParameter("baseColorFactor", filament::math::float4{1.0f, 1.0f, 1.0f, 1.0f});
+            return reinterpret_cast<TMaterialInstance *>(instance);
         }
 #endif // THERMION_ENABLE_GLTF
 

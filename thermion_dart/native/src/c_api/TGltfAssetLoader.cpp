@@ -148,9 +148,9 @@ EMSCRIPTEN_KEEPALIVE TMaterialProvider *GltfAssetLoader_getMaterialProvider(TGlt
 //
 // The loader handle doubles as the unlit fallback material provider: it
 // captures the engine so MaterialProvider_createMaterialInstance can build the
-// precompiled UNLIT_FALLBACK package without an Engine parameter (§10.1,
-// deviation 3). glTF loading itself still returns null; Dart's guards turn
-// that into UnsupportedError before any of it is reached.
+// precompiled UNLIT_FALLBACK package without an Engine parameter (§5.6).
+// glTF loading itself still returns null; Dart's guards turn that into
+// UnsupportedError before any of it is reached.
 
 EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, TMaterialProvider *tMaterialProvider, TNameComponentManager *tNameComponentManager) {
     THERMION_ENGINE_API_GUARD;
