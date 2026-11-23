@@ -1101,7 +1101,7 @@ Future<Directory> _resolveWebEngine(BuildInput input, Logger logger, String back
   //
   // The resolved `backend` user define (per-OS map or global string) selects
   // the WebGPU-capable engine for webgpu/hybrid targets — built with
-  // THERMION_ENABLE_WEBGPU=ON (Emscripten's -sUSE_WEBGPU glue) and fetched
+  // THERMION_ENABLE_WEBGPU=ON with Filament's Dawn port and fetched
   // under a -webgpu suffix. webgl2/native keep the default WebGL2 engine.
   final variant = withWebBackend(
     withRuntimeMaterials(resolveWebVariant(input.userDefines["web_variant"]), input.userDefines["runtime_materials"]),

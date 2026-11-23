@@ -5,8 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
 import 'package:thermion_dart/src/filament/src/interface/built_in_material.dart';
 import 'package:thermion_dart/src/hooks/built_in_materials.dart';
-
-const _r2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
+import 'package:thermion_dart/src/hooks/web_artifacts.dart';
 
 /// CLI variant selectors → the artifact zip suffix used on R2 (mirrors
 /// lib/src/hooks/web_artifacts.dart).
@@ -48,8 +47,8 @@ Future<Directory> _downloadToCache(String version, String zipSuffix, Directory c
     return cacheDir;
   }
 
-  final zipName = 'thermion_dart-${version}-web$zipSuffix.zip';
-  final url = '$_r2BaseUrl/$zipName';
+  final zipName = webArtifactZipName(version, zipSuffix);
+  final url = webArtifactUrl(version, zipSuffix);
   final zipFile = File(path.join(cacheDir.path, zipName));
 
   if (!cacheDir.existsSync()) {
@@ -107,6 +106,7 @@ List<BuiltInMaterial> _parseMaterials(String raw) {
 void main(List<String> args) async {
   String outputDir = 'web';
   String variant = 'default';
+  String backend = 'native';
   String? materialsArg;
 
   for (var i = 0; i < args.length; i++) {
@@ -118,6 +118,12 @@ void main(List<String> args) async {
       if (i + 1 < args.length) {
         variant = args[++i];
       }
+    } else if (args[i] == '--backend') {
+      if (i + 1 >= args.length || !const ['native', 'webgl2', 'webgpu', 'hybrid'].contains(args[i + 1])) {
+        stderr.writeln('--backend requires native, webgl2, webgpu or hybrid.');
+        exit(64);
+      }
+      backend = args[++i];
     } else if (args[i] == '--materials') {
       if (i + 1 >= args.length) {
         stderr.writeln('--materials requires a material list.');
@@ -125,23 +131,31 @@ void main(List<String> args) async {
       }
       materialsArg = args[++i];
     } else if (args[i] == '-h' || args[i] == '--help') {
-      stdout.writeln('Usage: dart run thermion_dart:download_web [-o <dir>] [--variant <name>] [--materials <list>]');
+      stdout.writeln(
+        'Usage: dart run thermion_dart:download_web [-o <dir>] [--variant <name>] [--backend <name>] [--materials <list>]',
+      );
       stdout.writeln('  -o, --output   Output directory (default: web/)');
       stdout.writeln('  --variant      Engine variant: ${_variants.keys.join(', ')} (default: default)');
       stdout.writeln('                runtime-materials = filamat-enabled engine for');
       stdout.writeln('                runtime material compilation (~20 MB larger).');
       stdout.writeln('                main-thread-runtime-materials = both combined.');
+      stdout.writeln('  --backend      native (default), webgl2, webgpu or hybrid.');
       stdout.writeln('  --materials    Comma-separated helper keys, for example gizmo,image.');
       stdout.writeln('                 Available keys: ${BuiltInMaterial.values.map((m) => m.key).join(', ')}');
       return;
     }
   }
 
-  final zipSuffix = _variants[variant];
-  if (zipSuffix == null) {
+  final variantSuffix = _variants[variant];
+  if (variantSuffix == null) {
     stderr.writeln("Unknown variant '$variant'. Valid: ${_variants.keys.join(', ')}");
     exit(1);
   }
+  final zipSuffix = withWebBackend((
+    zipSuffix: variantSuffix,
+    cacheSuffix: variantSuffix,
+    warnings: const [],
+  ), backend).zipSuffix;
 
   final materials = materialsArg == null ? const <BuiltInMaterial>[] : _parseMaterials(materialsArg);
 
@@ -161,6 +175,7 @@ void main(List<String> args) async {
     engineDir: cacheDir,
     webDir: Directory(outputDir),
     materials: materials,
+    backend: backend,
     onLog: stdout.writeln,
   );
 

@@ -39,6 +39,10 @@ on:
         required: false
         default: false
         type: boolean
+      webgpu_filament_run:
+        description: 'Reuse the WebGPU Filament release archive from this Build Filament run ID (platform=web, webgpu=true)'
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.platform || 'all' }}
@@ -734,7 +738,7 @@ jobs:
     name: Build Web
     runs-on: ubuntu-24.04
     needs: setup
-    if: contains(needs.setup.outputs.matrix, 'web')
+    if: contains(needs.setup.outputs.matrix, 'web') && inputs.webgpu_filament_run == ''
     env:
       FILAMENT_VERSION: ${{ needs.setup.outputs.filament_version }}
       FILAMENT_REPO: ${{ needs.setup.outputs.filament_repo }}
@@ -806,3 +810,20 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
+
+  build-webgpu-engine:
+    name: Build WebGPU engine
+    needs: [setup, build-web]
+    if: >-
+      !cancelled() && needs.setup.result == 'success' &&
+      (needs.build-web.result == 'success' || inputs.webgpu_filament_run != '') &&
+      inputs.webgpu && inputs.platform == 'web' && inputs.filament_repo == '' && inputs.filament_version == ''
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/build-webgpu-engine.yml
+    with:
+      filament_version: ${{ needs.setup.outputs.filament_version }}
+      filament_run: ${{ inputs.webgpu_filament_run }}
+      publish: ${{ inputs.upload_to_r2 }}
+    secrets: inherit

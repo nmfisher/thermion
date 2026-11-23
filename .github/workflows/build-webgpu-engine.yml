@@ -1,0 +1,125 @@
+name: Build WebGPU engine
+
+on:
+  workflow_call:
+    inputs:
+      filament_version:
+        required: true
+        type: string
+      filament_run:
+        required: false
+        type: string
+      publish:
+        required: true
+        type: boolean
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  engine:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      FILAMENT_VERSION: ${{ inputs.filament_version }}
+      R2_PUBLIC_URL: https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: filament-web-release-webgpu
+          path: filament-webgpu
+          run-id: ${{ inputs.filament_run || github.run_id }}
+          github-token: ${{ github.token }}
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '6.0.4'
+          actions-cache-folder: emsdk-cache
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Install libraries and build both engine variants
+        run: |
+          set -euo pipefail
+          web=thermion_dart/native/web
+          mkdir -p "$web/lib/release"
+          unzip -q "filament-webgpu/filament-$FILAMENT_VERSION-web-release-webgpu.zip" -d "$web/lib/release"
+          for mode in webgpu runtime-materials-webgpu; do
+            runtime_materials=OFF
+            if [ "$mode" = runtime-materials-webgpu ]; then runtime_materials=ON; fi
+            emcmake cmake -S "$web" -B "$web/build-$mode" -DCMAKE_BUILD_TYPE=Release \
+              -DTHERMION_ENABLE_WEBGPU=ON -DTHERMION_ENABLE_RUNTIME_MATERIALS="$runtime_materials"
+            cmake --build "$web/build-$mode" --parallel 2
+          done
+
+      - name: Package engine archives
+        run: |
+          set -euo pipefail
+          web=thermion_dart/native/web
+          version=$(cat "$web/web.version")
+          # Reuse the public version when only the pointer or unrelated files
+          # changed after its build. A candidate gets its own commit ID.
+          if ! git cat-file -e "$version^{commit}" 2>/dev/null || \
+             ! git diff --quiet "$version" -- filament.version thermion_dart/filament.libs.json \
+                  thermion_dart/native thermion_dart/lib/src/bindings ":(exclude)$web/web.version"; then
+            version=$(git rev-parse --short HEAD)
+          fi
+          echo "WEB_ENGINE_VERSION=$version" >> "$GITHUB_ENV"
+          mkdir -p webgpu-engines
+          for mode in webgpu runtime-materials-webgpu; do
+            engine_dir="$web/build-$mode/build/out"
+            zip -j "webgpu-engines/thermion_dart-$version-web-$mode.zip" \
+              "$engine_dir/thermion_dart.js" "$engine_dir/thermion_dart.wasm"
+          done
+
+      - name: Configure Chromium
+        run: |
+          chrome=$(command -v google-chrome)
+          printf '#!/bin/sh\nexec "%s" --no-sandbox --enable-unsafe-webgpu --use-angle=swiftshader --enable-unsafe-swiftshader "$@"\n' \
+            "$chrome" > "$RUNNER_TEMP/webgpu-chrome"
+          chmod +x "$RUNNER_TEMP/webgpu-chrome"
+          echo "CHROME_EXECUTABLE=$RUNNER_TEMP/webgpu-chrome" >> "$GITHUB_ENV"
+
+      - name: Render a WebGPU scene from the staged archive
+        working-directory: thermion_dart
+        run: |
+          sed -i '/^hooks:/,$d' pubspec.yaml
+          printf 'hooks:\n  user_defines:\n    thermion_dart:\n      skip_native_build: true\n' >> pubspec.yaml
+          dart pub get
+          unzip -o "../webgpu-engines/thermion_dart-$WEB_ENGINE_VERSION-web-webgpu.zip" -d test
+          xvfb-run dart run tool/web_test_runner.dart --clean test/chrome_webgpu_scene.dart
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thermion-webgpu-engines
+          path: webgpu-engines/
+
+      - name: Publish and verify the public archives
+        if: inputs.publish
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: https://260d4efc65af500536ea376de6452ece.r2.cloudflarestorage.com
+        run: |
+          set -euo pipefail
+          # Both WebGPU selectors use the same main-thread engine.
+          for archive in webgpu-engines/*.zip; do
+            key=$(basename "$archive")
+            for artifact in "$key" "${key/-web-/-web-main-thread-}"; do
+              aws s3 cp "$archive" "s3://thermion/$artifact" --endpoint-url "$R2_ENDPOINT"
+              curl -fL --retry 3 "$R2_PUBLIC_URL/$artifact" -o "$RUNNER_TEMP/published-webgpu.zip"
+              cmp "$archive" "$RUNNER_TEMP/published-webgpu.zip"
+            done
+          done
+
+      - name: Render from the published R2 archive
+        if: inputs.publish
+        working-directory: thermion_dart
+        run: |
+          curl -fL --retry 3 "$R2_PUBLIC_URL/thermion_dart-$WEB_ENGINE_VERSION-web-webgpu.zip" \
+            -o "$RUNNER_TEMP/published-webgpu.zip"
+          unzip -o "$RUNNER_TEMP/published-webgpu.zip" -d test
+          xvfb-run dart run tool/web_test_runner.dart --clean test/chrome_webgpu_scene.dart

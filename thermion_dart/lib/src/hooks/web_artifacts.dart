@@ -76,9 +76,10 @@ String webLocalBuildDir(String zipSuffix) {
     case '-main-thread-runtime-materials':
       return 'build-main-thread-runtime-materials';
     case '-webgpu':
-      // Built with -DTHERMION_ENABLE_WEBGPU=ON (adds -sUSE_WEBGPU and the
-      // WebGPU platform); see native/web/CMakeLists.txt.
+    case '-main-thread-webgpu':
       return 'build-webgpu';
+    case '-main-thread-runtime-materials-webgpu':
+      return 'build-runtime-materials-webgpu';
     default:
       // Unknown suffixes still resolve to a (nonexistent) directory, which
       // the web_local copy step reports as a warning.
@@ -89,8 +90,8 @@ String webLocalBuildDir(String zipSuffix) {
 /// Composes the resolved `backend` user define onto a [WebVariantResolution].
 ///
 /// `webgpu` and `hybrid` targets need the engine built with
-/// THERMION_ENABLE_WEBGPU=ON (Emscripten's -sUSE_WEBGPU glue + the WebGPU
-/// platform): published and cached under a `-webgpu` suffix so it never
+/// THERMION_ENABLE_WEBGPU=ON with a matching Dawn port. The main-thread
+/// engine is published and cached under a `-webgpu` suffix so it never
 /// shares a directory with the WebGL2-only default (the `success` token
 /// would otherwise mask the wrong contents). `native` and `webgl2` keep the
 /// default engine unchanged.
