@@ -132,6 +132,48 @@ startup or from a background isolate.
 A live web demo — a GLSL editor that compiles and applies materials in the
 browser — is in `examples/dart/material_editor`.
 
+#### Compile-time feature opt-outs
+
+By default every native build of `libthermion_dart` contains the glTF loader
+(and its animation stack, Draco and the ubershader materials), the KTX/Basis
+texture decoders and the PNG/JPEG decoder. An app that only draws procedural
+geometry can switch them off under `hooks.user_defines.thermion_dart.features`
+in its `pubspec.yaml` (all on by default; absent key = enabled):
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      features:
+        gltf: false            # no glTF loading/animation, no ubershader materials
+        ktx: false             # no KTX1/KTX2 (incl. Basis) textures
+        image_decoding: false  # no PNG/JPEG decoding
+```
+
+Each disabled feature removes its Filament archives from the link line
+(measured on the stripped Linux x64 release `libthermion_dart.so`:
+`gltf: false` alone takes it from 7.84 MB to 6.81 MB, all three off to
+5.69 MB), while the C entry points stay exported as no-op stubs so the Dart
+FFI bindings are the same in every variant.
+`FilamentApp.instance!.supports(ThermionFeature.gltf)` (and `.ktx`,
+`.imageDecoding`, `.runtimeMaterials`) reports what the loaded build has;
+APIs that need a disabled feature throw an `UnsupportedError` naming the key
+instead of failing deeper in the FFI layer:
+
+| Disabled | Throws `UnsupportedError` | Keeps working |
+| --- | --- | --- |
+| `gltf` | `loadGltfFromBuffer`, `ThermionViewer.loadGltf*`, `ThermionViewerWidget.assetPath`, `createUbershaderMaterialInstance`/`createUbershaderMaterial`, glTF/bone/morph animation, `getBones`/`releaseSourceData` | `createGeometry`, instancing, `parseGltf`/`GltfMeshData`, and `createUnlitMaterialInstance` — the latter from a small **precompiled unlit material** the build hook compiles only for `gltf: false` builds (`hook/materials/unlit_fallback.mat`; same semantics as the ubershader's unlit variant: opaque white until `baseColorFactor` is set, vertex colours ignored). `createGeometry` without `materialInstances` never needed either: it renders with Filament's default material |
+| `ktx` | `loadKtx2`, `loadKtx`/`createIblFromKtx` | `createImage`, `Texture.setLinearImage`/`loadImage` |
+| `image_decoding` | `decodeImage` | `createImage`, `Texture.setLinearImage`/`loadImage` |
+
+`gltf: true` together with `ktx: false` or `image_decoding: false` is
+rejected by the build hook: Filament's resource loader has no defined
+completion semantics without its texture decoders. Disable `gltf` as well.
+Unknown keys under `features` warn; non-boolean values are build errors.
+Web engines are prebuilt with every feature, so `features.*` only affects
+native builds (the hook logs a warning on web). See
+`docs/feature-optout-proposal.md` for the design and measurements.
+
 #### Optional helper materials
 
 The default viewer loads glTF assets, renders them with their authored materials,
