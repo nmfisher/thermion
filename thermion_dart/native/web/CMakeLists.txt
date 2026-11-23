@@ -14,17 +14,27 @@ option(THERMION_WEB_MAIN_THREAD
 option(THERMION_ENABLE_RUNTIME_MATERIALS
   "Compile materials from GLSL source at runtime (links filamat)" OFF)
 
-# WebGPU (Dawn) backend alongside WebGL2. Opt-in: requires a Filament web
-# artifact built with FILAMENT_SUPPORTS_WEBGPU=ON and pulls in Emscripten's
-# WebGPU JS glue (-sUSE_WEBGPU), which is not part of the default WebGL2
-# build matrix. When OFF, the engine is WebGL2-only and the WebGPU platform
-# code is compiled out (Engine_create with Backend.WEBGPU returns null).
+# WebGPU needs the Emdawnwebgpu package from the Filament web archive.
+# The browser's GPUDevice belongs to the thread that requested it.
 option(THERMION_ENABLE_WEBGPU
   "Enable the WebGPU backend (requires a Filament web artifact built with FILAMENT_SUPPORTS_WEBGPU=ON)" OFF)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif(NOT CMAKE_BUILD_TYPE)
+
+if(THERMION_ENABLE_WEBGPU)
+  set(THERMION_WEB_MAIN_THREAD ON)
+  set(FILAMENT_WEB_MODE release)
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(FILAMENT_WEB_MODE debug)
+  endif()
+  set(THERMION_DAWN_PORT
+    "${CMAKE_CURRENT_SOURCE_DIR}/lib/${FILAMENT_WEB_MODE}/emdawnwebgpu_pkg/emdawnwebgpu.port.py")
+  if(NOT EXISTS "${THERMION_DAWN_PORT}")
+    message(FATAL_ERROR "Extract the Filament WebGPU archive into lib/${FILAMENT_WEB_MODE} first")
+  endif()
+endif()
 
 set(MODULE_NAME "thermion_dart")
 
@@ -54,11 +64,6 @@ set(EMCC_CFLAGS ${EMCC_CFLAGS} -fno-exceptions)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sASYNCIFY=0)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMIN_WEBGL_VERSION=2)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMAX_WEBGL_VERSION=2)
-if(THERMION_ENABLE_WEBGPU)
-  # Emscripten's WebGPU headers + JS glue; only linked for WebGPU-capable
-  # engines (the WebGL2-only matrix must not carry the dependency).
-  set(EMCC_CFLAGS ${EMCC_CFLAGS} -sUSE_WEBGPU=1)
-endif()
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFETCH=0)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSHARED_MEMORY=0)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFILESYSTEM=0)
@@ -169,8 +174,17 @@ if(THERMION_WEB_MAIN_THREAD)
   target_compile_definitions(${MODULE_NAME} PRIVATE THERMION_WEB_MAIN_THREAD=1)
 endif()
 if(THERMION_ENABLE_WEBGPU)
-  # Same gate the native build hook uses (hook/build.dart); ThermionWebApi.cpp
-  # compiles the WebGPU platform in/out on it.
+  set(WEBGPU_DEVICE_JS "${CMAKE_CURRENT_SOURCE_DIR}/src/webgpu_device.js")
+  # Match Filament's RTTI settings in the platform adapter. The Web API's
+  # separate Emscripten bindings still use RTTI.
+  set(WEBGPU_PLATFORM "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/ThermionWebGPUPlatform.cpp")
+  target_sources(${MODULE_NAME} PRIVATE "${WEBGPU_PLATFORM}")
+  set_source_files_properties("${WEBGPU_PLATFORM}" PROPERTIES COMPILE_OPTIONS "-fno-rtti")
+  target_compile_options(${MODULE_NAME} PRIVATE "--use-port=${THERMION_DAWN_PORT}")
+  target_compile_features(${MODULE_NAME} PRIVATE cxx_std_20)
+  target_link_options(${MODULE_NAME} PRIVATE "--use-port=${THERMION_DAWN_PORT}"
+    --pre-js "${WEBGPU_DEVICE_JS}")
+  set_property(TARGET ${MODULE_NAME} APPEND PROPERTY LINK_DEPENDS "${WEBGPU_DEVICE_JS}")
   target_compile_definitions(${MODULE_NAME} PRIVATE THERMION_SUPPORTS_WEBGPU=1)
   message(STATUS "WebGPU backend enabled (THERMION_ENABLE_WEBGPU=ON)")
 endif()

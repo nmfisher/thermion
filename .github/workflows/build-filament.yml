@@ -30,15 +30,19 @@ on:
         default: true
         type: boolean
       upload_to_r2:
-        description: 'Upload artifacts to R2 under immutable content-addressed keys (never overwrites). Record them into the pin via publish-filament-to-r2.yml. Prefer false + publish workflow for verified rollout.'
+        description: 'Publish content-addressed Filament archives and the versioned WebGPU engine when built. Update the Filament pin with publish-filament-to-r2.yml.'
         required: false
         default: true
         type: boolean
       webgpu:
-        description: 'Build Filament with FILAMENT_SUPPORTS_WEBGPU=ON (macOS, Linux)'
+        description: 'Build Filament with FILAMENT_SUPPORTS_WEBGPU=ON (macOS and Linux)'
         required: false
         default: false
         type: boolean
+      webgpu_filament_run:
+        description: 'Reuse the WebGPU Filament release archive from this Build Filament run ID (platform=web)'
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.platform || 'all' }}
@@ -734,7 +738,7 @@ jobs:
     name: Build Web
     runs-on: ubuntu-24.04
     needs: setup
-    if: contains(needs.setup.outputs.matrix, 'web')
+    if: contains(needs.setup.outputs.matrix, 'web') && inputs.webgpu_filament_run == ''
     env:
       FILAMENT_VERSION: ${{ needs.setup.outputs.filament_version }}
       FILAMENT_REPO: ${{ needs.setup.outputs.filament_repo }}
@@ -753,23 +757,54 @@ jobs:
           retry() { for i in 1 2 3; do "$@" && return 0; echo "retry $i/3 failed: $*" >&2; sleep 20; done; return 1; }
           retry sudo apt-get update -o Acquire::http::Timeout=30 -o Acquire::Retries=3
           retry sudo apt-get install -y -o Acquire::http::Timeout=30 clang libc++-dev libc++abi-dev ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
+          retry sudo apt-get install -y -o Acquire::http::Timeout=30 \
+            libx11-xcb-dev libxcb1-dev libxcb-dri3-dev libxcb-present-dev \
+            libxcb-randr0-dev libxcb-sync-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            libxcb-image0-dev libxcb-render0-dev libxcb-keysyms1-dev libxcb-util-dev \
+            libxcb-xkb-dev libxshmfence-dev libxkbcommon-dev libxkbcommon-x11-dev libgbm-dev
 
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14
         with:
           version: '6.0.4'
 
+      - name: Reuse pinned host tools for upstream WebGPU builds
+        if: inputs.filament_repo == '' && inputs.filament_version == ''
+        run: |
+          set -euo pipefail
+          if [ "$FILAMENT_REPO" != https://github.com/google/filament ]; then exit 0; fi
+          tools="$RUNNER_TEMP/webgpu-host-tools"
+          official="$RUNNER_TEMP/filament-desktop.tgz"
+          pinned="$RUNNER_TEMP/filament-pinned-linux.zip"
+          release="https://github.com/google/filament/releases/download/$FILAMENT_VERSION/filament-$FILAMENT_VERSION-linux.tgz"
+          sha=$(python3 -c 'import json; print(json.load(open("thermion_dart/filament.libs.json")).get("linux/release", ""))')
+          mkdir -p "$tools"
+          # The pinned matc supports WGSL. The other tools come from the same upstream release.
+          if [ -n "$sha" ] &&
+             curl -fLsS --retry 2 "$release" -o "$official" &&
+             tar -xzf "$official" -C "$tools" --strip-components=1 filament/bin &&
+             curl -fLsS --retry 2 "$(python3 scripts/filament-artifact-url.py linux release)" -o "$pinned" &&
+             printf '%s  %s\n' "$sha" "$pinned" | sha256sum --check --status &&
+             unzip -oq "$pinned" bin/matc bin/resgen -d "$tools"; then
+            echo "WEBGPU_HOST_TOOLS=$tools" >> "$GITHUB_ENV"
+          else
+            echo "Matching downloads unavailable. Building the WebGPU host tools from source."
+          fi
+
       - name: Build Filament
         run: |
+          set -euo pipefail
           mkdir -p output
-          chmod +x scripts/build_web.sh
-          scripts/build_web.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+          args=()
+          if [ -n "${WEBGPU_HOST_TOOLS:-}" ]; then args+=(--tools-dir "$WEBGPU_HOST_TOOLS"); fi
+          scripts/build_web.sh filament "$FILAMENT_VERSION" output --clean "${args[@]}"
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
           name: filament-web-release
           path: output/filament-${{ env.FILAMENT_VERSION }}-web-release.zip
+          if-no-files-found: error
           retention-days: 7
 
       - name: Upload debug artifact
@@ -777,16 +812,157 @@ jobs:
         with:
           name: filament-web-debug
           path: output/filament-${{ env.FILAMENT_VERSION }}-web-debug.zip
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload WebGPU release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-web-release-webgpu
+          path: output/filament-${{ env.FILAMENT_VERSION }}-web-release-webgpu.zip
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload WebGPU debug artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-web-debug-webgpu
+          path: output/filament-${{ env.FILAMENT_VERSION }}-web-debug-webgpu.zip
+          if-no-files-found: error
           retention-days: 7
 
       - name: Upload to R2
         if: inputs.upload_to_r2
         run: |
-          for variant in release debug; do
-            bash scripts/upload_filament_hashed.sh \
-              "output/filament-${{ env.FILAMENT_VERSION }}-web-${variant}.zip"
+          set -euo pipefail
+          for variant in release debug release-webgpu debug-webgpu; do
+            bash scripts/upload_filament_hashed.sh "output/filament-$FILAMENT_VERSION-web-$variant.zip"
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
+
+  build-webgpu-engine:
+    name: Build WebGPU engine
+    needs: [setup, build-web]
+    if: >-
+      !cancelled() && needs.setup.result == 'success' &&
+      (needs.build-web.result == 'success' || inputs.webgpu_filament_run != '') &&
+      inputs.platform == 'web' && inputs.filament_repo == '' && inputs.filament_version == ''
+    permissions:
+      actions: read
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.package.outputs.version }}
+    env:
+      FILAMENT_VERSION: ${{ needs.setup.outputs.filament_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: filament-web-release-webgpu
+          path: filament-webgpu
+          run-id: ${{ inputs.webgpu_filament_run || github.run_id }}
+          github-token: ${{ github.token }}
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '6.0.4'
+          actions-cache-folder: emsdk-cache
+
+      - name: Install libraries and build the engine
+        run: |
+          set -euo pipefail
+          web=thermion_dart/native/web
+          mkdir -p "$web/lib/release"
+          unzip -q "filament-webgpu/filament-$FILAMENT_VERSION-web-release-webgpu.zip" -d "$web/lib/release"
+          emcmake cmake -S "$web" -B "$web/build-webgpu" -DCMAKE_BUILD_TYPE=Release \
+            -DTHERMION_ENABLE_WEBGPU=ON
+          cmake --build "$web/build-webgpu" --parallel 2
+
+      - name: Package engine archive
+        id: package
+        run: |
+          set -euo pipefail
+          web=thermion_dart/native/web
+          version=$(cat "$web/web.version")
+          # Reuse the public version when only the pointer or unrelated files
+          # changed after its build. A candidate gets its own commit ID.
+          if ! git cat-file -e "$version^{commit}" 2>/dev/null || \
+             ! git diff --quiet "$version" -- filament.version thermion_dart/filament.libs.json \
+                  thermion_dart/native thermion_dart/lib/src/bindings ":(exclude)$web/web.version"; then
+            version=$(git rev-parse --short HEAD)
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          mkdir -p webgpu-engines
+          engine_dir="$web/build-webgpu/build/out"
+          zip -j "webgpu-engines/thermion_dart-$version-web-webgpu.zip" \
+            "$engine_dir/thermion_dart.js" "$engine_dir/thermion_dart.wasm"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thermion-webgpu-engines
+          path: webgpu-engines/
+
+  verify-webgpu-engine:
+    name: Verify and publish the WebGPU engine
+    needs: build-webgpu-engine
+    # Reusing an archive skips Build Web, an indirect dependency of this job.
+    if: ${{ !cancelled() && needs.build-webgpu-engine.result == 'success' }}
+    permissions:
+      actions: read
+      contents: read
+    # Linux Chromium's software compositor cannot present the WebGPU canvas.
+    runs-on: macos-15
+    timeout-minutes: 15
+    env:
+      WEB_ENGINE_VERSION: ${{ needs.build-webgpu-engine.outputs.version }}
+      CHROME_EXECUTABLE: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: thermion-webgpu-engines
+          path: webgpu-engines
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Compile the browser scene
+        working-directory: thermion_dart
+        run: |
+          dart pub get
+          mkdir -p "$RUNNER_TEMP/webgpu-scene"
+          dart compile js test/chrome_webgpu_scene.dart -o "$RUNNER_TEMP/webgpu-scene/app.js"
+
+      - name: Render a WebGPU scene from the staged archive
+        run: |
+          unzip -o "webgpu-engines/thermion_dart-$WEB_ENGINE_VERSION-web-webgpu.zip" -d "$RUNNER_TEMP/webgpu-scene"
+          python3 scripts/check-webgpu-canvas.py "$RUNNER_TEMP/webgpu-scene" --chrome "$CHROME_EXECUTABLE"
+
+      - name: Publish and verify the public archives
+        if: inputs.upload_to_r2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          set -euo pipefail
+          # Both WebGPU selectors use the same main-thread engine.
+          archive="webgpu-engines/thermion_dart-$WEB_ENGINE_VERSION-web-webgpu.zip"
+          for suffix in webgpu main-thread-webgpu; do
+            artifact="thermion_dart-$WEB_ENGINE_VERSION-web-$suffix.zip"
+            aws s3 cp "$archive" "s3://thermion/$artifact" --endpoint-url "$R2_ENDPOINT"
+            curl -fL --retry 3 "$R2_PUBLIC_URL/$artifact" -o "$RUNNER_TEMP/published-webgpu.zip"
+            cmp "$archive" "$RUNNER_TEMP/published-webgpu.zip"
+          done
+
+      - name: Render from the published R2 archive
+        if: inputs.upload_to_r2
+        run: |
+          curl -fL --retry 3 "$R2_PUBLIC_URL/thermion_dart-$WEB_ENGINE_VERSION-web-webgpu.zip" \
+            -o "$RUNNER_TEMP/published-webgpu.zip"
+          unzip -o "$RUNNER_TEMP/published-webgpu.zip" -d "$RUNNER_TEMP/webgpu-scene"
+          python3 scripts/check-webgpu-canvas.py "$RUNNER_TEMP/webgpu-scene" --chrome "$CHROME_EXECUTABLE"

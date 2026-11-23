@@ -116,6 +116,7 @@ namespace thermion
             if (backend == BACKEND_WEBGPU) {
                 #if defined(THERMION_SUPPORTS_WEBGPU)
                 tPlatform = Thermion_createWebGPUPlatform();
+                if (!tPlatform) return nullptr;
                 tSharedContext = nullptr;
                 #else
                 Log("ERROR - Backend::WEBGPU requested but this engine was built without WebGPU support (build with -DTHERMION_ENABLE_WEBGPU=ON)");

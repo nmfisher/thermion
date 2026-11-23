@@ -236,18 +236,30 @@ void main() {
       }
     });
 
-    test('composes after web_variant and runtime-materials', () {
-      final r = withWebBackend(withRuntimeMaterials(resolveWebVariant('main_thread'), true), 'webgpu');
-      expect(r.zipSuffix, '-main-thread-runtime-materials-webgpu');
-      expect(webArtifactZipName('v', r.zipSuffix), 'thermion_dart-v-web-main-thread-runtime-materials-webgpu.zip');
-      expect(r.cacheSuffix, '-main-thread-runtime-materials-webgpu');
-      expect(webLocalBuildDir(r.zipSuffix), 'build-main-thread-runtime-materials-webgpu');
+    test('explicit main_thread uses the published WebGPU alias', () {
+      for (final backend in ['webgpu', 'hybrid']) {
+        final r = withWebBackend(resolveWebVariant('main_thread'), backend);
+        expect(r.zipSuffix, '-main-thread-webgpu');
+        expect(r.cacheSuffix, '-main-thread-webgpu');
+        expect(webArtifactZipName('v', r.zipSuffix), 'thermion_dart-v-web-main-thread-webgpu.zip');
+      }
     });
 
-    test('webLocalBuildDir maps the plain webgpu variant to its build dir', () {
-      // The directory web_local copies from for a WebGPU-enabled engine,
-      // built with -DTHERMION_ENABLE_WEBGPU=ON.
+    test('runtime materials with WebGPU or hybrid fail before looking up an archive', () {
+      for (final variant in [null, 'main_thread']) {
+        final r = withRuntimeMaterials(resolveWebVariant(variant), true);
+        for (final backend in ['webgpu', 'hybrid']) {
+          expect(
+            () => withWebBackend(r, backend),
+            throwsA(isA<FormatException>().having((error) => error.message, 'message', contains('Choose WebGL2'))),
+          );
+        }
+      }
+    });
+
+    test('both WebGPU archive names use the same local build directory', () {
       expect(webLocalBuildDir('-webgpu'), 'build-webgpu');
+      expect(webLocalBuildDir('-main-thread-webgpu'), 'build-webgpu');
     });
 
     test('preserves warnings from the underlying variant', () {
@@ -256,5 +268,13 @@ void main() {
       expect(r.warnings, hasLength(1));
       expect(r.zipSuffix, '-webgpu');
     });
+  });
+
+  test('browser material formats match the engine choice', () {
+    expect(defaultWebBackend, 'webgl2');
+    expect(webMaterialBackends(defaultWebBackend), ['opengl']);
+    expect(webMaterialBackends('native'), ['opengl']);
+    expect(webMaterialBackends('webgpu'), ['webgpu']);
+    expect(webMaterialBackends('hybrid'), ['opengl', 'webgpu']);
   });
 }
