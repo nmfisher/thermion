@@ -73,25 +73,17 @@ jobs:
           name: thermion-webgpu-engines
           path: webgpu-engines/
 
-      - name: Configure Chromium
-        run: |
-          chrome=$(command -v google-chrome)
-          printf '#!/bin/sh\nexec "%s" --no-sandbox --enable-unsafe-webgpu --use-angle=swiftshader --enable-unsafe-swiftshader --use-webgpu-adapter=swiftshader --enable-logging --log-file="%s" "$@"\n' \
-            "$chrome" "$RUNNER_TEMP/webgpu-chromium.log" > "$RUNNER_TEMP/webgpu-chrome"
-          chmod +x "$RUNNER_TEMP/webgpu-chrome"
-          echo "CHROME_EXECUTABLE=$RUNNER_TEMP/webgpu-chrome" >> "$GITHUB_ENV"
-
-      - name: Render a WebGPU scene from the staged archive
+      - name: Compile the browser scene
         working-directory: thermion_dart
         run: |
-          sed -i '/^hooks:/,$d' pubspec.yaml
-          printf 'hooks:\n  user_defines:\n    thermion_dart:\n      skip_native_build: true\n' >> pubspec.yaml
           dart pub get
-          unzip -o "../webgpu-engines/thermion_dart-$WEB_ENGINE_VERSION-web-webgpu.zip" -d test
-          if ! xvfb-run dart run tool/web_test_runner.dart --clean test/chrome_webgpu_scene.dart; then
-            tail -n 120 "$RUNNER_TEMP/webgpu-chromium.log" || true
-            exit 1
-          fi
+          mkdir -p "$RUNNER_TEMP/webgpu-scene"
+          dart compile js test/chrome_webgpu_scene.dart -o "$RUNNER_TEMP/webgpu-scene/app.js"
+
+      - name: Render a WebGPU scene from the staged archive
+        run: |
+          unzip -o "webgpu-engines/thermion_dart-$WEB_ENGINE_VERSION-web-webgpu.zip" -d "$RUNNER_TEMP/webgpu-scene"
+          python3 scripts/check-webgpu-canvas.py "$RUNNER_TEMP/webgpu-scene"
 
       - name: Publish and verify the public archives
         if: inputs.publish
@@ -113,9 +105,8 @@ jobs:
 
       - name: Render from the published R2 archive
         if: inputs.publish
-        working-directory: thermion_dart
         run: |
           curl -fL --retry 3 "$R2_PUBLIC_URL/thermion_dart-$WEB_ENGINE_VERSION-web-webgpu.zip" \
             -o "$RUNNER_TEMP/published-webgpu.zip"
-          unzip -o "$RUNNER_TEMP/published-webgpu.zip" -d test
-          xvfb-run dart run tool/web_test_runner.dart --clean test/chrome_webgpu_scene.dart
+          unzip -o "$RUNNER_TEMP/published-webgpu.zip" -d "$RUNNER_TEMP/webgpu-scene"
+          python3 scripts/check-webgpu-canvas.py "$RUNNER_TEMP/webgpu-scene"
