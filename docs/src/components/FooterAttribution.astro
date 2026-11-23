@@ -1,0 +1,22 @@
+---
+import Pagination from '@astrojs/starlight/components/Pagination.astro';
+---
+
+<Pagination />
+<p class="attribution">
+  Made by <a href="https://hydroxide.dev/">Nick Fisher</a> and <a href="https://holotype.com.sg/">Holotype Pte Ltd</a>
+</p>
+
+<style>
+  .attribution {
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-sm);
+    text-align: center;
+  }
+
+  .attribution a {
+    color: var(--sl-color-text-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+</style>
