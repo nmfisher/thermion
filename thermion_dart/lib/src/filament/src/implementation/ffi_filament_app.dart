@@ -981,13 +981,95 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     bool hasIOR = false,
     bool hasVolume = false,
   }) async {
-    // The unlit variant is the procedural fallback in a `features.gltf:
-    // false` build: MaterialProvider_createMaterialInstance's stub builds the
-    // precompiled UNLIT_FALLBACK package from the provider's engine. Every
-    // other key is a genuine ubershader request and stays guarded.
-    if (!unlit) {
-      checkSupported(ThermionFeature.gltf, 'createUbershaderMaterialInstance');
-    }
+    checkSupported(ThermionFeature.gltf, 'createUbershaderMaterialInstance');
+    return _createMaterialInstance(
+      doubleSided: doubleSided,
+      unlit: unlit,
+      hasVertexColors: hasVertexColors,
+      hasBaseColorTexture: hasBaseColorTexture,
+      hasNormalTexture: hasNormalTexture,
+      hasOcclusionTexture: hasOcclusionTexture,
+      hasEmissiveTexture: hasEmissiveTexture,
+      useSpecularGlossiness: useSpecularGlossiness,
+      alphaMode: alphaMode,
+      enableDiagnostics: enableDiagnostics,
+      hasMetallicRoughnessTexture: hasMetallicRoughnessTexture,
+      metallicRoughnessUV: metallicRoughnessUV,
+      hasSpecularGlossiness: hasSpecularGlossiness,
+      specularGlossinessUV: specularGlossinessUV,
+      baseColorUV: baseColorUV,
+      hasClearCoatTexture: hasClearCoatTexture,
+      clearCoatUV: clearCoatUV,
+      hasClearCoatRoughnessTexture: hasClearCoatRoughnessTexture,
+      clearCoatRoughnessUV: clearCoatRoughnessUV,
+      hasClearCoatNormalTexture: hasClearCoatNormalTexture,
+      clearCoatNormalUV: clearCoatNormalUV,
+      hasClearCoat: hasClearCoat,
+      hasTransmission: hasTransmission,
+      hasTextureTransforms: hasTextureTransforms,
+      emissiveUV: emissiveUV,
+      aoUV: aoUV,
+      normalUV: normalUV,
+      hasTransmissionTexture: hasTransmissionTexture,
+      transmissionUV: transmissionUV,
+      hasSheenColorTexture: hasSheenColorTexture,
+      sheenColorUV: sheenColorUV,
+      hasSheenRoughnessTexture: hasSheenRoughnessTexture,
+      sheenRoughnessUV: sheenRoughnessUV,
+      hasVolumeThicknessTexture: hasVolumeThicknessTexture,
+      volumeThicknessUV: volumeThicknessUV,
+      hasSheen: hasSheen,
+      hasIOR: hasIOR,
+      hasVolume: hasVolume,
+    );
+  }
+
+  /// Shared FFI call for [createUbershaderMaterialInstance] and
+  /// [createUnlitMaterialInstance]. The latter calls it directly with
+  /// `unlit: true`, bypassing the public method's glTF guard: the unlit key is
+  /// the procedural fallback, and in a `features.gltf: false` build
+  /// MaterialProvider_createMaterialInstance's stub builds the precompiled
+  /// UNLIT_FALLBACK package from the provider's engine (no Dart branch).
+  Future<MaterialInstance> _createMaterialInstance({
+    bool doubleSided = false,
+    bool unlit = false,
+    bool hasVertexColors = false,
+    bool hasBaseColorTexture = false,
+    bool hasNormalTexture = false,
+    bool hasOcclusionTexture = false,
+    bool hasEmissiveTexture = false,
+    bool useSpecularGlossiness = false,
+    AlphaMode alphaMode = AlphaMode.OPAQUE,
+    bool enableDiagnostics = false,
+    bool hasMetallicRoughnessTexture = false,
+    int metallicRoughnessUV = 0,
+    bool hasSpecularGlossiness = false,
+    int specularGlossinessUV = 0,
+    int baseColorUV = 0,
+    bool hasClearCoatTexture = false,
+    int clearCoatUV = 0,
+    bool hasClearCoatRoughnessTexture = false,
+    int clearCoatRoughnessUV = 0,
+    bool hasClearCoatNormalTexture = false,
+    int clearCoatNormalUV = 0,
+    bool hasClearCoat = false,
+    bool hasTransmission = false,
+    bool hasTextureTransforms = false,
+    int emissiveUV = 0,
+    int aoUV = 0,
+    int normalUV = 0,
+    bool hasTransmissionTexture = false,
+    int transmissionUV = 0,
+    bool hasSheenColorTexture = false,
+    int sheenColorUV = 0,
+    bool hasSheenRoughnessTexture = false,
+    int sheenRoughnessUV = 0,
+    bool hasVolumeThicknessTexture = false,
+    int volumeThicknessUV = 0,
+    bool hasSheen = false,
+    bool hasIOR = false,
+    bool hasVolume = false,
+  }) async {
     final materialInstance = await withPointerCallback<TMaterialInstance>((cb) {
       MaterialProvider_createMaterialInstanceJobThread(
         jobThreadHandle,
@@ -1059,7 +1141,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   /// ([createUbershaderMaterialInstance] with `unlit: false`) throw.
   @override
   Future<MaterialInstance> createUnlitMaterialInstance() async {
-    return createUbershaderMaterialInstance(unlit: true, hasVertexColors: false);
+    return _createMaterialInstance(unlit: true, hasVertexColors: false);
   }
 
   @override
