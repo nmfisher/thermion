@@ -362,11 +362,10 @@ extern "C"
         auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(
             asset->isInstance() ? asset->getInstanceOwner() : asset);
         // Convert EntityId to utils::Entity for the internal method
-#if THERMION_ENABLE_GLTF
         return gltfSceneAsset->getPrimitiveOffsetForEntity(utils::Entity::import(entity));
 #else
+        // No glTF assets exist in this build; keep the export's contract.
         return -1;
-#endif
 #endif
     }
 
