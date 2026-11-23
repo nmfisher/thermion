@@ -18,6 +18,8 @@ export default defineConfig({
         // version (read from thermion_dart/pubspec.yaml at build time) next to
         // the logo. See src/components/SiteTitle.astro.
         SiteTitle: './src/components/SiteTitle.astro',
+        // Starlight renders Pagination inside the footer on every page.
+        Pagination: './src/components/FooterAttribution.astro',
       },
       social: [
         {
