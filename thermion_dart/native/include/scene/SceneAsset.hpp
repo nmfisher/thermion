@@ -2,8 +2,8 @@
 
 #include <memory>
 
+#include <filament/Box.h>
 #include <filament/Scene.h>
-#include <gltfio/FilamentAsset.h>
 #include <math.h>
 #include <utils/Entity.h>
 

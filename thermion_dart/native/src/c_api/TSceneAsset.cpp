@@ -1,8 +1,6 @@
 #include "rendering/EngineApiLock.hpp"
- 
 
-#include <gltfio/AssetLoader.h>
-#include <gltfio/ResourceLoader.h>
+#include "ThermionFeatures.h"
 
 #include <utils/NameComponentManager.h>
 
@@ -11,8 +9,20 @@
 #include "Log.hpp"
 
 #include "scene/GeometrySceneAsset.hpp"
-#include "scene/GltfSceneAsset.hpp"
 #include "scene/SceneAsset.hpp"
+
+#if THERMION_ENABLE_GLTF
+#include <gltfio/AssetLoader.h>
+#include <gltfio/ResourceLoader.h>
+
+#include "scene/GltfSceneAsset.hpp"
+#endif
+
+// Pattern B (docs/feature-optout-proposal.md §5.2, decision D1): this file
+// mixes core procedural code (SceneAsset_createFromBuffers, shared
+// entity/light/camera access, instancing, destruction) with glTF-only entry
+// points, so only the glTF branches are guarded. The procedural entry points
+// stay live in `features.gltf: false` builds.
 
 using namespace thermion;
 
@@ -77,6 +87,7 @@ extern "C"
         TFilamentAsset *tFilamentAsset,
         uint32_t requiredGeometryCapabilities
     ) {
+#if THERMION_ENABLE_GLTF
         THERMION_ENGINE_API_GUARD;
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
         auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
@@ -105,6 +116,10 @@ extern "C"
         }
 
         return reinterpret_cast<TSceneAsset *>(sceneAsset);
+#else
+        Log("SceneAsset_createFromFilamentAsset: glTF support is disabled in this build (features.gltf: false)");
+        return nullptr;
+#endif
     }
     
     EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset) {
@@ -115,6 +130,7 @@ extern "C"
             return nullptr;
         }
         
+#if THERMION_ENABLE_GLTF
         // A GltfSceneAssetInstance is Gltf-typed too but is not a
         // GltfSceneAsset; resolve it to its owner like the buffer getters do.
         auto gltfAsset = reinterpret_cast<GltfSceneAsset *>(
@@ -122,6 +138,10 @@ extern "C"
         auto *filamentAsset = gltfAsset->getAsset();
         TRACE("SceneAsset %d FilamentAsset %d", sceneAsset, filamentAsset);
         return reinterpret_cast<TFilamentAsset *>(filamentAsset);
+#else
+        // No asset can be Gltf-typed in a build without gltfio.
+        return nullptr;
+#endif
     }
 
     EMSCRIPTEN_KEEPALIVE TSceneAssetType SceneAsset_getType(TSceneAsset *tSceneAsset) {
@@ -182,6 +202,7 @@ extern "C"
     {
         THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+#if THERMION_ENABLE_GLTF
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf && !asset->isInstance())
         {
             auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
@@ -189,6 +210,7 @@ extern "C"
             return reinterpret_cast<EntityId *>(const_cast<filament::gltfio::FilamentAsset::Entity *>(entities));
         }
         else
+#endif
         {
             return std::nullptr_t();
         }
@@ -198,11 +220,13 @@ extern "C"
     {
         THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+#if THERMION_ENABLE_GLTF
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf && !asset->isInstance())
         {
             auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
             return gltfSceneAsset->getAsset()->getCameraEntityCount();
         }
+#endif
         
         return -1;
         
@@ -212,12 +236,14 @@ extern "C"
     {
         THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+#if THERMION_ENABLE_GLTF
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf && !asset->isInstance())
         {            
             auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
             auto *entities = gltfSceneAsset->getAsset()->getLightEntities();
             return reinterpret_cast<EntityId *>(const_cast<filament::gltfio::FilamentAsset::Entity *>(entities));
         }
+#endif
         
         return std::nullptr_t();
         
@@ -227,11 +253,13 @@ extern "C"
     {
         THERMION_ENGINE_API_GUARD;
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+#if THERMION_ENABLE_GLTF
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf && !asset->isInstance())
         {            
             auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
             return gltfSceneAsset->getAsset()->getLightEntityCount();
         }
+#endif
         
         return -1;
     }
@@ -283,12 +311,14 @@ extern "C"
             auto *vertexBuffer = geometrySceneAsset->getVertexBuffer();
             return reinterpret_cast<TVertexBuffer *>(vertexBuffer);
         }
+#if THERMION_ENABLE_GLTF
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf) {
             auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(
                 asset->isInstance() ? asset->getInstanceOwner() : asset);
             auto *vertexBuffer = gltfSceneAsset->getPreservedVertexBuffer(primitiveIndex);
             return reinterpret_cast<TVertexBuffer *>(vertexBuffer);
         }
+#endif
         return nullptr;
     }
 
@@ -311,12 +341,14 @@ extern "C"
             auto *indexBuffer = geometrySceneAsset->getIndexBuffer();
             return reinterpret_cast<TIndexBuffer *>(indexBuffer);
         }
+#if THERMION_ENABLE_GLTF
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf) {
             auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(
                 asset->isInstance() ? asset->getInstanceOwner() : asset);
             auto *indexBuffer = gltfSceneAsset->getPreservedIndexBuffer(primitiveIndex);
             return reinterpret_cast<TIndexBuffer *>(indexBuffer);
         }
+#endif
         return nullptr;
     }
 
@@ -326,10 +358,16 @@ extern "C"
         if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
             return -1;
         }
+#if THERMION_ENABLE_GLTF
         auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(
             asset->isInstance() ? asset->getInstanceOwner() : asset);
         // Convert EntityId to utils::Entity for the internal method
+#if THERMION_ENABLE_GLTF
         return gltfSceneAsset->getPrimitiveOffsetForEntity(utils::Entity::import(entity));
+#else
+        return -1;
+#endif
+#endif
     }
 
 
@@ -344,8 +382,10 @@ extern "C"
             Log("releaseSourceData must be called on the owning asset, not an instance");
             return;
         }
+#if THERMION_ENABLE_GLTF
         auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
         gltfAsset->releaseSourceData();
+#endif
     }
 
     EMSCRIPTEN_KEEPALIVE void SceneAsset_setFlatShading(TSceneAsset *tSceneAsset, bool flatShading) {
@@ -355,9 +395,11 @@ extern "C"
             Log("setFlatShading only supported on glTF assets");
             return;
         }
+#if THERMION_ENABLE_GLTF
         auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(
             asset->isInstance() ? asset->getInstanceOwner() : asset);
         gltfAsset->setFlatShading(flatShading);
+#endif
     }
 
     EMSCRIPTEN_KEEPALIVE void SceneAsset_getBones(TSceneAsset *tSceneAsset, size_t skinIndex, EntityId *out) {

@@ -1,6 +1,7 @@
 #include "rendering/EngineApiLock.hpp"
- 
 
+
+#include "ThermionFeatures.h"
 #include "c_api/TGltfAssetLoader.h"
 
 #include <filament/Engine.h>
@@ -14,6 +15,7 @@
 #include <filament/TransformManager.h>
 #include <filament/View.h>
 
+#if THERMION_ENABLE_GLTF
 #include <gltfio/Animator.h>
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
@@ -21,6 +23,7 @@
 #include <gltfio/TextureProvider.h>
 #include <gltfio/math.h>
 #include <gltfio/materials/uberarchive.h>
+#endif
 
 #include <utils/EntityManager.h>
 #include <utils/NameComponentManager.h>
@@ -36,6 +39,7 @@ namespace thermion
 
 #endif
 
+#if THERMION_ENABLE_GLTF
 
 EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, TMaterialProvider *tMaterialProvider, TNameComponentManager *tNameComponentManager) {
     THERMION_ENGINE_API_GUARD;
@@ -136,20 +140,64 @@ EMSCRIPTEN_KEEPALIVE TMaterialProvider *GltfAssetLoader_getMaterialProvider(TGlt
     return reinterpret_cast<TMaterialProvider *>(&materialProvider);
 }
 
+#else // !THERMION_ENABLE_GLTF
+// Stub contract (docs/feature-optout-proposal.md §5.2/§5.4): the same C
+// symbols with the same signatures, no gltfio references. Loaders and
+// providers return null so the *JobThread wrappers complete their Dart
+// callbacks with null instead of hanging; Dart's guards turn those into
+// UnsupportedError before any of this is reached.
+
+EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, TMaterialProvider *tMaterialProvider, TNameComponentManager *tNameComponentManager) {
+    Log("GltfAssetLoader_create: glTF support is disabled in this build (features.gltf: false)");
+    return nullptr;
+}
+
+EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_destroy(TGltfAssetLoader *tAssetLoader) {
+}
+
+EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
+    TEngine *tEngine,
+    TGltfAssetLoader *tAssetLoader,
+    const uint8_t *data,
+    size_t length,
+    uint32_t numInstances)
+{
+    Log("GltfAssetLoader_load: glTF support is disabled in this build (features.gltf: false)");
+    return nullptr;
+}
+
+EMSCRIPTEN_KEEPALIVE TMaterialInstance *GltfAssetLoader_getMaterialInstance(TRenderableManager *tRenderableManager, TFilamentAsset *tAsset) {
+    return nullptr;
+}
+
+EMSCRIPTEN_KEEPALIVE TMaterialProvider *GltfAssetLoader_getMaterialProvider(TGltfAssetLoader *tAssetLoader) {
+    return nullptr;
+}
+
+#endif // THERMION_ENABLE_GLTF
+
 EMSCRIPTEN_KEEPALIVE int32_t FilamentAsset_getResourceUriCount(
     TFilamentAsset *tFilamentAsset
 ) {
+#if THERMION_ENABLE_GLTF
     THERMION_ENGINE_API_GUARD;
     auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset *>(tFilamentAsset);
     return filamentAsset->getResourceUriCount();
+#else
+    return 0;
+#endif
 }
 
 EMSCRIPTEN_KEEPALIVE const char* const* FilamentAsset_getResourceUris(
     TFilamentAsset *tFilamentAsset
 ) {
+#if THERMION_ENABLE_GLTF
     THERMION_ENGINE_API_GUARD;
     auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset *>(tFilamentAsset);
-    return filamentAsset->getResourceUris();    
+    return filamentAsset->getResourceUris();
+#else
+    return nullptr;
+#endif
 }
 
 #ifdef __cplusplus

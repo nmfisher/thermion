@@ -1,6 +1,5 @@
 #include <vector>
 
-#include <gltfio/MaterialProvider.h>
 #include <filament/Engine.h>
 #include <filament/Frustum.h>
 #include <filament/RenderableManager.h>

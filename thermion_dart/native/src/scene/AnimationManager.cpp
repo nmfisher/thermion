@@ -3,6 +3,10 @@
 #include <unordered_set>
 #include <vector>
 
+#include "ThermionFeatures.h"
+
+#if THERMION_ENABLE_GLTF
+
 #include <filament/Engine.h>
 #include <filament/TransformManager.h>
 #include <filament/RenderableManager.h>
@@ -479,3 +483,29 @@ namespace thermion
     }
 
 }
+
+#else // !THERMION_ENABLE_GLTF
+
+#include "scene/AnimationManager.hpp"
+
+namespace thermion
+{
+
+    // Zero-cost shell for `features.gltf: false` builds (proposal §5.5):
+    // RenderManager still creates and ticks an AnimationManager at engine
+    // init; nothing can be animated without gltfio, so both are no-ops.
+    AnimationManager::AnimationManager(Engine *engine) : mEngine(engine)
+    {
+    }
+
+    AnimationManager::~AnimationManager()
+    {
+    }
+
+    void AnimationManager::update(uint64_t frameTimeInNanos)
+    {
+    }
+
+} // namespace thermion
+
+#endif // THERMION_ENABLE_GLTF

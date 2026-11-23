@@ -5,7 +5,6 @@
 #include <filament/RenderableManager.h>
 #include <filament/VertexBuffer.h>
 #include <filament/IndexBuffer.h>
-#include <gltfio/MaterialProvider.h>
 #include "scene/SceneAsset.hpp"
 
 namespace thermion

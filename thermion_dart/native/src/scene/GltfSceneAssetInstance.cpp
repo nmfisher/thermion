@@ -1,3 +1,11 @@
+#include "ThermionFeatures.h"
+
+// gltfio-backed class, reachable only through the glTF entry points that
+// THERMION_ENABLE_GLTF=0 compiles to stubs (docs/feature-optout-proposal.md
+// §5.2 Pattern C): compiled out of `features.gltf: false` builds so no
+// gltfio symbol is referenced there.
+#if THERMION_ENABLE_GLTF
+
 #include "scene/GltfSceneAssetInstance.hpp"
 #include "scene/GltfSceneAsset.hpp"
 
@@ -55,3 +63,5 @@ namespace thermion
     }
 
 }
+
+#endif // THERMION_ENABLE_GLTF

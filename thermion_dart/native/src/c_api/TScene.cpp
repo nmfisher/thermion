@@ -1,4 +1,5 @@
 #include "rendering/EngineApiLock.hpp"
+#include "ThermionFeatures.h"
 #include "c_api/TScene.h"
 
 #include <filament/Engine.h>
@@ -12,8 +13,10 @@
 #include <filament/TransformManager.h>
 #include <filament/View.h>
 
+#if THERMION_ENABLE_GLTF
 #include <gltfio/FilamentAsset.h>
 #include <gltfio/FilamentInstance.h>
+#endif
 
 #include "Log.hpp"
 
@@ -62,10 +65,15 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAsset(TScene* tScene, TFilamentAsset *tAsset) {
+#if THERMION_ENABLE_GLTF
             THERMION_ENGINE_API_GUARD;
             auto *scene = reinterpret_cast<Scene *>(tScene);
             auto *asset = reinterpret_cast<gltfio::FilamentAsset*>(tAsset);
             scene->addEntities(asset->getEntities(), asset->getEntityCount());
+#else
+            // Stub (docs/feature-optout-proposal.md §5.4): no glTF assets exist
+            // in this build, so there is nothing to add.
+#endif
         }
 
 

@@ -4,6 +4,9 @@
 #include <utils/Entity.h>
 #include <filament/TransformManager.h>
 #include <math/mat4.h>
+// Header-only inline math helpers (decomposeMatrix/composeMatrix) used below:
+// no link-time gltfio reference, so this include is fine in every build
+// (docs/feature-optout-proposal.md §3.1 lists it as compile-time only).
 #include <gltfio/math.h>
 #include <vector>
 #include <algorithm>

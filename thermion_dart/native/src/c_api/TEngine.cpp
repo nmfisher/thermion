@@ -46,13 +46,6 @@ filament::backend::WebGPUPlatform* g_webgpuPlatform = nullptr;
 #include <filament/TransformManager.h>
 #include <filament/View.h>
 
-#include <gltfio/Animator.h>
-#include <gltfio/AssetLoader.h>
-#include <gltfio/FilamentAsset.h>
-#include <gltfio/ResourceLoader.h>
-#include <gltfio/TextureProvider.h>
-#include <gltfio/math.h>
-#include <gltfio/materials/uberarchive.h>
 
 #include <image/ColorTransform.h>
 

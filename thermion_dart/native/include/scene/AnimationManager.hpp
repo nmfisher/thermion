@@ -6,19 +6,24 @@
 #include <filament/Engine.h>
 #include <filament/Scene.h>
 
+#include "ThermionFeatures.h"
 #include "c_api/APIBoundaryTypes.h"
 
+#if THERMION_ENABLE_GLTF
 #include "scene/AnimationComponentBase.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
 #include "scene/GltfSceneAsset.hpp"
 #include "scene/SceneAsset.hpp"
+#endif
 
 namespace thermion
 {
 
     using namespace filament;
-    using namespace filament::gltfio;
     using namespace utils;
+#if THERMION_ENABLE_GLTF
+    using namespace filament::gltfio;
+#endif
 
     // Assets can be animated by:
     // 1) playing an embedded gltf animation 
@@ -38,6 +43,14 @@ namespace thermion
     class GltfAnimationComponentManager;
     class MorphAnimationComponentManager;
     class BoneAnimationComponentManager;
+
+    // Every animation type is driven by gltfio (Animator) and operates on
+    // glTF assets, so the whole manager is glTF-only. The build still needs
+    // the three members below in a `features.gltf: false` build, because
+    // RenderManager creates and ticks an AnimationManager at engine init
+    // (docs/feature-optout-proposal.md §5.5): they compile to a zero-cost
+    // shell there (scene/AnimationManager.cpp), while the rest of the class
+    // and its component managers are compiled out.
     class AnimationManager
     {
 
@@ -50,6 +63,7 @@ namespace thermion
         /// @param frameTimeInNanos 
         void update(uint64_t frameTimeInNanos);
 
+#if THERMION_ENABLE_GLTF
         
         /// @param asset
         /// @param childEntity
@@ -181,14 +195,17 @@ namespace thermion
         
         /// @param asset
         void removeMorphAnimationComponent(utils::Entity entity);
-            
+
+#endif // THERMION_ENABLE_GLTF
 
     private:
         Engine *mEngine = nullptr;
+#if THERMION_ENABLE_GLTF
         std::mutex mMutex;
         std::unique_ptr<GltfAnimationComponentManager> mGltfAnimationComponentManager;
         std::unique_ptr<MorphAnimationComponentManager> mMorphAnimationComponentManager;
         std::unique_ptr<BoneAnimationComponentManager> mBoneAnimationComponentManager;
         uint64_t mLastUpdateTime;
+#endif
     };
 }

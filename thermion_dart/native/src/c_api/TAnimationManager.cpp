@@ -1,10 +1,16 @@
 #include "rendering/EngineApiLock.hpp"
 #include "Log.hpp"
+#include "ThermionFeatures.h"
 
 #include <utils/Entity.h>
 
 #include "c_api/APIExport.h"
 #include "scene/AnimationManager.hpp"
+
+#if THERMION_ENABLE_GLTF
+#include "scene/GltfSceneAsset.hpp"
+#include "scene/GltfSceneAssetInstance.hpp"
+#endif
 
 using namespace thermion;
 
@@ -30,6 +36,8 @@ extern "C"
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         animationManager->update(frameTimeInNanos);
     }
+
+#if THERMION_ENABLE_GLTF
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_addGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
     {
@@ -508,4 +516,186 @@ extern "C"
         std::string name = names[index];
         strcpy(outPtr, name.c_str());
     }
+#else // !THERMION_ENABLE_GLTF
+// Stub contract (docs/feature-optout-proposal.md §5.4). create/destroy/update
+// above stay real: AnimationManager compiles to a zero-cost shell in this
+// build (scene/AnimationManager.cpp), so RenderManager can still create and
+// tick one at engine init. Every glTF animation entry point keeps its symbol
+// and signature and reports the same "wrong asset type" result the real
+// implementation returns for a non-glTF asset: booleans false, counts -1,
+// durations -1, names FILAMENT_ERROR_NOT_FOUND, out-parameters untouched.
+
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_addGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
+    {
+        return false;
+    }
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_removeGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
+    {
+        return false;
+    }
+
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_addBoneAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
+    {
+        return false;
+    }
+
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_removeBoneAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
+    {
+        return false;
+    }
+
+    EMSCRIPTEN_KEEPALIVE void AnimationManager_addMorphAnimationComponent(TAnimationManager *tAnimationManager, EntityId entity)
+    {
+    }
+
+    EMSCRIPTEN_KEEPALIVE void AnimationManager_removeMorphAnimationComponent(TAnimationManager *tAnimationManager, EntityId entity)
+    {
+    }
+
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_setMorphAnimation(
+        TAnimationManager *tAnimationManager,
+        EntityId entityId,
+        const float *const morphData,
+        const uint32_t *const morphIndices,
+        int numMorphTargets,
+        int numFrames,
+        float frameLengthInMs)
+    {
+        return false;
+    }
+
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_setMorphTargetWeights(
+        TAnimationManager *tAnimationManager,
+        EntityId entityId,
+        const float *const morphData,
+        int numWeights)
+    {
+        return false;
+    }
+
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_clearMorphAnimation(TAnimationManager *tAnimationManager, EntityId entityId)
+    {
+        return false;
+    }
+
+    EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPose(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
+    {
+    }
+
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_addBoneAnimation(
+        TAnimationManager *tAnimationManager,
+        TSceneAsset *tSceneAsset,
+        int skinIndex,
+        int boneIndex,
+        const float *const frameData,
+        int numFrames,
+        float frameLengthInMs,
+        float fadeOutInSecs,
+        float fadeInInSecs,
+        float maxDelta,
+        bool loop)
+    {
+        return false;
+    }
+
+    EMSCRIPTEN_KEEPALIVE void AnimationManager_getRestLocalTransforms(
+        TAnimationManager *tAnimationManager,
+        TSceneAsset *sceneAsset,
+        int skinIndex,
+        float *const out,
+        int numBones)
+    {
+    }
+
+    EMSCRIPTEN_KEEPALIVE void AnimationManager_getInverseBindMatrix(
+        TAnimationManager *tAnimationManager,
+        TSceneAsset *sceneAsset,
+        int skinIndex,
+        int boneIndex,
+        float *const out)
+    {
+    }
+
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_playGltfAnimation(
+        TAnimationManager *tAnimationManager,
+        TSceneAsset *tSceneAsset,
+        int index,
+        bool loop,
+        bool reverse,
+        bool replaceActive,
+        float crossfade,
+        float startOffset,
+        float speed)
+    {
+        return false;
+    }
+
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_stopGltfAnimation(
+        TAnimationManager *tAnimationManager,
+        TSceneAsset *tSceneAsset,
+        int index)
+    {
+        return false;
+    }
+
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_setGltfAnimationTime(
+        TAnimationManager *tAnimationManager,
+        TSceneAsset *tSceneAsset,
+        int animationIndex,
+        float timeInSeconds)
+    {
+        return false;
+    }
+
+    EMSCRIPTEN_KEEPALIVE float AnimationManager_getGltfAnimationDuration(
+        TAnimationManager *tAnimationManager,
+        TSceneAsset *tSceneAsset,
+        int animationIndex)
+    {
+        return -1.0;
+    }
+
+    EMSCRIPTEN_KEEPALIVE int AnimationManager_getGltfAnimationCount(
+        TAnimationManager *tAnimationManager,
+        TSceneAsset *tSceneAsset)
+    {
+        return -1;
+    }
+
+    EMSCRIPTEN_KEEPALIVE void AnimationManager_getGltfAnimationName(
+        TAnimationManager *tAnimationManager,
+        TSceneAsset *tSceneAsset,
+        char *const outPtr,
+        int index)
+    {
+        if (outPtr) {
+            strcpy(outPtr, "FILAMENT_ERROR_NOT_FOUND");
+        }
+    }
+
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_updateBoneMatrices(
+        TAnimationManager *tAnimationManager,
+        TSceneAsset *sceneAsset)
+    {
+        return false;
+    }
+
+    EMSCRIPTEN_KEEPALIVE int AnimationManager_getMorphTargetNameCount(
+        TAnimationManager *tAnimationManager,
+        TSceneAsset *tSceneAsset,
+        EntityId childEntity)
+    {
+        return -1;
+    }
+
+    EMSCRIPTEN_KEEPALIVE void AnimationManager_getMorphTargetName(
+        TAnimationManager *tAnimationManager,
+        TSceneAsset *sceneAsset,
+        EntityId childEntity,
+        char *const outPtr,
+        int index)
+    {
+    }
+
+#endif // THERMION_ENABLE_GLTF
 }
