@@ -381,3 +381,157 @@ filameshio                       nothing
 | filamat | unchanged | `THERMION_ENABLE_RUNTIME_MATERIALS` (existing) | existing |
 | filameshio | already absent | — | — |
 
+## 4. `userDefines` schema for `hook/build.dart`
+
+### 4.1 Shape
+
+One new top-level key under the existing `hooks.user_defines.thermion_dart`
+map, alongside `backend`, `runtime_materials`, `materials` and `plugins`:
+
+```yaml
+# consuming app's pubspec.yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      features:
+        gltf: false             # default true
+        ktx: false              # default true
+        image_decoding: false   # default true
+      runtime_materials: false  # existing key, unchanged (default false)
+```
+
+Design decisions, each following an existing precedent in the hook:
+
+| Decision | Precedent |
+| --- | --- |
+| A `features` **map**, not three top-level booleans | `materials` map (`built_in_materials.dart` `selectBuiltInMaterials`); keeps the top-level namespace from growing one key per library forever |
+| **Opt-out** semantics: absent key = enabled | every existing app keeps today's binary; opposite polarity to `runtime_materials` (opt-in) because these features are on today |
+| Values must be unquoted YAML booleans; anything else is a **hard error** naming the key | `materials.<key> must be true or false` (`MaterialToolsError`). Stricter than `runtime_materials`' warn-and-continue, because silently ignoring `gltf: "false"` would ship a 4 MB fatter binary than the user asked for |
+| Unknown key inside `features` = **warning**, not error | `Unknown key materials.$key` warning; forward compatibility with older hook versions |
+| No per-OS map (`features: {android: ...}`) in v1 | `backend` supports per-OS maps, but a Flutter app ships one Dart codebase to all platforms; per-OS feature sets would make `supports()` platform-dependent for no measured need. Can be added later without breaking the flat form |
+
+`draco`, `basis_transcoder`, `filameshio`, `image`, `filamat` deliberately get
+**no keys**: §3 shows they are either transitive-only, core, already gated by
+`runtime_materials`, or already absent. Exposing them would let users express
+broken combinations (ktxreader without a transcoder, gltfio without Draco).
+
+### 4.2 Parsing and validation (new helper, e.g. `lib/src/hooks/feature_flags.dart`)
+
+```dart
+// Modeled on selectBuiltInMaterials / resolveBackend.
+typedef ThermionFeatures = ({bool gltf, bool ktx, bool imageDecoding});
+
+ThermionFeatures resolveFeatures(Object? raw, {required void Function(String) onWarning}) {
+  // null -> all true.
+  // non-map -> throw (same style as MaterialToolsError).
+  // unknown keys -> onWarning('Unknown key features.$key ...').
+  // non-bool values -> throw naming key and expected type.
+}
+```
+
+Resolved once, early — next to the `backend` resolution (before the web
+branch), so both branches see it. Cross-feature rules:
+
+- `gltf: true, ktx: false` and `gltf: true, image_decoding: false` are
+  **valid**: gltfio stays, only the corresponding `TextureProvider` is not
+  registered (§5.3). Loading a glTF that embeds that texture type fails at
+  resource-load time with a clear log, exactly as an unknown MIME type does
+  today.
+- `gltf: false` implies Draco, meshoptimizer/mikktspace (Windows pragmas) and
+  `uberzlib` drop regardless of other keys — they have no other client.
+- `runtime_materials: true` is orthogonal; no interaction rules needed
+  (filamat never references gltfio).
+
+### 4.3 Hook effects (native branch)
+
+```dart
+final features = resolveFeatures(input.userDefines['features'], onWarning: logger.warning);
+
+// Defaults: pass nothing when enabled, so an all-default build's compile
+// command is IDENTICAL to today's (important for build caching, §4.5).
+// Disabled features pass an explicit 0; the C headers default to 1 (§5.1).
+if (!features.gltf) defines['THERMION_ENABLE_GLTF'] = '0';
+if (!features.ktx) defines['THERMION_ENABLE_KTX'] = '0';
+if (!features.imageDecoding) defines['THERMION_ENABLE_IMAGE_DECODING'] = '0';
+```
+
+The `libs` list (lines 316-395) becomes conditional — order otherwise
+unchanged (GNU ld left-to-right resolution):
+
+```dart
+if (features.gltf) "gltfio_core",
+// "gltfio" (full archive): drop entirely, nothing references it (§3.1).
+if (features.imageDecoding) "stb",
+if (features.ktx) ...["ktxreader", "basis_transcoder"],
+if (features.gltf) ...["dracodec", "uberzlib", "uberarchive"],
+// image, z, zstd, smol-v, geometry, filamat rules: unchanged (§3.3, §3.7).
+```
+
+Because the archives are *removed*, a guard missed during implementation is a
+**link error in CI**, not a silent `dlopen` failure on a user's device. This is
+the same fail-fast property `runtime_materials` already has.
+
+### 4.4 Windows
+
+`ThermionWin32.h` gains the same guards around the corresponding
+`#pragma comment(lib, ...)` lines:
+
+```c
+#if THERMION_ENABLE_GLTF
+#pragma comment(lib, "gltfio_core.lib")
+#pragma comment(lib, "dracodec.lib")
+#pragma comment(lib, "uberarchive.lib")
+#pragma comment(lib, "uberzlib.lib")
+#pragma comment(lib, "meshoptimizer.lib")
+#pragma comment(lib, "mikktspace.lib")
+#endif
+#if THERMION_ENABLE_KTX
+#pragma comment(lib, "ktxreader.lib")
+#pragma comment(lib, "basis_transcoder.lib")
+#endif
+#if THERMION_ENABLE_IMAGE_DECODING
+#pragma comment(lib, "stb.lib")
+#endif
+```
+
+and the unconditional `matp.lib`/`filamat.lib` pragmas move under the existing
+`THERMION_ENABLE_RUNTIME_MATERIALS` block (§2.1 consistency fix).
+
+### 4.5 Caching and artifact identity
+
+- Native Filament archives are feature-agnostic (all features compiled in,
+  selection happens at *Thermion* compile/link time), so **no new artifact
+  variants** and no `getLibDir` changes — unlike `webgpu`, which needs a
+  different Filament build.
+- `defines` are already part of the `CBuilder` build identity, so toggling a
+  feature rebuilds `libthermion_dart` without any extra cache-key work.
+- Passing defines only for *disabled* features (§4.3) keeps default builds
+  byte-identical and cache-compatible with today's hook.
+- The built-in materials manifest (`materials` key, matc/resgen pipeline) is
+  unaffected; the new always-on `unlit` blob (§5.6) is compiled by that same
+  pipeline, not by `filamat` at runtime.
+
+### 4.6 Web
+
+The web engine is a **prebuilt** `thermion_dart-<version>-web<suffix>.zip`
+(`web_artifacts.dart`); its C is compiled by `native/web/CMakeLists.txt` at
+publication time, and variants already multiply (`-main-thread`,
+`-runtime-materials`, `-webgpu`, combinations). Publishing a zip per feature
+subset would mean up to 8× more variants — rejected.
+
+v1 behaviour:
+
+- the hook parses `features` on web too, but if any feature is disabled it
+  logs a **warning**: "web engines are prebuilt with all features;
+  `features.*` only affects native builds" (and, once §6 lands, Dart's
+  `supports()` still reports the truth from the loaded engine);
+- `native/web/CMakeLists.txt` gains the same
+  `option(THERMION_ENABLE_GLTF ...)` etc. as the existing
+  `THERMION_ENABLE_RUNTIME_MATERIALS` option, defaulting ON, so a
+  `-slim` variant (all three off) can be published later as **one** extra
+  suffix if demand appears, exactly like `-runtime-materials` was added;
+- wasm already dead-code-eliminates unreferenced archives, so the *default*
+  web engine only pays for what the prebuilt C references — the win on web
+  comes from the same C guards, whenever a slim variant is shipped.
+
+<!-- continued -->
