@@ -23,11 +23,10 @@
     } catch(err) {
         console.error(err);
     }
-    const dartModulePromise = WebAssembly.compileStreaming(fetch('./example.wasm'));
-    const imports = {};
-    const dart2wasm_runtime = await import('./example.mjs');
-    const moduleInstance = await dart2wasm_runtime.instantiate(dartModulePromise, imports);
-    await dart2wasm_runtime.invoke(moduleInstance);
+    const { compileStreaming } = await import('./example.mjs');
+    const compiledApp = await compileStreaming(fetch('./example.wasm'));
+    const app = await compiledApp.instantiate({});
+    app.invokeMain();
   </script>
   <body>
     <canvas id="canvas"></canvas>
