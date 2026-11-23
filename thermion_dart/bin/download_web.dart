@@ -120,8 +120,7 @@ void main(List<String> args) async {
         variant = args[++i];
       }
     } else if (args[i] == '--backend') {
-      if (i + 1 >= args.length ||
-          !const ['webgl2', 'webgpu', 'hybrid'].contains(args[i + 1])) {
+      if (i + 1 >= args.length || !const ['webgl2', 'webgpu', 'hybrid'].contains(args[i + 1])) {
         stderr.writeln('--backend requires webgl2, webgpu or hybrid.');
         exit(64);
       }
