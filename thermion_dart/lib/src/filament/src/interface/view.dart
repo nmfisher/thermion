@@ -481,6 +481,18 @@ abstract class View<T> extends NativeHandle<T> {
   // Returns true if initialization succeeded, false if already enabled.
   Future setHighlightOverlayEnabled(bool enabled);
 
+  /// Enables diffuse-only screen-space scattering inside Filament's HDR pipeline.
+  /// Requires the matching diffuse-SSS engine and material compiler. Uses this
+  /// view's geometry and depth without additional public views or target changes.
+  /// Only opaque standard-lit primitives are eligible; MSAA, fog and SSR must
+  /// be disabled. See docs/screen-space-subsurface-scattering.md for limits.
+  /// Use [getSubsurfaceScattering] to select primitives and set physical radii.
+  Future setSubsurfaceScatteringEnabled(bool enabled);
+
+  /// The subsurface scattering manager for this view, or null while
+  /// [setSubsurfaceScatteringEnabled] has not been called with true.
+  SubsurfaceScatteringManager? getSubsurfaceScattering();
+
   /// Renders a screen-space outline around [entity] with the given color.
   ///
   /// The overlay system must be enabled first via [enableHighlightOverlay].

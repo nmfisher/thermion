@@ -66,6 +66,15 @@ void main() {
       expect(FilamentApp.instance, isNotNull);
       print('WebGPU FilamentApp created successfully on ${Platform.operatingSystem}');
 
+      final app = FilamentApp.instance!;
+      final view = await app.createView();
+      try {
+        await expectLater(view.setSubsurfaceScatteringEnabled(true), throwsUnsupportedError);
+        expect(view.getSubsurfaceScattering(), isNull);
+      } finally {
+        await app.destroyView(view);
+      }
+
       // Tear the engine back down: destroy() flushes and destroys the
       // engine/platform (including the WebGPU platform created in
       // Engine_create) and clears FilamentApp.instance.

@@ -1284,6 +1284,29 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void View_configureSssJobThread(TJobThread *jobThread, TEngine *engine,
+      TView *view, bool enabled, float distanceR, float distanceG, float distanceB,
+      float strength, int debugOutput, void (*onComplete)(bool))
+  {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
+    std::packaged_task<void()> task([=] {
+      const bool result = View_configureSss(engine, view, enabled, distanceR, distanceG, distanceB, strength, debugOutput);
+      PROXY(onComplete(result));
+    });
+    rt->addTask(task);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void View_setSssPrimitiveJobThread(TJobThread *jobThread, TEngine *engine,
+      TView *view, EntityId entity, int primitive, bool enabled, int group, void (*onComplete)(bool))
+  {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
+    std::packaged_task<void()> task([=] {
+      const bool result = View_setSssPrimitive(engine, view, entity, primitive, enabled, group);
+      PROXY(onComplete(result));
+    });
+    rt->addTask(task);
+  }
+
   EMSCRIPTEN_KEEPALIVE void View_setColorGradingJobThread(TJobThread *jobThread, TView *tView, TColorGrading *tColorGrading, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);

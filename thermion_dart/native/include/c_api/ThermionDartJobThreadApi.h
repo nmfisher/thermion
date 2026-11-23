@@ -171,6 +171,11 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void ToneMapper_createDisplayRangeJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TToneMapper *));
         EMSCRIPTEN_KEEPALIVE void ToneMapper_destroyJobThread(TJobThread *jobThread, TToneMapper *tToneMapper, uint32_t requestId, VoidCallback onComplete);
 
+        EMSCRIPTEN_KEEPALIVE void View_configureSssJobThread(TJobThread *jobThread, TEngine *engine,
+            TView *view, bool enabled, float distanceR, float distanceG, float distanceB,
+            float strength, int debugOutput, void (*onComplete)(bool));
+        EMSCRIPTEN_KEEPALIVE void View_setSssPrimitiveJobThread(TJobThread *jobThread, TEngine *engine,
+            TView *view, EntityId entity, int primitive, bool enabled, int group, void (*onComplete)(bool));
         EMSCRIPTEN_KEEPALIVE void View_pickJobThread(TJobThread *jobThread, TView *tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback);
         EMSCRIPTEN_KEEPALIVE void View_setColorGradingJobThread(TJobThread *jobThread, TView *tView, TColorGrading *tColorGrading, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setBloomJobThread(TJobThread *jobThread, TView *tView, bool enabled, double strength, uint32_t requestId,  VoidCallback onComplete);

@@ -2751,6 +2751,28 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external int _View_configureSss(
+    Pointer<TEngine> engine,
+    Pointer<TView> view,
+    bool enabled,
+    double distanceR,
+    double distanceG,
+    double distanceB,
+    double strength,
+    int debugOutput,
+  );
+  external void _View_configureSssJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TEngine> engine,
+    Pointer<TView> view,
+    bool enabled,
+    double distanceR,
+    double distanceG,
+    double distanceB,
+    double strength,
+    int debugOutput,
+    Pointer<NativeFunction<void Function(bool)>> onComplete,
+  );
   external void _View_getAmbientOcclusionOptions(
     Pointer<TAmbientOcclusionOptions> TAmbientOcclusionOptions_out,
     Pointer<TView> tView,
@@ -2940,6 +2962,24 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TSoftShadowOptions> optionsPtr,
     int requestId,
     VoidCallback onComplete,
+  );
+  external int _View_setSssPrimitive(
+    Pointer<TEngine> engine,
+    Pointer<TView> view,
+    EntityId entity,
+    int primitive,
+    bool enabled,
+    int group,
+  );
+  external void _View_setSssPrimitiveJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TEngine> engine,
+    Pointer<TView> view,
+    EntityId entity,
+    int primitive,
+    bool enabled,
+    int group,
+    Pointer<NativeFunction<void Function(bool)>> onComplete,
   );
   external void _View_setStencilBufferEnabled(Pointer<TView> tView, bool enabled);
   external void _View_setStencilBufferEnabledJobThread(
@@ -10006,6 +10046,56 @@ void VertexBuffer_setBufferObjectAtJobThread(
   return result;
 }
 
+bool View_configureSss(
+  Pointer<TEngine> engine,
+  Pointer<TView> view,
+  bool enabled,
+  double distanceR,
+  double distanceG,
+  double distanceB,
+  double strength,
+  int debugOutput,
+) {
+  final result = GeneratedBindings.instance._View_configureSss(
+    engine.cast(),
+    view.cast(),
+    enabled,
+    distanceR,
+    distanceG,
+    distanceB,
+    strength,
+    debugOutput,
+  );
+  return result == 1;
+}
+
+void View_configureSssJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> engine,
+  Pointer<TView> view,
+  bool enabled,
+  double distanceR,
+  double distanceG,
+  double distanceB,
+  double strength,
+  int debugOutput,
+  Pointer<NativeFunction<void Function(bool)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._View_configureSssJobThread(
+    jobThread.cast(),
+    engine.cast(),
+    view.cast(),
+    enabled,
+    distanceR,
+    distanceG,
+    distanceB,
+    strength,
+    debugOutput,
+    onComplete.cast(),
+  );
+  return result;
+}
+
 TAmbientOcclusionOptions View_getAmbientOcclusionOptions(Pointer<TView> tView) {
   final TAmbientOcclusionOptions_out = TAmbientOcclusionOptions.stackAlloc();
   final result = GeneratedBindings.instance._View_getAmbientOcclusionOptions(
@@ -10564,6 +10654,48 @@ void View_setSoftShadowOptionsJobThread(
     optionsPtr.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+bool View_setSssPrimitive(
+  Pointer<TEngine> engine,
+  Pointer<TView> view,
+  DartEntityId entity,
+  int primitive,
+  bool enabled,
+  int group,
+) {
+  final result = GeneratedBindings.instance._View_setSssPrimitive(
+    engine.cast(),
+    view.cast(),
+    entity,
+    primitive,
+    enabled,
+    group,
+  );
+  return result == 1;
+}
+
+void View_setSssPrimitiveJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> engine,
+  Pointer<TView> view,
+  DartEntityId entity,
+  int primitive,
+  bool enabled,
+  int group,
+  Pointer<NativeFunction<void Function(bool)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._View_setSssPrimitiveJobThread(
+    jobThread.cast(),
+    engine.cast(),
+    view.cast(),
+    entity,
+    primitive,
+    enabled,
+    group,
+    onComplete.cast(),
   );
   return result;
 }

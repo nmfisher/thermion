@@ -190,6 +190,12 @@ class ThermionViewerFFI extends ThermionViewer {
     final errors = <(String, Object, StackTrace)>[];
 
     try {
+      await view.setSubsurfaceScatteringEnabled(false);
+    } catch (error, stackTrace) {
+      errors.add(('disable subsurface scattering', error, stackTrace));
+    }
+
+    try {
       await _removeSkybox(destroy: true);
     } catch (error, stackTrace) {
       errors.add(('remove skybox', error, stackTrace));
@@ -746,6 +752,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (asset.isDestroyed) {
       return;
     }
+    await view.getSubsurfaceScattering()?.removeSkin(asset);
     await _removeFromScene(asset);
 
     if (!asset.isInstance) {
@@ -753,6 +760,7 @@ class ThermionViewerFFI extends ThermionViewer {
         if (instance.isDestroyed) {
           continue;
         }
+        await view.getSubsurfaceScattering()?.removeSkin(instance);
         await _removeFromScene(instance);
       }
     }

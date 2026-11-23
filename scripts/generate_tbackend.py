@@ -41,12 +41,6 @@ TBACKEND_H = Path(REPO_ROOT) / "thermion_dart/native/include/c_api/TBackend.h"
 DART_BACKEND = Path(REPO_ROOT) / "thermion_dart/lib/src/filament/src/interface/backend.g.dart"
 FILAMENT_VERSION_FILE = os.path.join(REPO_ROOT, "filament.version")
 
-# Same R2 base URL as thermion_dart/hook/build.dart (_getLibraryUrl). Only the
-# header tree is used; any platform's zip would do, linux release is the
-# smallest conventional one.
-R2_BASE = "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev"
-FILAMENT_PLATFORM = "linux-release"
-
 # Where the Backend enum may live, in probe order. v1.77.2 defines it in
 # backend/DriverEnums.h; newer Filament moves it to backend/Backend.h.
 HEADER_CANDIDATES = ("backend/Backend.h", "backend/DriverEnums.h")
@@ -70,11 +64,16 @@ def ensure_filament_include(requested, version, cache_root):
             "error: no Backend enum header (%s) under any of %s"
             % (" or ".join(HEADER_CANDIDATES), ", ".join(requested))
         )
-    include_dir = os.path.join(cache_root, version, "include")
-    if os.path.exists(os.path.join(include_dir, "backend", "DriverEnums.h")):
+    # Key the cache by the resolved artifact so a new pin for the same tag
+    # also refreshes the headers.
+    url = subprocess.check_output([
+        sys.executable, os.path.join(REPO_ROOT, "scripts", "filament-artifact-url.py"),
+        "linux", "release", "--version", version,
+    ], text=True).strip()
+    cache_dir = os.path.join(cache_root, Path(url).stem)
+    include_dir = os.path.join(cache_dir, "include")
+    if any(os.path.exists(os.path.join(include_dir, header)) for header in HEADER_CANDIDATES):
         return [include_dir]
-    url = "%s/filament-%s-%s.zip" % (R2_BASE, version, FILAMENT_PLATFORM)
-    cache_dir = os.path.dirname(include_dir)
     os.makedirs(cache_dir, exist_ok=True)
     zip_path = os.path.join(cache_dir, os.path.basename(url))
     print("downloading %s" % url, file=sys.stderr)
