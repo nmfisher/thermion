@@ -1,378 +1,175 @@
 ---
-title: Materials & Textures
-description: Material instances, parameters, textures, and procedural geometry.
+title: Light and style a scene
+description: Light a model, add shadows, and change its materials and textures.
 ---
 
-Thermion uses Filament's material system. A **material** is a shader program
-compiled from a `.mat` file; a **material instance** is a runtime binding of
-parameters to that material. Every renderable entity has one or more material
-instances.
+Start with the viewer from [Build a scene](/viewer/). Add a light to see the
+model, then adjust how its surfaces reflect that light.
 
-## Built-in materials
+<span id="direct-lights"></span>
 
-`FilamentApp.instance` (the shared engine facade) can create a couple of
-ready-to-use material instances without compiling anything:
+## Add a light
 
-```dart
-final unlit = await FilamentApp.instance!.createUnlitMaterialInstance();
-final lit   = await FilamentApp.instance!.createUbershaderMaterialInstance();
-```
-
-- **Unlit** — flat-shaded, ignores lighting. Good for UI overlays and debug
-  geometry.
-- **Ubershader** — the full PBR lit material (the default glTF material).
-
-## Setting parameters
-
-Material instances expose typed setters for shader parameters:
+A sun lights the whole scene from one direction. For a light with a location,
+use `DirectLight.point` or `DirectLight.spot`. A point light shines in all
+directions. A spot light shines in a cone. Use this sun in place of the one
+from the scene setup if you're following along.
 
 ```dart
-await material.setParameterFloat4("baseColorFactor", 0.0, 1.0, 0.0, 1.0); // RGBA green
-await material.setParameterInt("baseColorIndex", -1);   // -1 = use baseColorFactor, not a texture
-await material.setParameterFloat("metallic", 0.8);
-await material.setParameterBool("doubleSided", true);
-```
-
-## Swapping materials on an asset
-
-A loaded glTF asset exposes its material instances, and you can replace them:
-
-```dart
-// Read the current instance at primitive 0
-final current = await asset.getMaterialInstanceAt();
-
-// Replace the material on every primitive
-await asset.setMaterialInstanceForAll(unlit);
-
-// Or replace at a specific primitive index
-await asset.setMaterialInstanceAt(unlit);
-```
-
-:::note
-Materials that need extra vertex attributes — **wireframe** (barycentric
-coordinates), **stencil highlight outlines**, and **flat shading** — only
-work on assets loaded with
-`loadGltf(..., requiredGeometryCapabilities: {SceneAssetGeometryCapability.barycentrics})`,
-which rebuilds vertex buffers with a superset of attributes at the cost of
-~3x vertex memory. `setFlatShading` and `setStencilHighlight` **throw** if
-the asset wasn't loaded this way.
-:::
-
-## Textures
-
-Load an image, create a sampler, and bind both to a material parameter:
-
-```dart
-final image = await FilamentApp.instance!.decodeImage(byteData);
-final texture = await FilamentApp.instance!.createTexture(...);
-
-final sampler = TextureSampler(
-  minFilter: SamplerFilterParams.linear(),
-  magFilter: SamplerFilterParams.linear(),
+final sun = await viewer.addDirectLight(
+  DirectLight.sun(castShadows: true, direction: Vector3(-0.5, -1, -0.3)),
 );
 
-await material.setParameterInt("baseColorIndex", 0); // use the texture
-await material.setParameterTexture("baseColorMap", texture, sampler);
-```
-
-Remember to `dispose()` textures, samplers, and `LinearImage`s when you're done
-with them to avoid GPU memory leaks.
-
-## Procedural geometry
-
-You don't need a glTF file to render something. `viewer.createGeometry` builds
-a renderable from a `Geometry` and a list of material instances:
-
-```dart
-final asset = await viewer.createGeometry(
-  CubeGeometry.cube(),
-  materialInstances: [unlit],
+final lamp = await viewer.addDirectLight(
+  DirectLight.point(
+    position: Vector3(3.5, 2.5, 2.0),
+    intensity: 90000,
+    falloffRadius: 8.0,
+  ),
 );
 ```
 
-Built-in geometries include `CubeGeometry`, `SphereGeometry`,
-`CylinderGeometry`, `ConeGeometry`, `CapsuleGeometry`, `PyramidGeometry`,
-`QuadGeometry`, and `PlaneGeometry`.
+<span id="modifying-lights"></span>
 
-## Building custom materials
+Keep the returned light handle so you can move or remove it. Call
+`viewer.setLightPosition(lamp, x, y, z)` or `viewer.removeLight(lamp)`.
+Use `viewer.setLightDirection(sun, direction)` to aim a sun or spot light.
+Change color, intensity, and falloff with `viewer.app.lightManager`.
+Sun intensity is measured in lux, point light intensity in lumens, and
+spot light intensity in candela.
 
-For custom shaders, write a Filament `.mat` file. You have two ways to get
-it into a loadable `.filamat` package: let the build hook compile it
-automatically (recommended), or run `matc` yourself.
+<span id="image-based-lighting-ibl"></span>
+<span id="skybox-and-backgrounds"></span>
 
-### Automatic compilation in the build hook (recommended)
+## Light a model with an environment
 
-Point Thermion at your own `.mat` sources with the `material_compilation`
-user define in **your app's** `pubspec.yaml`:
-
-```yaml
-hooks:
-  user_defines:
-    thermion_dart:
-      material_compilation:
-        inputs:                  # files, directories or globs, relative to the app root
-          - materials/skin.mat
-          - materials/eye
-        output: build/materials  # any directory, relative to the app root; created if missing
-        backends: all            # optional: all (default) | native | web | explicit matc -a list
-        resgen: false            # optional: also emit .c/.h
-        link_generated: false    # optional: also compile the emitted .c into libthermion_dart (native only)
-```
-
-On every build the hook:
-
-1. Expands `inputs` to `.mat` files (a directory is scanned recursively, a
-   glob like `materials/**/*.mat` is matched against files; anything that
-   resolves to nothing fails the build with the input named).
-2. Reads `build/materials/.thermion-materials.json`, the manifest recording
-   what was compiled, by which toolchain, from which inputs.
-3. Compiles exactly what is stale with the version-matched `matc` — and
-   skips everything (no download, no tool run) when nothing changed.
-
-The result is one **blended** `.filamat` per material — a single package
-carrying every requested backend, with one stable filename, so loading it
-at runtime (`FilamentApp.createMaterial(Uint8List data)` after reading the
-file) works on every platform.
-
-#### The `matcId`
-
-The manifest records a `matcId`: a SHA-256 over the pipeline version, the
-Filament tag pinned in `filament.version`, the `thermion_dart` package
-version, and the host platform/arch. The sha256 of the downloaded `matc`
-binary is recorded separately as `matcSha256`. When either changes — for
-example a Filament or Thermion bump ships a new `matc` — **every material is
-recompiled, even if no `.mat` file changed.** That is the whole point: a
-blob built by an older `matc` is never silently kept. Otherwise:
-
-- a material or transitive quoted include changed, a material was added, or
-  a recorded output is missing or has different bytes → that material recompiles;
-- an input was removed from the config → its outputs are deleted;
-- everything matches → the hook logs why it skipped and does nothing else.
-
-#### Tools and cache
-
-`matc` (and `resgen` when `resgen: true`) are downloaded from Thermion's R2
-bucket for the **host** platform. The hook selects the release archive through
-the shipped `filament.libs.json` pin and verifies its full SHA-256 before
-extracting `bin/`. Pinned archives use immutable hash-suffixed URLs; a pin
-change selects a separate tool cache and rebuilds the app’s material packages.
-The cache lives under:
-
-```
-${XDG_CACHE_HOME:-$HOME/.cache}/thermion/filament-tools/filament-<tag>-webgpu-<host>-<hash16>/
-```
-
-Without a pin entry, the hook falls back to the legacy archive URL and omits
-the hash suffix from the cache directory.
-
-The cache is shared by all projects on the machine and is trusted only
-after `matc` passes a `-a webgpu` smoke test. Installation holds a shared
-cache lock across app builds. Downloads and extraction use a private temporary
-directory; only a complete installation that passes the smoke test is renamed
-into the live cache. A failed download leaves no partial installation. These
-builds of `matc` support WebGPU (WGSL) — the
-official Filament release binaries do not.
-
-#### `backends`
-
-- `all` (default): `-a metal -a vulkan -a opengl -a webgpu` — one package
-  that works everywhere Thermion runs.
-- `native`: metal + vulkan + opengl (no WebGPU).
-- `web`: opengl + webgpu (what a browser can load).
-- an explicit list, e.g. `[vulkan]`, passed straight to `matc -a`.
-
-#### `resgen`
-
-With `resgen: true`, each `.filamat` is additionally converted to C:
-
-```
-resgen -c -p <prefix> -x <output>/ <stem>.filamat
-```
-
-producing `<prefix>.c` and `<prefix>.h` beside the `.filamat` (plus
-whatever else resgen emits). The prefix defaults to the sanitised material
-name (non `[A-Za-z0-9_]` characters become `_`, so `my-eye.mat` →
-`my_eye`); override it per material with:
-
-```yaml
-        resgen_prefixes:
-          skin: APP_SKIN
-```
-
-Because every material is one blended package, there is exactly one
-`.c`/`.h` per material and no per-variant symbol collision. Like
-Thermion's own materials pipeline, the emitted `.c` gets a prepended
-`#include` of its own header (so the package symbol has external C linkage
-when the file is compiled as C++) and the header's `extern "C"` block gets
-`__cplusplus` guards (so it is also valid C) — without the include, a C++
-compile gives the `const` array internal linkage and the optimiser drops
-the unreferenced symbol entirely. Public declarations also get explicit
-export annotations: default visibility on Android/ELF and `dllexport` on Windows.
-
-#### `link_generated`
-
-`resgen: true` only writes the `.c`/`.h` files; nothing compiles them, so
-they are only usable if you build your own native library. With
-`link_generated: true` the build hook additionally compiles the emitted
-`.c` files **straight into `libthermion_dart`** — the exact same mechanism
-Thermion uses for its own materials under `native/include/material/`. Each
-generated `.c` is appended to the native build's source list and the output
-directory is added to its include path (so `skin.c` resolves
-`#include "skin.h"`), before the native library is compiled and linked in
-the same build.
-
-Notes:
-
-- `link_generated: true` **implies `resgen`** emission — you never set both.
-- The generated symbols (`<PREFIX>_PACKAGE[]`, e.g. `SKIN_PACKAGE`) are
-  exported by `libthermion_dart`, so they are resolvable from Dart FFI
-  through the default code asset — no separate asset id or loading step.
-- **Native only.** Web builds compile their material C sources into the
-  wasm engine via CMakeLists, and a web build with `link_generated: true`
-  fails with an error explaining this — remove the flag for web targets.
-- **Symbol collisions fail the build at plan time.** Two materials whose
-  prefixes sanitise to the same symbol (or a material whose prefix matches
-  one of Thermion's built-in materials — `grid`, `image`, `gizmo`, ...) would
-  define the same `<PREFIX>_PACKAGE` symbol and fail at link time with an
-  obscure error; the hook catches this before compiling anything and names
-  both inputs. Give one of them a distinct `resgen_prefixes` entry.
-- Only the `.c` files the materials manifest vouches for are linked —
-  stale leftovers in the output directory are never picked up, and the
-  manifest records whether the generated sources were linked.
-
-#### Failure behaviour
-
-All materials compile in staging before any output is published. If a tool
-fails, the previous generation remains intact. Publication keeps backups and
-writes the manifest last; a publication error restores the previous generation,
-and the next hook run recovers any publication interrupted by process exit.
-Stale cleanup never deletes a filename owned by a current material. Before
-compiling, the hook rejects output filenames shared by different inputs,
-including collisions introduced by `resgen_prefixes` with cached materials.
-
-The hook registers discovery directories, transitive include files, the
-manifest and generated files as build dependencies. New directory/glob matches
-and deleted or changed outputs therefore invalidate the build-runner cache.
-Quoted includes resolve relative to the file that contains them, including
-nested includes. Failures are loud, never silent skips:
-
-- No network and no cached tools: the build fails naming the R2 URL and the
-  Filament version.
-- `matc`/`resgen` exit non-zero: the build fails with the tool's stderr.
-- Bad configuration (unknown key values, an input that resolves to
-  nothing, two inputs with the same output name or the same resgen symbol,
-  `link_generated` on a web build): the build fails with an
-  actionable message.
-
-If `material_compilation` is absent, the hook does nothing new.
-
-### Compiling materials yourself
-
-`matc` is part of the Filament SDK; a version-matched pair for Linux,
-macOS and Windows is also what the hook downloads above. From the project
-root:
-
-```
-make materials
-```
-
-This requires the `FILAMENT_PATH` environment variable to point at a local
-Filament build's `out/release/bin` (see the [Filament](/filament/) page).
-That target is for Thermion's **own** bundled materials (`materials/`, e.g.
-`image.mat`, `grid.mat`, `silhouette.mat`), whose compiled C variants are
-committed under `thermion_dart/native/include/material/` — it is unrelated
-to your app's materials, which are runtime assets unless you opt into
-`link_generated`.
-
-The hook's `getLibDir()` downloads the prebuilt **Filament** libraries.
-`CBuilder` builds **libthermion_dart locally**, linking those libraries and
-compiling Thermion's committed material arrays under `native/include/material/`.
-
-## Compiling materials at runtime
-
-Instead of precompiling `.filamat`/`.uberz` files, apps that need to generate
-materials at runtime (user-authored or procedural shaders) can compile GLSL
-`material()` source directly on the device with
-`FilamentApp.compileMaterialSource`:
+Image-based lighting (IBL) uses an image of the surroundings to light the
+model and provide reflections. A skybox displays the background. You can use
+either on its own or load both from the same environment.
 
 ```dart
-final material = await FilamentApp.instance!.compileMaterialSource(
-  'my_material',
-  '''
-  void material(inout MaterialInputs material) {
-    prepareMaterial(material);
-    material.baseColor.rgb = float3(1.0, 0.0, 0.0);
-  }
-  ''',
-  shading: MaterialShading.lit,
-);
+await viewer.loadIbl('assets/studio_ibl.ktx');
+await viewer.loadSkybox('assets/studio_skybox.ktx');
 ```
 
-### Full `.mat` packages with parameters and includes
+Thermion includes [sample environment files](https://github.com/nmfisher/thermion/tree/develop/examples/assets)
+with names ending in `_ibl.ktx` and `_skybox.ktx`. Use Filament's `cmgen`
+tool to turn your own high dynamic range image into a matching pair.
 
-`compileMaterialSource` only accepts the bare `material()` function. For a
-complete `.mat` source — the same format `matc` accepts, with a `material { ... }`
-configuration block and optional `vertex { ... }` code — use
-`FilamentApp.compileMaterialPackage`:
+Use `rotateIbl` to turn the lighting or `setBackgroundColor` for a plain
+background. Loading a new IBL replaces the active one. If you call
+`removeSkybox()`, you own the returned skybox and its texture.
+
+## Add shadows
+
+Shadows need a view with shadows enabled, a light that casts them, an object
+that blocks the light, and a surface to catch the shadow. With the sun above,
+add a ground plane beneath the model you've already loaded as `asset`.
 
 ```dart
-final material = await FilamentApp.instance!.compileMaterialPackage(
-  'my_material',
-  '''
-  material {
-      name : "MyMaterial",
-      shadingModel : unlit,
-      parameters : [ { type : float4, name : baseColor } ]
-  }
-  fragment {
-      #include "common.glsl"
-      void material(inout MaterialInputs material) {
-          prepareMaterial(material);
-          material.baseColor = tint(materialParams.baseColor);
-      }
-  }
-  ''',
-  includes: {
-    'common.glsl': 'vec4 tint(vec4 c) { return c * vec4(1.0, 0.9, 0.8, 1.0); }',
-  },
+final ground = await viewer.createGeometry(
+  GeometryUtils.plane(width: 10, height: 10),
 );
+await ground.setReceiveShadows(true);
+await asset.setCastShadows(true);
 
-final instance = await material.createInstance();
-await instance.setParameterFloat4('baseColor', 1.0, 0.0, 0.0, 1.0);
+await viewer.setShadowsEnabled(true);
+await viewer.setShadowType(ShadowType.PCF);
 ```
 
-`#include "name"` directives — in the source and in included files — are
-resolved against the `includes` map by exact name; there is no filesystem
-access, and an unresolvable include fails the compile. Everything else
-(shading model, parameters, blending, variants, ...) comes from the `.mat`
-source itself. This uses `matp`, the same parser that backs `matc`.
+<span id="shadow-types"></span>
+<span id="per-light-shadow-options"></span>
 
-### Enabling runtime compilation
+Start with `ShadowType.PCF`. For softer edges, try `DPCF` or `PCSS` and
+adjust `viewer.view.setSoftShadowOptions(...)`. A directional light also
+supports cascaded shadow maps through `viewer.app.lightManager.setShadowOptions`.
 
-Both APIs are an opt-in build feature: they link Filament's `libfilamat`
-(which bakes in glslang and SPIRV-Tools, adding roughly 8–45 MB) and, for
-`compileMaterialPackage`, `libmatp`. Enable them with a
-`runtime_materials: true` user define under `hooks.user_defines.thermion_dart`
-in your app's `pubspec.yaml`; `FilamentApp.runtimeMaterialsSupported` reports
-whether the loaded build has it (otherwise both APIs throw
-`UnsupportedError`). With WebGL2 the flag selects an engine with filamat
-(~20 MB larger than the default wasm). WebGPU and hybrid builds use
-precompiled materials. See [Choose a backend](/web/#choose-a-backend).
+<span id="troubleshooting"></span>
 
-iOS device and simulator builds support the same flag and target Metal with
-the mobile shader model.
-Native compilation runs on Thermion's job thread; web compilation runs
-inline on the calling thread. Compilation is CPU-intensive (hundreds of
-milliseconds).
+If shadows are missing, check the view, the light, and both objects first.
+For striped self-shadowing, raise the bias slightly. For a shadow that lifts
+off its object, lower the bias. Increase the map size if the edges are
+pixelated.
 
-:::note
-Runtime compilation needs Filament artifacts that ship `libfilamat` and
-`libmatp` (Filament v1.77.2 archives rebuilt with
-`scripts/filament-matp-runtime.patch`). If you consume artifacts published
-before that patch, rebuild them with the Build Filament workflow first.
-:::
+<span id="built-in-materials"></span>
+<span id="setting-parameters"></span>
+<span id="swapping-materials-on-an-asset"></span>
 
-> A runnable web example — a live GLSL material editor that compiles and
-> applies materials in the browser — is in `examples/dart/material_editor`.
-> Material swapping, parameter setting, and texture binding with
-> precompiled materials: `examples/flutter/materials_and_textures`.
+## Change a material
+
+A material defines how a surface looks. A material instance gives it specific
+values such as a color, roughness, or texture. A glTF model already brings
+its own materials. To replace them, create a material instance and apply it
+to the asset.
+
+```dart
+final material = await viewer.app.createUbershaderMaterialInstance();
+await material.setParameterInt('baseColorIndex', -1);
+await material.setParameterFloat4('baseColorFactor', 0.0, 0.7, 0.3, 1.0);
+await asset.setMaterialInstanceForAll(material);
+```
+
+Use `createUnlitMaterialInstance()` for a flat material that ignores lighting.
+You can read or replace an individual primitive's material with
+`getMaterialInstanceAt()` and `setMaterialInstanceAt()`.
+
+Wireframe, stencil highlights, and flat shading need geometry prepared at
+load time. Request `SceneAssetGeometryCapability.barycentrics` in
+`loadGltf(..., requiredGeometryCapabilities: {...})` for assets that use those
+features. This adds vertex data, so enable it per asset.
+
+<span id="textures"></span>
+
+## Add a texture
+
+In Flutter, load the image with `rootBundle` from `package:flutter/services.dart`.
+Decode it and upload the pixels into a texture. The glTF material above samples
+the texture through `baseColorMap` when `baseColorIndex` is `0`.
+
+```dart
+final bytes = await rootBundle.load('assets/paint.png');
+final image = await viewer.app.decodeImage(
+  bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
+);
+final texture = await viewer.app.createTexture(
+  await image.getWidth(),
+  await image.getHeight(),
+);
+await texture.setLinearImage(image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+final sampler = await viewer.app.createTextureSampler();
+await material.setParameterInt('baseColorIndex', 0);
+await material.setParameterTexture('baseColorMap', texture, sampler);
+```
+
+Dispose of images, textures, samplers, and material instances you own when
+you're finished with them. The
+[materials and textures sample](https://github.com/nmfisher/thermion/tree/develop/examples/flutter/materials_and_textures)
+shows image loading and material swaps in a runnable app.
+
+<span id="procedural-geometry"></span>
+
+To draw a cube or a plane without a glTF file, use
+[Draw something without a model file](/viewer/#draw-something-without-a-model-file).
+
+<span id="building-custom-materials"></span>
+<span id="automatic-compilation-in-the-build-hook-recommended"></span>
+<span id="the-matcid"></span>
+<span id="tools-and-cache"></span>
+<span id="backends"></span>
+<span id="resgen"></span>
+<span id="link_generated"></span>
+<span id="failure-behaviour"></span>
+<span id="compiling-materials-yourself"></span>
+
+## Write a custom shader
+
+If you have a Filament `.mat` file, see
+[Compile a custom material at build time](/build_configuration/#compile-a-custom-material-at-build-time)
+for the configuration and loading steps.
+
+<span id="compiling-materials-at-runtime"></span>
+<span id="full-mat-packages-with-parameters-and-includes"></span>
+<span id="enabling-runtime-compilation"></span>
+
+For a shader your app generates or edits after launch, see
+[Compile a material at runtime](/build_configuration/#compile-a-material-at-runtime).

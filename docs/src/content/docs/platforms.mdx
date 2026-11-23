@@ -1,0 +1,95 @@
+---
+title: Run on mobile and desktop
+description: Set up Thermion for Android, iOS, macOS, Windows, or Linux.
+---
+
+Follow [Show your first model](/quickstart/) for the Flutter app setup. Thermion
+compiles its native code against prebuilt Filament libraries. Install the tools
+for the platform you're targeting.
+
+| Target | What you need |
+| --- | --- |
+| Android | Android SDK and the NDK Flutter selects |
+| iOS | Xcode and an iOS deployment target supported by Flutter |
+| macOS | Xcode and a macOS 13.0 or later deployment target |
+| Windows | Windows 10 or later and Visual Studio's C++ desktop tools |
+| Linux | Clang and libc++ 18 with the system packages below |
+
+<span id="minimum-sdk"></span>
+
+## Android
+
+Keep the minimum SDK that Flutter sets in `android/app/build.gradle.kts`.
+
+```kotlin
+defaultConfig {
+    minSdk = flutter.minSdkVersion
+}
+```
+
+If you set it yourself, use an API level supported by your Flutter SDK and at
+least API 22 for Thermion. See [Flutter's Android requirements](https://docs.flutter.dev/reference/supported-platforms#android).
+
+<span id="deployment-target"></span>
+
+## iOS
+
+Set the Runner target's **iOS Deployment Target** in Xcode to a version your
+Flutter SDK supports. Match it in `ios/Podfile` if the project uses CocoaPods.
+
+```ruby
+platform :ios, '15.0'
+```
+
+See [Flutter's iOS requirements](https://docs.flutter.dev/reference/supported-platforms#ios)
+for the supported versions.
+
+## macOS
+
+In Xcode, open the Runner target's **Build Settings** and set
+**macOS Deployment Target** to 13.0 or later. If your project uses CocoaPods,
+set the same target in `macos/Podfile`.
+
+<span id="requirements"></span>
+
+## Windows
+
+Install Visual Studio 2022 with the **Desktop development with C++** workload.
+It includes the Windows SDK and CMake. Thermion needs CMake 3.19 or later.
+
+<span id="notes"></span>
+
+If a fresh checkout stalls during CMake configuration and
+`generated_headers.cmake` is missing, run `flutter test` once from the app to
+generate the headers, then retry. For a native window without Flutter, see the
+[plain Dart Windows example](https://github.com/nmfisher/thermion/tree/develop/examples/dart/cli_windows).
+
+<span id="system-dependencies"></span>
+
+## Linux
+
+Linux desktop support is experimental. The Flutter plugin can use Vulkan on
+Wayland or fall back to OpenGL/EGL.
+
+The prebuilt Filament libraries require libc++ 18. On Ubuntu 22.04, enable the
+[LLVM 18 packages](https://apt.llvm.org/) before installing the dependencies.
+
+```bash
+sudo apt install clang-18 libc++-18-dev libc++abi-18-dev cmake ninja-build \
+  pkg-config libgtk-3-dev liblzma-dev libdrm-dev libegl1-mesa-dev
+export PATH="/usr/lib/llvm-18/bin:$PATH"
+```
+
+A deployed app also needs compatible runtime packages such as `libc++1-18`
+and `libc++abi1-18`. A link error mentioning `__libcpp_verbose_abort` usually
+means the build is using an older libc++.
+
+## Running
+
+Use `flutter devices` to find your target, then run `flutter run -d <device-id>`.
+For desktop, the device IDs are `macos`, `windows`, and `linux`.
+
+The first build downloads the engine libraries. If you need to diagnose a
+build or turn on native tracing, see
+[Debug a native build](/build_configuration/#debug-a-native-build). For browser
+targets, follow [Run on the web](/web/).
