@@ -12,8 +12,6 @@
 #include <filament/TransformManager.h>
 #include <filament/View.h>
 
-#include <gltfio/FilamentAsset.h>
-#include <gltfio/FilamentInstance.h>
 
 #include "Log.hpp"
 

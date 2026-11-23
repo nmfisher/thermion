@@ -348,7 +348,7 @@ outputDirectory : ${outputDirectory.path}
       // libraries, and it links through CBuilder's `libraries` (see the
       // CBuilder call below) rather than #pragma comment(lib) directives.
       // Keeping the entries here makes this list the single source of truth
-      // for every platform; ThermionWin32.h declares no link inputs.
+      // for every platform; ThermionWin32.h only includes ThermionFeatures.h.
       if (targetOS == OS.windows) ...["Shlwapi", "opengl32", "gdi32", "user32", "shell32", "dwmapi", "comctl32"],
       "filament",
       // macOS adds bluegl/bluevk in its platform block below; Windows links
