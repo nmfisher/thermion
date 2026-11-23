@@ -74,10 +74,15 @@ jobs:
               "$engine_dir/thermion_dart.js" "$engine_dir/thermion_dart.wasm"
           done
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thermion-webgpu-engines
+          path: webgpu-engines/
+
       - name: Configure Chromium
         run: |
           chrome=$(command -v google-chrome)
-          printf '#!/bin/sh\nexec "%s" --no-sandbox --enable-unsafe-webgpu --use-angle=swiftshader --enable-unsafe-swiftshader "$@"\n' \
+          printf '#!/bin/sh\nexec "%s" --no-sandbox --enable-unsafe-webgpu --use-angle=swiftshader --enable-unsafe-swiftshader --use-webgpu-adapter=swiftshader "$@"\n' \
             "$chrome" > "$RUNNER_TEMP/webgpu-chrome"
           chmod +x "$RUNNER_TEMP/webgpu-chrome"
           echo "CHROME_EXECUTABLE=$RUNNER_TEMP/webgpu-chrome" >> "$GITHUB_ENV"
@@ -90,11 +95,6 @@ jobs:
           dart pub get
           unzip -o "../webgpu-engines/thermion_dart-$WEB_ENGINE_VERSION-web-webgpu.zip" -d test
           xvfb-run dart run tool/web_test_runner.dart --clean test/chrome_webgpu_scene.dart
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: thermion-webgpu-engines
-          path: webgpu-engines/
 
       - name: Publish and verify the public archives
         if: inputs.publish
