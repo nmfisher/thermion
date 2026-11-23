@@ -9,10 +9,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Validate arguments
 if [ $# -lt 3 ]; then
   echo "Usage: $0 <FILAMENT_BASE_DIR> <FILAMENT_VERSION> <OUTPUT_BASE_DIR> [options]"
-  echo "Example: $0 /path/to/filament v1.74.0 /path/to/output"
-  echo "         $0 /path/to/filament v1.74.0 /path/to/output --clean"
-  echo "         $0 /path/to/filament v1.74.0 /path/to/output --release"
-  echo "         $0 /path/to/filament v1.74.0 /path/to/output --tools-dir /path/to/tools"
+  echo "Example: $0 /path/to/filament v1.77.2 /path/to/output"
+  echo "         $0 /path/to/filament v1.77.2 /path/to/output --clean"
+  echo "         $0 /path/to/filament v1.77.2 /path/to/output --release"
+  echo "         $0 /path/to/filament v1.77.2 /path/to/output --tools-dir /path/to/tools"
   echo ""
   echo "Options:"
   echo "  --clean         Remove existing target directories before building"
@@ -150,7 +150,7 @@ sed -i.bak 's/set_target_properties(zlib zlibstatic PROPERTIES OUTPUT_NAME z)/se
 # -Werror to -Wno-error in Filament's CMake config (leaving -Werror=<specific>
 # untouched, though Filament doesn't use that form).
 echo "Disabling -Werror in Filament CMake for the web build..."
-git grep -lz -e '-Werror' -- 'CMakeLists.txt' '*.cmake' \
+git grep -lz -e '-Werror' -- ':(glob)**/CMakeLists.txt' '*.cmake' \
   | while IFS= read -r -d '' cmake_file; do
       sed -i.bak 's/-Werror\([^=]\)/-Wno-error\1/g; s/-Werror$/-Wno-error/g' "$cmake_file" || exit 1
     done || exit 1
