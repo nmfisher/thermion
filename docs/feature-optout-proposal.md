@@ -322,10 +322,14 @@ are extracted. Debug builds reference `matdbg`, whose `ShaderReplacer` needs
 `MaterialCompiler_*` (guarded), `FilamentApp.materialVersion` →
 `Material_getSupportedVersion` (header constant, works in every build).
 
-**Verdict: already opt-in.** Nothing new to expose. Two clean-ups fall out of
-this work: (1) move `smol-v`, `matp` and the Windows `matp.lib`/`filamat.lib`
-pragmas under the same conditions as the other platforms so the link lists
-tell the truth; (2) when `features.ktx` and `features.gltf` are both off and
+**Verdict: already opt-in.** Nothing new to expose. Clean-ups, corrected by
+review decision D3: (1) **`smol-v` stays unconditional** — the core material
+reader (`filaflat::DictionaryReader`) uses its decoder in every build, so it
+must not move under `runtime_materials`; only `matp` and the Windows
+`matp.lib`/`filamat.lib` pragmas move under the same conditions as the other
+platforms so the link lists tell the truth (the pragma guards remain
+**presence checks**, see §5.1 — the macro stays undefined when off);
+(2) when `features.ktx` and `features.gltf` are both off and
 `runtime_materials` is off, the Linux "zstd provider" rule is the only reason
 left to list `filamat` — keep it (it is free) rather than special-casing the
 artifact.
@@ -500,8 +504,10 @@ the same fail-fast property `runtime_materials` already has.
 #endif
 ```
 
-and the unconditional `matp.lib`/`filamat.lib` pragmas move under the existing
-`THERMION_ENABLE_RUNTIME_MATERIALS` block (§2.1 consistency fix).
+and the unconditional `matp.lib`/`filamat.lib` pragmas (lines 14-15) move
+under the existing `#if defined(THERMION_ENABLE_RUNTIME_MATERIALS)` block
+(§2.1 consistency fix). That block stays a **presence check**: the macro is
+undefined when `runtime_materials` is off (D3, §5.1), never defined to 0.
 
 ### 4.5 Caching and artifact identity
 
@@ -561,19 +567,27 @@ translation unit (and by `ThermionWin32.h`):
 #ifndef THERMION_ENABLE_IMAGE_DECODING
 #define THERMION_ENABLE_IMAGE_DECODING 1
 #endif
-// Existing switch, same default-on treatment for uniformity (the hook keeps
-// passing =1 when runtime_materials is enabled):
-#ifndef THERMION_ENABLE_RUNTIME_MATERIALS
-#define THERMION_ENABLE_RUNTIME_MATERIALS 0
-#endif
+// THERMION_ENABLE_RUNTIME_MATERIALS is deliberately NOT defaulted here
+// (decision D3): it keeps its existing presence semantics — defined (=1)
+// when runtime_materials is enabled, UNDEFINED when off.
 ```
 
 Two deliberate differences from the existing `TMaterialCompiler.cpp` style
-(`#ifdef`): value macros with header defaults, because (a) `ThermionWin32.h`
-must see the same defaults for its pragmas, and (b) `#if` typos fail loudly
-with `-Wundef` instead of silently disabling a feature. The existing
-`THERMION_ENABLE_RUNTIME_MATERIALS` `#ifdef`s keep working unchanged (defined
-= enabled); migrating them to `#if` is optional cleanup.
+(`#ifdef`): value macros with header defaults **for the three new switches
+only**, because (a) `ThermionWin32.h` must see the same defaults for its
+pragmas, and (b) `#if` typos fail loudly with `-Wundef` instead of silently
+disabling a feature.
+
+**`THERMION_ENABLE_RUNTIME_MATERIALS` must stay undefined when off
+(decision D3).** Its existing guards are presence checks —
+`#ifdef` in `TMaterialCompiler.cpp` and `#if defined(...)` in
+`ThermionWin32.h` (line 16, the glslang/SPIRV compiler pragmas). Defining it
+to `0` would still select the real compiler and the Windows compiler
+pragmas under those checks. So `ThermionFeatures.h` gives it **no default**,
+and the hook keeps today's behaviour: pass `=1` only when enabled, pass
+nothing otherwise. Migrating every guard to value checks (`#if`) is allowed
+only as a single atomic change that migrates *all* of them (C, Windows
+header, web CMake) together — not as optional per-file cleanup.
 
 Web: `native/web/CMakeLists.txt` maps its `option()`s to the same
 `target_compile_definitions`, so one macro set serves both build systems.
@@ -917,3 +931,4 @@ do not re-open them during implementation.
 | --- | --- | --- |
 | D1 | Procedural scene assets stay in the core: `TSceneAsset.cpp` uses local guards (Pattern B), not a whole-file stub; shared `SceneAsset_createFromBuffers`, entity access, instancing and destruction stay live. A slim-build test creates, instances, renders and destroys procedural geometry. | §3.1, §5.2, §5.4, §5.7 (criterion 4), §6.2 |
 | D2 | Mixed builds (`gltf: true` with `ktx: false` or `image_decoding: false`) are **deferred**: hard error at hook time in v1. Filament v1.77.2 stalls async progress at 0 with an empty provider map (even textureless assets) and log-and-skips missing providers. Re-enabling requires defined+tested completion for textureless assets and a clear propagated failure for assets needing a disabled decoder, sync and async. | §4.2, §4.3, §5.3, §5.7, §7 (informational row), §8 risk table |
+| D3 | `THERMION_ENABLE_RUNTIME_MATERIALS` keeps presence semantics: **undefined when off**, `=1` when on; no default in `ThermionFeatures.h`. Defining it to 0 would still enable the real compiler and Windows compiler pragmas under their `#ifdef`/`#if defined` guards. A value-check migration is only allowed as one atomic change covering every guard. `smol-v` stays **unconditional** (core `filaflat::DictionaryReader` decoder). | §3.7, §4.4, §5.1 |
