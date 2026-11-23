@@ -106,6 +106,7 @@ List<BuiltInMaterial> _parseMaterials(String raw) {
 void main(List<String> args) async {
   String outputDir = 'web';
   String variant = 'default';
+  // Use the shared material default when --backend is omitted.
   String backend = 'native';
   String? materialsArg;
 
@@ -119,8 +120,9 @@ void main(List<String> args) async {
         variant = args[++i];
       }
     } else if (args[i] == '--backend') {
-      if (i + 1 >= args.length || !const ['native', 'webgl2', 'webgpu', 'hybrid'].contains(args[i + 1])) {
-        stderr.writeln('--backend requires native, webgl2, webgpu or hybrid.');
+      if (i + 1 >= args.length ||
+          !const ['webgl2', 'webgpu', 'hybrid'].contains(args[i + 1])) {
+        stderr.writeln('--backend requires webgl2, webgpu or hybrid.');
         exit(64);
       }
       backend = args[++i];
@@ -140,10 +142,10 @@ void main(List<String> args) async {
       stdout.writeln('                runtime material compilation (~20 MB larger).');
       stdout.writeln('                main-thread-runtime-materials = both combined.');
       stdout.writeln('  --backend NAME  Browser engine and optional built-in material formats');
-      stdout.writeln('                  native (default)  WebGL2 engine with GLSL and WGSL');
-      stdout.writeln('                  webgl2            WebGL2 engine with GLSL');
-      stdout.writeln('                  webgpu            WebGPU-capable engine with WGSL');
-      stdout.writeln('                  hybrid            WebGPU-capable engine with GLSL and WGSL');
+      stdout.writeln('                  webgl2  WebGL2 engine with GLSL');
+      stdout.writeln('                  webgpu  WebGPU-capable engine with WGSL');
+      stdout.writeln('                  hybrid  WebGPU-capable engine with GLSL and WGSL');
+      stdout.writeln('                  Omit the flag for WebGL2 with GLSL and WGSL.');
       stdout.writeln('  --materials    Comma-separated helper keys, for example gizmo,image.');
       stdout.writeln('                 Available keys: ${BuiltInMaterial.values.map((m) => m.key).join(', ')}');
       return;
