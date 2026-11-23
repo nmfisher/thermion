@@ -401,10 +401,14 @@ if(THERMION_ENABLE_RUNTIME_MATERIALS)
   set_property(TARGET matp PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libmatp.a")
   set_property(TARGET matp PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libmatp.a")
   set_property(TARGET matp PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libmatp.a")
-  target_compile_definitions(${MODULE_NAME} PRIVATE THERMION_ENABLE_RUNTIME_MATERIALS=1)
   target_link_libraries(${MODULE_NAME} matp filamat shaders smol_v)
   message(STATUS "Runtime material compilation enabled (matp + filamat + smol-v linked)")
 endif()
+
+# The macro is a value check: always pass 0 or 1 so a build with the option
+# off cannot fall back to presence semantics.
+target_compile_definitions(${MODULE_NAME}
+  PRIVATE THERMION_ENABLE_RUNTIME_MATERIALS=$<BOOL:${THERMION_ENABLE_RUNTIME_MATERIALS}>)
 
 # Force linker to include all symbols from external libraries (prevents dead code elimination)
 # This is critical because nothing in Thermion directly references these libraries

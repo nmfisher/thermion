@@ -1,15 +1,17 @@
 #include "c_api/TMaterialCompiler.h"
 
+#include "ThermionFeatures.h"
+
 // Runtime material compilation is opt-in: it links filamat (MaterialBuilder,
 // glslang, SPIRV-Tools) and matp (the .mat parser behind matc) into
 // libthermion_dart, which adds tens of MB to the binary. The build hook
-// defines THERMION_ENABLE_RUNTIME_MATERIALS when the consuming app sets
+// passes -DTHERMION_ENABLE_RUNTIME_MATERIALS=1 when the consuming app sets
 // `runtime_materials: true` under hooks.user_defines.thermion_dart in its
-// pubspec.yaml. With the define absent, this translation unit still exports
-// the same symbols (as no-ops), so the Dart bindings are identical either way
-// and code running on both builds can feature-detect via
-// MaterialCompiler_isSupported().
-#ifdef THERMION_ENABLE_RUNTIME_MATERIALS
+// pubspec.yaml; ThermionFeatures.h defaults the macro to 0. With the switch
+// off, this translation unit still exports the same symbols (as no-ops), so
+// the Dart bindings are identical either way and code running on both builds
+// can feature-detect via MaterialCompiler_isSupported().
+#if THERMION_ENABLE_RUNTIME_MATERIALS
 
 #include "c_api/TEngine.h"
 #include "rendering/JobThread.hpp"
