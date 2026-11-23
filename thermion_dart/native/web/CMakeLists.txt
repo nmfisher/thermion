@@ -175,6 +175,11 @@ if(THERMION_WEB_MAIN_THREAD)
 endif()
 if(THERMION_ENABLE_WEBGPU)
   set(WEBGPU_DEVICE_JS "${CMAKE_CURRENT_SOURCE_DIR}/src/webgpu_device.js")
+  # Match Filament's RTTI settings in the platform adapter. The Web API's
+  # separate Emscripten bindings still use RTTI.
+  set(WEBGPU_PLATFORM "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/ThermionWebGPUPlatform.cpp")
+  target_sources(${MODULE_NAME} PRIVATE "${WEBGPU_PLATFORM}")
+  set_source_files_properties("${WEBGPU_PLATFORM}" PROPERTIES COMPILE_OPTIONS "-fno-rtti")
   target_compile_options(${MODULE_NAME} PRIVATE "--use-port=${THERMION_DAWN_PORT}")
   target_compile_features(${MODULE_NAME} PRIVATE cxx_std_20)
   target_link_options(${MODULE_NAME} PRIVATE "--use-port=${THERMION_DAWN_PORT}"

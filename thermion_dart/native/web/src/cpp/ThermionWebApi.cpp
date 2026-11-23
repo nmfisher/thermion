@@ -7,13 +7,9 @@
 #include <future>
 #include <iostream>
 #include <string>
-#include <vector>
 
 #include <backend/Platform.h>
 #include <backend/platforms/PlatformWebGL.h>
-#if defined(THERMION_SUPPORTS_WEBGPU)
-#include <backend/platforms/WebGPUPlatformWasm.h>
-#endif
 
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
@@ -40,33 +36,6 @@ EMSCRIPTEN_WEBGL_CONTEXT_HANDLE createWebGLContextForCurrentJob() {
 }
 
 } // namespace thermion
-
-namespace {
-
-#if defined(THERMION_SUPPORTS_WEBGPU)
-class ThermionWebGPUPlatform : public filament::backend::WebGPUPlatformWasm {
-public:
-    // The canvas selector is resolved once, at platform creation (which
-    // runs on the viewer's job thread), so multi-viewer setups render to
-    // their own canvas instead of a hardcoded one. Mirrors the fallback
-    // WebJobThread uses when no selector was configured.
-    explicit ThermionWebGPUPlatform(const char* canvasSelector)
-        : _canvasSelector(canvasSelector ? canvasSelector : "#thermion_canvas") {}
-
-    wgpu::Extent2D getSurfaceExtent(void* /*nativeWindow*/) const override {
-        return WebGPUPlatformWasm::getSurfaceExtent(const_cast<char*>(_canvasSelector.c_str()));
-    }
-
-    wgpu::Surface createSurface(void* /*nativeWindow*/, uint64_t /*flags*/) override {
-        return WebGPUPlatformWasm::createSurface(_canvasSelector.data(), 0);
-    }
-
-private:
-    std::string _canvasSelector;
-};
-#endif // THERMION_SUPPORTS_WEBGPU
-
-} // namespace
 
 extern "C"
 {
@@ -138,23 +107,5 @@ extern "C"
     std::cout << "Returning context" << std::endl;
     return _context;
   }
-
-#if defined(THERMION_SUPPORTS_WEBGPU)
-  EMSCRIPTEN_KEEPALIVE void *Thermion_createWebGPUPlatform() {
-    if (!EM_ASM_INT({ return Boolean(Module['preinitializedWebGPUDevice']); })) {
-      std::cerr << "WebGPU requires a browser GPU adapter and device" << std::endl;
-      return nullptr;
-    }
-    // Honor the canvas selector configured for this viewer's job thread
-    // (Engine_create on the web runs inside that thread's job), falling
-    // back to the legacy default canvas.
-    const char* canvasSelector = thermion::WebJobThread::currentCanvasSelector();
-    if (!canvasSelector) {
-      canvasSelector = "#thermion_canvas";
-    }
-    std::cout << "Creating WebGPU platform for canvas " << canvasSelector << std::endl;
-    return static_cast<filament::backend::Platform *>(new ThermionWebGPUPlatform(canvasSelector));
-  }
-#endif
 
 }
