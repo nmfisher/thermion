@@ -1,0 +1,15 @@
+{
+  "name": "thermion-mutracer-sidecar",
+  "private": true,
+  "description": "JS sidecar bundle for the Thermion + MuTracer shared-device spike (see README.md).",
+  "type": "module",
+  "scripts": {
+    "build": "node tool/build_sidecar.mjs"
+  },
+  "dependencies": {
+    "@meimu/mutracer": "^0.4.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
