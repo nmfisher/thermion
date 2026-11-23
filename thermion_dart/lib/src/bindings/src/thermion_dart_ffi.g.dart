@@ -4949,6 +4949,8 @@ external void Texture_setImageJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
 );
 
+/// Compile-time feature bitmask of the loaded engine: bit 0 gltf, bit 1 ktx,
+/// bit 2 image_decoding, bit 3 runtime_materials (c_api/ThermionFeatures.h).
 @ffi.Native<ffi.Uint32 Function()>(isLeaf: true)
 external int Thermion_getEnabledFeatures();
 
