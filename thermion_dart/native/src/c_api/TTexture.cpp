@@ -251,8 +251,17 @@ namespace thermion
                     (void *)callbackData);
             return reinterpret_cast<TTexture *>(texture);
 #else
-            (void)tEngine; (void)tBundle; (void)requestId; (void)onTextureUploadComplete;
+            // Stub (features.ktx: false). Dart's KTX guard throws before this
+            // is reached, but a raw caller hands over borrowed bundle memory
+            // and waits for onTextureUploadComplete to release it, so a stub
+            // that never fires the callback would leave it hanging (the
+            // GltfResourceLoader_addResourceData stub invokes onRelease for
+            // the same reason).
+            (void)tEngine; (void)tBundle;
             ERROR("Ktx1Reader_createTexture: KTX support is disabled in this build (features.ktx: false)");
+            if (onTextureUploadComplete) {
+                onTextureUploadComplete(requestId);
+            }
             return nullptr;
 #endif
         }
