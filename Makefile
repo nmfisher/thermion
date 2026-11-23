@@ -37,10 +37,18 @@ swift-bindings:
 dart-bindings:
 	cd thermion_dart/ && dart pub get
 	cd thermion_dart/ && dart run ffigen --config ffigen/native.yaml
-	cd thermion_dart/ && dart run ffigen_js --config ffigen/web.yaml --compiler-opts "$(FFIGEN_JS_COMPILER_OPTS)"
+	cd thermion_dart/ && dart run ffigen_js --config ffigen/web.yaml $(if $(FFIGEN_JS_COMPILER_OPTS),--compiler-opts "$(FFIGEN_JS_COMPILER_OPTS)")
+	# ffigen writes unformatted Dart; format so a local regen is byte-identical
+	# to the checked-in files (CI formats the whole lib anyway).
+	cd thermion_dart/ && dart format lib/src/bindings
 flutter-bindings:
 	cd thermion_flutter/thermion_flutter && flutter pub get && flutter pub run ffigen --config ffigen/swift.yaml
 bindings: dart-bindings flutter-bindings
+# Regenerate the bindings and fail if the checked-in files drift. Requires
+# libclang (CI runners have it; ffigen_js needs no Emscripten sysroot because
+# ffigen/web.yaml points at the parse-only stubs in ffigen/emscripten_stub).
+bindings-check: dart-bindings
+	git diff --exit-code -- thermion_dart/lib/src/bindings
 shared:
 	cd thermion_dart/native && make
 
