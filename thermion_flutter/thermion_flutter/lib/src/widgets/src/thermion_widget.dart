@@ -225,6 +225,17 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
   Future<void> _textureOperations = Future<void>.value();
   bool _disposing = false;
 
+  /// Guards the immediate first allocation: build() can run several times
+  /// before the async allocation completes, and each must not enqueue another
+  /// create. Cleared once that initial attempt finishes; a failed attempt
+  /// can then be retried on a later build.
+  bool _initialAllocationInFlight = false;
+
+  // Size the in-flight initial allocation targets; only meaningful while
+  // [_initialAllocationInFlight] is true.
+  int _initialAllocationWidth = 0;
+  int _initialAllocationHeight = 0;
+
   // The current texture size (what's actually allocated)
   int _currentWidth = 0;
   int _currentHeight = 0;
@@ -296,8 +307,40 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
   void _scheduleTextureAllocation(int width, int height) {
     if (_disposing) return;
 
+    // A rebuild at the exact size the initial allocation already targets
+    // must not fall through to the debounce timer below: _currentWidth and
+    // _currentHeight are still 0 until that allocation finishes, so the
+    // timer would fire ~100 ms later and run a redundant resizeTexture for
+    // an identical size right after startup. A transient resize that armed
+    // that timer before snapping back to the initial size would otherwise
+    // leave the stale larger size armed to fire, so clear it here too.
+    if (_initialAllocationInFlight &&
+        width == _initialAllocationWidth &&
+        height == _initialAllocationHeight) {
+      _pendingWidth = width;
+      _pendingHeight = height;
+      _debounceTimer?.cancel();
+      _debounceTimer = null;
+      return;
+    }
+
     _pendingWidth = width;
     _pendingHeight = height;
+
+    // First mount: allocate immediately. Waiting out the 100 ms debounce
+    // before the very first surface just adds a 6-12 frame blank delay to
+    // every ThermionWidget mount; the debounce only matters for interactive
+    // resizes. build() may fire again before the async allocation completes,
+    // so start it only once (and retry if it fails).
+    if (_texture == null && !_initialAllocationInFlight) {
+      _initialAllocationInFlight = true;
+      _initialAllocationWidth = width;
+      _initialAllocationHeight = height;
+      _debounceTimer?.cancel();
+      _debounceTimer = null;
+      _allocateTexture(width, height);
+      return;
+    }
 
     _debounceTimer?.cancel();
     _debounceTimer = Timer(_debounceDuration, () {
@@ -308,14 +351,31 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
   }
 
   void _allocateTexture(int width, int height) {
-    _enqueueTextureOperation(
-      () => _performTextureAllocation(width, height),
-      'allocating a Thermion widget texture',
-    );
+    _enqueueTextureOperation(() async {
+      try {
+        await _performTextureAllocation(width, height);
+      } finally {
+        // Always release the initial-allocation guard once the attempt
+        // finishes: keeping it after success would silently drop a later
+        // resize back to the initial size. Duplicate work is still
+        // prevented by build()'s same-size check and the guard in
+        // [_performTextureAllocation], and a failure can be retried.
+        _initialAllocationInFlight = false;
+      }
+    }, 'allocating a Thermion widget texture');
   }
 
   Future<void> _performTextureAllocation(int width, int height) async {
     if (_disposing) return;
+
+    // Already allocated at this size (e.g. a debounced rebuild that raced an
+    // allocation of the same dimensions): a resizeTexture to the identical
+    // size would be a pure waste of a full surface rebind.
+    if (_texture != null &&
+        width == _currentWidth &&
+        height == _currentHeight) {
+      return;
+    }
 
     PlatformTextureDescriptor? texture;
 

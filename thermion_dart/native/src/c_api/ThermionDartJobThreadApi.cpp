@@ -121,6 +121,12 @@ extern "C"
     auto *rm = reinterpret_cast<RenderManager *>(tRenderManager);
     rt->addDetachedTask([rt, rm] {
       rt->setAfterBatchCallback([rm] { rm->flushCommands(); });
+#if !defined(THERMION_WEB_MAIN_THREAD)
+      // Worker mode renders from its own rAF; drain queued state updates
+      // synchronously before each frame. Main-thread mode executes commands
+      // inline, so no drain is needed there.
+      rm->setPreRenderDrain([rt] { rt->drainPendingTasks(); });
+#endif
       rm->startFrameLoop();
     });
 #endif
@@ -134,8 +140,11 @@ extern "C"
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
     if (rt) {
       auto* rm = reinterpret_cast<RenderManager*>(tRenderManager);
-      rt->addDetachedTask([rt, rm] {
+      rt->addDetachedLifecycleTask([rt, rm] {
         rm->stopFrameLoop();
+#if !defined(THERMION_WEB_MAIN_THREAD)
+        rm->setPreRenderDrain(nullptr);
+#endif
         rt->setAfterBatchCallback({});
       });
     }
@@ -149,7 +158,7 @@ extern "C"
       TRenderManager* manager, uint32_t requestId, VoidCallback onComplete)
   {
     auto* rt = reinterpret_cast<JobThread*>(jobThread);
-    rt->addDetachedTask([=] {
+    rt->addDetachedLifecycleTask([=] {
 #ifdef __EMSCRIPTEN__
       rt->setAfterBatchCallback({});
 #endif
@@ -306,7 +315,7 @@ extern "C"
           RenderManager_removeAnimationManager(tRenderManager, tAnimationManager);
           PROXY(onComplete(requestId));
         });
-    auto fut = rt->addTask(lambda);
+    auto fut = rt->addLifecycleTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderManager_removeSwapChainJobThread(TJobThread *jobThread,
@@ -322,7 +331,7 @@ extern "C"
           RenderManager_removeSwapChain(tRenderManager, tSwapChain);
           PROXY(onComplete(requestId));
         });
-    auto fut = rt->addTask(lambda);
+    auto fut = rt->addLifecycleTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createJobThread(TJobThread *jobThread,
@@ -392,7 +401,7 @@ extern "C"
           Engine_destroySwapChain(tEngine, tSwapChain);
           PROXY(onComplete(requestId));
         });
-    auto fut = rt->addTask(lambda);
+    auto fut = rt->addLifecycleTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroyRendererJobThread(TJobThread *jobThread, TEngine *tEngine, TRenderer *tRenderer, uint32_t requestId, VoidCallback onComplete)
@@ -404,7 +413,7 @@ extern "C"
           Engine_destroyRenderer(tEngine, tRenderer);
           PROXY(onComplete(requestId));
         });
-    auto fut = rt->addTask(lambda);
+    auto fut = rt->addLifecycleTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroyViewJobThread(TJobThread *jobThread, TEngine *tEngine, TView *tView, uint32_t requestId, VoidCallback onComplete)
@@ -416,7 +425,7 @@ extern "C"
           Engine_destroyView(tEngine, tView);
           PROXY(onComplete(requestId));
         });
-    auto fut = rt->addTask(lambda);
+    auto fut = rt->addLifecycleTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroySceneJobThread(TJobThread *jobThread, TEngine *tEngine, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
@@ -428,7 +437,7 @@ extern "C"
           Engine_destroyScene(tEngine, tScene);
           PROXY(onComplete(requestId));
         });
-    auto fut = rt->addTask(lambda);
+    auto fut = rt->addLifecycleTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createCameraJobThread(TJobThread *jobThread, TEngine *tEngine, EntityId entityId, void (*onComplete)(TCamera *))
@@ -478,7 +487,7 @@ extern "C"
           Engine_destroy(tEngine);
           PROXY(onComplete(requestId));
         });
-    auto fut = rt->addTask(lambda);
+    auto fut = rt->addLifecycleTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureJobThread(TJobThread *jobThread, TEngine *engine, TTexture *tTexture, uint32_t requestId, VoidCallback onComplete)
@@ -1636,7 +1645,7 @@ extern "C"
           AnimationManager_destroy(tAnimationManager);
           PROXY(onComplete(requestId));
         });
-    auto fut = rt->addTask(lambda);
+    auto fut = rt->addLifecycleTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void AnimationManager_updateJobThread(TJobThread *jobThread, TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete) {
@@ -1727,10 +1736,16 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE void Image_decodeJobThread(TJobThread *jobThread, uint8_t *data, size_t length, const char *name, bool alpha, void (*onComplete)(TLinearImage *))
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
+    // Snapshot the borrowed FFI storage before returning to Dart: the .address
+    // borrows backing [data] and [name] are only valid for this synchronous
+    // call, but the decode runs later on the worker. The task owns the copies.
+    std::vector<uint8_t> owned;
+    if (length != 0) owned.assign(data, data + length);
+    const std::string nameOwned = name ? name : "";
     std::packaged_task<void()> lambda(
-        [=]() mutable
+        [=, owned = std::move(owned)]() mutable
         {
-          auto image = Image_decode(data, length, name, alpha);
+          auto image = Image_decode(owned.data(), owned.size(), nameOwned.c_str(), alpha);
 
           PROXY(onComplete(image));
         });

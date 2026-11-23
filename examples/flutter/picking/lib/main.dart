@@ -75,7 +75,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       const speed = 0.03;
 
-      FilamentApp.instance!.registerRequestFrameHook(() async {
+      FilamentApp.instance!.registerRequestFrameHook((frameTimeNanos, delta) async {
         for (int i = 0; i < instances.length; i++) {
           final instance = instances[i];
           final vector = vectors[i];
