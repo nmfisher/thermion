@@ -198,8 +198,8 @@ be dropped),
 Windows-only `meshoptimizer`/`mikktspace` pragmas); `geometry` stays because
 `TSurfaceOrientation`/`CustomGeometry` use it. Two things must be solved so
 procedural apps keep working (§5.6): engine init must not create the loader,
-and `createUnlitMaterialInstance` needs a non-gltfio fallback (an always-on
-`unlit` built-in material). Independently of this proposal, `gltfio` (the
+and `createUnlitMaterialInstance` needs a non-gltfio fallback (a precompiled
+`unlit` built-in material, built only in slim builds — §5.6, D5). Independently of this proposal, `gltfio` (the
 full archive) can be removed from the desktop link list today because nothing
 references it.
 
@@ -520,8 +520,10 @@ undefined when `runtime_materials` is off (D3, §5.1), never defined to 0.
 - Passing defines only for *disabled* features (§4.3) keeps default builds
   byte-identical and cache-compatible with today's hook.
 - The built-in materials manifest (`materials` key, matc/resgen pipeline) is
-  unaffected; the new always-on `unlit` blob (§5.6) is compiled by that same
-  pipeline, not by `filamat` at runtime.
+  unaffected for default builds; the `unlit` fallback blob (§5.6) is
+  compiled by that same pipeline **only when `features.gltf: false`** (D5),
+  as a precompiled blob — never by `filamat` at runtime, and never in
+  default builds.
 
 ### 4.6 Web
 
@@ -758,26 +760,35 @@ reach `createUnlitMaterialInstance()` → the **gltfio ubershader**
 null and procedural apps would break — the one real functional dependency
 of "no glTF" code on gltfio.
 
-Fix, using machinery that already exists:
+Fix, using machinery that already exists, **compiled only when glTF is off**
+(review decision D5):
 
 1. add `hook/materials/unlit.mat` — a minimal unlit, vertex-color-capable
    material with the same parameter names the ubershader path sets
    (`baseColorFactor`, `hasVertexColors` equivalents);
 2. the hook's built-in materials pipeline (`built_in_materials.dart`,
    version-matched matc/resgen from R2 — **not** runtime filamat) compiles it
-   **unconditionally** into a resgen blob, exactly like the opt-in
-   `unlit_fixed_size` material is today (`TMaterialInstance.cpp`'s
-   `RESGEN_FACTORY(UNLIT_FIXED_SIZE)` under `UNLIT_FIXED_SIZE_ENABLED`);
+   into a precompiled resgen blob **only when `features.gltf: false`**,
+   exactly like the opt-in `unlit_fixed_size` material is today
+   (`TMaterialInstance.cpp`'s `RESGEN_FACTORY(UNLIT_FIXED_SIZE)` under
+   `UNLIT_FIXED_SIZE_ENABLED`; the new one sits under
+   `UNLIT_FALLBACK_ENABLED`, set by the hook iff gltf is off). Default
+   builds are untouched: making the blob unconditional would add a
+   material-compiler (matc/resgen) step to every default app that currently
+   skips that work (D5);
 3. `MaterialProvider_createMaterialInstance`'s stub is replaced by a real
    fallback: when `!THERMION_ENABLE_GLTF`, `createUnlitMaterialInstance`'s
-   entry point creates instances from the always-on blob instead of the
+   entry point creates instances from the precompiled blob instead of the
    ubershader provider. The C symbol and Dart API are unchanged;
    `createUbershaderMaterialInstance` (explicit ubershader requests) still
    returns null / throws (§6).
 
-Cost: one small material package (single-digit KB), no new archives. This
-also removes a hidden gltfio dependency that exists **today** for procedural
-apps and is worth doing even if the opt-out mechanism is never merged.
+Cost: one small precompiled material package (single-digit KB) in slim
+builds only, no new archives, no compiler dependency for default apps.
+Decoupling `createUnlitMaterialInstance` from the ubershader for **default**
+builds too remains worthwhile (it removes a hidden gltfio dependency that
+exists today), but is a separate follow-up, not part of the opt-out work
+(D5).
 
 ### 5.7 Link-time verification
 
@@ -872,6 +883,13 @@ diagnosable. Same division of labour as `runtime_materials` today.
 
 ## 7. Measured sizes
 
+> **These Linux archive numbers are an estimate, not a shipping claim**
+> (review decision D5). Before any size saving is advertised or a rollout
+> step merges, measure the **stripped `libthermion_dart.so` and the packaged
+> app size** (APK/AAB) for the prototype build (§8 step 2) on an actual
+> target — **Android arm64** first. The object-file closure model below
+> ignores `--gc-sections`, LTO and packaging compression.
+
 Method: `.scratch/closure_size.py` indexes every member of every `.a` in the
 **Linux x64 release** Filament v1.77.2 artifact with `nm`, then computes the
 transitive closure over undefined symbols from each feature's root symbols
@@ -909,21 +927,36 @@ Notes:
 
 ## 8. Rollout, risks, open questions
 
-Suggested implementation order (each step independently mergeable):
+Implementation order, revised by review decisions D4/D5 (each step
+independently mergeable; **the prototype gates the rest**):
 
 1. **Free wins, no schema**: drop the unreferenced `gltfio` archive from the
-   desktop link list; move Windows `matp`/`filamat` pragmas under
-   `THERMION_ENABLE_RUNTIME_MATERIALS`; drop unused gltfio includes
-   (`TTransformManager.cpp`, `FileMaterialProvider.hpp`).
-2. **Unlit fallback** (§5.6): always-on `unlit.mat` blob +
-   `createUnlitMaterialInstance` decoupled from the ubershader. Removes the
-   hidden procedural→gltfio dependency even for default builds.
-3. **`features.image_decoding` + `features.ktx`**: smallest guard surface
-   (`TTexture.cpp`, provider registration), exercises the whole
-   schema/stub/probe pipeline end-to-end.
-4. **`features.gltf`**: the big one — Pattern A/C files of §5.2, init
-   changes, Dart `UnsupportedError` guards.
-5. Optional: publish a `-slim` web engine variant (§4.6).
+   desktop link list; move Windows `matp`/`filamat` pragmas under the
+   existing `#if defined(THERMION_ENABLE_RUNTIME_MATERIALS)` block (macro
+   stays undefined when off, D3); drop unused gltfio includes
+   (`TTransformManager.cpp`, `FileMaterialProvider.hpp`). `smol-v` stays
+   unconditional (D3).
+2. **Native `gltf: false` prototype (D5) — before any schema/API rollout**:
+   hand-built `libthermion_dart` with `THERMION_ENABLE_GLTF=0` and the
+   reduced link line, **texture decoders left available** (`ktx` and
+   `image_decoding` on, so the D2 deferral is not in play). Includes the
+   §5.2 Pattern-B/C guards, the §5.5 init change and the **conditional**
+   unlit fallback blob (§5.6: precompiled, requested only when gltf is off).
+   Run the §5.7 criteria (incl. the procedural create/instance/render/destroy
+   test) and **measure the stripped `.so` and packaged app size on Android
+   arm64** (§7 caveat). The Linux closure numbers are only the estimate that
+   motivates the prototype; its measured results decide whether to proceed.
+3. **Feature probe publication (D4)**: add `Thermion_getEnabledFeatures` to
+   the web CMake sources, rebuild/publish **all** supported web variants,
+   advance `native/web/web.version`; then land the Dart `supports()`/init
+   changes with the legacy-engine fallback (§4.6).
+4. **Schema + `features.ktx` / `features.image_decoding`** (with
+   `gltf: false`; mixed combos rejected per D2): smallest guard surface
+   (`TTexture.cpp`), exercises the schema/stub/probe pipeline end-to-end.
+5. **`features.gltf` productised**: the prototype's guards hardened —
+   Pattern A/B/C files of §5.2, Dart `UnsupportedError` guards, full §5.7 CI
+   matrix.
+6. Optional: publish a `-slim` web engine variant (§4.6).
 
 Risks and mitigations:
 
@@ -944,8 +977,9 @@ Open questions (deliberately not decided here):
   code) and it would fork the public interface — rejected for v1.
 - Should the artifact zips stop staging unused archives (§3.8)? Worth ~40 MB
   of *download*, orthogonal to binary size; separate `scripts/` change.
-- iOS/Android marginal numbers: measure on-device `.so` sizes per combination
-  before advertising savings for mobile; Linux numbers are the proxy today.
+- iOS numbers: measure on-device per combination before advertising savings
+  for iOS; Android arm64 is measured by the prototype (§8 step 2, D5). Linux
+  numbers remain an estimate for everything else.
 
 ## 9. Settled review decisions (round 2)
 
@@ -959,3 +993,4 @@ do not re-open them during implementation.
 | D2 | Mixed builds (`gltf: true` with `ktx: false` or `image_decoding: false`) are **deferred**: hard error at hook time in v1. Filament v1.77.2 stalls async progress at 0 with an empty provider map (even textureless assets) and log-and-skips missing providers. Re-enabling requires defined+tested completion for textureless assets and a clear propagated failure for assets needing a disabled decoder, sync and async. | §4.2, §4.3, §5.3, §5.7, §7 (informational row), §8 risk table |
 | D3 | `THERMION_ENABLE_RUNTIME_MATERIALS` keeps presence semantics: **undefined when off**, `=1` when on; no default in `ThermionFeatures.h`. Defining it to 0 would still enable the real compiler and Windows compiler pragmas under their `#ifdef`/`#if defined` guards. A value-check migration is only allowed as one atomic change covering every guard. `smol-v` stays **unconditional** (core `filaflat::DictionaryReader` decoder). | §3.7, §4.4, §5.1 |
 | D4 | The web engine release is a **dependency of the probe**: rebuild and publish every currently supported web variant with `Thermion_getEnabledFeatures` and advance `native/web/web.version` before Dart requires it (even with zero slim web variants in v1). Legacy engines get a lazy-lookup fallback: missing symbol → all features enabled + warning. | §4.6, §6.1, §8 (rollout + risk table) |
+| D5 | **Prototype first**: start with a native `gltf: false` build, texture decoders left available, and measure the stripped library + packaged size on a real target (Android arm64) before rolling out schema/API; the Linux archive model is an estimate. The unlit fallback blob is **precompiled and built only when gltf is off** — an unconditional blob in the hook would add a matc/resgen dependency to default apps that skip it today. | §4.5, §5.6, §7 (caveat), §8 (rollout order, open questions) |
