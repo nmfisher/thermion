@@ -131,8 +131,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   /// [supports] for callers without an app instance (engine initialization
   /// runs before FilamentApp.instance exists).
-  static bool buildSupports(ThermionFeature feature) =>
-      (enabledFeatures & (1 << feature.index)) != 0;
+  static bool buildSupports(ThermionFeature feature) => (enabledFeatures & (1 << feature.index)) != 0;
 
   @override
   bool supports(ThermionFeature feature) => buildSupports(feature);
@@ -1073,12 +1072,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
     late final bool included;
     final ptr = await withPointerCallback<TMaterial>((cb) {
-      included = Material_createBuiltInJobThread(
-        jobThreadHandle,
-        engine,
-        TBuiltInMaterial.BUILT_IN_UNLIT_FALLBACK,
-        cb,
-      );
+      included = Material_createBuiltInJobThread(jobThreadHandle, engine, TBuiltInMaterial.BUILT_IN_UNLIT_FALLBACK, cb);
     });
     if (!included) {
       throw StateError(

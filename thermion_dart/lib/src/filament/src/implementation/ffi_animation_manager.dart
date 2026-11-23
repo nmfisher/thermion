@@ -18,11 +18,14 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
   @override
   Pointer<TAnimationManager> getNativeHandle() => animationManager;
 
-  /// Every animation API drives gltfio's Animator against glTF assets, so all
-  /// of them (except [update], a per-frame no-op without gltf) are
-  /// unavailable in a `features.gltf: false` build. The C stubs would return
-  /// false/0/-1; this turns that into an actionable error instead
-  /// (docs/feature-optout-proposal.md §6.2).
+  /// Every asset-facing animation API drives gltfio's Animator against glTF
+  /// assets, so those are unavailable in a `features.gltf: false` build. The
+  /// C stubs would return false/0/-1; this turns that into an actionable
+  /// error instead (docs/feature-optout-proposal.md §6.2). Deliberately NOT
+  /// guarded: [update] (a per-frame no-op without gltf) and the entity-keyed
+  /// morph component add/remove — FFIAsset's destroy path calls
+  /// removeMorphAnimationComponent for every asset type, procedural geometry
+  /// included, so those must keep working as no-ops (the C stubs are no-ops).
   void _requireGltf(String api) => app.checkSupported(ThermionFeature.gltf, api);
 
   @override
@@ -57,13 +60,11 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   void addMorphAnimationComponent(ThermionEntity entityId) {
-    _requireGltf('addMorphAnimationComponent');
     AnimationManager_addMorphAnimationComponent(animationManager, entityId);
   }
 
   @override
   void removeMorphAnimationComponent(ThermionEntity entityId) {
-    _requireGltf('removeMorphAnimationComponent');
     AnimationManager_removeMorphAnimationComponent(animationManager, entityId);
   }
 
