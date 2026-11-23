@@ -534,4 +534,187 @@ v1 behaviour:
   web engine only pays for what the prebuilt C references — the win on web
   comes from the same C guards, whenever a slim variant is shipped.
 
+## 5. C guard and stub design
+
+### 5.1 Macro convention
+
+New header `native/include/ThermionFeatures.h`, included by every guarded
+translation unit (and by `ThermionWin32.h`):
+
+```c
+#pragma once
+// Feature switches. The hook passes -DTHERMION_ENABLE_<FEATURE>=0 only for
+// DISABLED features (hook/build.dart); enabled/default builds pass nothing,
+// so their compile command lines are unchanged.
+#ifndef THERMION_ENABLE_GLTF
+#define THERMION_ENABLE_GLTF 1
+#endif
+#ifndef THERMION_ENABLE_KTX
+#define THERMION_ENABLE_KTX 1
+#endif
+#ifndef THERMION_ENABLE_IMAGE_DECODING
+#define THERMION_ENABLE_IMAGE_DECODING 1
+#endif
+// Existing switch, same default-on treatment for uniformity (the hook keeps
+// passing =1 when runtime_materials is enabled):
+#ifndef THERMION_ENABLE_RUNTIME_MATERIALS
+#define THERMION_ENABLE_RUNTIME_MATERIALS 0
+#endif
+```
+
+Two deliberate differences from the existing `TMaterialCompiler.cpp` style
+(`#ifdef`): value macros with header defaults, because (a) `ThermionWin32.h`
+must see the same defaults for its pragmas, and (b) `#if` typos fail loudly
+with `-Wundef` instead of silently disabling a feature. The existing
+`THERMION_ENABLE_RUNTIME_MATERIALS` `#ifdef`s keep working unchanged (defined
+= enabled); migrating them to `#if` is optional cleanup.
+
+Web: `native/web/CMakeLists.txt` maps its `option()`s to the same
+`target_compile_definitions`, so one macro set serves both build systems.
+
+### 5.2 Guard patterns
+
+Three patterns cover every reference in §3:
+
+**Pattern A — whole-file split** (for files whose entire content is the
+feature): copy `TMaterialCompiler.cpp`'s layout — real implementation under
+`#if THERMION_ENABLE_X`, complete `extern "C"` stub set under `#else`. Applies
+to `TGltfAssetLoader.cpp`, `TGltfResourceLoader.cpp`, `TFilamentAsset.cpp`,
+`TMaterialProvider.cpp`, `TSceneAsset.cpp`, `TAnimationManager.cpp`.
+
+Stub rules (so the binary stays loadable and the Dart bindings stay valid):
+
+- every `EMSCRIPTEN_KEEPALIVE` symbol in the corresponding `c_api/*.h` header
+  is still exported, with the exact signature;
+- pointer-returning functions return `nullptr`; counts/sizes/booleans return
+  `0`; `void` functions are no-ops; `const char*` getters return `nullptr`;
+- `*_isSupported`-style probes return 0 (new: `GltfAssetLoader_isSupported`,
+  or the single `Thermion_getEnabledFeatures` of §6 — one probe is enough);
+- **JobThread variants delegate to the sync stub and still invoke the
+  callback** (`PROXY(callback(nullptr))` / `onComplete(requestId)`), because
+  every `*JobThread` wrapper in `ThermionDartJobThreadApi.cpp` just calls the
+  sync entry point inside a lambda (e.g. lines 2180-2195). Guarding the sync
+  functions therefore guards the JobThread API automatically — the Dart
+  `withPointerCallback` completes with null instead of hanging forever.
+  `ThermionDartJobThreadApi.cpp` itself needs **no** guards.
+
+**Pattern B — local guards** (for files that mix core and feature code):
+`TTexture.cpp` (`Image_decode` body, `Ktx1Bundle_*`, `Ktx1Reader_*`,
+`Ktx2Reader_*`), `TGltfResourceLoader.cpp`'s provider registration (§5.3),
+`TScene.cpp` (`Scene_addFilamentAsset`), `ThermionWin32.h` pragmas (§4.4).
+Includes of feature headers move under the same guard so a disabled build
+cannot accidentally re-introduce a link reference.
+
+**Pattern C — class-level guards** (C++ internals, no C symbols):
+`scene/GltfSceneAsset.cpp`, `GltfSceneAssetInstance.cpp`,
+`scene/AnimationManager.cpp`, `components/{Gltf,Bone,Morph}AnimationComponentManager.cpp`
+and their headers. These are only reachable through Pattern-A entry points,
+which return null when disabled; guard the whole class body and leave a
+minimal stub where a base-class vtable must still exist (e.g.
+`AnimationManager` is created unconditionally at init — see §5.5 — so its
+constructor/destructor/tick survive as no-ops when gltf is off).
+`include/material/FileMaterialProvider.hpp` (unused) is deleted or guarded
+outright.
+
+Compile-time-only includes (§3.1 list: `TEngine.cpp`, `TIndirectLight.cpp`,
+`TTransformManager.cpp`, `GeometrySceneAsset`, `SceneAsset.hpp`) are dropped
+or guarded; none contributes symbols, but dropping them keeps the disabled
+build honest.
+
+### 5.3 Mixed configurations: gltf on, ktx/image_decoding off
+
+`TGltfResourceLoader.cpp` registration block (the file's own TODO, lines
+64-70, asks for this):
+
+```c
+#if THERMION_ENABLE_IMAGE_DECODING
+    auto stbDecoder = gltfio::createStbProvider(engine);
+    gltfResourceLoader->addTextureProvider("image/png", stbDecoder);
+    gltfResourceLoader->addTextureProvider("image/jpeg", stbDecoder);
+#endif
+#if THERMION_ENABLE_KTX
+    auto ktxDecoder = gltfio::createKtx2Provider(engine);
+    gltfResourceLoader->addTextureProvider("image/ktx2", ktxDecoder);
+#endif
+```
+
+`createStbProvider`/`createKtx2Provider` live in `gltfio_core`, so with gltf
+on the archives stay linked; only the provider *references* to `stb` /
+`ktxreader` / `basis_transcoder` disappear, which is exactly what lets the
+hook drop those archives (§4.3). A glTF embedding a PNG then fails
+resource loading with the existing "no texture provider for image/png"
+path — surfaced by Dart as a load error, not a crash.
+
+### 5.4 What each disabled feature exports (stub contract)
+
+| Macro = 0 | Symbols kept (all stubbed) | Behaviour |
+| --- | --- | --- |
+| `THERMION_ENABLE_GLTF` | `GltfAssetLoader_*`, `GltfResourceLoader_*`, `FilamentAsset_*`, `MaterialProvider_*`, `SceneAsset_*`, `AnimationManager_*`, `Scene_addFilamentAsset` (+ every `*JobThread` twin) | create/load return null (callbacks fired with null); getters return 0/null; animation apply/update are no-ops |
+| `THERMION_ENABLE_KTX` | `Ktx1Bundle_*`, `Ktx1Reader_createTexture`, `Ktx2Reader_createTexture` (+JobThread) | create returns null; `isCubemap`/`getSphericalHarmonics` return 0 |
+| `THERMION_ENABLE_IMAGE_DECODING` | `Image_decode` (+JobThread if present) | returns null; `Image_createEmpty`/`Image_get*`/`Texture_loadImage` **unaffected** (core `image` archive) |
+
+`GltfParser_parseBuffer` (vendored cgltf, `TGltfParser.cpp`) is **not**
+guarded: `parseGltf`/`GltfMeshData` keep working in every build.
+
+### 5.5 Engine init must not force gltfio
+
+`FFIFilamentApp.init` creates the loader and animation manager
+unconditionally (lines 205-224). With Pattern-A stubs this already *works*
+(`gltfAssetLoader` handle is null, `AnimationManager` is a no-op shell), but
+the proposal makes it explicit:
+
+- C: `AnimationManager_create` under `!THERMION_ENABLE_GLTF` returns a
+  zero-cost object whose `tick`/`addAnimation` do nothing (Pattern C), so
+  `RenderManager_addAnimationManager` at init stays valid;
+- Dart: `init` skips `GltfAssetLoader_createJobThread` and
+  `GltfAssetLoader_getMaterialProvider` when `!supports(ThermionFeature.gltf)`
+  (§6), storing null — one fewer job-thread round-trip at startup.
+
+### 5.6 Procedural-only apps: the unlit material fallback
+
+Today `createGeometry(...)` without explicit material instances,
+`Asset.getBoundingBoxAsset()`, `TextureProjection` and several examples all
+reach `createUnlitMaterialInstance()` → the **gltfio ubershader**
+(`ffi_filament_app.dart` line 957). With gltf off that path would return
+null and procedural apps would break — the one real functional dependency
+of "no glTF" code on gltfio.
+
+Fix, using machinery that already exists:
+
+1. add `hook/materials/unlit.mat` — a minimal unlit, vertex-color-capable
+   material with the same parameter names the ubershader path sets
+   (`baseColorFactor`, `hasVertexColors` equivalents);
+2. the hook's built-in materials pipeline (`built_in_materials.dart`,
+   version-matched matc/resgen from R2 — **not** runtime filamat) compiles it
+   **unconditionally** into a resgen blob, exactly like the opt-in
+   `unlit_fixed_size` material is today (`TMaterialInstance.cpp`'s
+   `RESGEN_FACTORY(UNLIT_FIXED_SIZE)` under `UNLIT_FIXED_SIZE_ENABLED`);
+3. `MaterialProvider_createMaterialInstance`'s stub is replaced by a real
+   fallback: when `!THERMION_ENABLE_GLTF`, `createUnlitMaterialInstance`'s
+   entry point creates instances from the always-on blob instead of the
+   ubershader provider. The C symbol and Dart API are unchanged;
+   `createUbershaderMaterialInstance` (explicit ubershader requests) still
+   returns null / throws (§6).
+
+Cost: one small material package (single-digit KB), no new archives. This
+also removes a hidden gltfio dependency that exists **today** for procedural
+apps and is worth doing even if the opt-out mechanism is never merged.
+
+### 5.7 Link-time verification
+
+For each of the 8 feature combinations (2³), CI builds `libthermion_dart`
+with the corresponding defines and the reduced `libs` list. Success criteria:
+
+1. link succeeds (no undefined Filament symbols) — proves the guards cover
+   every reference in §3;
+2. `nm -D --defined-only` exports the **same symbol set** as the default
+   build (the stub contract) — proves Dart bindings/`dlopen`/wasm stay valid;
+3. a smoke test app: create engine, `createGeometry` + unlit material,
+   render one frame — proves §5.5/§5.6.
+
+On Linux, `--no-undefined` at link time makes criterion 1 strict; on
+macOS/Windows the linker is strict by default. Android additionally needs
+the `dlopen` smoke test because its linker resolves lazily-ignored symbols
+differently (the perfetto precedent, hook lines 344-353).
+
 <!-- continued -->
