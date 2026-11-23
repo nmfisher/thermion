@@ -16,6 +16,7 @@
 #include "Log.hpp"
 #include "c_api/TMaterialProvider.h"
 #include "c_api/TMaterialInstance.h"
+#include "material/UnlitFallbackProvider.hpp"
 
 #ifdef __cplusplus
 namespace thermion
@@ -121,11 +122,16 @@ namespace thermion
         // Stub contract (docs/feature-optout-proposal.md §5.4). There is no
         // ubershader provider in this build, so explicit ubershader requests
         // (createUbershaderMaterialInstance / createUbershaderMaterial on the
-        // Dart side) get null; Dart turns that into UnsupportedError. The
-        // unlit material used by procedural geometry does NOT come through
-        // here in a slim build: createUnlitMaterialInstance builds the
-        // precompiled UNLIT_FALLBACK package instead (proposal §5.6, see
-        // TMaterialInstance.cpp and UNLIT_FALLBACK_ENABLED).
+        // Dart side) get null; Dart turns that into UnsupportedError.
+        //
+        // The unlit variant is different: it is the material procedural
+        // geometry depends on (createGeometry without an explicit material,
+        // bounding-box helpers, TextureProjection). GltfAssetLoader_create's
+        // stub handed Dart an UnlitFallbackProvider carrying the engine, so
+        // this context-free entry point (no Engine parameter) can build the
+        // precompiled UNLIT_FALLBACK package on first use and return an
+        // instance from it. The Material is cached on the provider, which
+        // GltfAssetLoader_destroy tears down (§10.1, deviation 3).
         EMSCRIPTEN_KEEPALIVE TMaterialInstance *MaterialProvider_createMaterialInstance(
             TMaterialProvider *tMaterialProvider, 
             bool doubleSided,
@@ -167,8 +173,61 @@ namespace thermion
             bool hasIOR,
             bool hasVolume)
         {
-            Log("MaterialProvider_createMaterialInstance: glTF support is disabled in this build (features.gltf: false)");
-            return nullptr;
+            THERMION_ENGINE_API_GUARD;
+            (void)doubleSided;
+            (void)hasVertexColors;
+            (void)hasBaseColorTexture;
+            (void)hasNormalTexture;
+            (void)hasOcclusionTexture;
+            (void)hasEmissiveTexture;
+            (void)useSpecularGlossiness;
+            (void)alphaMode;
+            (void)enableDiagnostics;
+            (void)hasMetallicRoughnessTexture;
+            (void)metallicRoughnessUV;
+            (void)hasSpecularGlossinessTexture;
+            (void)specularGlossinessUV;
+            (void)baseColorUV;
+            (void)hasClearCoatTexture;
+            (void)clearCoatUV;
+            (void)hasClearCoatRoughnessTexture;
+            (void)clearCoatRoughnessUV;
+            (void)hasClearCoatNormalTexture;
+            (void)clearCoatNormalUV;
+            (void)hasClearCoat;
+            (void)hasTransmission;
+            (void)hasTextureTransforms;
+            (void)emissiveUV;
+            (void)aoUV;
+            (void)normalUV;
+            (void)hasTransmissionTexture;
+            (void)transmissionUV;
+            (void)hasSheenColorTexture;
+            (void)sheenColorUV;
+            (void)hasSheenRoughnessTexture;
+            (void)sheenRoughnessUV;
+            (void)hasVolumeThicknessTexture;
+            (void)volumeThicknessUV;
+            (void)hasSheen;
+            (void)hasIOR;
+            (void)hasVolume;
+
+            auto *provider = reinterpret_cast<UnlitFallbackProvider *>(tMaterialProvider);
+            if (!unlit || !provider || !provider->engine) {
+                Log("MaterialProvider_createMaterialInstance: glTF support is disabled in this build (features.gltf: false)");
+                return nullptr;
+            }
+            if (!provider->unlitMaterial) {
+                const auto factory = builtInMaterialFactory(BUILT_IN_UNLIT_FALLBACK);
+                provider->unlitMaterial = factory
+                    ? reinterpret_cast<filament::Material *>(factory(reinterpret_cast<TEngine *>(provider->engine)))
+                    : nullptr;
+            }
+            if (!provider->unlitMaterial) {
+                Log("MaterialProvider_createMaterialInstance: the precompiled unlit fallback material is not compiled into this build (features.gltf: false without UNLIT_FALLBACK_ENABLED)");
+                return nullptr;
+            }
+            return reinterpret_cast<TMaterialInstance *>(provider->unlitMaterial->createInstance());
         }
 #endif // THERMION_ENABLE_GLTF
 
