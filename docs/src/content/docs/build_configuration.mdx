@@ -54,11 +54,10 @@ hooks:
 - Selecting a single backend means exactly that: a device that doesn't
   support it will fail to render those materials — there is no fallback
   compiled in.
-- On web, the build embeds enabled helpers with WebGL and WebGPU support in
-  `thermion_dart.wasm`. For native WebGPU/Dawn or other explicit variant overrides,
-  use the flat `backend` key:
-  `backend: webgpu`, `backend: webgl2`, or `backend: hybrid`. If both are
-  set, `materials.backends` wins.
+- For native WebGPU, set `backend: webgpu`. A matching `materials.backends`
+  entry takes precedence for the native material variant.
+- For the browser engine and its material variants, see
+  [Choose a backend](/web/#choose-a-backend).
 
 Invalid configuration (a typo'd OS key, `metal` on Android, an empty list)
 fails the build with an error naming the problem key.
