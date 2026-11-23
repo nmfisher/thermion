@@ -3,29 +3,21 @@ title: Debugging
 description: Diagnose Thermion builds and runtime behavior.
 ---
 
-If something is crashing or not working as expected, you can enable verbose logging and/or debug builds (particularly useful for debugging with lldb or getting legible stack traces):
+Thermion uses release libraries by default, including when you run your app in
+Flutter debug mode. To use debug libraries and tracing, add these settings to
+your app's `pubspec.yaml`.
 
-Add a `hooks` section to your app's `pubspec.yaml`, e.g.
-```
-name: example_cli
-description: A sample command-line application.
-version: 1.0.0
-
-environment:
-  sdk: ^3.3.0
-
-# Add the below
+```yaml
 hooks:
   user_defines:
-    thermion_dart: 
+    thermion_dart:
       mode: debug
       tracing: enabled
 ```
 
-After changing the `hooks` section, make sure you run `flutter clean` to propagate the changes correctly.
+If a Flutter build keeps using the previous settings, run `flutter clean`
+and rebuild.
 
 :::caution
 Debug builds won't work for Android. This is a known upstream issue with Filament.
 :::
-
-Unless `mode: debug` is specified in your `pubspec.yaml`, Thermion will use release builds under the hood, even if your app is running in debug mode.

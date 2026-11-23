@@ -24,15 +24,7 @@ make materials
 
 This compiles the `.mat` sources under [`materials/`](https://github.com/nmfisher/thermion/tree/develop/materials) against your local Filament build (`FILAMENT_PATH`).
 
-## Footguns
-
-### Stripping in release mode
-
-If you build your app in release mode, you will need to ensure that "Dead Strip" is set to false.
-
-This is because we only invoke the library at runtime via FFI, so at link time these symbols are otherwise treated as redundant.
-
-### Animations when backgrounded
+## Animations when backgrounded
 
 Don't call `playGltfAnimation` when the app is in the background (i.e. inactive/hidden). This will queue, but not start, an animation, and eventually this will overflow the command buffer when the app is foregrounded/resumed.
 
@@ -43,6 +35,3 @@ If you have a looping animation in your app code, make sure it pauses while the 
 You normally don't need to build Filament yourself — Thermion's build hook fetches
 prebuilt binaries for every platform. If you're modifying Thermion's native code, see
 [Web](/web/#building-the-wasm-locally) for building the WASM target locally.
-
-
-

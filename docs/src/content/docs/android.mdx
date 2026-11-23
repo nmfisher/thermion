@@ -3,14 +3,17 @@ title: Android
 description: Configure Thermion for Android.
 ---
 
-### Min SDK version
+## Minimum SDK
 
-Thermion requires Android SDK version 22, so change your `app/android/build.gradle` to match this version or higher：
+Keep the minimum SDK supplied by Flutter. In a new project,
+`android/app/build.gradle.kts` sets it as follows.
 
-```groovy
- defaultConfig {
-    ...
-        minSdk = 22
-    ...
-    }
+```kotlin
+defaultConfig {
+    minSdk = flutter.minSdkVersion
+}
 ```
+
+If you set a custom minimum, choose an API level supported by your Flutter
+version and at least API 22 for Thermion.
+[Flutter's Android support table](https://docs.flutter.dev/reference/supported-platforms#android)
