@@ -57,7 +57,7 @@ jobs:
           dart pub get
           dart test -p node test/backend_enum_test.dart test/js_pointer_callback_test.dart test/js_view_picking_test.dart test/js_geometry_memory_test.dart test/js_material_memory_test.dart test/geometry_ctor_tests.dart -r expanded
           dart test test/pending_callback_test.dart test/material_symbol_export_test.dart test/material_tools_test.dart test/material_publication_test.dart test/material_hook_runner_test.dart test/backend_enum_test.dart test/filament_artifacts_test.dart test/web_artifacts_test.dart \
-            test/filament_version_test.dart test/material_backend_resolution_test.dart -r expanded
+            test/filament_version_test.dart test/material_backend_resolution_test.dart test/feature_flags_test.dart -r expanded
 
   dart-tests:
     name: Dart Tests (${{ matrix.name }})
@@ -399,6 +399,124 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-logs-runtime-materials-${{ matrix.name }}-${{ matrix.mode }}-${{ matrix.enabled }}
+          path: |
+            ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
+
+  # Slim-build job for the compile-time feature opt-outs
+  # (docs/feature-optout-proposal.md §5.7): rebuild libthermion_dart with
+  # gltf/ktx/image_decoding all OFF — every gltfio/ktxreader/stb reference
+  # drops from the link line, so an unguarded reference is a LINK error here
+  # and a guard that leaves a non-void function without a return fails under
+  # Apple Clang's default -Werror=return-type (macOS). test/slim_build_test.dart
+  # skips itself on default builds and runs for real on this one; the pure-Dart
+  # feature_flags_test.dart covers the `features` user-define parsing.
+  # Same pubspec rewrite as dart-tests-runtime-materials: strip the local-only
+  # hooks.user_defines block, then append the slim configuration.
+  dart-tests-slim:
+    name: Slim Build Tests (${{ matrix.name }}, features off)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: Linux, os: ubuntu-22.04 }
+          - { name: macOS, os: macos-15 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~\AppData\Local\Pub\Cache
+          key: pub-${{ runner.os }}-${{ hashFiles('thermion_dart/pubspec.lock', 'thermion_dart/pubspec.yaml') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      - name: Setup Linux build environment
+        if: matrix.name == 'Linux'
+        uses: ./.github/actions/setup-build-env
+
+      - name: Install Linux EGL libraries
+        if: matrix.name == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libegl1 libegl1-mesa-dev libc++-dev libc++abi-dev
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Select the slim feature configuration for tests
+        shell: bash
+        run: |
+          awk '
+            /^hooks:/ { skip=1; next }
+            skip && /^[^[:space:]#]/ { skip=0 }
+            !skip { print }
+          ' thermion_dart/pubspec.yaml > thermion_dart/pubspec.yaml.tmp
+          mv thermion_dart/pubspec.yaml.tmp thermion_dart/pubspec.yaml
+          cat >> thermion_dart/pubspec.yaml <<'EOF'
+          hooks:
+            user_defines:
+              thermion_dart:
+                features:
+                  gltf: false
+                  ktx: false
+                  image_decoding: false
+          EOF
+
+      - name: Clean cached Filament libraries
+        shell: bash
+        run: rm -rf thermion_dart/.dart_tool/thermion_dart/lib
+
+      - name: Run slim-build tests
+        working-directory: thermion_dart
+        shell: bash
+        run: |
+          dart pub get
+          ${{ matrix.name == 'Linux' && 'xvfb-run' || '' }} dart test -j1 test/slim_build_test.dart test/feature_flags_test.dart --concurrency=1
+
+      - name: Check the slim library exports every symbol the Dart bindings use
+        if: matrix.name == 'Linux'
+        shell: bash
+        run: |
+          # Stub contract (docs/feature-optout-proposal.md §5.4): the generated
+          # bindings are shared by every build variant and look each symbol up
+          # lazily, so a missing export would only fail at the first Dart call.
+          # Check the slim library against the names in the FFI bindings file.
+          python3 - <<'PYTHON'
+          import pathlib, re, subprocess
+          libraries = {p.resolve() for p in pathlib.Path('.dart_tool/hooks_runner').rglob('libthermion_dart.so') if p.is_file()}
+          if len(libraries) != 1:
+              raise SystemExit(f'Expected one built libthermion_dart.so, found: {libraries}')
+          library = libraries.pop()
+          print(f'Checking exports of {library}', flush=True)
+          exported = {line.split()[-1].split('@')[0] for line in subprocess.run(
+              ['nm', '-D', '--defined-only', str(library)], capture_output=True, text=True, check=True).stdout.splitlines()}
+          bindings = pathlib.Path('lib/src/bindings/src/thermion_dart_ffi.g.dart').read_text()
+          used = set(re.findall(r'^external\s+[^;=]*?\b(\w+)\(', bindings, re.MULTILINE))
+          # Declared in c_api/*.h and in the bindings, but defined in no build
+          # (default included) — pre-existing drift, unrelated to the opt-outs.
+          never_defined = {
+              'Camera_setProjectionMatrix', 'LightManager_rgbToColorTemperature',
+              'RenderableManager_getCulling', 'RenderableManager_getPriority',
+              'Renderer_setFrameInterval', 'Texture_getUsage',
+          }
+          missing = sorted(name for name in used if name not in exported and name not in never_defined)
+          print(f'{len(used)} FFI entry points, {len(missing)} missing from the slim build', flush=True)
+          if missing:
+              raise SystemExit(f'FFI entry points missing from the slim build: {missing}')
+          PYTHON
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-slim-${{ matrix.name }}
           path: |
             ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5
