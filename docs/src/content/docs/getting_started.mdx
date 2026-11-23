@@ -3,74 +3,41 @@ title: Getting Started
 description: Install Thermion and configure a Flutter project.
 ---
 
-Thermion requires the Flutter `stable` channel with native assets enabled.
+Use Flutter 3.44 or later on the stable channel.
 
 ## Prerequisites
 
-Thermion compiles native C/C++ (Filament + the Thermion plugin) via a Dart
-build hook, so you need a C/C++ toolchain on your machine. The prebuilt
-Filament binaries are downloaded automatically on first build.
+For a native app, the build hook compiles Thermion against prebuilt Filament
+libraries. Install the build tools for your target platform.
 
-| Platform  | Requirements                                                                                                                       |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **macOS** | Xcode 15+ (provides Clang, CMake, Metal SDK). Minimum deployment target macOS 13.0.                                                |
-| **iOS**   | Xcode 15+. Minimum deployment target iOS 13.0.                                                                                      |
-| **Android** | Android SDK, minSdk 22. NDK is fetched automatically by the Flutter build.                                                        |
-| **Windows** | Visual Studio 2022 with the *Desktop development with C++* workload (includes CMake + Windows SDK). Windows 10+.                  |
-| **Linux** | GCC/Clang, CMake 3.14+, and the system libraries listed on the [Linux](/linux/) page (`libgtk-3-dev`, `liblzma-dev`, `libdrm-dev`). |
-| **Web**   | No extra toolchain — the build hook fetches prebuilt WASM artifacts. Emscripten/CMake/GNU Make are only needed to build the WASM locally (see [Web](/web/)). |
+| Platform | Setup |
+| --- | --- |
+| macOS | Xcode and a macOS deployment target of 13.0 or later. |
+| iOS | Xcode and the [iOS deployment settings](/ios/). |
+| Android | Android SDK and the [Android minimum SDK setting](/android/). Flutter fetches the required NDK. |
+| Windows | [Windows build tools](/windows/#requirements). |
+| Linux | [Linux system dependencies](/linux/#system-dependencies). |
+| Web | The build hook fetches the prebuilt [WebAssembly engine](/web/). |
 
 ## Setup
 
-1. Switch to the Flutter stable channel, upgrade Flutter, create a new project, then add `thermion_flutter` as a dependency
+From your Flutter project, add `thermion_flutter`.
 
 ```bash
-$ flutter channel stable
-$ flutter upgrade
-$ flutter config --enable-native-assets  
-$ cd your_flutter_project
-$ flutter pub add thermion_flutter
+flutter pub add thermion_flutter
 ```
 
-2. If running on iOS or macOS, change the minimum deployment target to 13.0
-
-<details>
-<summary>iOS and macOS instructions</summary>
-
-Make sure the `platform` entry refers to `13.0` in your Podfile.
-
-In `macos/Podfile` (for macOS):
-```
-platform :osx, '13.0'
-```
-
-In `ios/Podfile`, (for iOS):
-```
-platform :ios, '13.0'
-```
-
-Then open XCode:
-```
-open macos/Runner.xcworkspace
-```
-
-and change the minimum deployment target to 13.0:
+For macOS, set the Runner deployment target in Xcode to macOS 13.0 or later.
+If you use CocoaPods, match that target in `macos/Podfile`.
 
 ![Xcode deployment target settings](/images/macos_min_deployment.png)
 
-</details>
-
-3. Run the project
-
-```bash
-$ flutter run -d macos   # or windows, chrome, ios, <device-id>
-```
+Run the app with `flutter run -d <device>`, using the device ID from
+`flutter devices`.
 
 :::note
-The first build downloads the prebuilt Filament binaries from Cloudflare,
-which can take a while (especially on Windows). They're cached under
-`.dart_tool/`, so subsequent builds are much faster — `flutter clean` forces a
-re-download.
+The first build downloads the prebuilt binaries and caches them under
+`.dart_tool/`.
 :::
 
 ## Next steps

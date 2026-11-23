@@ -5,25 +5,20 @@ description: Run Thermion on Windows via the Direct3D 11 plugin.
 
 Thermion supports Windows via a Direct3D 11 texture plugin
 (`thermion_flutter/windows`). Filament renders into a D3D11 texture that
-Flutter embeds as a platform view, so no ANGLE/GLES workaround is required.
+Flutter displays in the widget tree.
 
 ## Requirements
 
 - Windows 10 (or later)
 - Visual Studio 2022 with the **Desktop development with C++** workload
   (includes CMake and the Windows SDK)
-- CMake 3.14 or newer (bundled with VS 2022)
+- CMake 3.19 or newer (bundled with VS 2022)
 
 ## Running
 
 ```
 flutter run -d windows
 ```
-
-As with other platforms, the first build downloads the prebuilt Filament
-binaries (see [Getting Started](/getting_started/)). These are cached under
-`.dart_tool/`, so subsequent builds are faster — run `flutter clean` to force a
-re-download.
 
 ## Notes
 
