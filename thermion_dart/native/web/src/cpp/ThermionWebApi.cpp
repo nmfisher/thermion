@@ -108,4 +108,11 @@ extern "C"
     return _context;
   }
 
+#if !defined(THERMION_SUPPORTS_WEBGPU)
+  // WebGPU builds define this next to the platform (ThermionWebGPUPlatform.cpp).
+  EMSCRIPTEN_KEEPALIVE uint32_t Thermion_exportWebGPUDevice(void) {
+    return 0;
+  }
+#endif
+
 }

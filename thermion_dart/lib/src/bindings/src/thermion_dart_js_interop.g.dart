@@ -2477,6 +2477,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext(Pointer<Char> canvasSelector);
   external void _Thermion_destroyCanvas(Pointer<Char> canvasSelector);
+  external int _Thermion_exportWebGPUDevice();
   external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_getGLContext();
   external void _Thermion_setCanvasElementSize(Pointer<Char> name, int width, int height);
   external Pointer<TToneMapper> _ToneMapper_createACES(Pointer<TEngine> tEngine);
@@ -9232,6 +9233,11 @@ DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext(Pointer<Char> canva
 
 void Thermion_destroyCanvas(Pointer<Char> canvasSelector) {
   final result = GeneratedBindings.instance._Thermion_destroyCanvas(canvasSelector);
+  return result;
+}
+
+int Thermion_exportWebGPUDevice() {
+  final result = GeneratedBindings.instance._Thermion_exportWebGPUDevice();
   return result;
 }
 

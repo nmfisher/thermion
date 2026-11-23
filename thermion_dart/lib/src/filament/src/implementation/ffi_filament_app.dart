@@ -33,6 +33,7 @@ import 'package:logging/logging.dart';
 import 'ffi_frame_info_history.dart' as frame_info_history;
 import 'ffi_gltf_mesh_data.dart';
 import 'resource_loader.dart';
+import 'webgpu_interop.dart' as webgpu_interop;
 
 int _geometryCapabilitiesToNative(Set<SceneAssetGeometryCapability> capabilities) {
   var bits = TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_NONE;
@@ -289,6 +290,20 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     _swapChains.add(sc);
     return sc;
   }
+
+  /// The browser `GPUDevice` driving this engine's WebGPU backend, as a
+  /// `JSObject` (cast it to `web.GPUDevice` from `package:web` to use it).
+  ///
+  /// Web + [Backend.WEBGPU] only. The engine exports the device to JavaScript
+  /// (`Module['thermionWebGPUDevice']`); a sidecar renderer can import it to
+  /// share GPU resources with Thermion. Null everywhere else, including before
+  /// the engine was created.
+  Object? get webGPUDevice {
+    if (backend != Backend.WEBGPU) return null;
+    return _webGPUDevice ??= webgpu_interop.exportWebGPUDevice();
+  }
+
+  Object? _webGPUDevice;
 
   //
   Future<View> createView({bool createScene = false}) async {
