@@ -12,9 +12,9 @@ const String webGPUDeviceModuleProperty = 'thermionWebGPUDevice';
 /// Present-skip swapchains are rendered into the engine's hidden canvas.
 bool get supportsSkipPresent => true;
 
-/// `THERMION_SWAP_CHAIN_CONFIG_SKIP_PRESENT` from the engine, as the shared
-/// `int` swapchain-flag type (the bit fits a Dart int: 1 << 62).
-int get skipPresentFlag => bindings.TSWAP_CHAIN_CONFIG_SKIP_PRESENT.toInt();
+/// `THERMION_SWAP_CHAIN_CONFIG_SKIP_PRESENT` from the engine, typed like the
+/// web bindings' swapchain flags (`BigInt`; the native variant uses `int`).
+BigInt get skipPresentFlag => bindings.TSWAP_CHAIN_CONFIG_SKIP_PRESENT;
 
 /// Asks the engine to hand the `GPUDevice` its WebGPU backend runs on to
 /// JavaScript and returns it, so a sidecar renderer can share the device.
