@@ -235,8 +235,15 @@ CMAKE_EOF
   done
 fi
 
-# Verify ImportExecutables file exists
+# Filament's split desktop build exports source-built tools separately.
+IMPORT_OPTION="-DIMPORT_EXECUTABLES_DIR=out"
 IMPORT_FILE="$FILAMENT_BASE_DIR/out/ImportExecutables-Release.cmake"
+SOURCE_TOOLS_DIR="out/prebuilt-tools-release"
+SOURCE_IMPORT_FILE="$FILAMENT_BASE_DIR/$SOURCE_TOOLS_DIR/ImportExecutables-Prebuilt.cmake"
+if [ -z "$TOOLS_DIR" ] && [ -f "$SOURCE_IMPORT_FILE" ]; then
+  IMPORT_OPTION="-DFILAMENT_IMPORT_PREBUILT_EXECUTABLES_DIR=$SOURCE_TOOLS_DIR"
+  IMPORT_FILE="$SOURCE_IMPORT_FILE"
+fi
 if [ ! -f "$IMPORT_FILE" ]; then
   echo "Error: ImportExecutables-Release.cmake not found at: $IMPORT_FILE"
   echo "Contents of $FILAMENT_BASE_DIR/out/:"
@@ -279,7 +286,7 @@ if [ "$BUILD_RELEASE" = true ]; then
     -DIS_HOST_PLATFORM=0 \
     -DZ_HAVE_UNISTD_H=1 \
     -DUSE_ZLIB=1 \
-    -DIMPORT_EXECUTABLES_DIR=out \
+    "$IMPORT_OPTION" \
     -DCMAKE_INSTALL_PREFIX="$FILAMENT_BASE_DIR/out/webgl-release/filament" \
     -DWASM=1 \
     -DWASM_PTHREADS=0 \
@@ -399,7 +406,7 @@ if [ "$BUILD_DEBUG" = true ]; then
     -DIS_HOST_PLATFORM=0 \
     -DZ_HAVE_UNISTD_H=1 \
     -DUSE_ZLIB=1 \
-    -DIMPORT_EXECUTABLES_DIR=out \
+    "$IMPORT_OPTION" \
     -DCMAKE_INSTALL_PREFIX="$FILAMENT_BASE_DIR/out/webgl-debug/filament" \
     -DWASM=1 \
     -DWASM_PTHREADS=0 \
