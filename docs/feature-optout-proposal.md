@@ -717,4 +717,139 @@ macOS/Windows the linker is strict by default. Android additionally needs
 the `dlopen` smoke test because its linker resolves lazily-ignored symbols
 differently (the perfetto precedent, hook lines 344-353).
 
-<!-- continued -->
+## 6. Dart surface
+
+### 6.1 One new C probe
+
+```c
+// c_api/ThermionFeatures.h (new, tiny; always compiled, no guards)
+EMSCRIPTEN_KEEPALIVE uint32_t Thermion_getEnabledFeatures();
+// bit 0: GLTF, bit 1: KTX, bit 2: IMAGE_DECODING, bit 3: RUNTIME_MATERIALS
+```
+
+Returns the compile-time bitmask. Regenerate the ffigen bindings once; the
+generated files serve every feature combination because the symbol always
+exists (§5.2). `MaterialCompiler_isSupported()` stays as-is (bit 3 mirrors
+it).
+
+### 6.2 Public API
+
+Following the exact `runtimeMaterialsSupported` precedent
+(`filament_app.dart` line 177, `ffi_filament_app.dart` line 707):
+
+```dart
+enum ThermionFeature { gltf, ktx, imageDecoding, runtimeMaterials }
+
+abstract class FilamentApp {
+  // existing: bool get runtimeMaterialsSupported;
+  bool supports(ThermionFeature feature);   // reads the cached bitmask once
+}
+```
+
+Behaviour of affected APIs when the feature is off — **throw
+`UnsupportedError` with an actionable message**, never return garbage
+(the `compileMaterialSource` precedent, `ffi_filament_app.dart` line 792):
+
+| Dart API | Off-feature behaviour |
+| --- | --- |
+| `loadGltfFromBuffer`, `ThermionViewer.loadGltf*`, `ThermionViewerWidget.assetPath` | `UnsupportedError('this build has gltf support disabled (features.gltf)')` |
+| `createUbershaderMaterialInstance` / `createUbershaderMaterial` | `UnsupportedError` |
+| `createUnlitMaterialInstance`, `createGeometry` (no material) | **keep working** via §5.6 fallback |
+| `AnimationManager` gltf/bone/morph APIs, `Asset.createInstance/getInstance/getBones/releaseSourceData` | `UnsupportedError` (these are only reachable from glTF assets, which cannot load anyway; the guards are belt-and-braces) |
+| `loadKtx`, `loadKtx2`, `createIblFromKtx` | `UnsupportedError('... features.ktx')` |
+| `decodeImage` | `UnsupportedError('... features.image_decoding')` |
+| `createImage`, `Texture.setLinearImage/loadImage`, `parseGltf`/`GltfMeshData` | unchanged, always available |
+
+`init` checks the bitmask before creating the loader (§5.5). The Flutter
+plugin needs no API change; `ThermionViewerWidget` surfaces the same
+`UnsupportedError` through its existing error builder when `assetPath` is
+used on a slim build.
+
+### 6.3 Why stubs *and* Dart guards
+
+Either alone would keep a slim build loadable, but both are needed:
+
+- stubs alone: Dart callers would get null handles and fail with obscure
+  null-pointer errors deep in FFI code;
+- Dart guards alone: any missed Dart path (or a user calling raw bindings)
+  hits a missing symbol at first call on native, and a **load-time failure**
+  on wasm if the symbol is referenced in the JS interop glue.
+
+Stubs make the binary structurally valid; Dart guards make failures
+diagnosable. Same division of labour as `runtime_materials` today.
+
+## 7. Measured sizes
+
+Method: `.scratch/closure_size.py` indexes every member of every `.a` in the
+**Linux x64 release** Filament v1.77.2 artifact with `nm`, then computes the
+transitive closure over undefined symbols from each feature's root symbols
+(demangled), modelling GNU ld member extraction without LTO/`--gc-sections`.
+"Marginal" subtracts the always-linked core closure (engine, backend, utils,
+filaflat/filabridge, geometry, bluegl/bluevk, ibl, image, smol-v, zstd ≈
+9.2 MB). Object-file bytes are an upper bound on `.text` contribution; the
+final `.so` is smaller after `--gc-sections`, but relative numbers hold.
+
+| Closure | Marginal KB | Breakdown (KB) |
+| --- | --- | --- |
+| gltfio (all providers, as linked today) | **4389** | gltfio_core 1419, basis_transcoder 1396, dracodec 998, geometry-tangents 327, stb 124, meshoptimizer 57, ktxreader 36, mikktspace 26, uberzlib 3 |
+| gltfio without texture providers (`ktx: false, image_decoding: false`) | 2772 | gltfio_core 1359, dracodec 998, geometry 327, meshoptimizer 57, mikktspace 26, uberzlib 3 |
+| ktxreader + Ktx1Bundle | **1523** | basis_transcoder 1396, ktxreader 83, image(Ktx1Bundle) 44 |
+| stb (`Image_decode`) | **124** | stb 124 |
+| image (`LinearImage` only) | **9** | image 9 |
+| dracodec alone | 998 | (subset of the gltfio closure) |
+| filamat + matp (`runtime_materials: true`) | **40935** | filamat 31070, matdbg 8702, matp 567, zstd 452, shaders 141 |
+| filameshio | **0** | not referenced |
+
+Notes:
+
+- `uberarchive`'s 248 KB blob does not appear in the closure table because
+  the root-symbol model starts from functions; it is pulled by
+  `TGltfAssetLoader.cpp`'s data reference and drops with `features.gltf`
+  too. All-off saving is therefore ≈ **4.6 MB** (4389 + 248), plus the
+  guarded Thermion wrappers themselves (not measured).
+- The per-feature numbers **overlap**: basis_transcoder is shared by the
+  gltfio and ktx closures; stb likewise. All-off ≈ gltfio-closure + ktx-only
+  remainder (Ktx1Bundle 44 + ktxreader 47) ≈ 4.4 MB + 0.25 MB blob.
+- Debug builds differ (matdbg/fgviewer, no `--gc-sections`); the mechanism
+  is identical, numbers would need re-measuring per artifact.
+- The `gltfio` full archive (84 KB) contributes **0** bytes today —
+  confirming §3.1's "remove it regardless" note.
+
+## 8. Rollout, risks, open questions
+
+Suggested implementation order (each step independently mergeable):
+
+1. **Free wins, no schema**: drop the unreferenced `gltfio` archive from the
+   desktop link list; move Windows `matp`/`filamat` pragmas under
+   `THERMION_ENABLE_RUNTIME_MATERIALS`; drop unused gltfio includes
+   (`TTransformManager.cpp`, `FileMaterialProvider.hpp`).
+2. **Unlit fallback** (§5.6): always-on `unlit.mat` blob +
+   `createUnlitMaterialInstance` decoupled from the ubershader. Removes the
+   hidden procedural→gltfio dependency even for default builds.
+3. **`features.image_decoding` + `features.ktx`**: smallest guard surface
+   (`TTexture.cpp`, provider registration), exercises the whole
+   schema/stub/probe pipeline end-to-end.
+4. **`features.gltf`**: the big one — Pattern A/C files of §5.2, init
+   changes, Dart `UnsupportedError` guards.
+5. Optional: publish a `-slim` web engine variant (§4.6).
+
+Risks and mitigations:
+
+| Risk | Mitigation |
+| --- | --- |
+| A future contributor adds an unguarded gltfio reference | the reduced link line fails CI immediately (§5.7); headers are guarded too, so the include itself disappears |
+| Stub signature drift vs. headers | symbol-set diff in CI (§5.7 criterion 2); stubs live next to the real implementation in the same file, same header contract |
+| Users disable a feature their code uses | `UnsupportedError` names the exact `features.*` key (§6.2); `supports()` allows graceful fallback |
+| glTF loads with missing texture providers (mixed configs) | existing no-provider error path; documented behaviour (§5.3) |
+| Filament upgrade changes transitive deps (e.g. gltfio stops using Draco) | re-run `.scratch/closure_size.py` per artifact bump; the map in §3 is version-pinned to v1.77.2 |
+| Per-OS feature demand later | flat schema extends to per-OS maps without breaking (§4.1) |
+
+Open questions (deliberately not decided here):
+
+- Should `features.gltf: false` also strip the *Dart* glTF API surface via
+  tree-shaking hints? Not needed for size (Dart AOT already shakes unused
+  code) and it would fork the public interface — rejected for v1.
+- Should the artifact zips stop staging unused archives (§3.8)? Worth ~40 MB
+  of *download*, orthogonal to binary size; separate `scripts/` change.
+- iOS/Android marginal numbers: measure on-device `.so` sizes per combination
+  before advertising savings for mobile; Linux numbers are the proxy today.
