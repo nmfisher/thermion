@@ -306,6 +306,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   @override
   Future releaseSourceData() async {
     _throwIfNotAlive();
+    _app.checkSupported(ThermionFeature.gltf, 'releaseSourceData');
     if (isInstance) {
       throw StateError("releaseSourceData must be called on the owning asset, not an instance");
     }
@@ -771,6 +772,9 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   // Gets the number of bones at skin [skinIndex].
   // Returns the number of bones, or 0 if none found.
   Future<int> getBoneCount({int skinIndex = 0}) async {
+    // Bones only exist on skinned glTF assets; the C stub reports 0 without
+    // gltf, so make the unsupported build explicit instead.
+    _app.checkSupported(ThermionFeature.gltf, 'getBoneCount');
     return SceneAsset_getBoneCount(asset, skinIndex);
   }
 
@@ -1050,6 +1054,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<List<ThermionEntity>> getBones({int skinIndex = 0}) async {
+    _app.checkSupported(ThermionFeature.gltf, 'getBones');
     if (skinIndex != 0) {
       throw UnimplementedError("TOOD");
     }
