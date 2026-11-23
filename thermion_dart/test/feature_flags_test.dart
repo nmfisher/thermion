@@ -21,14 +21,16 @@ void main() {
     expect(disabledFeatureDefines(r), {'THERMION_ENABLE_GLTF': '0'});
     expect(anyFeatureDisabled(r), isTrue);
 
-    expect(
-      resolveFeatures({'gltf': false, 'ktx': false}, onWarning: warnings.add),
-      (gltf: false, ktx: false, imageDecoding: true),
-    );
-    expect(
-      resolveFeatures({'gltf': false, 'image_decoding': false}, onWarning: warnings.add),
-      (gltf: false, ktx: true, imageDecoding: false),
-    );
+    expect(resolveFeatures({'gltf': false, 'ktx': false}, onWarning: warnings.add), (
+      gltf: false,
+      ktx: false,
+      imageDecoding: true,
+    ));
+    expect(resolveFeatures({'gltf': false, 'image_decoding': false}, onWarning: warnings.add), (
+      gltf: false,
+      ktx: true,
+      imageDecoding: false,
+    ));
     final allOff = resolveFeatures({'gltf': false, 'ktx': false, 'image_decoding': false}, onWarning: warnings.add);
     expect(allOff, (gltf: false, ktx: false, imageDecoding: false));
     // Key order of the define map follows featureKeys, not pubspec order.
@@ -49,11 +51,7 @@ void main() {
 
   test('unknown keys warn (forward compatibility) and are ignored', () {
     final warnings = <String>[];
-    final r = resolveFeatures({
-      'gltf': false,
-      'draco': false,
-      'basis_transcoder': true,
-    }, onWarning: warnings.add);
+    final r = resolveFeatures({'gltf': false, 'draco': false, 'basis_transcoder': true}, onWarning: warnings.add);
     expect(r, (gltf: false, ktx: true, imageDecoding: true));
     expect(warnings, hasLength(2));
     expect(warnings[0], contains('features.draco'));
@@ -61,12 +59,15 @@ void main() {
   });
 
   test('non-map features value is a hard error', () {
-    for (final raw in [false, 'gltf', 1, ['gltf']]) {
+    for (final raw in [
+      false,
+      'gltf',
+      1,
+      ['gltf'],
+    ]) {
       expect(
         () => resolveFeatures(raw, onWarning: (_) {}),
-        throwsA(
-          isA<MaterialToolsError>().having((e) => e.message, 'message', contains('features must be a map')),
-        ),
+        throwsA(isA<MaterialToolsError>().having((e) => e.message, 'message', contains('features must be a map'))),
         reason: 'raw=$raw',
       );
     }
@@ -116,20 +117,13 @@ void main() {
       expect(
         () => resolveFeatures({'gltf': true, 'image_decoding': false}, onWarning: (_) {}),
         throwsA(
-          isA<MaterialToolsError>().having(
-            (e) => e.message,
-            'message',
-            contains('features.image_decoding: false'),
-          ),
+          isA<MaterialToolsError>().having((e) => e.message, 'message', contains('features.image_decoding: false')),
         ),
       );
     });
 
     test('gltf absent (default on) + a decoder off is rejected too', () {
-      expect(
-        () => resolveFeatures({'ktx': false}, onWarning: (_) {}),
-        throwsA(isA<MaterialToolsError>()),
-      );
+      expect(() => resolveFeatures({'ktx': false}, onWarning: (_) {}), throwsA(isA<MaterialToolsError>()));
     });
 
     test('both decoders off names both keys', () {
@@ -146,10 +140,11 @@ void main() {
     });
 
     test('the rule is skipped once gltf is explicitly disabled', () {
-      expect(
-        resolveFeatures({'gltf': false, 'ktx': false, 'image_decoding': false}, onWarning: (_) {}),
-        (gltf: false, ktx: false, imageDecoding: false),
-      );
+      expect(resolveFeatures({'gltf': false, 'ktx': false, 'image_decoding': false}, onWarning: (_) {}), (
+        gltf: false,
+        ktx: false,
+        imageDecoding: false,
+      ));
     });
   });
 }
