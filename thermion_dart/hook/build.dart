@@ -578,15 +578,16 @@ outputDirectory : ${outputDirectory.path}
 
     // Unlit fallback for procedural-only builds (docs/feature-optout-proposal.md
     // §5.6, decision D5). With features.gltf: false there is no gltfio
-    // ubershader provider, so the unlit material that procedural code reaches
-    // through createUnlitMaterialInstance() (createGeometry without an explicit
-    // material, bounding-box helpers, TextureProjection) is a small precompiled
-    // package instead: compiled here, ONLY when gltf is off, with the same
-    // version-matched matc/resgen pipeline as the built-in helpers (never by
-    // filamat at runtime). Default builds are untouched — no extra compiler
-    // step, no extra bytes. Dart's createUnlitMaterialInstance builds it via
-    // Material_createBuiltInJobThread(BUILT_IN_UNLIT_FALLBACK); the C factory
-    // case lives in TMaterialInstance.cpp under UNLIT_FALLBACK_ENABLED.
+    // ubershader provider, so the unlit material that procedural code
+    // requests through createUnlitMaterialInstance() (explicit materials for
+    // createGeometry, bounding-box helpers, TextureProjection) is a small
+    // precompiled package instead: compiled here, ONLY when gltf is off, with
+    // the same version-matched matc/resgen pipeline as the built-in helpers
+    // (never by filamat at runtime). Default builds are untouched — no extra
+    // compiler step, no extra bytes. MaterialProvider_createMaterialInstance's
+    // C stub (TMaterialProvider.cpp, under UNLIT_FALLBACK_ENABLED) builds the
+    // package through the builtInMaterialFactory(BUILT_IN_UNLIT_FALLBACK)
+    // case in TMaterialInstance.cpp and hands out instances of it.
     if (!features.gltf) {
       logger.info("features.gltf: false -> compiling the precompiled unlit fallback material");
       final fallbackDir = await compileUnlitFallbackMaterial(

@@ -19,7 +19,7 @@ namespace thermion
     // precompiled UNLIT_FALLBACK package from that engine on first use and
     // caches the Material, letting createUnlitMaterialInstance work through
     // the same context-free C entry point (no Engine parameter) in a slim
-    // build (docs/feature-optout-proposal.md §10.1, deviation 3).
+    // build (docs/feature-optout-proposal.md §5.6).
     struct UnlitFallbackProvider
     {
         filament::Engine *engine;
