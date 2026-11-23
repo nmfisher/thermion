@@ -612,13 +612,27 @@ void main() async {
       final completer = Completer<PickResult>();
       await viewer.view.pick(centerX, centerY, completer.complete);
 
-      for (int i = 0; i < 10; i++) {
-        await testHelper.capture(viewer.view, i == 0 ? "bone_empty_pick_0" : null);
-        if (completer.isCompleted) break;
+      // The pick query is only serviced by the render job, so frames must be
+      // pumped for the readback to ever complete. Pump them WITHOUT writing
+      // goldens: how many frames the pick takes varies with job-thread
+      // timing, and tying golden writes to that timing is what made the
+      // output flaky (a variable number of bone_empty_pick frames between
+      // runs, i.e. extra/missing files for the golden comparison).
+      const maxPumpFrames = 60;
+      for (int i = 0; i < maxPumpFrames && !completer.isCompleted; i++) {
+        await testHelper.capture(viewer.view, null);
       }
 
-      expect(completer.isCompleted, true);
+      // Explicit sync: settle the pick result before writing any golden, so
+      // exactly one deterministic capture follows no matter when the
+      // readback landed.
+      expect(completer.isCompleted, true, reason: 'pick did not complete within $maxPumpFrames rendered frames');
       final result = await completer.future;
+
+      // The scene is static at this point, so this single capture is
+      // pixel-identical to the first post-pick frame the old loop captured.
+      await testHelper.capture(viewer.view, "bone_empty_pick_0");
+
       final pickedBoneIndex = boneVisualizer.getBoneIndexForEntity(result.entity);
 
       print(
