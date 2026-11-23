@@ -7,7 +7,7 @@
 // c_api/ThermionFeatures.h and with the `features` keys resolved by
 // hook/build.dart (lib/src/hooks/feature_flags.dart). Runtime materials is a
 // value macro like the others (ThermionFeatures.h defaults it to 0).
-extern "C" uint32_t Thermion_getEnabledFeatures() {
+extern "C" EMSCRIPTEN_KEEPALIVE uint32_t Thermion_getEnabledFeatures() {
     uint32_t features = 0;
 #if THERMION_ENABLE_GLTF
     features |= 1u << 0;
