@@ -7,6 +7,7 @@ export default defineConfig({
     starlight({
       title: 'Thermion',
       description: 'Cross-platform 3D rendering for Dart and Flutter',
+      head: [{ tag: 'link', attrs: { rel: 'sitemap', href: '/sitemap.xml' } }],
       favicon: '/logo_square.png',
       // The brand wordmark (logo.png already includes the "Thermion" name), so
       // it replaces the text title in the sidebar header. Dropped during the
