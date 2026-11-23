@@ -92,6 +92,12 @@ flag (or set it to `false`) to go back to the pinned prebuilt.
 ## Live examples
 
 See Thermion running in the browser in the [live examples on the overview](/#live-examples),
-or open the [full-screen gallery](/gallery/). An experimental
-[WebGPU gallery](/gallery/webgpu/)<span class="badge-experimental">Experimental</span>
-renders the same scenes through Filament's WebGPU backend.
+or open the [full-screen gallery](/gallery/).
+
+{process.env.THERMION_WEBGPU_GALLERY === 'true' && (
+  <p>
+    The <a href="/gallery/webgpu/">WebGPU gallery</a>{' '}
+    <span class="badge-experimental">Experimental</span> renders the same scenes
+    through Filament's WebGPU backend.
+  </p>
+)}
