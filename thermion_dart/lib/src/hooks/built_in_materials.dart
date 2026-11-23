@@ -9,6 +9,7 @@ import '../filament/src/interface/built_in_material.dart';
 import 'filament_artifacts.dart';
 import 'material_publication.dart';
 import 'material_tools.dart';
+import 'web_artifacts.dart';
 
 List<BuiltInMaterial> selectBuiltInMaterials(Object? materialConfig, {required void Function(String) onWarning}) {
   if (materialConfig == null) return [];
@@ -88,26 +89,20 @@ Future<Map<BuiltInMaterial, Directory>> compileBuiltInMaterials({
 /// Compiles and stages the built-in materials for a web build.
 ///
 /// [backend] is the resolved `backend` user define for the web target: it
-/// picks the material variant embedded into the staged engine (WGSL only for
-/// `webgpu`, GLSL only for `webgl2`, both for `hybrid`/`native` so runtime
-/// backend selection keeps working). The default preserves the historical
-/// both-variants behavior.
+/// picks the shader formats embedded into the staged engine. WebGL2 uses
+/// GLSL, WebGPU uses WGSL, and hybrid builds include both.
 Future<void> publishWebMaterials({
   required Directory root,
   required Directory engineDir,
   required Directory webDir,
   required List<BuiltInMaterial> materials,
   required void Function(String) onLog,
-  String backend = 'native',
+  String backend = defaultWebBackend,
   UrlDownloader? download,
   void Function(Uri)? addDependency,
 }) async {
   final compiled = await compileBuiltInMaterials(
-    backends: switch (backend) {
-      'webgpu' => const ['webgpu'],
-      'webgl2' => const ['opengl'],
-      _ => const ['opengl', 'webgpu'],
-    },
+    backends: webMaterialBackends(backend),
     resgen: false,
     root: root,
     materials: materials,

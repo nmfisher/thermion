@@ -106,8 +106,7 @@ List<BuiltInMaterial> _parseMaterials(String raw) {
 void main(List<String> args) async {
   String outputDir = 'web';
   String variant = 'default';
-  // Use the shared material default when --backend is omitted.
-  String backend = 'native';
+  String backend = defaultWebBackend;
   String? materialsArg;
 
   for (var i = 0; i < args.length; i++) {
@@ -141,10 +140,10 @@ void main(List<String> args) async {
       stdout.writeln('                runtime material compilation (~20 MB larger).');
       stdout.writeln('                main-thread-runtime-materials = both combined.');
       stdout.writeln('  --backend NAME  Browser engine and optional built-in material formats');
-      stdout.writeln('                  webgl2  WebGL2 engine with GLSL');
-      stdout.writeln('                  webgpu  WebGPU-capable engine with WGSL');
-      stdout.writeln('                  hybrid  WebGPU-capable engine with GLSL and WGSL');
-      stdout.writeln('                  Omit the flag for WebGL2 with GLSL and WGSL.');
+      stdout.writeln('                  webgl2 (default)  WebGL2 engine with GLSL');
+      stdout.writeln('                  webgpu            WebGPU-capable engine with WGSL');
+      stdout.writeln('                  hybrid            WebGPU-capable engine with GLSL and WGSL');
+      stdout.writeln('                  WebGPU and hybrid use the main-thread engine with precompiled materials.');
       stdout.writeln('  --materials    Comma-separated helper keys, for example gizmo,image.');
       stdout.writeln('                 Available keys: ${BuiltInMaterial.values.map((m) => m.key).join(', ')}');
       return;
@@ -156,11 +155,17 @@ void main(List<String> args) async {
     stderr.writeln("Unknown variant '$variant'. Valid: ${_variants.keys.join(', ')}");
     exit(1);
   }
-  final zipSuffix = withWebBackend((
-    zipSuffix: variantSuffix,
-    cacheSuffix: variantSuffix,
-    warnings: const [],
-  ), backend).zipSuffix;
+  final String zipSuffix;
+  try {
+    zipSuffix = withWebBackend((
+      zipSuffix: variantSuffix,
+      cacheSuffix: variantSuffix,
+      warnings: const [],
+    ), backend).zipSuffix;
+  } on FormatException catch (error) {
+    stderr.writeln(error.message);
+    exit(64);
+  }
 
   final materials = materialsArg == null ? const <BuiltInMaterial>[] : _parseMaterials(materialsArg);
 

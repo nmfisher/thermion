@@ -30,7 +30,7 @@ on:
         default: true
         type: boolean
       upload_to_r2:
-        description: 'Upload artifacts to R2 under immutable content-addressed keys (never overwrites). Record them into the pin via publish-filament-to-r2.yml. Prefer false + publish workflow for verified rollout.'
+        description: 'Publish content-addressed Filament archives and the versioned WebGPU engine when built. Update the Filament pin with publish-filament-to-r2.yml.'
         required: false
         default: true
         type: boolean

@@ -1095,9 +1095,8 @@ Future<Directory> _resolveWebEngine(BuildInput input, Logger logger, String back
   // Unknown values warn and fall back to the default. See
   // lib/src/hooks/web_artifacts.dart (pure logic, unit-tested).
   //
-  // Independently, `runtime_materials: true` selects a build of that engine
-  // with filamat linked (compileMaterialSource works on web); see
-  // withRuntimeMaterials in the same file.
+  // With WebGL2, `runtime_materials: true` selects an engine with filamat
+  // linked so apps can compile materials at runtime.
   //
   // The resolved `backend` user define (per-OS map or global string) selects
   // the WebGPU-capable engine for webgpu/hybrid targets — built with

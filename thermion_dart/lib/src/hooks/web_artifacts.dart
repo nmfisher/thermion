@@ -1,4 +1,4 @@
-/// Pure naming/normalization for the prebuilt web engine artifacts.
+/// Backend selection and artifact naming for browser builds.
 ///
 /// Kept free of any build-hook or native-assets imports so it can be unit
 /// tested directly (see test/web_artifacts_test.dart) and imported by
@@ -10,6 +10,15 @@ const String webR2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev
 
 /// Raw `web_variant` user-define values and their canonical forms.
 const String webVariantMainThread = 'main_thread';
+
+const String defaultWebBackend = 'webgl2';
+
+/// Shader backends for the built-in materials staged with a browser engine.
+List<String> webMaterialBackends(String backend) => switch (backend) {
+  'webgpu' => const ['webgpu'],
+  'hybrid' => const ['opengl', 'webgpu'],
+  _ => const ['opengl'],
+};
 
 /// Resolved web engine variant: how its R2 zip and cache directory are named.
 typedef WebVariantResolution = ({
@@ -76,10 +85,9 @@ String webLocalBuildDir(String zipSuffix) {
     case '-main-thread-runtime-materials':
       return 'build-main-thread-runtime-materials';
     case '-webgpu':
+    case '-main-thread-webgpu':
       return 'build-webgpu';
     default:
-      // Unknown suffixes still resolve to a (nonexistent) directory, which
-      // the web_local copy step reports as a warning.
       return 'build$zipSuffix';
   }
 }
@@ -89,11 +97,15 @@ String webLocalBuildDir(String zipSuffix) {
 /// `webgpu` and `hybrid` targets need the engine built with
 /// THERMION_ENABLE_WEBGPU=ON with a matching Dawn port. The main-thread
 /// engine is published and cached under a `-webgpu` suffix so it never
-/// shares a directory with the WebGL2-only default (the `success` token
-/// would otherwise mask the wrong contents). `native` and `webgl2` keep the
-/// default engine unchanged.
+/// shares a directory with the WebGL2 engine. The package's platform default
+/// (`native`) selects WebGL2 for the web target.
 WebVariantResolution withWebBackend(WebVariantResolution variant, String backend) {
   if (backend != 'webgpu' && backend != 'hybrid') return variant;
+  if (variant.zipSuffix.endsWith('-runtime-materials')) {
+    throw const FormatException(
+      'WebGPU and hybrid web builds use precompiled materials. Choose WebGL2 for runtime material compilation.',
+    );
+  }
   return (
     zipSuffix: '${variant.zipSuffix}-webgpu',
     cacheSuffix: '${variant.cacheSuffix}-webgpu',
@@ -105,11 +117,9 @@ WebVariantResolution withWebBackend(WebVariantResolution variant, String backend
 ///
 /// The `runtime_materials` user define selects a web engine built with
 /// THERMION_ENABLE_RUNTIME_MATERIALS (filamat linked — `compileMaterialSource`
-/// works; ~tens of MB larger). It composes with any `web_variant` engine
-/// flavor: the artifact is named `thermion_dart-<version>-web<variant
-/// suffix>-runtime-materials.zip` and CI builds it for the default (worker)
-/// engine. [runtimeMaterials] is the raw user-define value; anything
-/// truthy-shaped enables it (mirroring the hook's flag parsing).
+/// works; ~tens of MB larger). CI publishes runtime-material variants for
+/// the worker and main-thread WebGL2 engines. [runtimeMaterials] is the raw
+/// user-define value.
 WebVariantResolution withRuntimeMaterials(WebVariantResolution variant, Object? runtimeMaterials) {
   final enabled =
       runtimeMaterials == true || runtimeMaterials == 'true' || runtimeMaterials == 1 || runtimeMaterials == '1';
