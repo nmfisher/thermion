@@ -4,8 +4,9 @@
 /// Present-skip swapchains need the web engine's hidden canvas.
 bool get supportsSkipPresent => false;
 
-/// Never used (see [supportsSkipPresent]); keeps the shared flag arithmetic
-/// typed like the native `int` swapchain flags.
+/// Never used (see [supportsSkipPresent]); zero in the native `int`
+/// swapchain-flag type. The web variant returns the web bindings' `BigInt`
+/// flag instead; the two variants are never compiled together.
 int get skipPresentFlag => 0;
 
 /// No browser `GPUDevice` exists on native platforms.
