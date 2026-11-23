@@ -21,9 +21,10 @@ jobs:
   engine:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    outputs:
+      version: ${{ steps.package.outputs.version }}
     env:
       FILAMENT_VERSION: ${{ inputs.filament_version }}
-      R2_PUBLIC_URL: https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,7 +39,6 @@ jobs:
         with:
           version: '6.0.4'
           actions-cache-folder: emsdk-cache
-      - uses: dart-lang/setup-dart@v1
 
       - name: Install libraries and build the engine
         run: |
@@ -51,6 +51,7 @@ jobs:
           cmake --build "$web/build-webgpu" --parallel 2
 
       - name: Package engine archive
+        id: package
         run: |
           set -euo pipefail
           web=thermion_dart/native/web
@@ -62,7 +63,7 @@ jobs:
                   thermion_dart/native thermion_dart/lib/src/bindings ":(exclude)$web/web.version"; then
             version=$(git rev-parse --short HEAD)
           fi
-          echo "WEB_ENGINE_VERSION=$version" >> "$GITHUB_ENV"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
           mkdir -p webgpu-engines
           engine_dir="$web/build-webgpu/build/out"
           zip -j "webgpu-engines/thermion_dart-$version-web-webgpu.zip" \
@@ -72,6 +73,24 @@ jobs:
         with:
           name: thermion-webgpu-engines
           path: webgpu-engines/
+
+  chromium:
+    name: Verify and publish the WebGPU engine
+    needs: engine
+    # Linux Chromium's software compositor cannot present the WebGPU canvas.
+    runs-on: macos-15
+    timeout-minutes: 15
+    env:
+      WEB_ENGINE_VERSION: ${{ needs.engine.outputs.version }}
+      R2_PUBLIC_URL: https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev
+      CHROME_EXECUTABLE: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: thermion-webgpu-engines
+          path: webgpu-engines
+      - uses: dart-lang/setup-dart@v1
 
       - name: Compile the browser scene
         working-directory: thermion_dart
@@ -83,7 +102,7 @@ jobs:
       - name: Render a WebGPU scene from the staged archive
         run: |
           unzip -o "webgpu-engines/thermion_dart-$WEB_ENGINE_VERSION-web-webgpu.zip" -d "$RUNNER_TEMP/webgpu-scene"
-          python3 scripts/check-webgpu-canvas.py "$RUNNER_TEMP/webgpu-scene"
+          python3 scripts/check-webgpu-canvas.py "$RUNNER_TEMP/webgpu-scene" --chrome "$CHROME_EXECUTABLE"
 
       - name: Publish and verify the public archives
         if: inputs.publish
@@ -109,4 +128,4 @@ jobs:
           curl -fL --retry 3 "$R2_PUBLIC_URL/thermion_dart-$WEB_ENGINE_VERSION-web-webgpu.zip" \
             -o "$RUNNER_TEMP/published-webgpu.zip"
           unzip -o "$RUNNER_TEMP/published-webgpu.zip" -d "$RUNNER_TEMP/webgpu-scene"
-          python3 scripts/check-webgpu-canvas.py "$RUNNER_TEMP/webgpu-scene"
+          python3 scripts/check-webgpu-canvas.py "$RUNNER_TEMP/webgpu-scene" --chrome "$CHROME_EXECUTABLE"

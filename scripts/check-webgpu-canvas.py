@@ -7,7 +7,6 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 import subprocess
-import sys
 import tempfile
 from threading import Event, Thread
 
@@ -58,18 +57,10 @@ def main():
         with ThreadingHTTPServer(("127.0.0.1", 0), handler) as server:
             Thread(target=server.serve_forever, daemon=True).start()
             log_path = Path(profile) / "chromium.log"
-            angle_flags = ["--use-angle=swiftshader"]
-            if sys.platform.startswith("linux"):
-                # Use Vulkan for compositing as well as WebGPU. The GL compositor
-                # cannot import SwiftShader's WebGPU canvas image on headless Linux.
-                angle_flags = [
-                    "--use-angle=vulkan", "--use-vulkan=swiftshader",
-                    "--enable-features=Vulkan", "--disable-vulkan-surface",
-                ]
             with log_path.open("wb") as log:
                 chrome = subprocess.Popen([
                     args.chrome, "--headless=new", "--no-sandbox", "--no-first-run",
-                    "--enable-unsafe-webgpu", "--enable-unsafe-swiftshader", *angle_flags,
+                    "--enable-unsafe-webgpu", "--enable-unsafe-swiftshader", "--use-angle=swiftshader",
                     "--use-webgpu-adapter=swiftshader", "--enable-logging=stderr",
                     f"--user-data-dir={profile}", f"http://127.0.0.1:{server.server_port}/",
                 ], stdout=log, stderr=subprocess.STDOUT)
