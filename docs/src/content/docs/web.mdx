@@ -3,9 +3,10 @@ title: Web
 description: Run Thermion in the browser via WebAssembly.
 ---
 
-Thermion uses a prebuilt WebAssembly engine in the browser. The build hook
-copies `thermion_dart.js` and `thermion_dart.wasm` into your app's `web/`
-directory.
+Thermion uses a prebuilt WebAssembly engine in the browser. In a Flutter
+build, the build hook copies `thermion_dart.js` and `thermion_dart.wasm` into
+`web/`. For a standalone Dart app, stage them with
+[`download_web`](#pre-fetching-the-artifacts).
 
 ## Quick start
 
@@ -21,9 +22,8 @@ Serve the app with the headers in [Cross-origin isolation](#cross-origin-isolati
 
 ## Choose a backend
 
-WebGL2 is the default. To select the engine and built-in material variants
-for your Dart or Flutter web app, set `backend.web` in the app's
-`pubspec.yaml`.
+The build hook and `download_web` default to WebGL2 with GLSL materials.
+In a Flutter app's `pubspec.yaml`, set `backend.web` to choose a backend.
 
 ```yaml
 hooks:
@@ -33,20 +33,23 @@ hooks:
         web: webgpu
 ```
 
-| `backend.web` | Renderers available | Backend to pass at startup |
+For a standalone Dart app, pass one of the same values to `download_web --backend`.
+
+| Build choice | Built-in shaders | Backend to pass at startup |
 | --- | --- | --- |
-| `webgl2` | WebGL2 | `Backend.OPENGL` |
-| `webgpu` | WebGPU | `Backend.WEBGPU` |
-| `hybrid` | WebGL2 and WebGPU | Choose either |
+| `webgl2` (default) | GLSL | `Backend.OPENGL` |
+| `webgpu` | WGSL | `Backend.WEBGPU` |
+| `hybrid` | GLSL and WGSL | `Backend.OPENGL` or `Backend.WEBGPU` |
 
 The build setting selects what the app ships. The runtime setting selects the
 renderer when you create the engine. Use `hybrid` to make that choice at
 startup and compile any [custom materials](/materials/#building-custom-materials)
 for both backends.
 
-The WebGPU-capable engine runs on the browser's main thread and uses precompiled
-materials. Use the WebGL2 runtime-materials variant if your app needs to
-[compile materials at runtime](/materials/#compiling-materials-at-runtime).
+The `webgpu` and `hybrid` choices use the same main-thread engine and precompiled
+materials. To [compile materials at runtime](/materials/#compiling-materials-at-runtime),
+choose WebGL2 and set `runtime_materials: true` in Flutter or pass
+`--variant runtime-materials` to `download_web`.
 
 ### Dart
 
@@ -103,15 +106,16 @@ file:
 
 ## Pre-fetching the artifacts
 
-To fetch the engine ahead of time, pass the same backend you plan to use in
-your app.
+In a standalone Dart app, run this command before compiling the app to
+WebAssembly.
 
 ```bash
 dart run thermion_dart:download_web --backend webgpu
 ```
 
-Use `webgl2` or `hybrid` for the other choices. The command writes to `web/`
-by default. Use `-o` to choose another directory.
+Use `--backend hybrid` to ship both shader formats. Omit `--backend` for
+WebGL2. The command writes to `web/` by default. Use `-o` to choose another
+directory.
 
 ## Building the WASM locally
 
@@ -128,17 +132,25 @@ hooks:
       web_local: true
 ```
 
-```bash
-# from thermion_dart/native/web/build:
-emcmake cmake ..
-emmake make
+Extract the matching Filament release archive into
+`thermion_dart/native/web/lib/release`. For WebGL2, build from
+`thermion_dart/native/web`.
 
-flutter run -d chrome
+```bash
+emcmake cmake -S . -B build
+cmake --build build
 ```
 
-With `web_local` set, the build hook copies `thermion_dart.{js,wasm}` from your local
-`thermion_dart/native/web/build/build/out/` instead of downloading from R2. Remove the
-flag (or set it to `false`) to go back to the pinned prebuilt.
+For `webgpu` or `hybrid`, use the WebGPU Filament archive and build from the
+same directory.
+
+```bash
+emcmake cmake -S . -B build-webgpu -DTHERMION_ENABLE_WEBGPU=ON
+cmake --build build-webgpu
+```
+
+With `web_local: true`, the hook stages the engine from `build/build/out` for
+the default WebGL2 build or `build-webgpu/build/out` for WebGPU and hybrid.
 
 ## Live examples
 
