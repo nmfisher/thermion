@@ -54,6 +54,11 @@
 #ifdef UNLIT_FIXED_SIZE_ENABLED
 #include "unlit_fixed_size.h"
 #endif
+// features.gltf: false builds only (hook/build.dart): precompiled unlit
+// material backing createUnlitMaterialInstance when no ubershader exists.
+#ifdef UNLIT_FALLBACK_ENABLED
+#include "unlit_fallback.h"
+#endif
 
 namespace thermion {
 static TMaterial* buildBuiltInMaterial(TEngine* tEngine, const uint8_t* data, size_t size) {
@@ -114,6 +119,9 @@ BuiltInMaterialFactory builtInMaterialFactory(TBuiltInMaterial id) {
 #endif
 #ifdef UNLIT_FIXED_SIZE_ENABLED
         RESGEN_FACTORY(UNLIT_FIXED_SIZE);
+#endif
+#ifdef UNLIT_FALLBACK_ENABLED
+        RESGEN_FACTORY(UNLIT_FALLBACK);
 #endif
         default: return nullptr;
     }

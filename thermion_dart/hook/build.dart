@@ -511,19 +511,23 @@ outputDirectory : ${outputDirectory.path}
       );
     }
 
+    // matc/resgen target set for the compiled material variants, resolved by
+    // the material backend suffix (see resolveMaterialBackend above).
+    final materialBackends = switch (materialSuffix) {
+      '_apple' => ['metal'],
+      '_opengl' || '_web_webgl' => ['opengl'],
+      '_vulkan' => ['vulkan'],
+      '_webgpu' => ['webgpu'],
+      '_web_combined' => ['opengl', 'webgpu'],
+      _ => ['opengl', 'vulkan'],
+    };
+
     if (selectedMaterials.isNotEmpty) {
       final builtIns = await compileBuiltInMaterials(
         root: Directory.fromUri(packageRoot),
         materials: selectedMaterials,
         resgen: true,
-        backends: switch (materialSuffix) {
-          '_apple' => ['metal'],
-          '_opengl' || '_web_webgl' => ['opengl'],
-          '_vulkan' => ['vulkan'],
-          '_webgpu' => ['webgpu'],
-          '_web_combined' => ['opengl', 'webgpu'],
-          _ => ['opengl', 'vulkan'],
-        },
+        backends: materialBackends,
         download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
         onLog: logger.info,
         addDependency: output.dependencies.add,
@@ -538,6 +542,35 @@ outputDirectory : ${outputDirectory.path}
         );
         defines['${material.key.toUpperCase()}_ENABLED'] = '1';
       }
+    }
+
+    // Unlit fallback for procedural-only builds (docs/feature-optout-proposal.md
+    // §5.6, decision D5). With features.gltf: false there is no gltfio
+    // ubershader provider, so the unlit material that procedural code reaches
+    // through createUnlitMaterialInstance() (createGeometry without an explicit
+    // material, bounding-box helpers, TextureProjection) is a small precompiled
+    // package instead: compiled here, ONLY when gltf is off, with the same
+    // version-matched matc/resgen pipeline as the built-in helpers (never by
+    // filamat at runtime). Default builds are untouched — no extra compiler
+    // step, no extra bytes. Dart's createUnlitMaterialInstance builds it via
+    // Material_createBuiltInJobThread(BUILT_IN_UNLIT_FALLBACK); the C factory
+    // case lives in TMaterialInstance.cpp under UNLIT_FALLBACK_ENABLED.
+    if (!features.gltf) {
+      logger.info("features.gltf: false -> compiling the precompiled unlit fallback material");
+      final fallbackDir = await compileUnlitFallbackMaterial(
+        root: Directory.fromUri(packageRoot),
+        backends: materialBackends,
+        download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
+        onLog: logger.info,
+        addDependency: output.dependencies.add,
+      );
+      linkGeneratedIntoNativeBuild(
+        sources: sources,
+        includeDirs: includeDirs,
+        linkedSources: [File(path.join(fallbackDir.path, '$unlitFallbackMaterialKey.c'))],
+        outputDir: fallbackDir,
+      );
+      defines['UNLIT_FALLBACK_ENABLED'] = '1';
     }
 
     // link_generated: compile the user's generated material .c files into

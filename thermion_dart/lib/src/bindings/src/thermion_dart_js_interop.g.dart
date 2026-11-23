@@ -2477,6 +2477,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext(Pointer<Char> canvasSelector);
   external void _Thermion_destroyCanvas(Pointer<Char> canvasSelector);
+  external int _Thermion_getEnabledFeatures();
   external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_getGLContext();
   external void _Thermion_setCanvasElementSize(Pointer<Char> name, int width, int height);
   external Pointer<TToneMapper> _ToneMapper_createACES(Pointer<TEngine> tEngine);
@@ -9240,6 +9241,13 @@ DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_getGLContext() {
   return result;
 }
 
+/// Compile-time feature bitmask of the loaded engine: bit 0 gltf, bit 1 ktx,
+/// bit 2 image_decoding, bit 3 runtime_materials (c_api/ThermionFeatures.h).
+int Thermion_getEnabledFeatures() {
+  final result = GeneratedBindings.instance._Thermion_getEnabledFeatures();
+  return result;
+}
+
 void Thermion_setCanvasElementSize(Pointer<Char> name, int width, int height) {
   final result = GeneratedBindings.instance._Thermion_setCanvasElementSize(name, width, height);
   return result;
@@ -11227,6 +11235,7 @@ sealed class TBuiltInMaterial {
   static const BUILT_IN_CAPTURE_UV = 11;
   static const BUILT_IN_LINEAR_DEPTH = 12;
   static const BUILT_IN_UNLIT_FIXED_SIZE = 13;
+  static const BUILT_IN_UNLIT_FALLBACK = 14;
 }
 
 extension TCameraExt on Pointer<TCamera> {

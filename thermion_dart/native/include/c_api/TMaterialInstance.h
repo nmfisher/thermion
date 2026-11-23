@@ -23,6 +23,10 @@ extern "C"
 	    BUILT_IN_CAPTURE_UV = 11,
 	    BUILT_IN_LINEAR_DEPTH = 12,
 	    BUILT_IN_UNLIT_FIXED_SIZE = 13,
+	    // Not user-selectable through `materials.*`: the hook compiles and links
+	    // it only for features.gltf: false builds (UNLIT_FALLBACK_ENABLED), where
+	    // it replaces the gltfio ubershader behind createUnlitMaterialInstance.
+	    BUILT_IN_UNLIT_FALLBACK = 14,
 	} TBuiltInMaterial;
 
 	// copied from SamplerCompareFunc in DriverEnums.h
