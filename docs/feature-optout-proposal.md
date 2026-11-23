@@ -166,7 +166,7 @@ through the two texture providers — `stb`, `ktxreader` and `basis_transcoder`.
 | `native/src/c_api/TGltfResourceLoader.cpp` | `ResourceLoader`, `createStbProvider`, `createKtx2Provider`, `addTextureProvider`, `addResourceData`, `asyncBeginLoad/asyncUpdateLoad/asyncGetLoadProgress`, `loadResources` | `GltfResourceLoader_*` | `FFIFilamentApp.loadGltfFromBuffer` |
 | `native/src/c_api/TFilamentAsset.cpp` | `FilamentAsset::getResourceUris/Count`, `getEntities/Count`, `getWireframe`, `getSourceAsset` | `FilamentAsset_*` | `loadGltfFromBuffer` (`getResourceUris`), wireframe utilities |
 | `native/src/c_api/TMaterialProvider.cpp` | `gltfio::MaterialProvider`, `MaterialKey`, `UvMap`, `AlphaMode` → `createMaterialInstance` | `MaterialProvider_createMaterialInstance` (+`*JobThread`) | `createUbershaderMaterialInstance`, `createUbershaderMaterial`, **`createUnlitMaterialInstance`** |
-| `native/src/c_api/TSceneAsset.cpp` | `GltfSceneAsset` (`AssetLoader::createInstanceAsset`, `Animator`, `releaseSourceData`, entity/light/bone accessors) | `SceneAsset_createFromFilamentAsset`, `_getFilamentAsset`, `_createInstance`, `_getInstance`, `_releaseSourceData`, `_getBones/_getBoneCount` | `loadGltfFromBuffer`; `FFIAsset.createInstance/getInstance/releaseSourceData/getBones` |
+| `native/src/c_api/TSceneAsset.cpp` — **glTF-specific entry points only**; the rest of the file (`SceneAsset_createFromBuffers`, shared entity/light/camera access, instancing, `SceneAsset_destroy`, …) is core procedural code and is **not** guarded (§5.2 Pattern B, decision D1) | `GltfSceneAsset` (`AssetLoader::createInstanceAsset`, `Animator`, `releaseSourceData`, bone accessors) | `SceneAsset_createFromFilamentAsset`, `_getFilamentAsset`, `_releaseSourceData`, `_getBones/_getBoneCount/_getBoneName`; `_createInstance`/`_getInstance` stay live for geometry assets (the `GltfSceneAsset` branch inside them is guarded) | `loadGltfFromBuffer`; `FFIAsset.createInstance/getInstance/releaseSourceData/getBones` |
 | `native/src/c_api/TScene.cpp` | `Scene_addFilamentAsset` (`FilamentAsset::getEntities/getLightEntities`) | `Scene_addFilamentAsset` | no Dart caller (dead on the Dart side) |
 | `native/src/c_api/TAnimationManager.cpp`, `native/src/scene/AnimationManager.cpp`, `native/src/components/{Gltf,Bone,Morph}AnimationComponentManager.cpp` | `gltfio::Animator` (`applyAnimation`, `updateBoneMatrices`, animation count/duration/name), `FilamentInstance::getAnimator()`, `FilamentAsset::getInstance()` | `AnimationManager_*` (24 functions + JobThread variants) | `FFIAnimationManager` (**created at init**, line 224), `FFIAsset` animation helpers |
 | `native/src/scene/GltfSceneAsset.cpp`, `GltfSceneAssetInstance.cpp` + headers | `AssetLoader`, `Animator`, `FilamentAsset`, `FilamentInstance` | (used by `TSceneAsset.cpp`) | — |
@@ -580,7 +580,17 @@ Three patterns cover every reference in §3:
 feature): copy `TMaterialCompiler.cpp`'s layout — real implementation under
 `#if THERMION_ENABLE_X`, complete `extern "C"` stub set under `#else`. Applies
 to `TGltfAssetLoader.cpp`, `TGltfResourceLoader.cpp`, `TFilamentAsset.cpp`,
-`TMaterialProvider.cpp`, `TSceneAsset.cpp`, `TAnimationManager.cpp`.
+`TMaterialProvider.cpp`, `TAnimationManager.cpp`.
+
+**Not** `TSceneAsset.cpp` (review decision D1): the file implements
+`SceneAsset_createFromBuffers` plus the shared entity/light/camera accessors,
+instancing and `SceneAsset_destroy` used by *procedural* assets. A whole-file
+stub would break `createGeometry` even with a working unlit fallback (§5.6).
+It uses Pattern B instead: only the glTF-specific entry points
+(`SceneAsset_createFromFilamentAsset`, `_getFilamentAsset`,
+`_releaseSourceData`, `_getBones/_getBoneCount/_getBoneName`, and the
+`GltfSceneAsset` branches inside otherwise-shared functions) are guarded;
+everything else compiles unconditionally.
 
 Stub rules (so the binary stays loadable and the Dart bindings stay valid):
 
@@ -600,7 +610,8 @@ Stub rules (so the binary stays loadable and the Dart bindings stay valid):
 
 **Pattern B — local guards** (for files that mix core and feature code):
 `TTexture.cpp` (`Image_decode` body, `Ktx1Bundle_*`, `Ktx1Reader_*`,
-`Ktx2Reader_*`), `TGltfResourceLoader.cpp`'s provider registration (§5.3),
+`Ktx2Reader_*`), `TSceneAsset.cpp`'s glTF-specific entry points (see Pattern A
+note above), `TGltfResourceLoader.cpp`'s provider registration (§5.3),
 `TScene.cpp` (`Scene_addFilamentAsset`), `ThermionWin32.h` pragmas (§4.4).
 Includes of feature headers move under the same guard so a disabled build
 cannot accidentally re-introduce a link reference.
@@ -649,7 +660,7 @@ path — surfaced by Dart as a load error, not a crash.
 
 | Macro = 0 | Symbols kept (all stubbed) | Behaviour |
 | --- | --- | --- |
-| `THERMION_ENABLE_GLTF` | `GltfAssetLoader_*`, `GltfResourceLoader_*`, `FilamentAsset_*`, `MaterialProvider_*`, `SceneAsset_*`, `AnimationManager_*`, `Scene_addFilamentAsset` (+ every `*JobThread` twin) | create/load return null (callbacks fired with null); getters return 0/null; animation apply/update are no-ops |
+| `THERMION_ENABLE_GLTF` | `GltfAssetLoader_*`, `GltfResourceLoader_*`, `FilamentAsset_*`, `MaterialProvider_*`, `AnimationManager_*`, `Scene_addFilamentAsset` (+ every `*JobThread` twin); **glTF-only** `SceneAsset_*` entry points (`_createFromFilamentAsset`, `_getFilamentAsset`, `_releaseSourceData`, `_getBones/_getBoneCount/_getBoneName`) | create/load return null (callbacks fired with null); getters return 0/null; animation apply/update are no-ops. The remaining `SceneAsset_*` entry points (`_createFromBuffers`, entity/light/camera access, `_createInstance`/`_getInstance` for geometry assets, `_destroy`, …) keep their **real implementations** (D1) — they are not stubs |
 | `THERMION_ENABLE_KTX` | `Ktx1Bundle_*`, `Ktx1Reader_createTexture`, `Ktx2Reader_createTexture` (+JobThread) | create returns null; `isCubemap`/`getSphericalHarmonics` return 0 |
 | `THERMION_ENABLE_IMAGE_DECODING` | `Image_decode` (+JobThread if present) | returns null; `Image_createEmpty`/`Image_get*`/`Texture_loadImage` **unaffected** (core `image` archive) |
 
@@ -710,7 +721,13 @@ with the corresponding defines and the reduced `libs` list. Success criteria:
 2. `nm -D --defined-only` exports the **same symbol set** as the default
    build (the stub contract) — proves Dart bindings/`dlopen`/wasm stay valid;
 3. a smoke test app: create engine, `createGeometry` + unlit material,
-   render one frame — proves §5.5/§5.6.
+   render one frame — proves §5.5/§5.6;
+4. a **slim-build procedural test** (required by review D1): on the
+   `gltf: false` build, create procedural geometry via
+   `SceneAsset_createFromBuffers`, instance it (`SceneAsset_createInstance` /
+   `getInstance`), render a frame, read its entities/bounding box, and destroy
+   it — proves the shared `TSceneAsset.cpp` entry points stay live and only
+   the glTF branches are stubbed (§5.2).
 
 On Linux, `--no-undefined` at link time makes criterion 1 strict; on
 macOS/Windows the linker is strict by default. Android additionally needs
@@ -755,7 +772,8 @@ Behaviour of affected APIs when the feature is off — **throw
 | `loadGltfFromBuffer`, `ThermionViewer.loadGltf*`, `ThermionViewerWidget.assetPath` | `UnsupportedError('this build has gltf support disabled (features.gltf)')` |
 | `createUbershaderMaterialInstance` / `createUbershaderMaterial` | `UnsupportedError` |
 | `createUnlitMaterialInstance`, `createGeometry` (no material) | **keep working** via §5.6 fallback |
-| `AnimationManager` gltf/bone/morph APIs, `Asset.createInstance/getInstance/getBones/releaseSourceData` | `UnsupportedError` (these are only reachable from glTF assets, which cannot load anyway; the guards are belt-and-braces) |
+| `AnimationManager` gltf/bone/morph APIs, `Asset.getBones/releaseSourceData` | `UnsupportedError` (glTF-asset-only surfaces; the guards are belt-and-braces) |
+| `Asset.createInstance/getInstance` on **procedural** assets (`SceneAsset_createFromBuffers`) | **keep working** — shared `TSceneAsset.cpp` code stays live (D1, §5.2) |
 | `loadKtx`, `loadKtx2`, `createIblFromKtx` | `UnsupportedError('... features.ktx')` |
 | `decodeImage` | `UnsupportedError('... features.image_decoding')` |
 | `createImage`, `Texture.setLinearImage/loadImage`, `parseGltf`/`GltfMeshData` | unchanged, always available |
@@ -853,3 +871,13 @@ Open questions (deliberately not decided here):
   of *download*, orthogonal to binary size; separate `scripts/` change.
 - iOS/Android marginal numbers: measure on-device `.so` sizes per combination
   before advertising savings for mobile; Linux numbers are the proxy today.
+
+## 9. Settled review decisions (round 2)
+
+Points from the design review (`.scratch`/incoming `review.md`, round 2) and
+where each is folded in. These are **settled** — implement them as written,
+do not re-open them during implementation.
+
+| # | Decision | Where it lands |
+| --- | --- | --- |
+| D1 | Procedural scene assets stay in the core: `TSceneAsset.cpp` uses local guards (Pattern B), not a whole-file stub; shared `SceneAsset_createFromBuffers`, entity access, instancing and destruction stay live. A slim-build test creates, instances, renders and destroys procedural geometry. | §3.1, §5.2, §5.4, §5.7 (criterion 4), §6.2 |
