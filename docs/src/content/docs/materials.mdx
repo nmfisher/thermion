@@ -355,9 +355,12 @@ Both APIs are an opt-in build feature: they link Filament's `libfilamat`
 `runtime_materials: true` user define under `hooks.user_defines.thermion_dart`
 in your app's `pubspec.yaml`; `FilamentApp.runtimeMaterialsSupported` reports
 whether the loaded build has it (otherwise both APIs throw
-`UnsupportedError`). On web the same flag selects a filamat-enabled engine
-variant (~20 MB larger than the default wasm). iOS device and simulator
-builds support the same flag and target Metal with the mobile shader model.
+`UnsupportedError`). With WebGL2 the flag selects an engine with filamat
+(~20 MB larger than the default wasm). WebGPU and hybrid builds use
+precompiled materials. See [Choose a backend](/web/#choose-a-backend).
+
+iOS device and simulator builds support the same flag and target Metal with
+the mobile shader model.
 Native compilation runs on Thermion's job thread; web compilation runs
 inline on the calling thread. Compilation is CPU-intensive (hundreds of
 milliseconds).
