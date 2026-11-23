@@ -40,21 +40,17 @@ jobs:
           actions-cache-folder: emsdk-cache
       - uses: dart-lang/setup-dart@v1
 
-      - name: Install libraries and build both engine variants
+      - name: Install libraries and build the engine
         run: |
           set -euo pipefail
           web=thermion_dart/native/web
           mkdir -p "$web/lib/release"
           unzip -q "filament-webgpu/filament-$FILAMENT_VERSION-web-release-webgpu.zip" -d "$web/lib/release"
-          for mode in webgpu runtime-materials-webgpu; do
-            runtime_materials=OFF
-            if [ "$mode" = runtime-materials-webgpu ]; then runtime_materials=ON; fi
-            emcmake cmake -S "$web" -B "$web/build-$mode" -DCMAKE_BUILD_TYPE=Release \
-              -DTHERMION_ENABLE_WEBGPU=ON -DTHERMION_ENABLE_RUNTIME_MATERIALS="$runtime_materials"
-            cmake --build "$web/build-$mode" --parallel 2
-          done
+          emcmake cmake -S "$web" -B "$web/build-webgpu" -DCMAKE_BUILD_TYPE=Release \
+            -DTHERMION_ENABLE_WEBGPU=ON
+          cmake --build "$web/build-webgpu" --parallel 2
 
-      - name: Package engine archives
+      - name: Package engine archive
         run: |
           set -euo pipefail
           web=thermion_dart/native/web
@@ -68,11 +64,9 @@ jobs:
           fi
           echo "WEB_ENGINE_VERSION=$version" >> "$GITHUB_ENV"
           mkdir -p webgpu-engines
-          for mode in webgpu runtime-materials-webgpu; do
-            engine_dir="$web/build-$mode/build/out"
-            zip -j "webgpu-engines/thermion_dart-$version-web-$mode.zip" \
-              "$engine_dir/thermion_dart.js" "$engine_dir/thermion_dart.wasm"
-          done
+          engine_dir="$web/build-webgpu/build/out"
+          zip -j "webgpu-engines/thermion_dart-$version-web-webgpu.zip" \
+            "$engine_dir/thermion_dart.js" "$engine_dir/thermion_dart.wasm"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -106,13 +100,12 @@ jobs:
         run: |
           set -euo pipefail
           # Both WebGPU selectors use the same main-thread engine.
-          for archive in webgpu-engines/*.zip; do
-            key=$(basename "$archive")
-            for artifact in "$key" "${key/-web-/-web-main-thread-}"; do
-              aws s3 cp "$archive" "s3://thermion/$artifact" --endpoint-url "$R2_ENDPOINT"
-              curl -fL --retry 3 "$R2_PUBLIC_URL/$artifact" -o "$RUNNER_TEMP/published-webgpu.zip"
-              cmp "$archive" "$RUNNER_TEMP/published-webgpu.zip"
-            done
+          archive="webgpu-engines/thermion_dart-$WEB_ENGINE_VERSION-web-webgpu.zip"
+          for suffix in webgpu main-thread-webgpu; do
+            artifact="thermion_dart-$WEB_ENGINE_VERSION-web-$suffix.zip"
+            aws s3 cp "$archive" "s3://thermion/$artifact" --endpoint-url "$R2_ENDPOINT"
+            curl -fL --retry 3 "$R2_PUBLIC_URL/$artifact" -o "$RUNNER_TEMP/published-webgpu.zip"
+            cmp "$archive" "$RUNNER_TEMP/published-webgpu.zip"
           done
 
       - name: Render from the published R2 archive
