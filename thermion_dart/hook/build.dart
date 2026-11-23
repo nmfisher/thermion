@@ -343,7 +343,16 @@ outputDirectory : ${outputDirectory.path}
     logger.info("Sources : $sources");
 
     var libs = [
+      // Windows has no platform block below that adds its system import
+      // libraries, and it links through CBuilder's `libraries` (see the
+      // CBuilder call below) rather than #pragma comment(lib) directives.
+      // Keeping the entries here makes this list the single source of truth
+      // for every platform; ThermionWin32.h only includes ThermionFeatures.h.
+      if (targetOS == OS.windows) ...["Shlwapi", "opengl32", "gdi32", "user32", "shell32", "dwmapi", "comctl32"],
       "filament",
+      // macOS adds bluegl/bluevk in its platform block below; Windows links
+      // them explicitly here (Linux resolves them from its own block).
+      if (targetOS == OS.windows) ...["bluevk", "bluegl"],
       "backend",
       // matp: the .mat parser behind matc, used by
       // MaterialCompiler_compileMaterialPackage. Opt-in with the same
@@ -362,7 +371,8 @@ outputDirectory : ${outputDirectory.path}
       //   (scripts/build_linux.sh — "bundled in Filament already"), so the
       //   combined filamat archive is the only zstd provider for
       //   basis_transcoder/MaterialParser/gltfio (ZSTD_* symbols).
-      if (runtimeMaterials || buildMode == BuildMode.debug || targetOS == OS.linux) "filamat",
+      if (runtimeMaterials || targetOS == OS.linux || (buildMode == BuildMode.debug && targetOS != OS.windows))
+        "filamat",
       // libfilamat.a references SHADERS_PACKAGE etc. from libshaders.a
       // (the generated shader-common chunks CodeGenerator emits into every
       // material). On Linux, "shaders" was already linked for gltfio; other
@@ -370,6 +380,18 @@ outputDirectory : ${outputDirectory.path}
       // in (matdbg's filamat use is Chunk-only and doesn't reach it).
       if (runtimeMaterials && targetOS != OS.linux) "shaders",
       if (targetOS == OS.linux) "shaders",
+      // Windows splits filamat's shader-compiler dependencies into separate
+      // .lib files; filamat.lib alone leaves them unresolved.
+      if (runtimeMaterials && targetOS == OS.windows) ...[
+        "OSDependent",
+        "glslang",
+        "SPIRV",
+        "SPIRV-Tools",
+        "SPIRV-Tools-opt",
+        "spirv-cross-core",
+        "spirv-cross-glsl",
+        "spirv-cross-msl",
+      ],
       "utils",
       // Android links Filament's Perfetto tracing archive. utils is always
       // built with src/android/Systrace.cpp on Android, and its debug object
@@ -396,6 +418,8 @@ outputDirectory : ${outputDirectory.path}
       "image",
       "filaflat",
       if (features.gltf) "dracodec",
+      // Windows-only gltfio dependencies (meshopt extension, tangents).
+      if (features.gltf && targetOS == OS.windows) ...["meshoptimizer", "mikktspace"],
       "ibl",
       if (features.ktx) "ktxreader",
       "z",
@@ -418,7 +442,7 @@ outputDirectory : ${outputDirectory.path}
       // libzstd), and the libzstd.a must be present in the Android zip — see
       // scripts/zip_android.sh.
       if (targetOS != OS.linux) "zstd",
-      //"mikktspace",
+      if (targetOS == OS.windows) ...["vulkan-1", "dxgi", "d3d11"],
       "geometry",
       // Debug builds of Filament enable the Material Debug Server and Frame
       // Graph viewer (build.sh -d/-t -> FILAMENT_ENABLE_MATDBG/FGVIEWER), so
@@ -428,7 +452,7 @@ outputDirectory : ${outputDirectory.path}
       // library keeps undefined matdbg/fgviewer symbols and dlopen fails at
       // runtime, just like the perfetto case above. iOS debug never enables
       // them (its cmake invocation passes neither option); Windows links
-      // libraries via #pragma comment(lib) in ThermionWin32.h instead.
+      // libraries via the `libraries` list below instead.
       if ({OS.macOS, OS.android}.contains(targetOS) && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
     ];
 
@@ -440,8 +464,10 @@ outputDirectory : ${outputDirectory.path}
     final linuxDebugLibs = (targetOS == OS.linux && buildMode == BuildMode.debug) ? ["matdbg", "fgviewer"] : <String>[];
 
     if (targetOS == OS.windows) {
-      // we just need the libDir and don't need to explicitly link the actual libs
-      // (these are linked via ThermionWin32.h)
+      // CBuilder emits the `libraries` list below as `<name>.lib` inputs
+      // after /link, with libDir supplied via libraryDirectories. Windows used
+      // to get these from #pragma comment(lib) in ThermionWin32.h; moving them
+      // here keeps the link list (and its feature conditions) in one place.
       libDir = Directory(libDir).uri.toFilePath(windows: targetOS == OS.windows);
     }
 
@@ -791,17 +817,15 @@ outputDirectory : ${outputDirectory.path}
         if (platform == "windows") ...[
           ...includeDirs.map((d) => "/I${path.join(pkgRootFilePath, d)}"),
           "@${srcs.uri.toFilePath(windows: true)}",
-          // Library inputs (filament.lib, backend.lib, bluevk.lib, etc.)
-          // are declared via #pragma comment(lib, ...) directives in
-          // native/include/ThermionWin32.h, which is transitively included
-          // by the c_api headers and the Windows vulkan/d3d sources. The
-          // linker only needs to know WHERE to find those .lib files —
-          // that is wired via `libraryDirectories: [libDir]` below, which
-          // native_toolchain_c emits after its own /link separator
-          // (run_cbuilder.dart). Adding a second /link here puts cl.exe's
-          // auto-generated /LD and /Fe: AFTER our separator, where LINK
-          // ignores them as LNK4044 — the resulting binary has no /DLL
-          // and no entry point, failing with LNK1561.
+          // Library inputs (filament.lib, backend.lib, bluevk.lib, etc.) come
+          // from the `libraries` list below, not from #pragma comment(lib)
+          // directives in ThermionWin32.h. The linker still needs to know
+          // WHERE to find those .lib files — that is wired via
+          // `libraryDirectories: [libDir]`, which native_toolchain_c emits
+          // after its own /link separator (run_cbuilder.dart). Adding a second
+          // /link here puts cl.exe's auto-generated /LD and /Fe: AFTER our
+          // separator, where LINK ignores them as LNK4044 — the resulting
+          // binary has no /DLL and no entry point, failing with LNK1561.
         ],
       ],
       libraryDirectories: [libDir],
@@ -813,6 +837,8 @@ outputDirectory : ${outputDirectory.path}
       // so --as-needed cannot discard them prematurely.
       libraries: targetOS == OS.linux
           ? [...libs, ...linuxDebugLibs, 'GL', 'EGL', ...libs, ...linuxDebugLibs, 'm']
+          : targetOS == OS.windows
+          ? libs
           : const [],
     );
 
