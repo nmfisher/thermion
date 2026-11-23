@@ -2278,6 +2278,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_READABLE;
+  external Pointer<Int32> _TSWAP_CHAIN_CONFIG_SKIP_PRESENT;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_TRANSPARENT;
   external Pointer<TTextureSampler> _TextureSampler_create();
   external void _TextureSampler_createJobThread(
@@ -2479,6 +2480,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _Thermion_destroyCanvas(Pointer<Char> canvasSelector);
   external int _Thermion_exportWebGPUDevice();
   external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_getGLContext();
+  external Pointer<Char> _Thermion_getOffscreenCanvasSelector(Pointer<Char> canvasSelector);
   external void _Thermion_setCanvasElementSize(Pointer<Char> name, int width, int height);
   external Pointer<TToneMapper> _ToneMapper_createACES(Pointer<TEngine> tEngine);
   external void _ToneMapper_createACESJobThread(
@@ -8725,6 +8727,14 @@ BigInt get TSWAP_CHAIN_CONFIG_READABLE {
   return bigIntasUintN(64, value).toDart;
 }
 
+BigInt get TSWAP_CHAIN_CONFIG_SKIP_PRESENT {
+  final value = NativeLibrary.instance.getValueBigInt(
+    GeneratedBindings.instance._TSWAP_CHAIN_CONFIG_SKIP_PRESENT,
+    "i64",
+  );
+  return bigIntasUintN(64, value).toDart;
+}
+
 BigInt get TSWAP_CHAIN_CONFIG_TRANSPARENT {
   final value = NativeLibrary.instance.getValueBigInt(
     GeneratedBindings.instance._TSWAP_CHAIN_CONFIG_TRANSPARENT,
@@ -9244,6 +9254,11 @@ int Thermion_exportWebGPUDevice() {
 DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_getGLContext() {
   final result = GeneratedBindings.instance._Thermion_getGLContext();
   return result;
+}
+
+Pointer<Char> Thermion_getOffscreenCanvasSelector(Pointer<Char> canvasSelector) {
+  final result = GeneratedBindings.instance._Thermion_getOffscreenCanvasSelector(canvasSelector);
+  return Pointer<Char>(result);
 }
 
 void Thermion_setCanvasElementSize(Pointer<Char> name, int width, int height) {
@@ -12085,6 +12100,8 @@ final class TGtao extends Struct {
     return Pointer<TGtao>(NativeLibrary.instance.stackAlloc<TGtao>(20));
   }
 }
+
+const int THERMION_SWAP_CHAIN_CONFIG_SKIP_PRESENT = 4611686018427387904;
 
 extension TIndexBufferExt on Pointer<TIndexBuffer> {
   TIndexBuffer toDart() {

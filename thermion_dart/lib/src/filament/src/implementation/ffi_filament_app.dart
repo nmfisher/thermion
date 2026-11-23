@@ -96,6 +96,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   final Pointer<TNameComponentManager> nameComponentManager;
 
+  /// CSS selector ("#id") of the canvas this engine presents to on web, or
+  /// null on native. Identifies the canvas whose hidden counterpart backs
+  /// present-skip swapchains ([offscreenCanvasSelector]).
+  final String? canvasSelector;
+
   late final Future<Uint8List> Function(String uri) _loadResource;
   late final FFILightManager lightManager;
   late final FFIRenderableManager renderableManager;
@@ -119,6 +124,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     Pointer<TRenderableManager> renderableManagerPointer,
     Pointer<TAnimationManager> animationManagerPointer, {
     Backend backend = Backend.DEFAULT,
+    this.canvasSelector,
   }) : _backend = backend {
     this._loadResource = loadResource ?? defaultResourceLoader;
     this.lightManager = FFILightManager(lightManagerPointer, this);
@@ -245,6 +251,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       renderableManager,
       animationManager,
       backend: config.backend,
+      canvasSelector: canvasSelector,
     );
 
     _logger.info("Initialization complete");
@@ -277,15 +284,25 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   //
   @override
-  Future<SwapChain> createSwapChain(Pointer window, {bool hasStencilBuffer = false}) async {
+  Future<SwapChain> createSwapChain(Pointer window, {bool hasStencilBuffer = false, bool skipPresent = false}) async {
     var flags = TSWAP_CHAIN_CONFIG_TRANSPARENT | TSWAP_CHAIN_CONFIG_READABLE;
     if (hasStencilBuffer) {
       flags |= TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
     }
+    if (skipPresent) {
+      // Offscreen swapchain: the WebGPU web engine renders into a hidden
+      // canvas (never presented) so JavaScript can composite the frames.
+      if (!webgpu_interop.supportsSkipPresent || backend != Backend.WEBGPU) {
+        throw UnsupportedError(
+          'skipPresent swapchains are only supported by the WebGPU backend in web builds.',
+        );
+      }
+      flags |= webgpu_interop.skipPresentFlag;
+    }
     final swapChain = await withPointerCallback<TSwapChain>(
       (cb) => Engine_createSwapChainJobThread(jobThreadHandle, this.engine, window.cast<Void>(), flags, cb),
     );
-    _logger.info("Created swapchain from window");
+    _logger.info(skipPresent ? "Created offscreen (present-skip) swapchain" : "Created swapchain from window");
     final sc = FFISwapChain(swapChain, this);
     _swapChains.add(sc);
     return sc;
@@ -304,6 +321,19 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   Object? _webGPUDevice;
+
+  /// Selector ("#id") of the hidden canvas that receives this engine's
+  /// offscreen ([createSwapChain] with `skipPresent: true`) frames, or null
+  /// when offscreen swapchains are unavailable (native, or no canvas).
+  ///
+  /// JavaScript composites from it, e.g. by sampling the canvas' WebGPU
+  /// context (`getCurrentTexture()` returns the frame's texture for the
+  /// current task) or drawing the canvas.
+  String? get offscreenCanvasSelector {
+    final selector = canvasSelector;
+    if (selector == null) return null;
+    return webgpu_interop.offscreenCanvasSelector(selector);
+  }
 
   //
   Future<View> createView({bool createScene = false}) async {

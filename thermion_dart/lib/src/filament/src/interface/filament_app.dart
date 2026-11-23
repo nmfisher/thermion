@@ -51,8 +51,14 @@ abstract class FilamentApp<T> {
   //
   Future<SwapChain> createHeadlessSwapChain(int width, int height, {bool hasStencilBuffer = false});
 
-  //
-  Future<SwapChain> createSwapChain(T handle, {bool hasStencilBuffer = false});
+  /// Creates a swapchain presenting to [handle] (a native window, or the
+  /// viewer canvas on web).
+  ///
+  /// [skipPresent] creates an offscreen swapchain: frames are rendered into a
+  /// texture that is never presented, for JavaScript to composite (see
+  /// `FFIFilamentApp.offscreenCanvasSelector`). Web + WebGPU backend only;
+  /// other platforms throw [UnsupportedError].
+  Future<SwapChain> createSwapChain(T handle, {bool hasStencilBuffer = false, bool skipPresent = false});
 
   //
   Future<View> createView({bool createScene = false});
