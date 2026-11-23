@@ -8,18 +8,22 @@ import 'helpers.dart';
 
 void main() {
   test('WebGPU renders an unlit red cube in Chromium', () async {
+    print('Starting the WebGPU engine.');
     final helper = TestHelper('chrome_webgpu_scene', backend: Backend.WEBGPU);
     await helper.setup();
+    print('WebGPU engine started. Creating a viewer.');
     final app = FilamentApp.instance!;
     final scene = ViewerBuilder(
       helper,
     ).setViewportDimensions(64, 64).setPostProcessing(false).setCameraLookAt(Vector3(0, 0, 5), focus: Vector3.zero());
     await scene.execute((result) async {
+      print('Viewer created. Adding the cube.');
       final material = await app.createUbershaderMaterialInstance(unlit: true);
       await material.setParameterFloat4('baseColorFactor', 1, 0, 0, 1);
       final cube = await result.viewer.createGeometry(GeometryUtils.cube(), materialInstances: [material]);
       await result.viewer.addToScene(cube);
 
+      print('Reading rendered pixels.');
       final captures = await helper.capture(result.viewer.view, null, pixelDataType: PixelDataType.UBYTE);
       final pixels = captures.values.single;
       final center = (32 * 64 + 32) * 4;

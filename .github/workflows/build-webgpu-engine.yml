@@ -76,8 +76,8 @@ jobs:
       - name: Configure Chromium
         run: |
           chrome=$(command -v google-chrome)
-          printf '#!/bin/sh\nexec "%s" --no-sandbox --enable-unsafe-webgpu --use-angle=swiftshader --enable-unsafe-swiftshader --use-webgpu-adapter=swiftshader "$@"\n' \
-            "$chrome" > "$RUNNER_TEMP/webgpu-chrome"
+          printf '#!/bin/sh\nexec "%s" --no-sandbox --enable-unsafe-webgpu --use-angle=swiftshader --enable-unsafe-swiftshader --use-webgpu-adapter=swiftshader --enable-logging --log-file="%s" "$@"\n' \
+            "$chrome" "$RUNNER_TEMP/webgpu-chromium.log" > "$RUNNER_TEMP/webgpu-chrome"
           chmod +x "$RUNNER_TEMP/webgpu-chrome"
           echo "CHROME_EXECUTABLE=$RUNNER_TEMP/webgpu-chrome" >> "$GITHUB_ENV"
 
@@ -88,7 +88,10 @@ jobs:
           printf 'hooks:\n  user_defines:\n    thermion_dart:\n      skip_native_build: true\n' >> pubspec.yaml
           dart pub get
           unzip -o "../webgpu-engines/thermion_dart-$WEB_ENGINE_VERSION-web-webgpu.zip" -d test
-          xvfb-run dart run tool/web_test_runner.dart --clean test/chrome_webgpu_scene.dart
+          if ! xvfb-run dart run tool/web_test_runner.dart --clean test/chrome_webgpu_scene.dart; then
+            tail -n 120 "$RUNNER_TEMP/webgpu-chromium.log" || true
+            exit 1
+          fi
 
       - name: Publish and verify the public archives
         if: inputs.publish
