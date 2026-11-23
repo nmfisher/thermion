@@ -135,9 +135,9 @@ jobs:
               echo "=== $platform: no run ID provided -- skipping ==="
               return 0
             fi
-            # Canonical artifacts first, then the -webgpu suffixed variants
-            # (present when the build run was dispatched with webgpu: true);
-            # those record under "<platform>-webgpu/<variant>" pin keys.
+            # Canonical artifacts first, then the -webgpu suffixed variants.
+            # Web builds produce both. Desktop builds use the webgpu input.
+            # WebGPU digests use "<platform>-webgpu/<variant>" pin keys.
             for suffix in "" "-webgpu"; do
             for variant in release debug; do
               local name="filament-${platform}-${variant}${suffix}"

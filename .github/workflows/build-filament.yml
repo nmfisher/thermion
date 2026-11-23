@@ -35,12 +35,12 @@ on:
         default: true
         type: boolean
       webgpu:
-        description: 'Build Filament with FILAMENT_SUPPORTS_WEBGPU=ON (macOS, Linux, Web)'
+        description: 'Build Filament with FILAMENT_SUPPORTS_WEBGPU=ON (macOS and Linux)'
         required: false
         default: false
         type: boolean
       webgpu_filament_run:
-        description: 'Reuse the WebGPU Filament release archive from this Build Filament run ID (platform=web, webgpu=true)'
+        description: 'Reuse the WebGPU Filament release archive from this Build Filament run ID (platform=web)'
         required: false
         type: string
 
@@ -742,8 +742,6 @@ jobs:
     env:
       FILAMENT_VERSION: ${{ needs.setup.outputs.filament_version }}
       FILAMENT_REPO: ${{ needs.setup.outputs.filament_repo }}
-      WEBGPU: ${{ inputs.webgpu }}
-      ZIP_SUFFIX: ${{ inputs.webgpu && '-webgpu' || '' }}
     steps:
       - name: Checkout thermion
         uses: actions/checkout@v4
@@ -759,13 +757,11 @@ jobs:
           retry() { for i in 1 2 3; do "$@" && return 0; echo "retry $i/3 failed: $*" >&2; sleep 20; done; return 1; }
           retry sudo apt-get update -o Acquire::http::Timeout=30 -o Acquire::Retries=3
           retry sudo apt-get install -y -o Acquire::http::Timeout=30 clang libc++-dev libc++abi-dev ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
-          if [ "$WEBGPU" = true ]; then
-            retry sudo apt-get install -y -o Acquire::http::Timeout=30 \
-              libx11-xcb-dev libxcb1-dev libxcb-dri3-dev libxcb-present-dev \
-              libxcb-randr0-dev libxcb-sync-dev libxcb-shape0-dev libxcb-xfixes0-dev \
-              libxcb-image0-dev libxcb-render0-dev libxcb-keysyms1-dev libxcb-util-dev \
-              libxcb-xkb-dev libxshmfence-dev libxkbcommon-dev libxkbcommon-x11-dev libgbm-dev
-          fi
+          retry sudo apt-get install -y -o Acquire::http::Timeout=30 \
+            libx11-xcb-dev libxcb1-dev libxcb-dri3-dev libxcb-present-dev \
+            libxcb-randr0-dev libxcb-sync-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            libxcb-image0-dev libxcb-render0-dev libxcb-keysyms1-dev libxcb-util-dev \
+            libxcb-xkb-dev libxshmfence-dev libxkbcommon-dev libxkbcommon-x11-dev libgbm-dev
 
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14
@@ -773,7 +769,7 @@ jobs:
           version: '6.0.4'
 
       - name: Reuse pinned host tools for upstream WebGPU builds
-        if: inputs.webgpu && inputs.filament_repo == '' && inputs.filament_version == ''
+        if: inputs.filament_repo == '' && inputs.filament_version == ''
         run: |
           set -euo pipefail
           if [ "$FILAMENT_REPO" != https://github.com/google/filament ]; then exit 0; fi
@@ -800,35 +796,47 @@ jobs:
           set -euo pipefail
           mkdir -p output
           args=()
-          if [ "$WEBGPU" = true ]; then
-            args+=(--webgpu --release)
-            if [ -n "${WEBGPU_HOST_TOOLS:-}" ]; then args+=(--tools-dir "$WEBGPU_HOST_TOOLS"); fi
-          fi
+          if [ -n "${WEBGPU_HOST_TOOLS:-}" ]; then args+=(--tools-dir "$WEBGPU_HOST_TOOLS"); fi
           scripts/build_web.sh filament "$FILAMENT_VERSION" output --clean "${args[@]}"
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: filament-web-release${{ env.ZIP_SUFFIX }}
-          path: output/filament-${{ env.FILAMENT_VERSION }}-web-release${{ env.ZIP_SUFFIX }}.zip
+          name: filament-web-release
+          path: output/filament-${{ env.FILAMENT_VERSION }}-web-release.zip
+          if-no-files-found: error
           retention-days: 7
 
       - name: Upload debug artifact
-        if: '!inputs.webgpu'
         uses: actions/upload-artifact@v4
         with:
-          name: filament-web-debug${{ env.ZIP_SUFFIX }}
-          path: output/filament-${{ env.FILAMENT_VERSION }}-web-debug${{ env.ZIP_SUFFIX }}.zip
+          name: filament-web-debug
+          path: output/filament-${{ env.FILAMENT_VERSION }}-web-debug.zip
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload WebGPU release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-web-release-webgpu
+          path: output/filament-${{ env.FILAMENT_VERSION }}-web-release-webgpu.zip
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload WebGPU debug artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-web-debug-webgpu
+          path: output/filament-${{ env.FILAMENT_VERSION }}-web-debug-webgpu.zip
+          if-no-files-found: error
           retention-days: 7
 
       - name: Upload to R2
         if: inputs.upload_to_r2
         run: |
-          variants=(release)
-          if [ "$WEBGPU" != true ]; then variants+=(debug); fi
-          for variant in "${variants[@]}"; do
-            bash scripts/upload_filament_hashed.sh \
-              "output/filament-${{ env.FILAMENT_VERSION }}-web-${variant}${ZIP_SUFFIX}.zip"
+          set -euo pipefail
+          for variant in release debug release-webgpu debug-webgpu; do
+            bash scripts/upload_filament_hashed.sh "output/filament-$FILAMENT_VERSION-web-$variant.zip"
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -841,7 +849,7 @@ jobs:
     if: >-
       !cancelled() && needs.setup.result == 'success' &&
       (needs.build-web.result == 'success' || inputs.webgpu_filament_run != '') &&
-      inputs.webgpu && inputs.platform == 'web' && inputs.filament_repo == '' && inputs.filament_version == ''
+      inputs.platform == 'web' && inputs.filament_repo == '' && inputs.filament_version == ''
     permissions:
       actions: read
       contents: read
