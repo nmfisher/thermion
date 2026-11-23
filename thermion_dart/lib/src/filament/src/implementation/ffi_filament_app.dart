@@ -104,6 +104,58 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   static final _logger = Logger("FFIFilamentApp");
 
+  /// Feature bitmask reported by the loaded library via
+  /// `Thermion_getEnabledFeatures` (c_api/ThermionFeatures.h): bit 0 gltf,
+  /// bit 1 ktx, bit 2 image_decoding, bit 3 runtime_materials. Resolved once
+  /// per process — the library cannot change underneath a running app.
+  static int? _enabledFeatures;
+
+  static int get enabledFeatures => _enabledFeatures ??= _readEnabledFeatures();
+
+  static int _readEnabledFeatures() {
+    try {
+      return bindings.Thermion_getEnabledFeatures();
+    } catch (_) {
+      // Legacy engine without the probe (pre-probe web engines). Every such
+      // engine was built with all three native opt-outs on; runtime
+      // materials keeps its own probe (docs/feature-optout-proposal.md §4.6,
+      // decision D4).
+      final legacy = 0x7 | (bindings.MaterialCompiler_isSupported() != 0 ? 1 << 3 : 0);
+      _logger.warning(
+        "Thermion_getEnabledFeatures is not exported by this engine; assuming an "
+        "older engine with every feature enabled (runtime materials: ${(legacy >> 3) & 1}).",
+      );
+      return legacy;
+    }
+  }
+
+  /// [supports] for callers without an app instance (engine initialization
+  /// runs before FilamentApp.instance exists).
+  static bool buildSupports(ThermionFeature feature) =>
+      (enabledFeatures & (1 << feature.index)) != 0;
+
+  @override
+  bool supports(ThermionFeature feature) => buildSupports(feature);
+
+  /// Throws [UnsupportedError] naming the `features.*` key when [feature] is
+  /// disabled in this build (docs/feature-optout-proposal.md §6.2).
+  void checkSupported(ThermionFeature feature, String api) {
+    if (!supports(feature)) {
+      throw UnsupportedError(
+        '$api is not available in this build: $feature is disabled '
+        '(features.${_featureKey(feature)}: false in hooks.user_defines.thermion_dart). '
+        'Check FilamentApp.instance!.supports(ThermionFeature.${feature.name}) before calling.',
+      );
+    }
+  }
+
+  static String _featureKey(ThermionFeature feature) => switch (feature) {
+    ThermionFeature.gltf => 'gltf',
+    ThermionFeature.ktx => 'ktx',
+    ThermionFeature.imageDecoding => 'image_decoding',
+    ThermionFeature.runtimeMaterials => 'runtime_materials',
+  };
+
   FFIFilamentApp(
     this.engine,
     this.gltfAssetLoader,
@@ -202,14 +254,29 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final nameComponentManager = NameComponentManager_create();
 
-    final gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
-      (cb) => GltfAssetLoader_createJobThread(jobThreadHandle, engine, nullptr, nameComponentManager, cb),
-    );
+    // gltfio is compiled out of `features.gltf: false` builds
+    // (docs/feature-optout-proposal.md §5.5): skip the loader round-trip and
+    // the provider lookup entirely instead of creating stub handles. Both
+    // handles stay null for the lifetime of this app; every Dart API that
+    // needs them throws UnsupportedError via checkSupported.
+    var gltfAssetLoader = nullptr.cast<TGltfAssetLoader>();
+    var ubershaderMaterialProvider = nullptr.cast<TMaterialProvider>();
+    if (buildSupports(ThermionFeature.gltf)) {
+      gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
+        (cb) => GltfAssetLoader_createJobThread(jobThreadHandle, engine, nullptr, nameComponentManager, cb),
+      );
+      ubershaderMaterialProvider = GltfAssetLoader_getMaterialProvider(gltfAssetLoader);
+    } else {
+      _logger.warning(
+        "This build has glTF support disabled (features.gltf: false): glTF loading, "
+        "glTF animation and ubershader materials are unavailable; procedural geometry "
+        "uses the precompiled unlit fallback material.",
+      );
+    }
 
     final renderer = await withPointerCallback<TRenderer>(
       (cb) => Engine_createRendererJobThread(jobThreadHandle, engine, cb),
     );
-    final ubershaderMaterialProvider = GltfAssetLoader_getMaterialProvider(gltfAssetLoader);
 
     final transformManager = Engine_getTransformManager(engine);
     final lightManager = Engine_getLightManager(engine);
@@ -438,9 +505,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       (requestId, cb) =>
           AnimationManager_destroyJobThread(jobThreadHandle, (animationManager).animationManager, requestId, cb),
     );
-    await withVoidCallback(
-      (requestId, cb) => GltfAssetLoader_destroyJobThread(jobThreadHandle, gltfAssetLoader, requestId, cb),
-    );
+    if (gltfAssetLoader != nullptr) {
+      await withVoidCallback(
+        (requestId, cb) => GltfAssetLoader_destroyJobThread(jobThreadHandle, gltfAssetLoader, requestId, cb),
+      );
+    }
     NameComponentManager_destroy(nameComponentManager);
 
     await withVoidCallback(
@@ -602,6 +671,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   // alpha channel (even if the original image did not contain one).
   //
   Future<LinearImage> decodeImage(Uint8List data, {String name = "image", bool requireAlpha = false}) async {
+    checkSupported(ThermionFeature.imageDecoding, 'decodeImage');
     var now = DateTime.now();
     final namePtr = name.toNativeUtf8().cast<Char>();
     var ptr = Image_decode(data.address, data.length, namePtr, requireAlpha);
@@ -896,6 +966,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     bool hasIOR = false,
     bool hasVolume = false,
   }) async {
+    checkSupported(ThermionFeature.gltf, 'createUbershaderMaterialInstance');
     final materialInstance = await withPointerCallback<TMaterialInstance>((cb) {
       MaterialProvider_createMaterialInstanceJobThread(
         jobThreadHandle,
@@ -953,9 +1024,56 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return instance;
   }
 
+  FFIMaterial? _unlitFallbackMaterial;
+
+  /// The unlit material procedural code depends on (createGeometry without an
+  /// explicit material, bounding-box helpers, TextureProjection).
+  ///
+  /// With glTF support this is the gltfio ubershader's unlit variant. Without
+  /// it (features.gltf: false) there is no ubershader, so the instance comes
+  /// from the small precompiled package the hook compiled for exactly this
+  /// case (hook/materials/unlit_fallback.mat, UNLIT_FALLBACK_ENABLED /
+  /// BUILT_IN_UNLIT_FALLBACK) — same parameter name, same opaque unlit look
+  /// (docs/feature-optout-proposal.md §5.6, decision D5). Only the explicit
+  /// ubershader requests ([createUbershaderMaterialInstance]) throw.
   //
   Future<MaterialInstance> createUnlitMaterialInstance() async {
-    return createUbershaderMaterialInstance(unlit: true, hasVertexColors: false);
+    if (supports(ThermionFeature.gltf)) {
+      return createUbershaderMaterialInstance(unlit: true, hasVertexColors: false);
+    }
+    _unlitFallbackMaterial ??= await _createUnlitFallbackMaterial();
+    return _unlitFallbackMaterial!.createInstance();
+  }
+
+  Future<FFIMaterial> _createUnlitFallbackMaterial() async {
+    if (FILAMENT_WASM) {
+      // Web engines are prebuilt with every feature; a web build that gets
+      // here is a custom slim engine without the embedded package support.
+      throw UnsupportedError(
+        'createUnlitMaterialInstance needs glTF support (features.gltf) or the '
+        'unlit fallback material; neither is available in this web engine.',
+      );
+    }
+    late final bool included;
+    final ptr = await withPointerCallback<TMaterial>((cb) {
+      included = Material_createBuiltInJobThread(
+        jobThreadHandle,
+        engine,
+        TBuiltInMaterial.BUILT_IN_UNLIT_FALLBACK,
+        cb,
+      );
+    });
+    if (!included) {
+      throw StateError(
+        'This build has glTF support disabled (features.gltf: false) but the unlit '
+        'fallback material was not compiled into libthermion_dart. Rebuild so the '
+        'thermion_dart build hook compiles hook/materials/unlit_fallback.mat.',
+      );
+    }
+    if (ptr == nullptr) {
+      throw StateError('Filament could not build the unlit fallback material.');
+    }
+    return FFIMaterial(ptr, this);
   }
 
   @override
@@ -1439,6 +1557,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     Set<SceneAssetGeometryCapability> requiredGeometryCapabilities = const {},
     String? resourceUri,
   }) async {
+    checkSupported(ThermionFeature.gltf, 'loadGltfFromBuffer');
     final geometryRequirements = Set<SceneAssetGeometryCapability>.unmodifiable(requiredGeometryCapabilities);
     if (initialInstances <= 0) {
       throw Exception("initialInstances must be at least 1");
@@ -1961,6 +2080,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   //
   Future<Texture> loadKtx2(Uint8List data) async {
+    checkSupported(ThermionFeature.ktx, 'loadKtx2');
     _logger.info("Loading KTX2 from ${data.length} bytes");
     // Ktx2Reader internally calls Texture::Builder().build, which on web must
     // happen on the engine's render thread; routing through the *JobThread
