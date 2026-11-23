@@ -756,6 +756,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<List<String>> getBoneNames({int skinIndex = 0}) async {
+    // Bones only exist on skinned glTF assets (see getBoneCount).
+    _app.checkSupported(ThermionFeature.gltf, 'getBoneNames');
     var boneCount = await getBoneCount(skinIndex: skinIndex);
     var names = <String>[];
     for (int i = 0; i < boneCount; i++) {
@@ -785,6 +787,9 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<List<String>> getGltfAnimationNames() async {
+    // Check the build before the asset type: a procedural asset on a slim
+    // build must report the disabled feature, not silently "no animations".
+    _app.checkSupported(ThermionFeature.gltf, 'getGltfAnimationNames');
     if (type != SceneAssetType.gltf) {
       _logger.warning("getGltfAnimationNames should only be called on gltf assets");
       return [];
@@ -807,6 +812,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<double> getGltfAnimationDuration(int animationIndex) async {
+    _app.checkSupported(ThermionFeature.gltf, 'getGltfAnimationDuration');
     if (type != SceneAssetType.gltf) {
       throw Exception("getGltfAnimationDuration can only be called on glTF assets");
     }
@@ -816,6 +822,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<double> getGltfAnimationDurationByName(String name) async {
+    _app.checkSupported(ThermionFeature.gltf, 'getGltfAnimationDurationByName');
     if (type != SceneAssetType.gltf) {
       throw Exception("getGltfAnimationDurationByName can only be called on glTF assets");
     }
