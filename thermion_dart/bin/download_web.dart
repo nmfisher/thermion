@@ -139,7 +139,11 @@ void main(List<String> args) async {
       stdout.writeln('                runtime-materials = filamat-enabled engine for');
       stdout.writeln('                runtime material compilation (~20 MB larger).');
       stdout.writeln('                main-thread-runtime-materials = both combined.');
-      stdout.writeln('  --backend      native (default), webgl2, webgpu or hybrid.');
+      stdout.writeln('  --backend NAME  Browser engine and optional built-in material formats');
+      stdout.writeln('                  native (default)  WebGL2 engine with GLSL and WGSL');
+      stdout.writeln('                  webgl2            WebGL2 engine with GLSL');
+      stdout.writeln('                  webgpu            WebGPU-capable engine with WGSL');
+      stdout.writeln('                  hybrid            WebGPU-capable engine with GLSL and WGSL');
       stdout.writeln('  --materials    Comma-separated helper keys, for example gizmo,image.');
       stdout.writeln('                 Available keys: ${BuiltInMaterial.values.map((m) => m.key).join(', ')}');
       return;
