@@ -108,7 +108,14 @@ Future<Directory> compileUnlitFallbackMaterial({
   final toolsPin = parseFilamentPin(pinFile.existsSync() ? pinFile.readAsStringSync() : null, warnings: warnings);
   warnings.forEach(onLog);
   final variantKey = '${backends.join('_')}-resgen';
-  final cacheDir = path.join(root.path, '.dart_tool', 'thermion_dart', 'materials', unlitFallbackMaterialKey, variantKey);
+  final cacheDir = path.join(
+    root.path,
+    '.dart_tool',
+    'thermion_dart',
+    'materials',
+    unlitFallbackMaterialKey,
+    variantKey,
+  );
   final result = await compileUserMaterials(
     appRoot: root,
     config: MaterialCompilationConfig(

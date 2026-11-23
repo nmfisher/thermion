@@ -119,5 +119,4 @@ Map<String, String> disabledFeatureDefines(ThermionFeatures features) {
 
 /// Whether any feature is disabled, for the web-branch warning (web engines
 /// are prebuilt with every feature; `features.*` only affects native builds).
-bool anyFeatureDisabled(ThermionFeatures features) =>
-    !features.gltf || !features.ktx || !features.imageDecoding;
+bool anyFeatureDisabled(ThermionFeatures features) => !features.gltf || !features.ktx || !features.imageDecoding;
