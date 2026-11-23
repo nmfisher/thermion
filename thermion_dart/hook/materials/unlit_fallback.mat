@@ -1,0 +1,39 @@
+// Unlit fallback for `features.gltf: false` builds
+// (docs/feature-optout-proposal.md §5.6, review decision D5).
+//
+// With glTF support off there is no gltfio ubershader provider, so the unlit
+// material that procedural code reaches through
+// FilamentApp.createUnlitMaterialInstance() (createGeometry without an
+// explicit material, bounding-box helpers, TextureProjection) comes from
+// this package instead. It mirrors the ubershader's unlit configuration as
+// Thermion requests it: opaque, single-sided, depth tested and written, with
+// the same `baseColorFactor` parameter name and vertex colours applied.
+//
+// The build hook compiles it with the version-matched matc/resgen pipeline
+// ONLY when features.gltf is false (UNLIT_FALLBACK_ENABLED /
+// BUILT_IN_UNLIT_FALLBACK in c_api/TMaterialInstance.h); default builds never
+// compile or link it.
+material {
+    name : UnlitFallback,
+    requires : [ color ],
+    parameters : [
+        {
+            type : float4,
+            name : baseColorFactor,
+            precision : low
+        }
+    ],
+    shadingModel : unlit,
+    blending : opaque,
+    doubleSided : false,
+    depthWrite : true,
+    depthCulling : true,
+    culling : back
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = materialParams.baseColorFactor * getColor();
+    }
+}

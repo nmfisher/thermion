@@ -4966,6 +4966,9 @@ external void Texture_setImageJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
 );
 
+@ffi.Native<ffi.Uint32 Function()>(isLeaf: true)
+external int Thermion_getEnabledFeatures();
+
 @ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TToneMapper> ToneMapper_createACES(ffi.Pointer<TEngine> tEngine);
 
@@ -6139,6 +6142,7 @@ sealed class TBuiltInMaterial {
   static const BUILT_IN_CAPTURE_UV = 11;
   static const BUILT_IN_LINEAR_DEPTH = 12;
   static const BUILT_IN_UNLIT_FIXED_SIZE = 13;
+  static const BUILT_IN_UNLIT_FALLBACK = 14;
 }
 
 final class TCamera extends ffi.Opaque {}
