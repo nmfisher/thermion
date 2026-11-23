@@ -417,8 +417,8 @@ if(THERMION_ENABLE_RUNTIME_MATERIALS)
   message(STATUS "Runtime material compilation enabled (matp + filamat + smol-v linked)")
 endif()
 
-# The macro is a value check now (proposal §5.1, decision D3): always pass 0
-# or 1 so a build with the option off cannot fall back to presence semantics.
+# The macro is a value check: always pass 0 or 1 so a build with the option
+# off cannot fall back to presence semantics.
 target_compile_definitions(${MODULE_NAME}
   PRIVATE THERMION_ENABLE_RUNTIME_MATERIALS=$<BOOL:${THERMION_ENABLE_RUNTIME_MATERIALS}>)
 

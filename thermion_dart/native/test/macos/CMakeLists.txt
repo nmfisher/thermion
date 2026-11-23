@@ -86,7 +86,7 @@ target_link_directories(thermion_dart PRIVATE ${FILAMENT_LIB_DIR})
 if(THERMION_ENABLE_RUNTIME_MATERIALS)
     target_link_libraries(thermion_dart PRIVATE matp)
 endif()
-# Value-check macro (proposal §5.1, decision D3): always pass 0 or 1.
+# Value-check macro: always pass 0 or 1.
 target_compile_definitions(thermion_dart
     PRIVATE THERMION_ENABLE_RUNTIME_MATERIALS=$<BOOL:${THERMION_ENABLE_RUNTIME_MATERIALS}>)
 target_link_libraries(thermion_dart PRIVATE

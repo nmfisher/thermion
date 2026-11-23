@@ -79,7 +79,6 @@ static filament::math::mat4 convert_double4x4_to_mat4(const double4x4 &d_mat)
 // header. They are header-only inline functions, so this still contributes
 // no link-time reference in any build; the copies below are byte-for-byte
 // the same arithmetic as the gltfio originals.
-// (docs/feature-optout-proposal.md §10.1, deviation 2.)
 // ---------------------------------------------------------------------------
 inline void decomposeMatrix(const filament::math::mat4f& mat, filament::math::float3* translation,
         filament::math::quatf* rotation, filament::math::float3* scale) {
