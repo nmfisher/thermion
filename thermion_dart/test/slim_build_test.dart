@@ -59,27 +59,18 @@ void main() async {
         viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb"),
         throwsA(isA<UnsupportedError>().having((e) => e.message, 'message', contains('features.gltf'))),
       );
-      await expectLater(
-        app.loadGltfFromBuffer(Uint8List(16)),
-        throwsA(isA<UnsupportedError>()),
-      );
+      await expectLater(app.loadGltfFromBuffer(Uint8List(16)), throwsA(isA<UnsupportedError>()));
       await expectLater(
         app.createUbershaderMaterialInstance(unlit: true),
-        throwsA(isA<UnsupportedError>().having((e) => e.message, 'message', contains('createUbershaderMaterialInstance'))),
+        throwsA(
+          isA<UnsupportedError>().having((e) => e.message, 'message', contains('createUbershaderMaterialInstance')),
+        ),
       );
-      await expectLater(
-        app.createUbershaderMaterial(unlit: true),
-        throwsA(isA<UnsupportedError>()),
-      );
+      await expectLater(app.createUbershaderMaterial(unlit: true), throwsA(isA<UnsupportedError>()));
       final geometry = await viewer.createGeometry(GeometryUtils.cube());
-      await expectLater(
-        app.animationManager.getGltfAnimationCount(geometry),
-        throwsA(isA<UnsupportedError>()),
-      );
-      await expectLater(
-        geometry.releaseSourceData(),
-        throwsA(isA<UnsupportedError>()),
-      );
+      // The synchronous animation getters throw before returning.
+      expect(() => app.animationManager.getGltfAnimationCount(geometry), throwsA(isA<UnsupportedError>()));
+      await expectLater(geometry.releaseSourceData(), throwsA(isA<UnsupportedError>()));
       await viewer.destroyAsset(geometry);
     }, bg: kBlue);
   }, skip: skip);
@@ -106,11 +97,7 @@ void main() async {
       expect(bbox.min.x, lessThan(bbox.max.x));
       expect(bbox.min.y, lessThan(bbox.max.y));
       expect(bbox.min.z, lessThan(bbox.max.z));
-      expect(
-        (bbox.max.x - bbox.min.x).abs(),
-        closeTo(2.0, 0.01),
-        reason: 'GeometryUtils.cube is a 2x2x2 cube',
-      );
+      expect((bbox.max.x - bbox.min.x).abs(), closeTo(2.0, 0.01), reason: 'GeometryUtils.cube is a 2x2x2 cube');
 
       // 2. render — the cube must be visible against the blue background.
       await viewer.addToScene(asset);

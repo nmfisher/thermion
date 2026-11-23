@@ -1221,17 +1221,24 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       return;
     }
 
-    final manager = _app.animationManager.getNativeHandle();
-    final animationAsset = type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF && !isInstance
-        ? _getInstances().first._asset
-        : _asset;
-    if (type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF &&
-        !AnimationManager_removeGltfAnimationComponent(manager, animationAsset)) {
-      _logger.warning("Failed to remove glTF animation component");
+    // glTF/bone components only exist on glTF assets, which cannot exist in a
+    // `features.gltf: false` build: skip the (stubbed) calls there instead of
+    // logging a bogus failure for every destroyed asset.
+    if (_app.supports(ThermionFeature.gltf)) {
+      final manager = _app.animationManager.getNativeHandle();
+      final animationAsset = type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF && !isInstance
+          ? _getInstances().first._asset
+          : _asset;
+      if (type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF &&
+          !AnimationManager_removeGltfAnimationComponent(manager, animationAsset)) {
+        _logger.warning("Failed to remove glTF animation component");
+      }
+      if (!AnimationManager_removeBoneAnimationComponent(manager, animationAsset)) {
+        _logger.warning("Failed to remove bone animation component");
+      }
     }
-    if (!AnimationManager_removeBoneAnimationComponent(manager, animationAsset)) {
-      _logger.warning("Failed to remove bone animation component");
-    }
+    // Morph components are keyed by entity (the C stub is a no-op without
+    // gltf), so this stays unconditional.
     _app.animationManager.removeMorphAnimationComponent(entity);
 
     for (final child in _getChildEntities()) {
