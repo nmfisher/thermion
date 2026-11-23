@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| Status | **Proposal only.** No code, build or test changes are made by this document. |
+| Status | **Implementing on `feature-opt-libs`** (round 3). The native `gltf: false` prototype, the `features` schema, the C guards/probe, the unlit fallback, the Dart `supports()`/`UnsupportedError` surface and the slim-build test are landed; §10 records what the Linux proof measured, where the implementation deviated from this text, and what remains (Android arm64 measurement, CI wiring, web engine republication). |
 | Branch | `feature-opt-libs` (branched from `origin/develop` at `9029ba90`) |
 | Filament | v1.77.2 (`filament.version`) |
 | Supersedes | The open ideas in `.tickets/the-0rkw.md` (optional libraries for binary size). This document uses the real link list and measured archive closures. |
@@ -176,7 +176,9 @@ through the two texture providers — `stb`, `ktxreader` and `basis_transcoder`.
 `gltfio/math.h`), `TIndirectLight.cpp` (`FilamentAsset.h`, `FilamentInstance.h`),
 `TTransformManager.cpp` (`gltfio/math.h`; none of its helpers — `toMat4`,
 `toFloatArray`, … — are called anywhere in Thermion, so the include can simply
-be dropped),
+be dropped; **correction during implementation (§10):** `decomposeMatrix` /
+`composeMatrix` *are* called there. They are header-only `inline` functions, so
+this is still compile-time only — the include stays, nothing is linked),
 `scene/GeometrySceneAsset.cpp/.hpp` (`MaterialProvider.h`),
 `include/scene/SceneAsset.hpp` (`FilamentAsset.h`),
 `include/material/FileMaterialProvider.hpp` (unused class deriving from
@@ -191,7 +193,7 @@ be dropped),
 | `FilamentApp.createUnlitMaterialInstance` | same | same |
 | `createGeometry(geometry)` **without** `materialInstances`, `Asset.getBoundingBoxAsset()` (`_createBoundingBox`), `TextureProjection`, `examples/flutter/materials_and_textures`, `examples/dart/.../game_effects_cosmic` | `createUnlitMaterialInstance` | **indirect**: procedural code depends on the glTF ubershader material today |
 | `AnimationManager.*` (gltf/bone/morph animation), `Asset.getInstance/createInstance/releaseSourceData/getBones/getMorphTarget…` | `FFIAnimationManager`, `FFIAsset` | `Animator`, instancing |
-| `FilamentApp.parseGltf`, `GltfMeshData` | `FFIGltfMeshData.parse` → `GltfParser_parseBuffer` | **nothing**: this path uses the vendored `cgltf.h` only. Keep working when gltfio is off. |
+| `FilamentApp.parseGltf`, `GltfMeshData` | `FFIGltfMeshData.parse` → `GltfParser_parseBuffer` | **Nothing in gltfio itself**, but **correction during implementation (§10):** the `cgltf_*` functions it calls are compiled inside Filament's `gltfio_core` archive, so this *is* a link-time reference to an archive that drops with `features.gltf`. Resolved by compiling the vendored `cgltf.h` (`CGLTF_IMPLEMENTATION`) in `TGltfParser.cpp` when `THERMION_ENABLE_GLTF` is 0. Keeps working when gltfio is off. |
 
 **Verdict: opt-out as `features.gltf`.** When off, the hook drops
 `gltfio_core`, `gltfio`, `uberarchive`, `dracodec`, `uberzlib` (and the
@@ -776,12 +778,17 @@ Fix, using machinery that already exists, **compiled only when glTF is off**
    builds are untouched: making the blob unconditional would add a
    material-compiler (matc/resgen) step to every default app that currently
    skips that work (D5);
-3. `MaterialProvider_createMaterialInstance`'s stub is replaced by a real
-   fallback: when `!THERMION_ENABLE_GLTF`, `createUnlitMaterialInstance`'s
-   entry point creates instances from the precompiled blob instead of the
-   ubershader provider. The C symbol and Dart API are unchanged;
+3. `createUnlitMaterialInstance`'s entry point creates instances from the
+   precompiled blob instead of the ubershader provider when
+   `!THERMION_ENABLE_GLTF`. The Dart API is unchanged;
    `createUbershaderMaterialInstance` (explicit ubershader requests) still
-   returns null / throws (§6).
+   returns null / throws (§6). **Implemented in Dart, not in
+   `MaterialProvider_createMaterialInstance`'s stub (§10):** that C entry
+   point has no `Engine`, which `Material::Builder::build` needs, so the
+   fallback branches in `FFIFilamentApp.createUnlitMaterialInstance` and builds
+   the blob through the existing `Material_createBuiltInJobThread(engine,
+   BUILT_IN_UNLIT_FALLBACK)` path — no new C symbol; the stub stays a plain
+   null-returning stub.
 
 Cost: one small precompiled material package (single-digit KB) in slim
 builds only, no new archives, no compiler dependency for default apps.
@@ -994,3 +1001,119 @@ do not re-open them during implementation.
 | D3 | `THERMION_ENABLE_RUNTIME_MATERIALS` keeps presence semantics: **undefined when off**, `=1` when on; no default in `ThermionFeatures.h`. Defining it to 0 would still enable the real compiler and Windows compiler pragmas under their `#ifdef`/`#if defined` guards. A value-check migration is only allowed as one atomic change covering every guard. `smol-v` stays **unconditional** (core `filaflat::DictionaryReader` decoder). | §3.7, §4.4, §5.1 |
 | D4 | The web engine release is a **dependency of the probe**: rebuild and publish every currently supported web variant with `Thermion_getEnabledFeatures` and advance `native/web/web.version` before Dart requires it (even with zero slim web variants in v1). Legacy engines get a lazy-lookup fallback: missing symbol → all features enabled + warning. | §4.6, §6.1, §8 (rollout + risk table) |
 | D5 | **Prototype first**: start with a native `gltf: false` build, texture decoders left available, and measure the stripped library + packaged size on a real target (Android arm64) before rolling out schema/API; the Linux archive model is an estimate. The unlit fallback blob is **precompiled and built only when gltf is off** — an unconditional blob in the hook would add a matc/resgen dependency to default apps that skip it today. | §4.5, §5.6, §7 (caveat), §8 (rollout order, open questions) |
+
+## 10. Implementation log (round 3, `feature-opt-libs`)
+
+Implementation of §4–§6 as settled in §9, in commit order. Each step was
+verified on Linux x64 (release Filament v1.77.2 artifact, `xvfb-run` +
+llvmpipe for anything that renders).
+
+| Step | Commit | What landed |
+| --- | --- | --- |
+| 1 | `hook: features user defines` | `lib/src/hooks/feature_flags.dart` (`resolveFeatures`, D2 rule, `disabledFeatureDefines`, web warning), conditional `libs` in `hook/build.dart`, full-archive `gltfio` dropped, `test/feature_flags_test.dart` (11 cases) |
+| 2 | `native: THERMION_ENABLE_* guards` | `native/include/ThermionFeatures.h`, probe `c_api/ThermionFeatures.h` + `TThermionFeatures.cpp`, Pattern A/B/C guards, `ThermionWin32.h` pragmas, web CMake options, compile-time-only includes dropped, `FileMaterialProvider.hpp` deleted |
+| 3 | `hook: precompiled unlit fallback` | `hook/materials/unlit_fallback.mat`, `compileUnlitFallbackMaterial` (only when `gltf: false`), `BUILT_IN_UNLIT_FALLBACK`, `UNLIT_FALLBACK_ENABLED`, bindings regenerated |
+| 4 | `dart: supports() + UnsupportedError` | `ThermionFeature`, `FilamentApp.supports`, legacy-engine fallback (D4), init/destroy skip the loader (§5.5), `checkSupported` on every affected API, fallback in `createUnlitMaterialInstance` |
+| 2b | `native: compile the vendored cgltf` | Fix for the one missed link reference found by the first slim link (below) |
+| 5 | `test: slim-build test` | `test/slim_build_test.dart` (§5.7 criterion 4) |
+
+### 10.1 Where the implementation deviates from the text above
+
+All found while proving the build; the relevant sections carry a short
+"correction" note.
+
+1. **`TGltfParser.cpp` links against gltfio_core after all** (§3.1 said
+   `parseGltf` needs nothing from gltfio). `GltfParser_parseBuffer` calls
+   `cgltf_parse`/`cgltf_free`/…, and Filament compiles cgltf inside
+   `libgltfio_core.a`. The first `gltf: false` link (`-Wl,-z,defs`) failed on
+   exactly these 9 symbols and nothing else — the rest of the §3 map held.
+   Fix: `#define CGLTF_IMPLEMENTATION` in `TGltfParser.cpp` only when
+   `THERMION_ENABLE_GLTF` is 0 (glTF builds keep using gltfio_core's copy, so
+   there is never a duplicate). `parseGltf`/`GltfMeshData` work in every build
+   as intended.
+2. **`TTransformManager.cpp` does use `gltfio/math.h`** (`decomposeMatrix`,
+   `composeMatrix`). They are header-only `inline` functions — still no
+   link-time reference — so the include stays instead of being dropped.
+3. **The unlit fallback branches in Dart, not in
+   `MaterialProvider_createMaterialInstance`'s stub** (§5.6 item 3): that C
+   entry point receives no `Engine`, which `Material::Builder::build` needs.
+   `FFIFilamentApp.createUnlitMaterialInstance` builds the precompiled
+   package through the existing `Material_createBuiltInJobThread(engine,
+   BUILT_IN_UNLIT_FALLBACK)` path and caches the `Material`; no new C symbol,
+   the stub stays a plain null-returning stub. Measured fallback package:
+   109 KB for the opengl+vulkan pair (§5.6 guessed single-digit KB).
+4. **Morph component add/remove stay unguarded** in Dart: `FFIAsset`'s
+   destroy path calls `removeMorphAnimationComponent` for *every* asset type,
+   procedural geometry included. The C stubs are no-ops, so these keep
+   working; the asset-facing animation APIs (gltf/bone/morph getters and
+   players) throw `UnsupportedError`. The destroy path skips the glTF/bone
+   component removals without gltf so it does not log bogus failures.
+5. **JS interop bindings were extended by hand** (`Thermion_getEnabledFeatures`,
+   `BUILT_IN_UNLIT_FALLBACK`) in ffigen_js's exact output form: `ffigen_js`
+   needs the emscripten sysroot that only CI has. The native bindings were
+   regenerated with ffigen and formatted; the only diff is the two additions.
+
+### 10.2 Linux x64 proof (§5.7 criteria 1–4)
+
+Configuration: release Filament v1.77.2, Linux x64, the package's own 13
+helper materials enabled in both builds (so symbol sets compare like for
+like), `-Wl,-z,defs`.
+
+| Build | Links | `Thermion_getEnabledFeatures` | unstripped `.so` | stripped `.so` | `.text` |
+| --- | --- | --- | --- | --- | --- |
+| default (all on) | yes | `0x7` | 10,281,248 B | 7,841,736 B | 7,698,235 B |
+| `gltf: false` (ktx, image_decoding on) — the §8 step 2 prototype | **yes**, no undefined symbols | `0x6` | 8,941,064 B | 6,808,152 B | 6,673,703 B |
+| all three off | **yes** | `0x0` | 7,747,736 B | 5,689,696 B | 5,550,691 B |
+
+- Criterion 2 (symbol set): `nm -D --defined-only` — every C entry point
+  declared in `c_api/*.h` is present in both builds (the same 7 names are
+  declared-but-never-defined in both, pre-existing drift unrelated to this
+  work: `Camera_setProjectionMatrix`, `LightManager_rgbToColorTemperature`,
+  `MaterialProvider_create`, `RenderableManager_getCulling`,
+  `RenderableManager_getPriority`, `Renderer_setFrameInterval`,
+  `Texture_getUsage`). The only non-mangled differences are exactly the
+  intended ones: `UBERARCHIVE_PACKAGE` only in default; `UNLIT_FALLBACK_PACKAGE`
+  and the 36 `cgltf_*` functions only in slim. 263 mangled C++ symbols
+  disappear with gltfio (gltfio_core, Draco, meshoptimizer, mikktspace,
+  ubershader), 41 appear (template instantiations + cgltf).
+- Criterion 3/4 (runtime): `xvfb-run dart test test/slim_build_test.dart` on
+  the `gltf: false` build — all 4 tests pass: `supports()` reports the
+  opt-outs; glTF-only Dart APIs throw `UnsupportedError` naming
+  `features.gltf`; a procedural cube (no explicit material → unlit fallback)
+  renders against the background (pixel-asserted), instances through the
+  shared `SceneAsset_*` entry points (`createInstance`/`getInstance`/
+  `getInstances`, bounding boxes intact), and destroys; an explicit
+  procedural material from `createUnlitMaterialInstance` works too.
+- **Size, measured vs estimated:** the Linux stripped saving of
+  `gltf: false` is ≈ **1.0 MB (−13 %)**, not the ≈ 4.4 MB of §7 — the closure
+  model counts object files the linker never extracts and lumps
+  `basis_transcoder`/`stb` (still linked here, decoders on) into the glTF
+  closure. All three off saves ≈ **2.15 MB (−27 %)** stripped. §7 stays an
+  estimate; the Android arm64 measurement (D5) is the number that decides the
+  rollout. The all-off build also has the same C entry-point set as the
+  default build, which proves the `TTexture.cpp` KTX/stb stubs (§5.4) cover
+  every decoder reference.
+- Default-build regression set on the same machine
+  (`xvfb-run dart test -j 1` over geometry, instancing, asset, glTF/bone/morph
+  animation, KTX upload lifetime, image, `slim_build_test` and
+  `feature_flags_test`): **58 passed, 9 skipped** — the skips are the four
+  slim tests (correctly skipped on a gltf-enabled build) plus five
+  pre-existing skips.
+
+### 10.3 Follow-ups (not in this round)
+
+- **Android arm64 measurement (D5)** — CI follow-up: build the `gltf: false`
+  APK/AAB on arm64, record stripped `libthermion_dart.so` and packaged size
+  next to the default, and run the `dlopen` smoke test (Android's linker
+  resolves lazily, see §5.7). Decide rollout step 5 on that number.
+- **Linux slim CI job**: run `xvfb-run dart test test/slim_build_test.dart`
+  after rewriting the package pubspec's `hooks:` block with
+  `features: {gltf: false}` (the `skip_native_build` job already rewrites
+  that block the same way). Optionally a second job for the all-off variant.
+- **Web (D4)**: before this branch merges, republish every supported web
+  engine variant with `Thermion_getEnabledFeatures` and advance
+  `native/web/web.version`; until then Dart's lazy fallback treats an older
+  engine as "all features on", which is true for every existing engine, so
+  nothing breaks either way. Regenerate the JS interop bindings in CI
+  (`make dart-bindings`) to confirm the hand-added entries.
+- Windows: the pragma guards compile-check only on a Windows runner (CI).
