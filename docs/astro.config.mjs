@@ -61,6 +61,8 @@ export default defineConfig({
             { label: 'Debugging', slug: 'debugging' },
             { label: 'Contributing', slug: 'contributing' },
             { label: 'Discord', link: 'https://discord.gg/h2VdDK3EAQ' },
+            { label: 'Holotype', link: 'https://holotype.com.sg/' },
+            { label: 'Hydroxide blog', link: 'https://hydroxide.dev/' },
           ],
         },
       ],
