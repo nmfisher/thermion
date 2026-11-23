@@ -75,10 +75,10 @@
     }
 
     try {
-      const dartModulePromise = WebAssembly.compileStreaming(fetch('./main.wasm'));
-      const dart2wasm_runtime = await import('./main.mjs');
-      const moduleInstance = await dart2wasm_runtime.instantiate(dartModulePromise, {});
-      await dart2wasm_runtime.invoke(moduleInstance);
+      const { compileStreaming } = await import('./main.mjs');
+      const compiledApp = await compileStreaming(fetch('./main.wasm'));
+      const app = await compiledApp.instantiate({});
+      app.invokeMain();
     } catch (jsErr) {
       const el = document.getElementById('error');
       el.textContent = 'Failed to boot physics_basics: ' + jsErr;
