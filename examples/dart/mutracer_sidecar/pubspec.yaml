@@ -1,0 +1,35 @@
+name: mutracer_sidecar
+description: >
+  Shared-device rendering spike: Thermion (WebGPU backend, present-skip
+  swapchain) plus a @meimu/mutracer path-tracing sidecar on the same browser
+  GPUDevice, composited and presented by JavaScript.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.3.0
+
+dependencies:
+  thermion_dart:
+    path: ../../../thermion_dart
+  logging: ^1.3.0
+  web: ^1.0.0
+
+hooks:
+  user_defines:
+    thermion_dart:
+      # Pure-Dart tooling only; the engine comes from a local emscripten
+      # build (scripts/verify_webgpu_prep_build.sh webgpu), never a host C++
+      # compile.
+      skip_native_build: true
+      # Select the WebGPU-capable engine (WGSL materials, main-thread).
+      backend: webgpu
+      # Copy the engine from thermion_dart/native/web/build-webgpu/build/out
+      # instead of downloading: the raytracer-webgpu branch adds
+      # Thermion_exportWebGPUDevice / SKIP_PRESENT, which are not in the
+      # published artifact yet. Set to false once CI publishes them.
+      #
+      # Only Flutter web builds (`flutter build web`) run the hook's web
+      # staging step; `dart compile wasm` does not run build hooks, so this
+      # example stages the engine with `dart run tool/stage_engine.dart`.
+      web_local: true

@@ -1,0 +1,17 @@
+# Build artifacts — produced by `npm run build` (esbuild sidecar bundle),
+# `dart compile wasm` and Thermion's build hook (engine staged from the local
+# WebGPU build, see pubspec.yaml `web_local`). Do not commit.
+web/main.wasm
+web/main.wasm.map
+web/main.mjs
+web/main.mjs.deps
+web/main.mjs.map
+web/main.support.js
+web/thermion_dart.js
+web/thermion_dart.wasm
+web/.thermion-web-engine/
+web/mutracer_sidecar.bundle.js
+web/sidecar-chunk-*.js
+web/bvh.worker.js
+.thermion-materials.json
+.thermion-materials.lock
