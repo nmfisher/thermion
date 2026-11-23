@@ -432,11 +432,15 @@ ThermionFeatures resolveFeatures(Object? raw, {required void Function(String) on
 Resolved once, early — next to the `backend` resolution (before the web
 branch), so both branches see it. Cross-feature rules:
 
-- `gltf: true, ktx: false` and `gltf: true, image_decoding: false` are
-  **valid**: gltfio stays, only the corresponding `TextureProvider` is not
-  registered (§5.3). Loading a glTF that embeds that texture type fails at
-  resource-load time with a clear log, exactly as an unknown MIME type does
-  today.
+- `gltf: true` together with `ktx: false` or `image_decoding: false` is a
+  **hard error in v1** (review decision D2): the combination is deferred
+  until completion semantics are defined and tested (§5.3). Filament
+  v1.77.2's `ResourceLoader` returns **zero async progress when the provider
+  map is empty**, so Dart's polling loop would spin forever — even for an
+  *untextured* model — and a missing provider merely logs and skips the
+  texture, which never surfaces the promised load error to Dart. The error
+  message names both keys and points at §5.3. `ktx`/`image_decoding` remain
+  independently switchable when `gltf: false`.
 - `gltf: false` implies Draco, meshoptimizer/mikktspace (Windows pragmas) and
   `uberzlib` drop regardless of other keys — they have no other client.
 - `runtime_materials: true` is orthogonal; no interaction rules needed
@@ -453,6 +457,8 @@ final features = resolveFeatures(input.userDefines['features'], onWarning: logge
 if (!features.gltf) defines['THERMION_ENABLE_GLTF'] = '0';
 if (!features.ktx) defines['THERMION_ENABLE_KTX'] = '0';
 if (!features.imageDecoding) defines['THERMION_ENABLE_IMAGE_DECODING'] = '0';
+// v1 (decision D2, §5.3): gltf on + a decoder off is rejected before any
+// build work — resolveFeatures throws naming both keys.
 ```
 
 The `libs` list (lines 316-395) becomes conditional — order otherwise
@@ -632,8 +638,21 @@ Compile-time-only includes (§3.1 list: `TEngine.cpp`, `TIndirectLight.cpp`,
 or guarded; none contributes symbols, but dropping them keeps the disabled
 build honest.
 
-### 5.3 Mixed configurations: gltf on, ktx/image_decoding off
+### 5.3 Mixed configurations: gltf on, ktx/image_decoding off — **deferred (D2)**
 
+**Settled decision D2: v1 rejects these combinations at hook time** (§4.2).
+Two Filament v1.77.2 behaviours make the naive provider guard unsafe:
+
+1. `ResourceLoader::asyncGetLoadProgress` returns **0 forever when the
+   provider map is empty** — with both decoders off, Dart's async polling
+   (`GltfResourceLoader_asyncGetLoadProgress`) never completes, *including
+   for a model with no textures at all*;
+2. for a MIME type with **no registered provider**, the resource loader logs
+   and skips that texture; the load "succeeds" with missing textures instead
+   of giving Dart the load error §4.2 used to promise.
+
+Guarded registration remains the intended implementation **once the
+combination is enabled in a later version** —
 `TGltfResourceLoader.cpp` registration block (the file's own TODO, lines
 64-70, asks for this):
 
@@ -652,9 +671,22 @@ build honest.
 `createStbProvider`/`createKtx2Provider` live in `gltfio_core`, so with gltf
 on the archives stay linked; only the provider *references* to `stb` /
 `ktxreader` / `basis_transcoder` disappear, which is exactly what lets the
-hook drop those archives (§4.3). A glTF embedding a PNG then fails
-resource loading with the existing "no texture provider for image/png"
-path — surfaced by Dart as a load error, not a crash.
+hook drop those archives (§4.3).
+
+**Acceptance criteria before this combination may be enabled** (all must be
+implemented and tested, for **both** the sync `loadResources` path and the
+async `asyncBeginLoad/asyncUpdateLoad/asyncGetLoadProgress` path):
+
+- a **textureless** glTF asset loads to completion (progress reaches 1.0,
+  Dart's poll terminates) even when the provider map is empty — requires a
+  Thermion-side completion check that does not rely on Filament's progress
+  alone;
+- an asset that **requires a disabled decoder** fails with a **clear,
+  propagated load error** naming the MIME type and the `features.*` key —
+  not a log-and-skip. This needs a Thermion-side pre-check of the asset's
+  texture MIME types against the registered providers (via cgltf, which is
+  already vendored) or an equivalent completion/failure signal, since
+  Filament itself only logs.
 
 ### 5.4 What each disabled feature exports (stub contract)
 
@@ -713,7 +745,10 @@ apps and is worth doing even if the opt-out mechanism is never merged.
 
 ### 5.7 Link-time verification
 
-For each of the 8 feature combinations (2³), CI builds `libthermion_dart`
+For each **valid v1** feature combination — 5 of the 2³: all-on,
+`ktx: false` and/or `image_decoding: false` with `gltf: false` (3 combos),
+and `gltf: false` alone; the `gltf: true` + decoder-off combos are rejected
+by the hook (D2, §5.3) — CI builds `libthermion_dart`
 with the corresponding defines and the reduced `libs` list. Success criteria:
 
 1. link succeeds (no undefined Filament symbols) — proves the guards cover
@@ -810,7 +845,7 @@ final `.so` is smaller after `--gc-sections`, but relative numbers hold.
 | Closure | Marginal KB | Breakdown (KB) |
 | --- | --- | --- |
 | gltfio (all providers, as linked today) | **4389** | gltfio_core 1419, basis_transcoder 1396, dracodec 998, geometry-tangents 327, stb 124, meshoptimizer 57, ktxreader 36, mikktspace 26, uberzlib 3 |
-| gltfio without texture providers (`ktx: false, image_decoding: false`) | 2772 | gltfio_core 1359, dracodec 998, geometry 327, meshoptimizer 57, mikktspace 26, uberzlib 3 |
+| gltfio without texture providers (`gltf: true, ktx: false, image_decoding: false` — **not buildable in v1**, deferred by D2/§5.3; informational only) | 2772 | gltfio_core 1359, dracodec 998, geometry 327, meshoptimizer 57, mikktspace 26, uberzlib 3 |
 | ktxreader + Ktx1Bundle | **1523** | basis_transcoder 1396, ktxreader 83, image(Ktx1Bundle) 44 |
 | stb (`Image_decode`) | **124** | stb 124 |
 | image (`LinearImage` only) | **9** | image 9 |
@@ -858,7 +893,7 @@ Risks and mitigations:
 | A future contributor adds an unguarded gltfio reference | the reduced link line fails CI immediately (§5.7); headers are guarded too, so the include itself disappears |
 | Stub signature drift vs. headers | symbol-set diff in CI (§5.7 criterion 2); stubs live next to the real implementation in the same file, same header contract |
 | Users disable a feature their code uses | `UnsupportedError` names the exact `features.*` key (§6.2); `supports()` allows graceful fallback |
-| glTF loads with missing texture providers (mixed configs) | existing no-provider error path; documented behaviour (§5.3) |
+| glTF loads with missing texture providers (mixed configs) | combination rejected at hook time in v1 (D2); enabling it later requires the §5.3 completion/failure criteria, tested sync and async |
 | Filament upgrade changes transitive deps (e.g. gltfio stops using Draco) | re-run `.scratch/closure_size.py` per artifact bump; the map in §3 is version-pinned to v1.77.2 |
 | Per-OS feature demand later | flat schema extends to per-OS maps without breaking (§4.1) |
 
@@ -881,3 +916,4 @@ do not re-open them during implementation.
 | # | Decision | Where it lands |
 | --- | --- | --- |
 | D1 | Procedural scene assets stay in the core: `TSceneAsset.cpp` uses local guards (Pattern B), not a whole-file stub; shared `SceneAsset_createFromBuffers`, entity access, instancing and destruction stay live. A slim-build test creates, instances, renders and destroys procedural geometry. | §3.1, §5.2, §5.4, §5.7 (criterion 4), §6.2 |
+| D2 | Mixed builds (`gltf: true` with `ktx: false` or `image_decoding: false`) are **deferred**: hard error at hook time in v1. Filament v1.77.2 stalls async progress at 0 with an empty provider map (even textureless assets) and log-and-skips missing providers. Re-enabling requires defined+tested completion for textureless assets and a clear propagated failure for assets needing a disabled decoder, sync and async. | §4.2, §4.3, §5.3, §5.7, §7 (informational row), §8 risk table |
