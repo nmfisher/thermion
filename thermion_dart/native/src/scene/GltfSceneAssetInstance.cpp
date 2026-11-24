@@ -1,3 +1,5 @@
+#include <gltfio/Animator.h>
+
 #include "scene/GltfSceneAssetInstance.hpp"
 #include "scene/GltfSceneAsset.hpp"
 
@@ -77,6 +79,26 @@ namespace thermion
             return nullptr;
         }
         return _ncm->getName(ci);
+    }
+
+    size_t GltfSceneAssetInstance::getSkinCount() const
+    {
+        return _instance->getSkinCount();
+    }
+
+    const math::mat4f *GltfSceneAssetInstance::getInverseBindMatrices(size_t skinIndex) const
+    {
+        return _instance->getInverseBindMatricesAt(skinIndex);
+    }
+
+    void GltfSceneAssetInstance::updateBoneMatrices()
+    {
+        _instance->getAnimator()->updateBoneMatrices();
+    }
+
+    std::vector<std::string> GltfSceneAssetInstance::getMorphTargetNames(utils::Entity childEntity) const
+    {
+        return _instanceOwner->getMorphTargetNames(childEntity);
     }
 
 }

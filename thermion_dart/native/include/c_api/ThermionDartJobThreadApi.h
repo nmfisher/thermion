@@ -1,6 +1,7 @@
 #pragma once
 
 #include "APIBoundaryTypes.h"
+#include "TGltfAnimationManager.h"
 
 #include "TEngine.h"
 #include "TMaterialInstance.h"
@@ -73,6 +74,14 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void RenderManager_removeSwapChainJobThread(TJobThread *jobThread, TRenderManager *tRenderManager, TSwapChain *tSwapChain, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void AnimationManager_createJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TAnimationManager *));
         EMSCRIPTEN_KEEPALIVE void AnimationManager_destroyJobThread(TJobThread *jobThread, TAnimationManager *tAnimationManager, uint32_t requestId, VoidCallback onComplete);
+        // Creates the glTF clip playback handle on the owning thread and
+        // registers it on the core manager's frame tick. Create the
+        // TAnimationManager first; deliver its handle to onComplete.
+        EMSCRIPTEN_KEEPALIVE void GltfAnimationManager_createJobThread(TJobThread *jobThread, TAnimationManager *tAnimationManager, void (*onComplete)(TGltfAnimationManager *));
+        // Removes the glTF clip playback tickable and frees the handle on the
+        // owning thread, after earlier queued work. Await onComplete before
+        // AnimationManager_destroyJobThread — the core manager must outlive it.
+        EMSCRIPTEN_KEEPALIVE void GltfAnimationManager_destroyJobThread(TJobThread *jobThread, TGltfAnimationManager *tGltfAnimationManager, uint32_t requestId, VoidCallback onComplete);
 
         EMSCRIPTEN_KEEPALIVE void Engine_createJobThread(TJobThread *jobThread,
             TBackend backend,
@@ -272,7 +281,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void AnimationManager_updateJobThread(TJobThread *jobThread, TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete);
 
         EMSCRIPTEN_KEEPALIVE void AnimationManager_setGltfAnimationTimeJobThread(TJobThread *jobThread,
-            TAnimationManager *tAnimationManager,
+            TGltfAnimationManager *tGltfAnimationManager,
             TSceneAsset *tSceneAsset,
             int animationIndex,
             float timeInSeconds,

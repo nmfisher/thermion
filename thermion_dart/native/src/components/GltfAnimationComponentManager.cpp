@@ -10,6 +10,7 @@ namespace thermion
 {
 
     void GltfAnimationComponentManager::addAnimationComponent(FilamentInstance *target) {
+        std::lock_guard lock(mMutex);
         if(!hasComponent(target->getRoot())) {
             EntityInstanceBase::Type componentInstance = addComponent(target->getRoot());
             this->elementAt<0>(componentInstance) = { target };
@@ -17,6 +18,7 @@ namespace thermion
     }
 
     bool GltfAnimationComponentManager::addGltfAnimation(FilamentInstance *target, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset, float speed) {
+        std::lock_guard lock(mMutex);
 
         EntityInstanceBase::Type componentInstance = getInstance(target->getRoot());
 
@@ -79,7 +81,37 @@ namespace thermion
         return true;
     }   
 
+    void GltfAnimationComponentManager::removeGltfAnimation(FilamentInstance *target, int index) {
+        std::lock_guard lock(mMutex);
+        // Stopping a clip on an asset that never played one is a no-op;
+        // getInstance() on a missing component would assert/UB.
+        if (!hasComponent(target->getRoot())) {
+            return;
+        }
+        auto animationComponentInstance = getInstance(target->getRoot());
+        auto &animationComponent = elementAt<0>(animationComponentInstance);
+
+        auto erased = std::remove_if(animationComponent.animations.begin(),
+                                     animationComponent.animations.end(),
+                                     [=](GltfAnimation &anim)
+                                     { return anim.index == index; });
+        animationComponent.animations.erase(erased,
+                                            animationComponent.animations.end());
+    }
+
+    void GltfAnimationComponentManager::setGltfAnimationTime(FilamentInstance *target, int animationIndex, float timeInSeconds) {
+        std::lock_guard lock(mMutex);
+        target->getAnimator()->applyAnimation(animationIndex, timeInSeconds);
+        target->getAnimator()->updateBoneMatrices();
+    }
+
+    float GltfAnimationComponentManager::getGltfAnimationDuration(FilamentInstance *target, int animationIndex) {
+        std::lock_guard lock(mMutex);
+        return target->getAnimator()->getAnimationDuration(animationIndex);
+    }
+
     void GltfAnimationComponentManager::removeAnimationComponent(FilamentInstance *target) {
+        std::lock_guard lock(mMutex);
         if(hasComponent(target->getRoot())) {
             removeComponent(target->getRoot());
             TRACE("Found component, component removed");
@@ -89,6 +121,7 @@ namespace thermion
     }
 
     void GltfAnimationComponentManager::update(uint64_t frameTimeInNanos) {
+        std::lock_guard lock(mMutex);
  
         TRACE("Updating %d glTF animation components at %lu", getComponentCount(), frameTimeInNanos);
         for (auto it = begin(); it < end(); it++)

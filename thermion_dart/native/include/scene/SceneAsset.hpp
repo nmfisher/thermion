@@ -1,11 +1,14 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <vector>
 
 #include <filament/IndexBuffer.h>
 #include <filament/Scene.h>
 #include <filament/VertexBuffer.h>
 #include <math.h>
+#include <math/mat4.h>
 #include <utils/Entity.h>
 
 #include "CustomGeometry.hpp"
@@ -80,6 +83,42 @@ class SceneAsset {
 
         virtual const char *getBoneName(size_t skinIndex, size_t boneIndex) const {
             return nullptr;
+        }
+
+        /// Morph target names (glTF extras metadata) for the given child
+        /// entity. Asset types without morph target metadata return empty.
+        virtual std::vector<std::string> getMorphTargetNames(utils::Entity childEntity) const {
+            return {};
+        }
+
+        /// The asset whose entity carries the runtime bone animation
+        /// component. Defaults to the asset itself. Owner assets whose
+        /// getEntity() differs from their instances' entities (e.g. glTF
+        /// owners) override this to return the instance that skin/bone
+        /// operations target, so add/remove of the bone animation component
+        /// always resolve to the same entity. Returns nullptr when no
+        /// instance exists yet.
+        virtual SceneAsset *getSkinTarget() {
+            return this;
+        }
+
+        /// Skinning interface. Joint entities/counts/names are exposed by
+        /// getBones/getBoneCount/getBoneName above; the accessors below
+        /// complete the gltfio-free skin interface used by runtime bone
+        /// animation. Asset types without skins return 0 / nullptr / no-op.
+        virtual size_t getSkinCount() const {
+            return 0;
+        }
+
+        /// Inverse bind matrices for all joints of the given skin (i.e.
+        /// getBoneCount(skinIndex) matrices), or nullptr when unavailable.
+        virtual const math::mat4f *getInverseBindMatrices(size_t skinIndex) const {
+            return nullptr;
+        }
+
+        /// Recompute and upload GPU bone matrices from the current joint
+        /// transforms. No-op for asset types without skinned renderables.
+        virtual void updateBoneMatrices() {
         }
 
         /// Geometry buffer accessors. Asset types without accessible geometry

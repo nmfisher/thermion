@@ -8,20 +8,20 @@
 namespace thermion
 {
 
-    void BoneAnimationComponentManager::addAnimationComponent(FilamentInstance *target)
+    void BoneAnimationComponentManager::addAnimationComponent(SceneAsset *target)
     {
-        if (!hasComponent(target->getRoot()))
+        if (!hasComponent(target->getEntity()))
         {
-            EntityInstanceBase::Type componentInstance = addComponent(target->getRoot());
+            EntityInstanceBase::Type componentInstance = addComponent(target->getEntity());
             this->elementAt<0>(componentInstance) = {target};
         }
     }
 
-    void BoneAnimationComponentManager::removeAnimationComponent(FilamentInstance *target)
+    void BoneAnimationComponentManager::removeAnimationComponent(SceneAsset *target)
     {
-        if (hasComponent(target->getRoot()))
+        if (hasComponent(target->getEntity()))
         {
-            removeComponent(target->getRoot());
+            removeComponent(target->getEntity());
         }
     }
 
@@ -38,7 +38,6 @@ namespace thermion
             auto &boneAnimations = animationComponent.animations;
 
             auto target = animationComponent.target;
-            auto animator = target->getAnimator();
 
             // When fading in/out, interpolate between the "current" transform (which has possibly been set by the glTF animation loop above)
             // and the first (for fading in) or last (for fading out) frame.
@@ -126,7 +125,7 @@ namespace thermion
                     newTranslation = currTranslation;
                 }
 
-                const Entity joint = target->getJointsAt(animationStatus.skinIndex)[animationStatus.boneIndex];
+                const Entity joint = target->getBones(animationStatus.skinIndex)[animationStatus.boneIndex];
 
                 // now calculate the fade out/in delta
                 // if we're fading in, this will be 0.0 at the start of the fade and 1.0 at the end
@@ -158,7 +157,7 @@ namespace thermion
 
                 mTransformManager.setTransform(jointTransform, composeMatrix(newTranslation, newRotation, newScale));
 
-                animator->updateBoneMatrices();
+                target->updateBoneMatrices();
 
                 if (animationStatus.loop && elapsedInSeconds >= (animationStatus.durationInSecs + animationStatus.fadeInInSecs + animationStatus.fadeOutInSecs))
                 {

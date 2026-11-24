@@ -116,14 +116,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     Future<Uint8List> Function(String uri)? loadResource,
     Pointer<TLightManager> lightManagerPointer,
     Pointer<TRenderableManager> renderableManagerPointer,
-    Pointer<TAnimationManager> animationManagerPointer, {
+    Pointer<TAnimationManager> animationManagerPointer,
+    Pointer<TGltfAnimationManager> gltfAnimationManagerPointer, {
     Backend backend = Backend.DEFAULT,
   }) : _backend = backend {
     this._loadResource = loadResource ?? defaultResourceLoader;
     this.lightManager = FFILightManager(lightManagerPointer, this);
     this.renderableManager = FFIRenderableManager(renderableManagerPointer, this);
     this.transformManager = FFITransformManager(transformManagerPtr, this);
-    this.animationManager = FFIAnimationManager(animationManagerPointer, this);
+    this.animationManager = FFIAnimationManager(animationManagerPointer, gltfAnimationManagerPointer, this);
     this.renderManager = FFIRenderManager(renderManager, this);
 
     // A new engine starts uncapped. Scheduler stop/start within this engine
@@ -225,6 +226,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       (cb) => AnimationManager_createJobThread(jobThreadHandle, engine, cb),
     );
 
+    // Dedicated glTF clip playback handle, created with the core
+    // TAnimationManager and added to its frame tick (addTickable). Runs on
+    // the owning thread like the core manager's creation, so the tickable
+    // list is never mutated concurrently with a frame tick.
+    final gltfAnimationManager = await withPointerCallback<TGltfAnimationManager>(
+      (cb) => GltfAnimationManager_createJobThread(jobThreadHandle, animationManager, cb),
+    );
+
     await withVoidCallback(
       (requestId, cb) =>
           RenderManager_addAnimationManagerJobThread(jobThreadHandle, renderManager, animationManager, requestId, cb),
@@ -243,6 +252,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       lightManager,
       renderableManager,
       animationManager,
+      gltfAnimationManager,
       backend: config.backend,
     );
 
@@ -434,6 +444,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // AssetLoader holds Engine-bound Materials (via its internally-created
     // ubershader MaterialProvider), the AnimationManager wraps gltfio
     // animators bound to the Engine, and NameComponentManager is standalone.
+    // The glTF clip playback handle must be removed from the core manager's
+    // frame tick and freed before the core manager itself is destroyed.
+    // Awaited on the owning thread, after earlier queued work.
+    await withVoidCallback(
+      (requestId, cb) =>
+          GltfAnimationManager_destroyJobThread(jobThreadHandle, animationManager.gltfAnimationManager, requestId, cb),
+    );
     await withVoidCallback(
       (requestId, cb) =>
           AnimationManager_destroyJobThread(jobThreadHandle, (animationManager).animationManager, requestId, cb),

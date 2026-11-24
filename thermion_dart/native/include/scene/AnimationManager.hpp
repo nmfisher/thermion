@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <mutex>
 #include <vector>
 
@@ -9,33 +10,34 @@
 #include "c_api/APIBoundaryTypes.h"
 
 #include "scene/AnimationComponentBase.hpp"
-#include "scene/GltfSceneAssetInstance.hpp"
-#include "scene/GltfSceneAsset.hpp"
+#include "scene/TickableAnimationSystem.hpp"
 #include "scene/SceneAsset.hpp"
 
 namespace thermion
 {
 
     using namespace filament;
-    using namespace filament::gltfio;
     using namespace utils;
 
     // Assets can be animated by:
-    // 1) playing an embedded gltf animation 
-    // 2) creating a buffer containing the weights for the asset's morph target(s) 
+    // 1) creating a buffer containing the weights for the asset's morph target(s)
     //    at successive frames; or
-    // 3) creating a similar buffer containing the transforms for the asset's bones 
-    //    at successive frames;
+    // 2) creating a similar buffer containing the transforms for the asset's bones
+    //    at successive frames.
     //
-    // (note that embedded gltf animations may target the asset's morph target weights or 
-    // bone transforms; these are still handled separately from manually-created animations).
+    // Both work on any SceneAsset / utils::Entity through the gltfio-free
+    // SceneAsset skin interface, so they stay core code with no gltfio dependency.
     //
-    // AnimationManager maintains three component managers (one for each type of animation listed 
-    // above). Calling update() with the number of nanoseconds elapsed since the last call, 
-    // calls the same on each component manager, which will then update the asset's animatable properties 
-    // to match the target frame time.
-    
-    class GltfAnimationComponentManager;
+    // Embedded glTF clip playback is handled by an optional animation system
+    // (GltfAnimationComponentManager, see TGltfAnimationManager.cpp) added via
+    // addTickable() and ticked by update().
+    //
+    // AnimationManager maintains two component managers (one for each type of
+    // runtime animation listed above). Calling update() with the number of
+    // nanoseconds elapsed since the last call, calls the same on each component
+    // manager and registered system, which will then update the asset's
+    // animatable properties to match the target frame time.
+
     class MorphAnimationComponentManager;
     class BoneAnimationComponentManager;
     class AnimationManager
@@ -50,12 +52,23 @@ namespace thermion
         /// @param frameTimeInNanos 
         void update(uint64_t frameTimeInNanos);
 
-        
-        /// @param asset
-        /// @param childEntity
-        /// @return
-        std::vector<std::string> getMorphTargetNames(GltfSceneAsset *asset, EntityId childEntity);
-        
+        /// Add an optional animation system (e.g. glTF clip playback) to be
+        /// ticked by update(), before the core morph/bone managers. The
+        /// caller keeps ownership and must call removeTickable() before
+        /// destroying the system (the glTF animation manager does this on
+        /// its own create/destroy). Adding the same system twice is a no-op.
+        /// @param system
+        void addTickable(TickableAnimationSystem *system);
+
+        /// Stop ticking [system]. Does not destroy it; the caller owns it.
+        /// Removing a system that was never added is a no-op.
+        /// @param system
+        void removeTickable(TickableAnimationSystem *system);
+
+        /// The engine this manager was created with (used by optional
+        /// animation systems to obtain Filament interfaces).
+        Engine *getEngine() { return mEngine; }
+
         /// @param sceneAsset
         /// @param morphData
         /// @param morphIndices
@@ -77,11 +90,11 @@ namespace thermion
             utils::Entity entity);
 
         
-        /// @param instance
+        /// @param asset
         /// @param skinIndex
         /// @param boneIndex
         /// @return
-        math::mat4f getInverseBindMatrix(GltfSceneAssetInstance *instance, int skinIndex, int boneIndex);
+        math::mat4f getInverseBindMatrix(SceneAsset *asset, int skinIndex, int boneIndex);
 
         /// Immediately start animating the bone at [boneIndex] under the parent instance [entity] at skin [skinIndex].
         /// @param entity the mesh entity to animate
@@ -91,7 +104,7 @@ namespace thermion
         /// @param frameLengthInMs the length of each frame in ms
         /// @return true if the bone animation was successfully enqueued
         bool addBoneAnimation(
-            GltfSceneAssetInstance *instance,
+            SceneAsset *asset,
             int skinIndex,
             int boneIndex,
             const float *const frameData,
@@ -103,34 +116,18 @@ namespace thermion
             bool loop = false);
 
         
-        /// @param instance
+        /// @param asset
         /// @param skinIndex
         /// @return
-        std::vector<math::mat4f> getBoneRestTranforms(GltfSceneAssetInstance *instance, int skinIndex);
+        std::vector<math::mat4f> getBoneRestTranforms(SceneAsset *asset, int skinIndex);
 
         
-        /// @param instance
-        void resetToRestPose(GltfSceneAssetInstance *instance);
+        /// @param asset
+        void resetToRestPose(SceneAsset *asset);
 
         
-        /// @param instance
-        void updateBoneMatrices(GltfSceneAssetInstance *instance);
-
-        
-        /// @param instance
-        /// @param animationIndex
-        /// @param loop
-        /// @param reverse
-        /// @param replaceActive
-        /// @param crossfade
-        /// @param startOffset
-        /// @param speed
-        void playGltfAnimation(GltfSceneAssetInstance *instance, int animationIndex, bool loop, bool reverse, bool replaceActive, float crossfade = 0.3f, float startOffset = 0.0f, float speed = 1.0f);
-
-        
-        /// @param instance
-        /// @param animationIndex
-        void stopGltfAnimation(GltfSceneAssetInstance *instance, int animationIndex);
+        /// @param asset
+        void updateBoneMatrices(SceneAsset *asset);
 
         
         /// @param instance
@@ -139,39 +136,13 @@ namespace thermion
         void setMorphTargetWeights(utils::Entity entity, const float *const weights, int count);
 
         
-        /// @param instance
-        /// @param animationIndex
-        /// @param timeInSeconds
-        void setGltfAnimationTime(GltfSceneAssetInstance *instance, int animationIndex, float timeInSeconds);
-
-        
-        /// @param instance
+        /// @param asset
         /// @return
-        std::vector<std::string> getGltfAnimationNames(GltfSceneAssetInstance *instance);
+        bool addBoneAnimationComponent(SceneAsset *asset);
 
         
-        /// @param instance
-        /// @param animationIndex
-        /// @return
-        float getGltfAnimationDuration(GltfSceneAssetInstance *instance, int animationIndex);
-
-        
-        /// @param instance
-        /// @return
-        bool addGltfAnimationComponent(GltfSceneAssetInstance *instance);
-
-        
-        /// @param instance
-        void removeGltfAnimationComponent(GltfSceneAssetInstance *instance);
-
-        
-        /// @param instance
-        /// @return
-        bool addBoneAnimationComponent(GltfSceneAssetInstance *instance);
-
-        
-        /// @param instance
-        void removeBoneAnimationComponent(GltfSceneAssetInstance *instance);
+        /// @param asset
+        void removeBoneAnimationComponent(SceneAsset *asset);
 
         
         /// @param asset
@@ -186,9 +157,13 @@ namespace thermion
     private:
         Engine *mEngine = nullptr;
         std::mutex mMutex;
-        std::unique_ptr<GltfAnimationComponentManager> mGltfAnimationComponentManager;
         std::unique_ptr<MorphAnimationComponentManager> mMorphAnimationComponentManager;
         std::unique_ptr<BoneAnimationComponentManager> mBoneAnimationComponentManager;
+        // Non-owning optional animation systems (e.g. glTF clip playback),
+        // ticked before the core component managers so runtime morph/bone
+        // animations apply on top of (and can blend with) the clip pose.
+        // Owners add/remove them via addTickable/removeTickable.
+        std::vector<TickableAnimationSystem *> mTickables;
         uint64_t mLastUpdateTime;
     };
 }

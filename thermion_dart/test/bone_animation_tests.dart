@@ -170,4 +170,49 @@ void main() async {
       cameraPosition: Vector3(0, 5, 15),
     );
   });
+
+  // Regression for the owner/instance entity mismatch use-after-free:
+  // addBoneAnimationComponent on a glTF *owner* used to register the
+  // component under the owner's root entity, while teardown removes it by
+  // instance-0 entity. The stale component survived SceneAsset_destroy and
+  // the next animation update dereferenced the freed target. Adding on the
+  // owner must normalize to the same skin target (first instance) that
+  // removal uses, so destruction leaves nothing behind.
+  test('bone animation component added on owner is removed on destroy (no UAF)', () async {
+    await testHelper.withViewer(
+      (viewer) async {
+        final am = FilamentApp.instance!.animationManager;
+        final cube = await viewer.loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb", addToScene: true);
+
+        // Pass the owner asset directly (FFIAnimationManager does not unwrap).
+        expect(await am.addBoneAnimationComponent(cube), isTrue);
+
+        // Queue a looping bone animation on instance 0 so the update loop
+        // actively dereferences the component target every frame.
+        final instance = await cube.getInstance(0);
+        const numFrames = 60;
+        final frameData = <SkeletonTransform>[];
+        for (int i = 0; i < numFrames; i++) {
+          final angle = (pi / 2) * (i / (numFrames - 1));
+          frameData.add([(rotation: Quaternion.axisAngle(Vector3(0, 1, 0), angle), translation: Vector3.zero())]);
+        }
+        final animation = BoneAnimationData(["MyBone"], frameData, frameLengthInMs: 1000.0 / 60.0, space: Space.Bone);
+        await instance.addBoneAnimation(animation, loop: true);
+
+        await am.update(1_000_000_000);
+        await am.update(1_500_000_000);
+
+        // Destroy the owner. Teardown removes the component by instance-0
+        // entity; pre-fix the owner-keyed component was never removed.
+        await viewer.destroyAsset(cube);
+
+        // Pre-fix this update dereferenced the freed target (UAF crash).
+        await am.update(2_000_000_000);
+        await am.update(2_500_000_000);
+        await testHelper.capture(viewer.view, "bone_component_owner_destroy_no_uaf");
+      },
+      bg: kRed,
+      cameraPosition: Vector3(0, 5, 15),
+    );
+  });
 }

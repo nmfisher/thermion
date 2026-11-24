@@ -3,6 +3,10 @@
 #include "APIExport.h"
 #include "APIBoundaryTypes.h"
 
+// glTF embedded clip playback lives in TGltfAnimationManager.h
+// (AnimationManager_*GltfAnimation*, keyed on a TGltfAnimationManager handle);
+// this header stays 100% core.
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -13,8 +17,6 @@ extern "C"
 
 	EMSCRIPTEN_KEEPALIVE void AnimationManager_update(TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos);
 
-	EMSCRIPTEN_KEEPALIVE bool AnimationManager_addGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset);
-	EMSCRIPTEN_KEEPALIVE bool AnimationManager_removeGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset);
 	EMSCRIPTEN_KEEPALIVE void AnimationManager_addMorphAnimationComponent(TAnimationManager *tAnimationManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void AnimationManager_removeMorphAnimationComponent(TAnimationManager *tAnimationManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE bool AnimationManager_addBoneAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset);
@@ -60,37 +62,6 @@ extern "C"
 		int boneIndex,
 		float *const out);
 
-	EMSCRIPTEN_KEEPALIVE bool AnimationManager_playGltfAnimation(
-		TAnimationManager *tAnimationManager,
-		TSceneAsset *tSceneAsset,
-		int index,
-		bool loop,
-		bool reverse,
-		bool replaceActive,
-		float crossfade,
-		float startOffset,
-		float speed);
-
-	EMSCRIPTEN_KEEPALIVE bool AnimationManager_stopGltfAnimation(
-		TAnimationManager *tAnimationManager,
-		TSceneAsset *sceneAsset,
-		int index);
-
-	EMSCRIPTEN_KEEPALIVE float AnimationManager_getGltfAnimationDuration(
-		TAnimationManager *tAnimationManager,
-		TSceneAsset *sceneAsset,
-		int animationIndex);
-
-	EMSCRIPTEN_KEEPALIVE int AnimationManager_getGltfAnimationCount(
-		TAnimationManager *tAnimationManager,
-		TSceneAsset *sceneAsset);
-
-	EMSCRIPTEN_KEEPALIVE void AnimationManager_getGltfAnimationName(
-		TAnimationManager *tAnimationManager,
-		TSceneAsset *sceneAsset,
-		char *const outPtr,
-		int index);
-
 	EMSCRIPTEN_KEEPALIVE int AnimationManager_getMorphTargetNameCount(
 		TAnimationManager *tAnimationManager,
 		TSceneAsset *sceneAsset,
@@ -113,14 +84,6 @@ extern "C"
 		EntityId entityId,
 		const float *const morphData,
 		int numWeights);
-
-	EMSCRIPTEN_KEEPALIVE bool AnimationManager_setGltfAnimationTime(
-		TAnimationManager *tAnimationManager,
-		TSceneAsset *tSceneAsset,
-		int animationIndex,
-		float timeInSeconds
-	);
-
 
 
 #ifdef __cplusplus

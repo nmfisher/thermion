@@ -17,9 +17,12 @@
 
 #include <utils/SingleInstanceComponentManager.h>
 
+#include <mutex>
+
 #include "Log.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
 #include "scene/AnimationComponentBase.hpp"
+#include "scene/TickableAnimationSystem.hpp"
 
 template class std::vector<float>;
 namespace thermion
@@ -55,7 +58,8 @@ namespace thermion
         std::vector<GltfAnimation> animations;
     };
 
-    class GltfAnimationComponentManager : public utils::SingleInstanceComponentManager<GltfAnimationComponent> {
+    class GltfAnimationComponentManager : public utils::SingleInstanceComponentManager<GltfAnimationComponent>,
+                                          public TickableAnimationSystem {
         public:
             GltfAnimationComponentManager(
                 utils::EntityManager &em,
@@ -64,14 +68,21 @@ namespace thermion
                     utils::SingleInstanceComponentManager<GltfAnimationComponent>(em, "GltfAnimationComponentManager"),
                     mTransformManager(transformManager), mRenderableManager(renderableManager) {};
             ~GltfAnimationComponentManager() = default;
+            // All public methods take mMutex internally, so direct FFI calls
+            // serialize against the frame tick (update()) without relying on
+            // the AnimationManager's mutex or the engine API lock (which
+            // compiles to nothing on web worker builds).
             void addAnimationComponent(FilamentInstance *target);
             void removeAnimationComponent(FilamentInstance *target);
 
             bool addGltfAnimation(FilamentInstance *target, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset, float speed = 1.0f);
-            // GltfAnimationComponent getAnimationComponentInstance(FilamentInstance *target);
-            void update(uint64_t frameTimeInNanos); 
+            void removeGltfAnimation(FilamentInstance *target, int index);
+            void setGltfAnimationTime(FilamentInstance *target, int animationIndex, float timeInSeconds);
+            float getGltfAnimationDuration(FilamentInstance *target, int animationIndex);
+            void update(uint64_t frameTimeInNanos) override;
 
         private:
+            std::mutex mMutex;
             filament::TransformManager &mTransformManager;
             filament::RenderableManager &mRenderableManager;
             uint64_t mLastUpdateTime;

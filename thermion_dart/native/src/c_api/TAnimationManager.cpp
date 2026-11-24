@@ -22,6 +22,8 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void AnimationManager_destroy(TAnimationManager *tAnimationManager) {
         THERMION_ENGINE_API_GUARD;
+        // glTF clip playback tickables are non-owning; their owner must call
+        // GltfAnimationManager_destroy (TGltfAnimationManager.h) first.
         delete reinterpret_cast<AnimationManager *>(tAnimationManager);
     }
 
@@ -31,100 +33,32 @@ extern "C"
         animationManager->update(frameTimeInNanos);
     }
 
-    EMSCRIPTEN_KEEPALIVE bool AnimationManager_addGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
-    {
-        THERMION_ENGINE_API_GUARD;
-        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            return false;
-        }
-
-        GltfSceneAssetInstance *instance;
-
-        if (sceneAsset->isInstance())
-        {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-        } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
-        }
-        
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-
-        animationManager->addGltfAnimationComponent(instance);
-        return true;
-    }
-    EMSCRIPTEN_KEEPALIVE bool AnimationManager_removeGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
-    {
-        THERMION_ENGINE_API_GUARD;
-        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            return false;
-        }
-
-        GltfSceneAssetInstance *instance;
-
-        if (sceneAsset->isInstance())
-        {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-        } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
-        }
-        
-
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        animationManager->removeGltfAnimationComponent(instance);
-        return true;
-    }
-
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_addBoneAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
     {
         THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-  
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
+
+        // Gate on the skin interface, not the asset type: any SceneAsset with
+        // a skin target (an instance for glTF owners) can carry a bone
+        // animation component.
+        auto *skinTarget = sceneAsset->getSkinTarget();
+        if (!skinTarget || skinTarget->getSkinCount() == 0) {
             return false;
         }
 
-        GltfSceneAssetInstance *instance;
-
-        if (sceneAsset->isInstance())
-        {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-        } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
-        }
-        
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
 
-        animationManager->addBoneAnimationComponent(instance);
-        return true;
+        return animationManager->addBoneAnimationComponent(sceneAsset);
     }
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_removeBoneAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
     {
         THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            return false;
-        }
-
-          
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            return false;
-        }
-
-        GltfSceneAssetInstance *instance;
-
-        if (sceneAsset->isInstance())
-        {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-        } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
-        }
-
+        // No asset-type gate: removal simply no-ops when the skin target has
+        // no bone animation component (or no skin target exists at all).
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        animationManager->removeBoneAnimationComponent(instance);
+        animationManager->removeBoneAnimationComponent(sceneAsset);
         return true;
     }
 
@@ -185,23 +119,13 @@ extern "C"
         THERMION_ENGINE_API_GUARD;
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if (sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            Log("Error - incorrect asset type, cannot reset to reset pose");
+        auto *skinTarget = sceneAsset->getSkinTarget();
+        if (!skinTarget || skinTarget->getSkinCount() == 0) {
+            Log("Error - asset has no skin, cannot reset to rest pose");
             return;
         }
 
-          
-        GltfSceneAssetInstance *instance;
-
-        if (sceneAsset->isInstance())
-        {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-        } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
-        }
-
-        animationManager->resetToRestPose(instance);
-        
+        animationManager->resetToRestPose(sceneAsset);
     }
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_addBoneAnimation(
@@ -219,22 +143,21 @@ extern "C"
     {
         THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
+        // Gate on skinTarget + skin/bone bounds instead of the asset type so
+        // non-glTF SceneAsset implementations work through the same virtual
+        // skin interface.
+        auto *skinTarget = sceneAsset->getSkinTarget();
+        if (!skinTarget || skinIndex < 0 || (size_t)skinIndex >= skinTarget->getSkinCount() ||
+            boneIndex < 0 || (size_t)boneIndex >= skinTarget->getBoneCount(skinIndex)) {
+            Log("ERROR: invalid skin/bone index for bone animation.");
             return false;
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        GltfSceneAssetInstance *instance;
-
-        if (sceneAsset->isInstance())
-        {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-        } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
+        if (!animationManager->addBoneAnimationComponent(sceneAsset)) {
+            return false;
         }
-        animationManager->addBoneAnimationComponent(instance);
-        animationManager->addBoneAnimation(instance, skinIndex, boneIndex, frameData, numFrames, frameLengthInMs, fadeOutInSecs, fadeInInSecs, maxDelta, loop);
-        return true;
+        return animationManager->addBoneAnimation(sceneAsset, skinIndex, boneIndex, frameData, numFrames, frameLengthInMs, fadeOutInSecs, fadeInInSecs, maxDelta, loop);
 
     }
 
@@ -248,10 +171,12 @@ extern "C"
         THERMION_ENGINE_API_GUARD;
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto asset = reinterpret_cast<SceneAsset *>(sceneAsset);
-        if (asset->getType() == SceneAsset::SceneAssetType::Gltf && asset->isInstance())
+        // Owner assets resolve to their skin target (first instance for glTF
+        // owners); gate on skin bounds, not asset type.
+        asset = asset->getSkinTarget();
+        if (asset && skinIndex >= 0 && (size_t)skinIndex < asset->getSkinCount())
         {
-            auto *instance = reinterpret_cast<GltfSceneAssetInstance *>(asset);
-            const auto transforms = animationManager->getBoneRestTranforms(instance, skinIndex);
+            const auto transforms = animationManager->getBoneRestTranforms(asset, skinIndex);
             auto numTransforms = transforms.size();
             if (numTransforms != numBones)
             {
@@ -282,10 +207,12 @@ extern "C"
         THERMION_ENGINE_API_GUARD;
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto asset = reinterpret_cast<SceneAsset *>(sceneAsset);
-        if (asset->getType() == SceneAsset::SceneAssetType::Gltf && asset->isInstance())
+        asset = asset->getSkinTarget();
+        if (asset && skinIndex >= 0 && (size_t)skinIndex < asset->getSkinCount() &&
+            boneIndex >= 0 && (size_t)boneIndex < asset->getBoneCount(skinIndex) &&
+            asset->getInverseBindMatrices(skinIndex) != nullptr)
         {
-            auto *instance = reinterpret_cast<GltfSceneAssetInstance *>(asset);
-            auto transform = animationManager->getInverseBindMatrix(instance, skinIndex, boneIndex);
+            auto transform = animationManager->getInverseBindMatrix(asset, skinIndex, boneIndex);
             for (int colNum = 0; colNum < 4; colNum++)
             {
                 for (int rowNum = 0; rowNum < 4; rowNum++)
@@ -293,169 +220,9 @@ extern "C"
                     out[(colNum * 4) + rowNum] = transform[colNum][rowNum];
                 }
             }
-        } else { 
-            LOG_ERROR("AnimationManager_getInverseBindMatrix can only be called with an GltfSceneAssetInstance");
-        }
-    }
-
-    EMSCRIPTEN_KEEPALIVE bool AnimationManager_playGltfAnimation(
-        TAnimationManager *tAnimationManager,
-        TSceneAsset *tSceneAsset,
-        int index,
-        bool loop,
-        bool reverse,
-        bool replaceActive,
-        float crossfade,
-        float startOffset,
-        float speed)
-    {
-        THERMION_ENGINE_API_GUARD;
-        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            return false;
-        }
-
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        GltfSceneAssetInstance *instance;
-
-        if (sceneAsset->isInstance())
-        {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
         } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
+            LOG_ERROR("AnimationManager_getInverseBindMatrix requires an asset with a skin and valid skin/bone indices");
         }
-        animationManager->addGltfAnimationComponent(instance);
-        animationManager->playGltfAnimation(instance, index, loop, reverse, replaceActive, crossfade, startOffset, speed);
-
-        return true;
-    }
-
-    EMSCRIPTEN_KEEPALIVE bool AnimationManager_stopGltfAnimation(
-        TAnimationManager *tAnimationManager,
-        TSceneAsset *tSceneAsset,
-        int index)
-    {
-        THERMION_ENGINE_API_GUARD;
-        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            return false;
-        }
-        
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        GltfSceneAssetInstance *instance;
-
-        if (sceneAsset->isInstance())
-        {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-        } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
-        }
-        animationManager->stopGltfAnimation(instance, index);
-        return true;
-    }
-
-    EMSCRIPTEN_KEEPALIVE bool AnimationManager_setGltfAnimationTime(
-        TAnimationManager *tAnimationManager,
-        TSceneAsset *tSceneAsset,
-        int animationIndex,
-        float timeInSeconds)
-    {
-        THERMION_ENGINE_API_GUARD;
-        auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if (sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            return false;
-        }
-
-        GltfSceneAssetInstance *instance;
-
-        if (sceneAsset->isInstance())
-        {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-        } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
-        }
-
-        animationManager->setGltfAnimationTime(instance, animationIndex, timeInSeconds);
-
-        return true;
-
-    }
-
-    EMSCRIPTEN_KEEPALIVE float AnimationManager_getGltfAnimationDuration(
-        TAnimationManager *tAnimationManager,
-        TSceneAsset *tSceneAsset,
-        int animationIndex)
-    {
-        THERMION_ENGINE_API_GUARD;
-        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            return -1.0;
-        }
-        
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        GltfSceneAssetInstance *instance;
-
-        if (sceneAsset->isInstance())
-        {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-        } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
-        }
-        
-        return animationManager->getGltfAnimationDuration(instance, animationIndex);
-    }
-
-    EMSCRIPTEN_KEEPALIVE int AnimationManager_getGltfAnimationCount(
-        TAnimationManager *tAnimationManager,
-        TSceneAsset *tSceneAsset)
-    {
-    THERMION_ENGINE_API_GUARD;
-
-        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            Log("Incorrect asset type, gltf expected");
-            return -1;
-        }
-
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-
-        GltfSceneAssetInstance *instance;
-        if(sceneAsset->isInstance()) {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-        } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
-        }
-
-        auto names = animationManager->getGltfAnimationNames(instance);
-
-        return (int)names.size();
-    }
-
-    EMSCRIPTEN_KEEPALIVE void AnimationManager_getGltfAnimationName(
-        TAnimationManager *tAnimationManager,
-        TSceneAsset *tSceneAsset,
-        char *const outPtr,
-        int index)
-    {
-        THERMION_ENGINE_API_GUARD;
-        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            strcpy(outPtr, "FILAMENT_ERROR_NOT_FOUND");
-            return;
-        }
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        GltfSceneAssetInstance *instance;
-        if(sceneAsset->isInstance()) {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-        } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
-        }
-        auto names = animationManager->getGltfAnimationNames(instance);
-        std::string name = names[index];
-        strcpy(outPtr, name.c_str());
     }
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_updateBoneMatrices(
@@ -463,8 +230,8 @@ extern "C"
         TSceneAsset *sceneAsset)
     {
         THERMION_ENGINE_API_GUARD;
-        auto instance = ((GltfSceneAssetInstance *)sceneAsset);
-        ((AnimationManager *)tAnimationManager)->updateBoneMatrices(instance);
+        auto asset = reinterpret_cast<SceneAsset *>(sceneAsset);
+        ((AnimationManager *)tAnimationManager)->updateBoneMatrices(asset);
         return true;
     }
 
@@ -475,23 +242,9 @@ extern "C"
     {
         THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            return -1;
-        }
-        
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        GltfSceneAsset *gltfAsset;
-
-        if (sceneAsset->isInstance())
-        {
-            auto *instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-            gltfAsset = reinterpret_cast<GltfSceneAsset *>(instance->getInstanceOwner());
-        } else {
-            gltfAsset = reinterpret_cast<GltfSceneAsset *>(sceneAsset);
-        }
-
-        auto names = animationManager->getMorphTargetNames(gltfAsset, childEntity);
+        // getMorphTargetNames is a virtual on SceneAsset; asset types without
+        // morph target metadata return an empty list, so no type gate needed.
+        auto names = sceneAsset->getMorphTargetNames(utils::Entity::import(childEntity));
         return (int)names.size();
     }
 
@@ -503,8 +256,8 @@ extern "C"
         int index)
     {
         THERMION_ENGINE_API_GUARD;
-        auto asset = ((GltfSceneAsset *)sceneAsset);
-        auto names = ((AnimationManager *)tAnimationManager)->getMorphTargetNames(asset, childEntity);
+        auto asset = reinterpret_cast<SceneAsset *>(sceneAsset);
+        auto names = asset->getMorphTargetNames(utils::Entity::import(childEntity));
         std::string name = names[index];
         strcpy(outPtr, name.c_str());
     }

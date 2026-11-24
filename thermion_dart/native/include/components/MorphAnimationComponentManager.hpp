@@ -12,9 +12,6 @@
 #include <math/mat3.h>
 #include <math/norm.h>
 
-#include <gltfio/Animator.h>
-#include <gltfio/math.h>
-
 #include <utils/SingleInstanceComponentManager.h>
 
 #include "Log.hpp"
@@ -23,7 +20,6 @@
 namespace thermion
 {
     using namespace filament;
-    using namespace filament::gltfio;
     using namespace utils;
     using namespace std::chrono;
 

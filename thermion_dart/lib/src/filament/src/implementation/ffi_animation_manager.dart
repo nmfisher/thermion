@@ -7,7 +7,13 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
   final Pointer<TAnimationManager> animationManager;
   final FFIFilamentApp app;
 
-  FFIAnimationManager(this.animationManager, this.app);
+  // Dedicated glTF clip playback handle (TGltfAnimationManager.h), created
+  // on the job thread alongside the core TAnimationManager and passed in by
+  // FFIFilamentApp; every AnimationManager_*GltfAnimation* call takes it.
+  // FFIFilamentApp.destroy frees it before the core manager is destroyed.
+  final Pointer<TGltfAnimationManager> gltfAnimationManager;
+
+  FFIAnimationManager(this.animationManager, this.gltfAnimationManager, this.app);
 
   @override
   Pointer<TAnimationManager> getNativeHandle() => animationManager;
@@ -22,7 +28,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       asset = (await asset.getInstances())[0];
     }
 
-    return AnimationManager_addGltfAnimationComponent(animationManager, asset.getNativeHandle());
+    return AnimationManager_addGltfAnimationComponent(gltfAnimationManager, asset.getNativeHandle());
   }
 
   late final _logger = Logger(this.runtimeType.toString());
@@ -37,7 +43,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       asset = (await asset.getInstances())[0];
     }
 
-    return AnimationManager_removeGltfAnimationComponent(animationManager, asset.getNativeHandle());
+    return AnimationManager_removeGltfAnimationComponent(gltfAnimationManager, asset.getNativeHandle());
   }
 
   @override
@@ -78,7 +84,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       throw Exception("Only supported for glTF assets");
     }
     return AnimationManager_playGltfAnimation(
-      animationManager,
+      gltfAnimationManager,
       asset.getNativeHandle(),
       index,
       loop,
@@ -95,7 +101,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
     if (asset.type != SceneAssetType.gltf) {
       throw Exception("Only supported for glTF assets");
     }
-    return AnimationManager_stopGltfAnimation(animationManager, asset.getNativeHandle(), index);
+    return AnimationManager_stopGltfAnimation(gltfAnimationManager, asset.getNativeHandle(), index);
   }
 
   @override
@@ -109,7 +115,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
     await withVoidCallback(
       (requestId, cb) => AnimationManager_setGltfAnimationTimeJobThread(
         app.jobThreadHandle,
-        animationManager,
+        gltfAnimationManager,
         asset.getNativeHandle(),
         animationIndex,
         timeInSeconds,
@@ -121,12 +127,12 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   double getGltfAnimationDuration(ThermionAsset asset, int animationIndex) {
-    return AnimationManager_getGltfAnimationDuration(animationManager, asset.getNativeHandle(), animationIndex);
+    return AnimationManager_getGltfAnimationDuration(gltfAnimationManager, asset.getNativeHandle(), animationIndex);
   }
 
   @override
   int getGltfAnimationCount(ThermionAsset asset) {
-    return AnimationManager_getGltfAnimationCount(animationManager, asset.getNativeHandle());
+    return AnimationManager_getGltfAnimationCount(gltfAnimationManager, asset.getNativeHandle());
   }
 
   @override
@@ -138,7 +144,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
     final nameBuffer = allocate<Char>(256); // Allocate buffer for name
     try {
-      AnimationManager_getGltfAnimationName(animationManager, asset.getNativeHandle(), nameBuffer, index);
+      AnimationManager_getGltfAnimationName(gltfAnimationManager, asset.getNativeHandle(), nameBuffer, index);
 
       final name = nameBuffer.cast<Utf8>().toDartString();
       return name.isEmpty ? null : name;

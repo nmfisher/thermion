@@ -24,6 +24,7 @@ class _App extends FFIFilamentApp {
         nullptr,
         nullptr,
         nullptr,
+        nullptr,
       );
 }
 
