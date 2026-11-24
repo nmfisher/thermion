@@ -149,6 +149,15 @@ namespace thermion
         bool supportsFlatShading() const override;
         TVertexBufferStorageMode getVertexBufferStorageMode(size_t primitiveIndex) const override;
 
+        // Preserved geometry buffers live on the owning asset. Light/camera
+        // entities are only exposed on the owner, so instances keep the
+        // SceneAsset defaults (nullptr / -1) for those.
+        VertexBuffer *getVertexBuffer(size_t primitiveIndex) const override;
+        IndexBuffer *getIndexBuffer(size_t primitiveIndex) const override;
+        int getPrimitiveOffsetForEntity(utils::Entity entity) const override;
+        void releaseSourceData() override;
+        void setFlatShading(bool flatShading) override;
+
         size_t getBoneCount(size_t skinIndex) const override;
         const utils::Entity *getBones(size_t skinIndex) const override;
         const char *getBoneName(size_t skinIndex, size_t boneIndex) const override;

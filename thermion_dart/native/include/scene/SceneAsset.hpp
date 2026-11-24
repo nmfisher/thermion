@@ -2,7 +2,9 @@
 
 #include <memory>
 
+#include <filament/IndexBuffer.h>
 #include <filament/Scene.h>
+#include <filament/VertexBuffer.h>
 #include <math.h>
 #include <utils/Entity.h>
 
@@ -78,6 +80,52 @@ class SceneAsset {
 
         virtual const char *getBoneName(size_t skinIndex, size_t boneIndex) const {
             return nullptr;
+        }
+
+        /// Geometry buffer accessors. Asset types without accessible geometry
+        /// buffers return nullptr; instances resolve to their owning asset.
+        virtual VertexBuffer *getVertexBuffer(size_t primitiveIndex) const {
+            return nullptr;
+        }
+
+        virtual IndexBuffer *getIndexBuffer(size_t primitiveIndex) const {
+            return nullptr;
+        }
+
+        /// Light/camera entity accessors. Only glTF owner assets carry light
+        /// and camera entities; everything else returns nullptr / -1.
+        virtual const Entity *getLightEntities() const {
+            return nullptr;
+        }
+
+        virtual size_t getLightEntityCount() const {
+            return -1;
+        }
+
+        virtual const Entity *getCameraEntities() const {
+            return nullptr;
+        }
+
+        virtual size_t getCameraEntityCount() const {
+            return -1;
+        }
+
+        /// Starting primitive offset for the given entity, or -1 when the
+        /// asset has no preserved geometry for it.
+        virtual int getPrimitiveOffsetForEntity(utils::Entity entity) const {
+            return -1;
+        }
+
+        /// Release underlying source data early. No-op for asset types
+        /// without releasable source data; instances log and do nothing.
+        virtual void releaseSourceData() {
+            Log("releaseSourceData only supported on glTF assets");
+        }
+
+        /// Toggle flat (per-face) shading. No-op for asset types without
+        /// flat-shading support; instances apply it to their owning asset.
+        virtual void setFlatShading(bool flatShading) {
+            Log("setFlatShading only supported on glTF assets");
         }
 
 };
