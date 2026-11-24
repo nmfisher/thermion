@@ -1090,4 +1090,16 @@ namespace thermion
         return instance->getBoneName(skinIndex, boneIndex);
     }
 
+    std::vector<std::string> GltfSceneAsset::getMorphTargetNames(utils::Entity childEntity) const
+    {
+        std::vector<std::string> names;
+        size_t count = _asset->getMorphTargetCountAt(childEntity);
+        for (size_t j = 0; j < count; j++)
+        {
+            const char *morphName = _asset->getMorphTargetNameAt(childEntity, j);
+            names.push_back(morphName);
+        }
+        return names;
+    }
+
 } // namespace thermion

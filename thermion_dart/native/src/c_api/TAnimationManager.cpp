@@ -480,18 +480,7 @@ extern "C"
             return -1;
         }
         
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        GltfSceneAsset *gltfAsset;
-
-        if (sceneAsset->isInstance())
-        {
-            auto *instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-            gltfAsset = reinterpret_cast<GltfSceneAsset *>(instance->getInstanceOwner());
-        } else {
-            gltfAsset = reinterpret_cast<GltfSceneAsset *>(sceneAsset);
-        }
-
-        auto names = animationManager->getMorphTargetNames(gltfAsset, childEntity);
+        auto names = sceneAsset->getMorphTargetNames(utils::Entity::import(childEntity));
         return (int)names.size();
     }
 
@@ -503,8 +492,8 @@ extern "C"
         int index)
     {
         THERMION_ENGINE_API_GUARD;
-        auto asset = ((GltfSceneAsset *)sceneAsset);
-        auto names = ((AnimationManager *)tAnimationManager)->getMorphTargetNames(asset, childEntity);
+        auto asset = reinterpret_cast<SceneAsset *>(sceneAsset);
+        auto names = asset->getMorphTargetNames(utils::Entity::import(childEntity));
         std::string name = names[index];
         strcpy(outPtr, name.c_str());
     }

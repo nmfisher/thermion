@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <vector>
 
 #include <filament/IndexBuffer.h>
 #include <filament/Scene.h>
@@ -80,6 +82,12 @@ class SceneAsset {
 
         virtual const char *getBoneName(size_t skinIndex, size_t boneIndex) const {
             return nullptr;
+        }
+
+        /// Morph target names (glTF extras metadata) for the given child
+        /// entity. Asset types without morph target metadata return empty.
+        virtual std::vector<std::string> getMorphTargetNames(utils::Entity childEntity) const {
+            return {};
         }
 
         /// Geometry buffer accessors. Asset types without accessible geometry

@@ -79,4 +79,9 @@ namespace thermion
         return _ncm->getName(ci);
     }
 
+    std::vector<std::string> GltfSceneAssetInstance::getMorphTargetNames(utils::Entity childEntity) const
+    {
+        return _instanceOwner->getMorphTargetNames(childEntity);
+    }
+
 }

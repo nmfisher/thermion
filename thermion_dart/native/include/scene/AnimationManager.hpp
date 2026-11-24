@@ -50,12 +50,6 @@ namespace thermion
         /// @param frameTimeInNanos 
         void update(uint64_t frameTimeInNanos);
 
-        
-        /// @param asset
-        /// @param childEntity
-        /// @return
-        std::vector<std::string> getMorphTargetNames(GltfSceneAsset *asset, EntityId childEntity);
-        
         /// @param sceneAsset
         /// @param morphData
         /// @param morphIndices

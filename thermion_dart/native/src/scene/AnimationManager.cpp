@@ -402,23 +402,6 @@ namespace thermion
         return names;
     }
 
-    std::vector<std::string> AnimationManager::getMorphTargetNames(GltfSceneAsset *asset, EntityId childEntity)
-    {
-        std::vector<std::string> names;
-
-        auto filamentAsset = asset->getAsset();
-
-        const utils::Entity targetEntity = utils::Entity::import(childEntity);
-
-        size_t count = filamentAsset->getMorphTargetCountAt(targetEntity);
-        for (int j = 0; j < count; j++)
-        {
-            const char *morphName = filamentAsset->getMorphTargetNameAt(targetEntity, j);
-            names.push_back(morphName);
-        }
-        return names;
-    }
-
     void AnimationManager::update(uint64_t frameTimeInNanos)
     {
         std::lock_guard lock(mMutex);
