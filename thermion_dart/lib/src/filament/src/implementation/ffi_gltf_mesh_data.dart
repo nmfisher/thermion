@@ -2,8 +2,10 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 import 'ffi_gltf_mesh_data_parse.dart';
 
-/// [GltfMeshData] produced by the cgltf parser compiled into the Filament
-/// build (`GltfParser_parseBuffer`).
+/// [GltfMeshData] produced by Filament's cgltf (`GltfParser_parseBuffer`).
+/// Requires `features.gltf`: the parser lives in gltfio, which a
+/// `gltf: false` build does not compile or link (`parseGltf` throws
+/// [UnsupportedError] there).
 ///
 /// Concrete type returned by `FilamentApp.parseGltf` (public API). The FFI
 /// walk lives behind a conditional import (ffi_gltf_mesh_data_parse.dart):

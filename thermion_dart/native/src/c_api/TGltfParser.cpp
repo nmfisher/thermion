@@ -2,45 +2,19 @@
 #include "Log.hpp"
 #include "ThermionFeatures.h"
 
-// Include the std headers cgltf.h needs BEFORE the visibility push below:
-// their declarations (and any inline/template definitions) must keep default
-// visibility, not be hidden along with the cgltf symbols. The include guards
-// make the repeated includes inside cgltf.h no-ops.
-#include <stddef.h>
-#include <stdint.h>
-#include <assert.h>
-#include <string.h>
-#include <stdio.h>
-#include <limits.h>
-#include <float.h>
-#include <stdlib.h>
+#include <cstring>
+
+// parseGltf is part of the gltf feature: a `features.gltf: false` build
+// compiles the whole-file stub below instead of the parser. cgltf comes
+// from Filament's gltfio_core archive, which is only linked when gltf is
+// enabled — no vendored cgltf copy is compiled here in any variant.
+#if THERMION_ENABLE_GLTF
+
+#include "cgltf.h"
 
 #include <vector>
 #include <string>
-#include <cstring>
 #include <cstdlib>
-
-// Don't define CGLTF_IMPLEMENTATION in a glTF build: cgltf is already compiled
-// into Filament's gltfio_core archive, which is linked there. A
-// `features.gltf: false` build does NOT link gltfio_core (the only provider
-// of cgltf_parse/cgltf_free/...),
-// so there the vendored copy is compiled here instead. parseGltf /
-// GltfMeshData therefore keep working in every build.
-#if !THERMION_ENABLE_GLTF
-#define CGLTF_IMPLEMENTATION
-#endif
-// The vendored copy is an implementation detail of GltfParser_parseBuffer,
-// not part of the C API: hide the cgltf_* definitions (and declarations)
-// from the shared library's dynamic symbol table, matching the Android
-// --exclude-libs/version-script behaviour for archive symbols. GCC/Clang
-// only — MSVC does not support visibility pragmas.
-#if !THERMION_ENABLE_GLTF && (defined(__GNUC__) || defined(__clang__))
-#pragma GCC visibility push(hidden)
-#endif
-#include "cgltf.h"
-#if !THERMION_ENABLE_GLTF && (defined(__GNUC__) || defined(__clang__))
-#pragma GCC visibility pop
-#endif
 
         // Helper to convert cgltf_primitive_type to TPrimitiveType
         static TPrimitiveType convertPrimitiveType(cgltf_primitive_type type)
@@ -391,4 +365,32 @@ extern "C" {
         return -1; // No matching mesh found
     }
 }
+
+#else // !THERMION_ENABLE_GLTF
+// Stub contract: the same C symbol with the same signature, no cgltf
+// references. Dart's checkSupported(ThermionFeature.gltf) guard turns
+// parseGltf into UnsupportedError before this is reached; a direct C call
+// gets a zeroed out-struct and a failure code (nothing to dispose).
+
+extern "C" {
+
+    EMSCRIPTEN_KEEPALIVE int GltfParser_parseBuffer(
+        const uint8_t *data,
+        size_t length,
+        const char *meshName,
+        TMeshData *outMeshData)
+    {
+        (void)data;
+        (void)length;
+        (void)meshName;
+        if (outMeshData)
+        {
+            memset(outMeshData, 0, sizeof(TMeshData));
+        }
+        Log("GltfParser_parseBuffer: glTF support is disabled in this build (features.gltf: false)");
+        return -1;
+    }
+}
+
+#endif // THERMION_ENABLE_GLTF
 

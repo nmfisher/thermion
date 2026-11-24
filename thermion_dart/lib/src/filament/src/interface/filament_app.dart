@@ -655,5 +655,7 @@ abstract class FilamentApp<T> {
   // Parse glTF file and extract geometry data for physics collision detection.
   // Returns vertex positions (xyz) and optional indices.
   // If [meshName] is specified, only extracts data for that specific mesh.
+  // Requires features.gltf (the native cgltf parser ships with gltfio):
+  // throws UnsupportedError when gltf is disabled in this build.
   Future<GltfMeshData> parseGltf(Uint8List data, {String? meshName});
 }

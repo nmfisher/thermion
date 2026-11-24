@@ -2215,7 +2215,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   //
-  Future<GltfMeshData> parseGltf(Uint8List data, {String? meshName}) {
+  Future<GltfMeshData> parseGltf(Uint8List data, {String? meshName}) async {
+    // parseGltf is part of the gltf feature: its native parser (cgltf via
+    // gltfio_core) is only compiled/linked when features.gltf is enabled;
+    // GltfParser_parseBuffer is a plain failure stub otherwise. async so the
+    // guard's UnsupportedError surfaces as a rejected Future, like the other
+    // checkSupported-guarded APIs.
+    checkSupported(ThermionFeature.gltf, 'parseGltf');
     return FFIGltfMeshData.parse(data, meshName: meshName);
   }
 }

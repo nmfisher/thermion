@@ -66,6 +66,12 @@ void main() async {
         ),
       );
       await expectLater(app.createUbershaderMaterial(unlit: true), throwsA(isA<UnsupportedError>()));
+      // parseGltf is gltf-gated too: its cgltf parser ships inside gltfio and
+      // GltfParser_parseBuffer is a plain failure stub in this build.
+      await expectLater(
+        app.parseGltf(Uint8List(16)),
+        throwsA(isA<UnsupportedError>().having((e) => e.message, 'message', contains('parseGltf'))),
+      );
       final geometry = await viewer.createGeometry(GeometryUtils.cube());
       // The synchronous animation getters throw before returning.
       expect(() => app.animationManager.getGltfAnimationCount(geometry), throwsA(isA<UnsupportedError>()));
