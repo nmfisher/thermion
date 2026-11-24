@@ -4301,20 +4301,6 @@ external void Scene_addEntityJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
-external void Scene_addFilamentAsset(ffi.Pointer<TScene> tScene, ffi.Pointer<TFilamentAsset> asset);
-
-@ffi.Native<
-  ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TScene>, ffi.Pointer<TFilamentAsset>, ffi.Uint32, VoidCallback)
->(isLeaf: true)
-external void Scene_addFilamentAssetJobThread(
-  ffi.Pointer<TJobThread> jobThread,
-  ffi.Pointer<TScene> tScene,
-  ffi.Pointer<TFilamentAsset> tAsset,
-  int requestId,
-  VoidCallback onComplete,
-);
-
 @ffi.Native<ffi.Pointer<TSkybox> Function(ffi.Pointer<TScene>)>(isLeaf: true)
 external ffi.Pointer<TSkybox> Scene_getSkybox(ffi.Pointer<TScene> tScene);
 

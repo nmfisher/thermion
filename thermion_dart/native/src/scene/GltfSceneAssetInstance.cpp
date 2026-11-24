@@ -29,6 +29,31 @@ namespace thermion
         return _instanceOwner->getVertexBufferStorageMode(primitiveIndex);
     }
 
+    VertexBuffer *GltfSceneAssetInstance::getVertexBuffer(size_t primitiveIndex) const
+    {
+        return _instanceOwner->getVertexBuffer(primitiveIndex);
+    }
+
+    IndexBuffer *GltfSceneAssetInstance::getIndexBuffer(size_t primitiveIndex) const
+    {
+        return _instanceOwner->getIndexBuffer(primitiveIndex);
+    }
+
+    int GltfSceneAssetInstance::getPrimitiveOffsetForEntity(utils::Entity entity) const
+    {
+        return _instanceOwner->getPrimitiveOffsetForEntity(entity);
+    }
+
+    void GltfSceneAssetInstance::releaseSourceData()
+    {
+        Log("releaseSourceData must be called on the owning asset, not an instance");
+    }
+
+    void GltfSceneAssetInstance::setFlatShading(bool flatShading)
+    {
+        _instanceOwner->setFlatShading(flatShading);
+    }
+
     size_t GltfSceneAssetInstance::getBoneCount(size_t skinIndex) const
     {
         return _instance->getJointCountAt(skinIndex);

@@ -416,7 +416,7 @@ namespace thermion
             uint32_t numInstances,
             void (*callback)(TFilamentAsset *)
         );
-        EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetJobThread(TJobThread *jobThread, TScene* tScene, TFilamentAsset *tAsset, uint32_t requestId, VoidCallback onComplete);
+
         EMSCRIPTEN_KEEPALIVE void FilamentAsset_getWireframeJobThread(TJobThread *jobThread, TFilamentAsset *tFilamentAsset, void (*onComplete)(EntityId));
         EMSCRIPTEN_KEEPALIVE void Scene_addEntityJobThread(TJobThread *jobThread, TScene *tScene, EntityId entityId, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Scene_removeEntityJobThread(TJobThread *jobThread, TScene *tScene, EntityId entityId, uint32_t requestId, VoidCallback onComplete);

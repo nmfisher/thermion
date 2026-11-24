@@ -5,7 +5,6 @@
 #include <filament/RenderableManager.h>
 #include <filament/VertexBuffer.h>
 #include <filament/IndexBuffer.h>
-#include <gltfio/MaterialProvider.h>
 #include "scene/SceneAsset.hpp"
 
 namespace thermion
@@ -60,8 +59,14 @@ namespace thermion
             return _materialInstances.size();
         }
 
-        VertexBuffer *getVertexBuffer() const { return _vertexBuffer; }
-        IndexBuffer *getIndexBuffer() const { return _indexBuffer; }
+        // SceneAsset geometry-buffer interface: a procedural asset exposes a
+        // single primitive (index 0), on the asset itself and its instances.
+        VertexBuffer *getVertexBuffer(size_t primitiveIndex) const override {
+            return primitiveIndex == 0 ? _vertexBuffer : nullptr;
+        }
+        IndexBuffer *getIndexBuffer(size_t primitiveIndex) const override {
+            return primitiveIndex == 0 ? _indexBuffer : nullptr;
+        }
         uint32_t getGeometryCapabilities() const override {
             uint32_t capabilities = SCENE_ASSET_GEOMETRY_CAPABILITY_ACCESSIBLE_GEOMETRY_BUFFERS;
             if (_vertexBufferStorageMode == VERTEX_BUFFER_STORAGE_MODE_DIRECT) {

@@ -21,6 +21,16 @@ EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
 EMSCRIPTEN_KEEPALIVE TMaterialInstance *GltfAssetLoader_getMaterialInstance(TRenderableManager *tRenderableManager, TFilamentAsset *tAsset);
 EMSCRIPTEN_KEEPALIVE TMaterialProvider *GltfAssetLoader_getMaterialProvider(TGltfAssetLoader *tAssetLoader);
 
+// SceneAsset bridge for loaded glTF assets (implemented in TGltfAssetLoader.cpp).
+EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createFromFilamentAsset(
+    TEngine *tEngine,
+    TGltfAssetLoader *tAssetLoader,
+    TNameComponentManager *tNameComponentManager,
+    TFilamentAsset *tFilamentAsset,
+    uint32_t requiredGeometryCapabilities
+);
+EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset);
+
 EMSCRIPTEN_KEEPALIVE int32_t FilamentAsset_getResourceUriCount(
     TFilamentAsset *tFilamentAsset
 );
