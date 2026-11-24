@@ -153,7 +153,11 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   double getGltfAnimationDuration(ThermionAsset asset, int animationIndex) {
-    return AnimationManager_getGltfAnimationDuration(_requireGltfAnimationManager(), asset.getNativeHandle(), animationIndex);
+    return AnimationManager_getGltfAnimationDuration(
+      _requireGltfAnimationManager(),
+      asset.getNativeHandle(),
+      animationIndex,
+    );
   }
 
   @override
