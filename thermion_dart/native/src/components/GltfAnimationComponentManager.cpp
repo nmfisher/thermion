@@ -110,19 +110,6 @@ namespace thermion
         return target->getAnimator()->getAnimationDuration(animationIndex);
     }
 
-    std::vector<std::string> GltfAnimationComponentManager::getGltfAnimationNames(FilamentInstance *target) {
-        std::lock_guard lock(mMutex);
-        std::vector<std::string> names;
-
-        size_t count = target->getAnimator()->getAnimationCount();
-
-        for (size_t i = 0; i < count; i++)
-        {
-            names.push_back(target->getAnimator()->getAnimationName(i));
-        }
-        return names;
-    }
-
     void GltfAnimationComponentManager::removeAnimationComponent(FilamentInstance *target) {
         std::lock_guard lock(mMutex);
         if(hasComponent(target->getRoot())) {
