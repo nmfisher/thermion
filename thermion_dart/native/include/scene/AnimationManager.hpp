@@ -164,7 +164,8 @@ namespace thermion
         std::unique_ptr<MorphAnimationComponentManager> mMorphAnimationComponentManager;
         std::unique_ptr<BoneAnimationComponentManager> mBoneAnimationComponentManager;
         // Owned optional animation systems (e.g. glTF clip playback),
-        // ticked after the core component managers.
+        // ticked before the core component managers so runtime morph/bone
+        // animations apply on top of (and can blend with) the clip pose.
         std::vector<std::pair<std::string, std::unique_ptr<ITickableAnimationSystem>>> mAnimationSystems;
         uint64_t mLastUpdateTime;
     };

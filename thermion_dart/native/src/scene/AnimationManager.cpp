@@ -398,12 +398,18 @@ namespace thermion
     void AnimationManager::update(uint64_t frameTimeInNanos)
     {
         std::lock_guard lock(mMutex);
-        mMorphAnimationComponentManager->update(frameTimeInNanos);
-        mBoneAnimationComponentManager->update(frameTimeInNanos);
+        // Tick registered systems (glTF clip playback) FIRST. Clip playback
+        // writes joint transforms and morph weights directly; the runtime
+        // morph/bone managers below must run afterwards so they overwrite or
+        // blend onto the clip pose (bone fade-in/out explicitly reads the
+        // transform "possibly set by the glTF animation loop above"). Ticking
+        // clips last would clobber runtime animations every frame.
         for (auto &entry : mAnimationSystems)
         {
             entry.second->update(frameTimeInNanos);
         }
+        mMorphAnimationComponentManager->update(frameTimeInNanos);
+        mBoneAnimationComponentManager->update(frameTimeInNanos);
         mLastUpdateTime = frameTimeInNanos;
     }
 
