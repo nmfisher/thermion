@@ -79,6 +79,39 @@ namespace thermion
         return true;
     }   
 
+    void GltfAnimationComponentManager::removeGltfAnimation(FilamentInstance *target, int index) {
+        auto animationComponentInstance = getInstance(target->getRoot());
+        auto &animationComponent = elementAt<0>(animationComponentInstance);
+
+        auto erased = std::remove_if(animationComponent.animations.begin(),
+                                     animationComponent.animations.end(),
+                                     [=](GltfAnimation &anim)
+                                     { return anim.index == index; });
+        animationComponent.animations.erase(erased,
+                                            animationComponent.animations.end());
+    }
+
+    void GltfAnimationComponentManager::setGltfAnimationTime(FilamentInstance *target, int animationIndex, float timeInSeconds) {
+        target->getAnimator()->applyAnimation(animationIndex, timeInSeconds);
+        target->getAnimator()->updateBoneMatrices();
+    }
+
+    float GltfAnimationComponentManager::getGltfAnimationDuration(FilamentInstance *target, int animationIndex) {
+        return target->getAnimator()->getAnimationDuration(animationIndex);
+    }
+
+    std::vector<std::string> GltfAnimationComponentManager::getGltfAnimationNames(FilamentInstance *target) {
+        std::vector<std::string> names;
+
+        size_t count = target->getAnimator()->getAnimationCount();
+
+        for (size_t i = 0; i < count; i++)
+        {
+            names.push_back(target->getAnimator()->getAnimationName(i));
+        }
+        return names;
+    }
+
     void GltfAnimationComponentManager::removeAnimationComponent(FilamentInstance *target) {
         if(hasComponent(target->getRoot())) {
             removeComponent(target->getRoot());

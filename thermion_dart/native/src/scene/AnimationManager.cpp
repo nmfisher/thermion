@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <memory>
 #include <stack>
 #include <unordered_set>
@@ -7,20 +8,16 @@
 #include <filament/TransformManager.h>
 #include <filament/RenderableManager.h>
 
-#include <gltfio/Animator.h>
-
 #include <utils/Panic.h>
 
 #include "Log.hpp"
 
 #include "scene/AnimationManager.hpp"
 
-#include "components/GltfAnimationComponentManager.hpp"
 #include "components/MorphAnimationComponentManager.hpp"
 #include "components/BoneAnimationComponentManager.hpp"
 
 #include "scene/SceneAsset.hpp"
-#include "scene/GltfSceneAssetInstance.hpp"
 
 namespace thermion
 {
@@ -33,13 +30,56 @@ namespace thermion
         auto &transformManager = mEngine->getTransformManager();
         auto &renderableManager = mEngine->getRenderableManager();
         auto &em = EntityManager::get();
-        mGltfAnimationComponentManager = std::make_unique<GltfAnimationComponentManager>(em, transformManager, renderableManager);
         mMorphAnimationComponentManager = std::make_unique<MorphAnimationComponentManager>(em, transformManager, renderableManager);
         mBoneAnimationComponentManager = std::make_unique<BoneAnimationComponentManager>(em, transformManager, renderableManager);
     }
 
     AnimationManager::~AnimationManager()
     {
+    }
+
+    void AnimationManager::registerAnimationSystem(const std::string &name, ITickableAnimationSystem *system)
+    {
+        std::lock_guard lock(mMutex);
+        for (auto &entry : mAnimationSystems)
+        {
+            if (entry.first == name)
+            {
+                // Already registered; the manager owns the existing system,
+                // so drop the duplicate to avoid leaking it.
+                if (entry.second.get() != system)
+                {
+                    delete system;
+                }
+                return;
+            }
+        }
+        mAnimationSystems.emplace_back(name, std::unique_ptr<ITickableAnimationSystem>(system));
+    }
+
+    void AnimationManager::unregisterAnimationSystem(const std::string &name)
+    {
+        std::lock_guard lock(mMutex);
+        auto it = std::find_if(mAnimationSystems.begin(), mAnimationSystems.end(),
+                               [&](auto &entry)
+                               { return entry.first == name; });
+        if (it != mAnimationSystems.end())
+        {
+            mAnimationSystems.erase(it);
+        }
+    }
+
+    ITickableAnimationSystem *AnimationManager::findAnimationSystem(const std::string &name)
+    {
+        std::lock_guard lock(mMutex);
+        for (auto &entry : mAnimationSystems)
+        {
+            if (entry.first == name)
+            {
+                return entry.second.get();
+            }
+        }
+        return nullptr;
     }
 
     bool AnimationManager::setMorphAnimationBuffer(
@@ -327,34 +367,6 @@ namespace thermion
         return true;
     }
 
-    void AnimationManager::playGltfAnimation(GltfSceneAssetInstance *instance, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset, float speed)
-    {
-        std::lock_guard lock(mMutex);
-
-        if (index < 0)
-        {
-            Log("ERROR: glTF animation index must be greater than zero.");
-            return;
-        }
-
-        mGltfAnimationComponentManager->addGltfAnimation(instance->getInstance(), index, loop, reverse, replaceActive, crossfade, startOffset, speed);
-    }
-
-    void AnimationManager::stopGltfAnimation(GltfSceneAssetInstance *instance, int index)
-    {
-        std::lock_guard lock(mMutex);
-        auto animationComponentInstance = mGltfAnimationComponentManager->getInstance(instance->getEntity());
-        auto &animationComponent = mGltfAnimationComponentManager->elementAt<0>(animationComponentInstance);
-
-        auto erased = std::remove_if(animationComponent.animations.begin(),
-                                     animationComponent.animations.end(),
-                                     [=](GltfAnimation &anim)
-                                     { return anim.index == index; });
-        animationComponent.animations.erase(erased,
-                                            animationComponent.animations.end());
-        return;
-    }
-
     void AnimationManager::setMorphTargetWeights(utils::Entity entity, const float *const weights, const int count)
     {
         std::lock_guard lock(mMutex);
@@ -367,59 +379,21 @@ namespace thermion
             count);
     }
 
-    void AnimationManager::setGltfAnimationTime(GltfSceneAssetInstance *instance, int animationIndex, float timeInSeconds)
-    {
-        std::lock_guard lock(mMutex);
-        instance->getInstance()->getAnimator()->applyAnimation(animationIndex, timeInSeconds);
-        instance->getInstance()->getAnimator()->updateBoneMatrices();
-        return;
-    }
-
-    float AnimationManager::getGltfAnimationDuration(GltfSceneAssetInstance *instance, int animationIndex)
-    {
-        return instance->getInstance()->getAnimator()->getAnimationDuration(animationIndex);
-    }
-
-    std::vector<std::string> AnimationManager::getGltfAnimationNames(GltfSceneAssetInstance *instance)
-    {
-        std::vector<std::string> names;
-
-        size_t count = instance->getInstance()->getAnimator()->getAnimationCount();
-
-        for (size_t i = 0; i < count; i++)
-        {
-            names.push_back(instance->getInstance()->getAnimator()->getAnimationName(i));
-        }
-        return names;
-    }
-
     void AnimationManager::update(uint64_t frameTimeInNanos)
     {
         std::lock_guard lock(mMutex);
-        mGltfAnimationComponentManager->update(frameTimeInNanos);
         mMorphAnimationComponentManager->update(frameTimeInNanos);
         mBoneAnimationComponentManager->update(frameTimeInNanos);
+        for (auto &entry : mAnimationSystems)
+        {
+            entry.second->update(frameTimeInNanos);
+        }
         mLastUpdateTime = frameTimeInNanos;
     }
 
     math::mat4f AnimationManager::getInverseBindMatrix(SceneAsset *asset, int skinIndex, int boneIndex)
     {
         return asset->getInverseBindMatrices(skinIndex)[boneIndex];
-    }
-
-    bool AnimationManager::addGltfAnimationComponent(GltfSceneAssetInstance *instance)
-    {
-        std::lock_guard lock(mMutex);
-        mGltfAnimationComponentManager->addAnimationComponent(instance->getInstance());
-        TRACE("Added glTF animation component");
-        return true;
-    }
-
-    void AnimationManager::removeGltfAnimationComponent(GltfSceneAssetInstance *instance)
-    {
-        std::lock_guard lock(mMutex);
-        mGltfAnimationComponentManager->removeAnimationComponent(instance->getInstance());
-        TRACE("Removed glTF animation component");
     }
 
     bool AnimationManager::addBoneAnimationComponent(SceneAsset *asset)

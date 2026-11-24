@@ -1,6 +1,9 @@
 #pragma once
 
+#include <memory>
 #include <mutex>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include <filament/Engine.h>
@@ -9,33 +12,34 @@
 #include "c_api/APIBoundaryTypes.h"
 
 #include "scene/AnimationComponentBase.hpp"
-#include "scene/GltfSceneAssetInstance.hpp"
-#include "scene/GltfSceneAsset.hpp"
+#include "scene/ITickableAnimationSystem.hpp"
 #include "scene/SceneAsset.hpp"
 
 namespace thermion
 {
 
     using namespace filament;
-    using namespace filament::gltfio;
     using namespace utils;
 
     // Assets can be animated by:
-    // 1) playing an embedded gltf animation 
-    // 2) creating a buffer containing the weights for the asset's morph target(s) 
+    // 1) creating a buffer containing the weights for the asset's morph target(s)
     //    at successive frames; or
-    // 3) creating a similar buffer containing the transforms for the asset's bones 
-    //    at successive frames;
+    // 2) creating a similar buffer containing the transforms for the asset's bones
+    //    at successive frames.
     //
-    // (note that embedded gltf animations may target the asset's morph target weights or 
-    // bone transforms; these are still handled separately from manually-created animations).
+    // Both work on any SceneAsset / utils::Entity through the gltfio-free
+    // SceneAsset skin interface, so they stay core code with no gltfio dependency.
     //
-    // AnimationManager maintains three component managers (one for each type of animation listed 
-    // above). Calling update() with the number of nanoseconds elapsed since the last call, 
-    // calls the same on each component manager, which will then update the asset's animatable properties 
-    // to match the target frame time.
-    
-    class GltfAnimationComponentManager;
+    // Embedded glTF clip playback is handled by an optional animation system
+    // (GltfAnimationComponentManager, see TGltfAnimation.cpp) registered via
+    // registerAnimationSystem() and ticked by update().
+    //
+    // AnimationManager maintains two component managers (one for each type of
+    // runtime animation listed above). Calling update() with the number of
+    // nanoseconds elapsed since the last call, calls the same on each component
+    // manager and registered system, which will then update the asset's
+    // animatable properties to match the target frame time.
+
     class MorphAnimationComponentManager;
     class BoneAnimationComponentManager;
     class AnimationManager
@@ -49,6 +53,25 @@ namespace thermion
         ///
         /// @param frameTimeInNanos 
         void update(uint64_t frameTimeInNanos);
+
+        /// Register an optional animation system (e.g. glTF clip playback) to
+        /// be ticked by update(). The AnimationManager takes ownership and
+        /// destroys the system on unregister/destruction. Registering a name
+        /// that is already registered is a no-op.
+        /// @param name identifier used by findAnimationSystem (e.g. "gltf")
+        /// @param system
+        void registerAnimationSystem(const std::string &name, ITickableAnimationSystem *system);
+
+        /// @param name
+        void unregisterAnimationSystem(const std::string &name);
+
+        /// Returns the registered system for [name], or nullptr.
+        /// @param name
+        ITickableAnimationSystem *findAnimationSystem(const std::string &name);
+
+        /// The engine this manager was created with (used by optional
+        /// animation systems to obtain Filament interfaces).
+        Engine *getEngine() { return mEngine; }
 
         /// @param sceneAsset
         /// @param morphData
@@ -112,51 +135,9 @@ namespace thermion
 
         
         /// @param instance
-        /// @param animationIndex
-        /// @param loop
-        /// @param reverse
-        /// @param replaceActive
-        /// @param crossfade
-        /// @param startOffset
-        /// @param speed
-        void playGltfAnimation(GltfSceneAssetInstance *instance, int animationIndex, bool loop, bool reverse, bool replaceActive, float crossfade = 0.3f, float startOffset = 0.0f, float speed = 1.0f);
-
-        
-        /// @param instance
-        /// @param animationIndex
-        void stopGltfAnimation(GltfSceneAssetInstance *instance, int animationIndex);
-
-        
-        /// @param instance
         /// @param weights
         /// @param count
         void setMorphTargetWeights(utils::Entity entity, const float *const weights, int count);
-
-        
-        /// @param instance
-        /// @param animationIndex
-        /// @param timeInSeconds
-        void setGltfAnimationTime(GltfSceneAssetInstance *instance, int animationIndex, float timeInSeconds);
-
-        
-        /// @param instance
-        /// @return
-        std::vector<std::string> getGltfAnimationNames(GltfSceneAssetInstance *instance);
-
-        
-        /// @param instance
-        /// @param animationIndex
-        /// @return
-        float getGltfAnimationDuration(GltfSceneAssetInstance *instance, int animationIndex);
-
-        
-        /// @param instance
-        /// @return
-        bool addGltfAnimationComponent(GltfSceneAssetInstance *instance);
-
-        
-        /// @param instance
-        void removeGltfAnimationComponent(GltfSceneAssetInstance *instance);
 
         
         /// @param asset
@@ -180,9 +161,11 @@ namespace thermion
     private:
         Engine *mEngine = nullptr;
         std::mutex mMutex;
-        std::unique_ptr<GltfAnimationComponentManager> mGltfAnimationComponentManager;
         std::unique_ptr<MorphAnimationComponentManager> mMorphAnimationComponentManager;
         std::unique_ptr<BoneAnimationComponentManager> mBoneAnimationComponentManager;
+        // Owned optional animation systems (e.g. glTF clip playback),
+        // ticked after the core component managers.
+        std::vector<std::pair<std::string, std::unique_ptr<ITickableAnimationSystem>>> mAnimationSystems;
         uint64_t mLastUpdateTime;
     };
 }

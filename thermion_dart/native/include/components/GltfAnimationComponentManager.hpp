@@ -20,6 +20,7 @@
 #include "Log.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
 #include "scene/AnimationComponentBase.hpp"
+#include "scene/ITickableAnimationSystem.hpp"
 
 template class std::vector<float>;
 namespace thermion
@@ -55,7 +56,8 @@ namespace thermion
         std::vector<GltfAnimation> animations;
     };
 
-    class GltfAnimationComponentManager : public utils::SingleInstanceComponentManager<GltfAnimationComponent> {
+    class GltfAnimationComponentManager : public utils::SingleInstanceComponentManager<GltfAnimationComponent>,
+                                          public ITickableAnimationSystem {
         public:
             GltfAnimationComponentManager(
                 utils::EntityManager &em,
@@ -68,8 +70,11 @@ namespace thermion
             void removeAnimationComponent(FilamentInstance *target);
 
             bool addGltfAnimation(FilamentInstance *target, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset, float speed = 1.0f);
-            // GltfAnimationComponent getAnimationComponentInstance(FilamentInstance *target);
-            void update(uint64_t frameTimeInNanos); 
+            void removeGltfAnimation(FilamentInstance *target, int index);
+            void setGltfAnimationTime(FilamentInstance *target, int animationIndex, float timeInSeconds);
+            float getGltfAnimationDuration(FilamentInstance *target, int animationIndex);
+            std::vector<std::string> getGltfAnimationNames(FilamentInstance *target);
+            void update(uint64_t frameTimeInNanos) override;
 
         private:
             filament::TransformManager &mTransformManager;
