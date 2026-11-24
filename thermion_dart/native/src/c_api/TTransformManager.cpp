@@ -4,7 +4,6 @@
 #include <utils/Entity.h>
 #include <filament/TransformManager.h>
 #include <math/mat4.h>
-#include <gltfio/math.h>
 #include <vector>
 #include <algorithm>
 
@@ -19,7 +18,6 @@ extern "C"
 {
     using namespace filament;
     using namespace utils;
-    using namespace filament::gltfio;
 
 #include "c_api/TTransformManager.h"
 
