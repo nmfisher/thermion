@@ -17,10 +17,7 @@ void main() {
 
     // unlit_fallback is hook-managed (features.gltf: false builds only),
     // never a user-selectable materials.* key.
-    expect(
-      selectBuiltInMaterials({BuiltInMaterial.unlitFallback.key: true}, onWarning: warnings.add),
-      isEmpty,
-    );
+    expect(selectBuiltInMaterials({BuiltInMaterial.unlitFallback.key: true}, onWarning: warnings.add), isEmpty);
     expect(warnings.single, contains('unlit_fallback'));
     warnings.clear();
 
