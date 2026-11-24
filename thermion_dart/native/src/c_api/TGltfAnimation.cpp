@@ -1,15 +1,13 @@
-// glTF-only embedded clip playback C API. The core AnimationManager
-// (TAnimationManager.cpp) has no gltfio dependency; the clip playback
-// functions below drive a GltfAnimationComponentManager owned by this
-// translation unit and added to the AnimationManager via addTickable(),
-// so clips are ticked by the same AnimationManager_update() frame hook.
+// glTF-only embedded clip playback C API, keyed on a dedicated
+// TGltfAnimationManager handle (TGltfAnimationManager.h). The core
+// AnimationManager (TAnimationManager.cpp/.h) has no gltfio dependency and
+// no glTF surface; GltfAnimationManager_create adds this handle's
+// GltfAnimationComponentManager to the core manager via addTickable(), so
+// clips are ticked by the same AnimationManager_update() frame hook, and
+// GltfAnimationManager_destroy removes it again.
 
 #include "rendering/EngineApiLock.hpp"
 #include "Log.hpp"
-
-#include <memory>
-#include <mutex>
-#include <unordered_map>
 
 #include <utils/Entity.h>
 
@@ -20,71 +18,48 @@
 
 using namespace thermion;
 
+namespace thermion
+{
+    // The TGltfAnimationManager handle: one clip playback system plus the
+    // core AnimationManager it ticks through. The component manager has its
+    // own internal mutex serializing direct FFI calls against update().
+    struct GltfAnimationManager
+    {
+        AnimationManager *animationManager;
+        GltfAnimationComponentManager componentManager;
+
+        GltfAnimationManager(AnimationManager *am) : animationManager(am),
+                                                     componentManager(
+                                                         utils::EntityManager::get(),
+                                                         am->getEngine()->getTransformManager(),
+                                                         am->getEngine()->getRenderableManager())
+        {
+        }
+    };
+}
+
 extern "C"
 {
 
-#include "c_api/TAnimationManager.h"
+#include "c_api/TGltfAnimationManager.h"
 
-    // One clip playback system per AnimationManager, owned here (not by the
-    // AnimationManager, which only holds a non-owning tickable pointer).
-    // Created lazily on first clip use; removed via removeTickable() and
-    // destroyed when the AnimationManager is destroyed (wrapper below).
-    // The map has its own mutex because web worker builds compile
-    // THERMION_ENGINE_API_GUARD to nothing.
-    static std::mutex gGltfSystemsMutex;
-    static std::unordered_map<AnimationManager *, std::unique_ptr<GltfAnimationComponentManager>> gGltfSystems;
-
-    // Returns the glTF clip playback system for this AnimationManager,
-    // creating it and adding it as a tickable on first use.
-    static GltfAnimationComponentManager *getOrCreateGltfSystem(AnimationManager *animationManager)
-    {
-        std::lock_guard lock(gGltfSystemsMutex);
-        auto &system = gGltfSystems[animationManager];
-        if (!system)
-        {
-            auto *engine = animationManager->getEngine();
-            system = std::make_unique<GltfAnimationComponentManager>(
-                utils::EntityManager::get(),
-                engine->getTransformManager(),
-                engine->getRenderableManager());
-            animationManager->addTickable(system.get());
-        }
-        return system.get();
-    }
-
-    // Returns the existing clip playback system, or nullptr. Teardown and
-    // query paths must never lazily allocate a frame-ticked component
-    // manager just to remove/stop nothing.
-    static GltfAnimationComponentManager *findGltfSystem(AnimationManager *animationManager)
-    {
-        std::lock_guard lock(gGltfSystemsMutex);
-        auto it = gGltfSystems.find(animationManager);
-        return it == gGltfSystems.end() ? nullptr : it->second.get();
-    }
-
-    // The core AnimationManager_create stays in TAnimationManager.cpp
-    // (100% core). This glTF-only translation unit owns the destroy export
-    // so the tickable it added is removed and freed before the manager
-    // itself dies; the frame tick can never see a dangling pointer.
-    EMSCRIPTEN_KEEPALIVE void AnimationManager_destroy(TAnimationManager *tAnimationManager)
+    EMSCRIPTEN_KEEPALIVE TGltfAnimationManager *GltfAnimationManager_create(TAnimationManager *tAnimationManager)
     {
         THERMION_ENGINE_API_GUARD;
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        std::unique_ptr<GltfAnimationComponentManager> system;
-        {
-            std::lock_guard lock(gGltfSystemsMutex);
-            auto it = gGltfSystems.find(animationManager);
-            if (it != gGltfSystems.end())
-            {
-                system = std::move(it->second);
-                gGltfSystems.erase(it);
-            }
-        }
-        if (system)
-        {
-            animationManager->removeTickable(system.get());
-        }
-        delete animationManager;
+        auto *gltfAnimationManager = new GltfAnimationManager(animationManager);
+        animationManager->addTickable(&gltfAnimationManager->componentManager);
+        return reinterpret_cast<TGltfAnimationManager *>(gltfAnimationManager);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void GltfAnimationManager_destroy(TGltfAnimationManager *tGltfAnimationManager)
+    {
+        THERMION_ENGINE_API_GUARD;
+        auto *gltfAnimationManager = reinterpret_cast<GltfAnimationManager *>(tGltfAnimationManager);
+        // Remove from the frame tick before freeing, so update() can never
+        // see a dangling tickable. Must run before AnimationManager_destroy.
+        gltfAnimationManager->animationManager->removeTickable(&gltfAnimationManager->componentManager);
+        delete gltfAnimationManager;
     }
 
     // Resolves the glTF instance the clip functions operate on (owner assets
@@ -102,7 +77,7 @@ extern "C"
         return static_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
     }
 
-    EMSCRIPTEN_KEEPALIVE bool AnimationManager_addGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_addGltfAnimationComponent(TGltfAnimationManager *tGltfAnimationManager, TSceneAsset *tSceneAsset)
     {
         THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
@@ -112,13 +87,13 @@ extern "C"
             return false;
         }
 
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        getOrCreateGltfSystem(animationManager)->addAnimationComponent(instance->getInstance());
+        auto *gltfAnimationManager = reinterpret_cast<GltfAnimationManager *>(tGltfAnimationManager);
+        gltfAnimationManager->componentManager.addAnimationComponent(instance->getInstance());
         TRACE("Added glTF animation component");
         return true;
     }
 
-    EMSCRIPTEN_KEEPALIVE bool AnimationManager_removeGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_removeGltfAnimationComponent(TGltfAnimationManager *tGltfAnimationManager, TSceneAsset *tSceneAsset)
     {
         THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
@@ -128,21 +103,14 @@ extern "C"
             return false;
         }
 
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        // Teardown path (called on every glTF asset destroy): no system
-        // means no components to remove.
-        auto *system = findGltfSystem(animationManager);
-        if (!system)
-        {
-            return true;
-        }
-        system->removeAnimationComponent(instance->getInstance());
+        auto *gltfAnimationManager = reinterpret_cast<GltfAnimationManager *>(tGltfAnimationManager);
+        gltfAnimationManager->componentManager.removeAnimationComponent(instance->getInstance());
         TRACE("Removed glTF animation component");
         return true;
     }
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_playGltfAnimation(
-        TAnimationManager *tAnimationManager,
+        TGltfAnimationManager *tGltfAnimationManager,
         TSceneAsset *tSceneAsset,
         int index,
         bool loop,
@@ -160,9 +128,9 @@ extern "C"
             return false;
         }
 
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto *system = getOrCreateGltfSystem(animationManager);
-        system->addAnimationComponent(instance->getInstance());
+        auto *gltfAnimationManager = reinterpret_cast<GltfAnimationManager *>(tGltfAnimationManager);
+        auto &system = gltfAnimationManager->componentManager;
+        system.addAnimationComponent(instance->getInstance());
 
         if (index < 0)
         {
@@ -170,13 +138,13 @@ extern "C"
             return true;
         }
 
-        system->addGltfAnimation(instance->getInstance(), index, loop, reverse, replaceActive, crossfade, startOffset, speed);
+        system.addGltfAnimation(instance->getInstance(), index, loop, reverse, replaceActive, crossfade, startOffset, speed);
 
         return true;
     }
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_stopGltfAnimation(
-        TAnimationManager *tAnimationManager,
+        TGltfAnimationManager *tGltfAnimationManager,
         TSceneAsset *tSceneAsset,
         int index)
     {
@@ -188,19 +156,15 @@ extern "C"
             return false;
         }
 
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        // If no clip system exists, nothing can be playing; do not allocate one.
-        auto *system = findGltfSystem(animationManager);
-        if (!system)
-        {
-            return true;
-        }
-        system->removeGltfAnimation(instance->getInstance(), index);
+        auto *gltfAnimationManager = reinterpret_cast<GltfAnimationManager *>(tGltfAnimationManager);
+        // Stopping a clip on an asset that never played one is a no-op
+        // inside removeGltfAnimation (missing component check).
+        gltfAnimationManager->componentManager.removeGltfAnimation(instance->getInstance(), index);
         return true;
     }
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_setGltfAnimationTime(
-        TAnimationManager *tAnimationManager,
+        TGltfAnimationManager *tGltfAnimationManager,
         TSceneAsset *tSceneAsset,
         int animationIndex,
         float timeInSeconds)
@@ -213,16 +177,13 @@ extern "C"
             return false;
         }
 
-        // Pure animator access; no GltfAnimationComponentManager state is
-        // involved, so no clip system needs to exist (or be allocated).
-        auto *animator = instance->getInstance()->getAnimator();
-        animator->applyAnimation(animationIndex, timeInSeconds);
-        animator->updateBoneMatrices();
+        auto *gltfAnimationManager = reinterpret_cast<GltfAnimationManager *>(tGltfAnimationManager);
+        gltfAnimationManager->componentManager.setGltfAnimationTime(instance->getInstance(), animationIndex, timeInSeconds);
         return true;
     }
 
     EMSCRIPTEN_KEEPALIVE float AnimationManager_getGltfAnimationDuration(
-        TAnimationManager *tAnimationManager,
+        TGltfAnimationManager *tGltfAnimationManager,
         TSceneAsset *tSceneAsset,
         int animationIndex)
     {
@@ -234,12 +195,12 @@ extern "C"
             return -1.0;
         }
 
-        // Read-only animator query; no clip system needed.
-        return instance->getInstance()->getAnimator()->getAnimationDuration(animationIndex);
+        auto *gltfAnimationManager = reinterpret_cast<GltfAnimationManager *>(tGltfAnimationManager);
+        return gltfAnimationManager->componentManager.getGltfAnimationDuration(instance->getInstance(), animationIndex);
     }
 
     EMSCRIPTEN_KEEPALIVE int AnimationManager_getGltfAnimationCount(
-        TAnimationManager *tAnimationManager,
+        TGltfAnimationManager *tGltfAnimationManager,
         TSceneAsset *tSceneAsset)
     {
         THERMION_ENGINE_API_GUARD;
@@ -251,12 +212,12 @@ extern "C"
             return -1;
         }
 
-        // Read-only animator query; no clip system needed.
+        // Read-only animator query.
         return (int)instance->getInstance()->getAnimator()->getAnimationCount();
     }
 
     EMSCRIPTEN_KEEPALIVE void AnimationManager_getGltfAnimationName(
-        TAnimationManager *tAnimationManager,
+        TGltfAnimationManager *tGltfAnimationManager,
         TSceneAsset *tSceneAsset,
         char *const outPtr,
         int index)
@@ -270,7 +231,7 @@ extern "C"
             return;
         }
 
-        // Read-only animator query; no clip system needed.
+        // Read-only animator query.
         auto *animator = instance->getInstance()->getAnimator();
         if (index < 0 || (size_t)index >= animator->getAnimationCount())
         {

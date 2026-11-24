@@ -1220,9 +1220,11 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     final animationAsset = type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF && !isInstance
         ? _getInstances().first._asset
         : _asset;
-    if (type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF &&
-        !AnimationManager_removeGltfAnimationComponent(manager, animationAsset)) {
-      _logger.warning("Failed to remove glTF animation component");
+    if (type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF) {
+      final gltfManager = _app.animationManager.gltfAnimationManager;
+      if (gltfManager != null && !AnimationManager_removeGltfAnimationComponent(gltfManager, animationAsset)) {
+        _logger.warning("Failed to remove glTF animation component");
+      }
     }
     if (!AnimationManager_removeBoneAnimationComponent(manager, animationAsset)) {
       _logger.warning("Failed to remove bone animation component");

@@ -20,9 +20,12 @@ extern "C"
         return reinterpret_cast<TAnimationManager *>(animationManager);
     }
 
-    // AnimationManager_destroy is defined in the glTF-only TGltfAnimation.cpp:
-    // it removes/frees the clip playback tickable before deleting the core
-    // manager, so this translation unit stays 100% core (no gltfio).
+    EMSCRIPTEN_KEEPALIVE void AnimationManager_destroy(TAnimationManager *tAnimationManager) {
+        THERMION_ENGINE_API_GUARD;
+        // glTF clip playback tickables are non-owning; their owner must call
+        // GltfAnimationManager_destroy (TGltfAnimationManager.h) first.
+        delete reinterpret_cast<AnimationManager *>(tAnimationManager);
+    }
 
     EMSCRIPTEN_KEEPALIVE void AnimationManager_update(TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos) {
         THERMION_ENGINE_API_GUARD;

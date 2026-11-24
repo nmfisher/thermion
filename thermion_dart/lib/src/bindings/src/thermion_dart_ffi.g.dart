@@ -42,9 +42,9 @@ external bool AnimationManager_addBoneAnimationComponent(
   ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TGltfAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
 external bool AnimationManager_addGltfAnimationComponent(
-  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TGltfAnimationManager> tGltfAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
@@ -86,24 +86,24 @@ external void AnimationManager_destroyJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Int Function(ffi.Pointer<TGltfAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
 external int AnimationManager_getGltfAnimationCount(
-  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TGltfAnimationManager> tGltfAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
 );
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TGltfAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
 external double AnimationManager_getGltfAnimationDuration(
-  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TGltfAnimationManager> tGltfAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
   int animationIndex,
 );
 
 @ffi.Native<
-  ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Pointer<ffi.Char>, ffi.Int)
+  ffi.Void Function(ffi.Pointer<TGltfAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Pointer<ffi.Char>, ffi.Int)
 >(isLeaf: true)
 external void AnimationManager_getGltfAnimationName(
-  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TGltfAnimationManager> tGltfAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
   ffi.Pointer<ffi.Char> outPtr,
   int index,
@@ -151,7 +151,7 @@ external void AnimationManager_getRestLocalTransforms(
 
 @ffi.Native<
   ffi.Bool Function(
-    ffi.Pointer<TAnimationManager>,
+    ffi.Pointer<TGltfAnimationManager>,
     ffi.Pointer<TSceneAsset>,
     ffi.Int,
     ffi.Bool,
@@ -163,7 +163,7 @@ external void AnimationManager_getRestLocalTransforms(
   )
 >(isLeaf: true)
 external bool AnimationManager_playGltfAnimation(
-  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TGltfAnimationManager> tGltfAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int index,
   bool loop,
@@ -180,9 +180,9 @@ external bool AnimationManager_removeBoneAnimationComponent(
   ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TGltfAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
 external bool AnimationManager_removeGltfAnimationComponent(
-  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TGltfAnimationManager> tGltfAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
@@ -215,11 +215,11 @@ external void AnimationManager_resetToRestPoseJobThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Int, ffi.Float)>(
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TGltfAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Int, ffi.Float)>(
   isLeaf: true,
 )
 external bool AnimationManager_setGltfAnimationTime(
-  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TGltfAnimationManager> tGltfAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int animationIndex,
   double timeInSeconds,
@@ -228,7 +228,7 @@ external bool AnimationManager_setGltfAnimationTime(
 @ffi.Native<
   ffi.Void Function(
     ffi.Pointer<TJobThread>,
-    ffi.Pointer<TAnimationManager>,
+    ffi.Pointer<TGltfAnimationManager>,
     ffi.Pointer<TSceneAsset>,
     ffi.Int,
     ffi.Float,
@@ -238,7 +238,7 @@ external bool AnimationManager_setGltfAnimationTime(
 >(isLeaf: true)
 external void AnimationManager_setGltfAnimationTimeJobThread(
   ffi.Pointer<TJobThread> jobThread,
-  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TGltfAnimationManager> tGltfAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int animationIndex,
   double timeInSeconds,
@@ -294,9 +294,9 @@ external void AnimationManager_setMorphTargetWeightsJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TGltfAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
 external bool AnimationManager_stopGltfAnimation(
-  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TGltfAnimationManager> tGltfAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
   int index,
 );
@@ -1482,6 +1482,14 @@ external int FrameScheduler_steadyClockUs();
 
 @ffi.Native<ffi.Void Function()>()
 external void FrameScheduler_stop();
+
+@ffi.Native<ffi.Pointer<TGltfAnimationManager> Function(ffi.Pointer<TAnimationManager>)>(isLeaf: true)
+external ffi.Pointer<TGltfAnimationManager> GltfAnimationManager_create(
+  ffi.Pointer<TAnimationManager> tAnimationManager,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TGltfAnimationManager>)>(isLeaf: true)
+external void GltfAnimationManager_destroy(ffi.Pointer<TGltfAnimationManager> tGltfAnimationManager);
 
 @ffi.Native<
   ffi.Pointer<TGltfAssetLoader> Function(
@@ -6233,6 +6241,8 @@ final class TFrameInfo extends ffi.Struct {
   @ffi.Int64()
   external int gpuFrameComplete;
 }
+
+final class TGltfAnimationManager extends ffi.Opaque {}
 
 final class TGltfAssetLoader extends ffi.Opaque {}
 

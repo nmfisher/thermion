@@ -38,7 +38,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TSceneAsset> tSceneAsset,
   );
   external int _AnimationManager_addGltfAnimationComponent(
-    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TGltfAnimationManager> tGltfAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
   );
   external void _AnimationManager_addMorphAnimationComponent(
@@ -60,16 +60,16 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     VoidCallback onComplete,
   );
   external int _AnimationManager_getGltfAnimationCount(
-    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TGltfAnimationManager> tGltfAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
   );
   external double _AnimationManager_getGltfAnimationDuration(
-    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TGltfAnimationManager> tGltfAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
     int animationIndex,
   );
   external void _AnimationManager_getGltfAnimationName(
-    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TGltfAnimationManager> tGltfAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
     Pointer<Char> outPtr,
     int index,
@@ -101,7 +101,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int numBones,
   );
   external int _AnimationManager_playGltfAnimation(
-    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TGltfAnimationManager> tGltfAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
     int index,
     bool loop,
@@ -116,7 +116,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TSceneAsset> tSceneAsset,
   );
   external int _AnimationManager_removeGltfAnimationComponent(
-    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TGltfAnimationManager> tGltfAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
   );
   external void _AnimationManager_removeMorphAnimationComponent(
@@ -135,14 +135,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     VoidCallback onComplete,
   );
   external int _AnimationManager_setGltfAnimationTime(
-    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TGltfAnimationManager> tGltfAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
     int animationIndex,
     double timeInSeconds,
   );
   external void _AnimationManager_setGltfAnimationTimeJobThread(
     Pointer<TJobThread> jobThread,
-    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TGltfAnimationManager> tGltfAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
     int animationIndex,
     double timeInSeconds,
@@ -173,7 +173,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<NativeFunction<void Function(bool)>> callback,
   );
   external int _AnimationManager_stopGltfAnimation(
-    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TGltfAnimationManager> tGltfAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
     int index,
   );
@@ -735,6 +735,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _FrameScheduler_startWithPort(JSBigInt port, int targetFps);
   external JSBigInt _FrameScheduler_steadyClockUs();
   external void _FrameScheduler_stop();
+  external Pointer<TGltfAnimationManager> _GltfAnimationManager_create(Pointer<TAnimationManager> tAnimationManager);
+  external void _GltfAnimationManager_destroy(Pointer<TGltfAnimationManager> tGltfAnimationManager);
   external Pointer<TGltfAssetLoader> _GltfAssetLoader_create(
     Pointer<TEngine> tEngine,
     Pointer<TMaterialProvider> tMaterialProvider,
@@ -3010,11 +3012,11 @@ bool AnimationManager_addBoneAnimationComponent(
 }
 
 bool AnimationManager_addGltfAnimationComponent(
-  Pointer<TAnimationManager> tAnimationManager,
+  Pointer<TGltfAnimationManager> tGltfAnimationManager,
   Pointer<TSceneAsset> tSceneAsset,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_addGltfAnimationComponent(
-    tAnimationManager.cast(),
+    tGltfAnimationManager.cast(),
     tSceneAsset.cast(),
   );
   return result == 1;
@@ -3072,23 +3074,23 @@ void AnimationManager_destroyJobThread(
 }
 
 int AnimationManager_getGltfAnimationCount(
-  Pointer<TAnimationManager> tAnimationManager,
+  Pointer<TGltfAnimationManager> tGltfAnimationManager,
   Pointer<TSceneAsset> sceneAsset,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_getGltfAnimationCount(
-    tAnimationManager.cast(),
+    tGltfAnimationManager.cast(),
     sceneAsset.cast(),
   );
   return result;
 }
 
 double AnimationManager_getGltfAnimationDuration(
-  Pointer<TAnimationManager> tAnimationManager,
+  Pointer<TGltfAnimationManager> tGltfAnimationManager,
   Pointer<TSceneAsset> sceneAsset,
   int animationIndex,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_getGltfAnimationDuration(
-    tAnimationManager.cast(),
+    tGltfAnimationManager.cast(),
     sceneAsset.cast(),
     animationIndex,
   );
@@ -3096,13 +3098,13 @@ double AnimationManager_getGltfAnimationDuration(
 }
 
 void AnimationManager_getGltfAnimationName(
-  Pointer<TAnimationManager> tAnimationManager,
+  Pointer<TGltfAnimationManager> tGltfAnimationManager,
   Pointer<TSceneAsset> sceneAsset,
   Pointer<Char> outPtr,
   int index,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_getGltfAnimationName(
-    tAnimationManager.cast(),
+    tGltfAnimationManager.cast(),
     sceneAsset.cast(),
     outPtr,
     index,
@@ -3175,7 +3177,7 @@ void AnimationManager_getRestLocalTransforms(
 }
 
 bool AnimationManager_playGltfAnimation(
-  Pointer<TAnimationManager> tAnimationManager,
+  Pointer<TGltfAnimationManager> tGltfAnimationManager,
   Pointer<TSceneAsset> tSceneAsset,
   int index,
   bool loop,
@@ -3186,7 +3188,7 @@ bool AnimationManager_playGltfAnimation(
   double speed,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_playGltfAnimation(
-    tAnimationManager.cast(),
+    tGltfAnimationManager.cast(),
     tSceneAsset.cast(),
     index,
     loop,
@@ -3211,11 +3213,11 @@ bool AnimationManager_removeBoneAnimationComponent(
 }
 
 bool AnimationManager_removeGltfAnimationComponent(
-  Pointer<TAnimationManager> tAnimationManager,
+  Pointer<TGltfAnimationManager> tGltfAnimationManager,
   Pointer<TSceneAsset> tSceneAsset,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_removeGltfAnimationComponent(
-    tAnimationManager.cast(),
+    tGltfAnimationManager.cast(),
     tSceneAsset.cast(),
   );
   return result == 1;
@@ -3258,13 +3260,13 @@ void AnimationManager_resetToRestPoseJobThread(
 }
 
 bool AnimationManager_setGltfAnimationTime(
-  Pointer<TAnimationManager> tAnimationManager,
+  Pointer<TGltfAnimationManager> tGltfAnimationManager,
   Pointer<TSceneAsset> tSceneAsset,
   int animationIndex,
   double timeInSeconds,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_setGltfAnimationTime(
-    tAnimationManager.cast(),
+    tGltfAnimationManager.cast(),
     tSceneAsset.cast(),
     animationIndex,
     timeInSeconds,
@@ -3274,7 +3276,7 @@ bool AnimationManager_setGltfAnimationTime(
 
 void AnimationManager_setGltfAnimationTimeJobThread(
   Pointer<TJobThread> jobThread,
-  Pointer<TAnimationManager> tAnimationManager,
+  Pointer<TGltfAnimationManager> tGltfAnimationManager,
   Pointer<TSceneAsset> tSceneAsset,
   int animationIndex,
   double timeInSeconds,
@@ -3283,7 +3285,7 @@ void AnimationManager_setGltfAnimationTimeJobThread(
 ) {
   final result = GeneratedBindings.instance._AnimationManager_setGltfAnimationTimeJobThread(
     jobThread.cast(),
-    tAnimationManager.cast(),
+    tGltfAnimationManager.cast(),
     tSceneAsset.cast(),
     animationIndex,
     timeInSeconds,
@@ -3349,12 +3351,12 @@ void AnimationManager_setMorphTargetWeightsJobThread(
 }
 
 bool AnimationManager_stopGltfAnimation(
-  Pointer<TAnimationManager> tAnimationManager,
+  Pointer<TGltfAnimationManager> tGltfAnimationManager,
   Pointer<TSceneAsset> sceneAsset,
   int index,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_stopGltfAnimation(
-    tAnimationManager.cast(),
+    tGltfAnimationManager.cast(),
     sceneAsset.cast(),
     index,
   );
@@ -4886,6 +4888,16 @@ BigInt FrameScheduler_steadyClockUs() {
 
 void FrameScheduler_stop() {
   final result = GeneratedBindings.instance._FrameScheduler_stop();
+  return result;
+}
+
+Pointer<TGltfAnimationManager> GltfAnimationManager_create(Pointer<TAnimationManager> tAnimationManager) {
+  final result = GeneratedBindings.instance._GltfAnimationManager_create(tAnimationManager.cast());
+  return Pointer<TGltfAnimationManager>(result);
+}
+
+void GltfAnimationManager_destroy(Pointer<TGltfAnimationManager> tGltfAnimationManager) {
+  final result = GeneratedBindings.instance._GltfAnimationManager_destroy(tGltfAnimationManager.cast());
   return result;
 }
 
@@ -11907,6 +11919,21 @@ final class TFrameInfo extends Struct {
   }
 }
 
+extension TGltfAnimationManagerExt on Pointer<TGltfAnimationManager> {
+  TGltfAnimationManager toDart() {
+    return TGltfAnimationManager(this);
+  }
+}
+
+final class TGltfAnimationManager extends Struct {
+  Pointer<TGltfAnimationManager> get address => super.address.cast();
+  TGltfAnimationManager(super.address);
+
+  static Pointer<TGltfAnimationManager> stackAlloc() {
+    return Pointer<TGltfAnimationManager>(NativeLibrary.instance.stackAlloc<TGltfAnimationManager>(0));
+  }
+}
+
 extension TGltfAssetLoaderExt on Pointer<TGltfAssetLoader> {
   TGltfAssetLoader toDart() {
     return TGltfAssetLoader(this);
@@ -14277,6 +14304,9 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TFrameInfo:
         final ptr = TFrameInfo.stackAlloc();
+        return ptr.toDart() as T;
+      case TGltfAnimationManager:
+        final ptr = TGltfAnimationManager.stackAlloc();
         return ptr.toDart() as T;
       case TGltfAssetLoader:
         final ptr = TGltfAssetLoader.stackAlloc();
