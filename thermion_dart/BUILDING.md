@@ -117,6 +117,74 @@ cmake --build . --target imageio --config Release
 cmake --build . --config Debug
 ```
 
+### Debug artifacts and `mode: debug`: matdbg / fgviewer (Windows checklist)
+
+The hook links Filament's debug-server archives — `matdbg` (material debugger) and
+`fgviewer` (frame-graph viewer) — whenever `libfilament` was built with them enabled.
+That is a property of the **artifact**, not of the build mode alone:
+
+| Debug zip | `FILAMENT_ENABLE_MATDBG` / `_FGVIEWER` | `filament` references them | ships `matdbg` / `fgviewer` |
+|---|---|---|---|
+| macOS, Linux, Android (`build_*.sh -t -d`) | ON / ON | yes | yes / yes |
+| iOS | OFF / OFF | no | no / no |
+| Windows (`build_windows.bat` passes neither option) | OFF / OFF | no | yes / **no** |
+
+So the hook links both archives unconditionally on macOS/Linux/Android (a missing
+archive must fail the link, not dlopen), and **by presence** on Windows: an archive
+is linked only if the zip contains its `.lib` (the hook logs any skip). With the
+pinned v1.77.2 Windows zip that means `matdbg` is linked and `fgviewer` is skipped;
+since `filament.lib` references neither, the linker extracts no member from
+`matdbg.lib` and `libthermion_dart.dll` does not grow. Whenever `matdbg` is linked
+the hook also adds what it references on Windows, where nothing is folded into
+combined archives: `matdbg_resources`, `civetweb`, `SPIRV-Tools`, `spirv-cross-core`,
+`spirv-cross-glsl`, `filamat` and the shader-compiler split below, and it defines
+`ENABLE_MATDBG=1` for thermion's own sources (nothing consumes it yet).
+
+Windows debug artifacts carry glslang's CMake `DEBUG_POSTFIX`: `OSDependentd.lib`,
+`glslangd.lib`, `SPIRVd.lib` instead of the release `OSDependent.lib`, `glslang.lib`,
+`SPIRV.lib`. The hook picks the names from the build mode; `runtime_materials: true`
+in a debug build needs the suffixed names too (the release names do not exist in the
+debug zip, and vice versa).
+
+**To get the debug server on Windows for real**, `scripts/build_windows.bat` has to
+configure a *separate* Debug CMake tree with `-DFILAMENT_ENABLE_MATDBG=ON
+-DFILAMENT_ENABLE_FGVIEWER=ON` (the Visual Studio generator is multi-config, so one
+tree cannot enable them for Debug only), build `--config Debug` there, upload the
+zip and re-pin `windows/debug` in `filament.libs.json`. No hook change is needed:
+`fgviewer.lib` is linked as soon as the zip ships it (its own dependencies have not
+been inspected — no artifact ships it). The zips also contain no `matdbg/` headers,
+so thermion code cannot `#include <matdbg/...>` yet.
+
+#### Windows runner checklist for a `mode: debug` build
+
+1. **Libs in the zip.** The debug zip must contain every `.lib` the hook names for
+   this configuration: `matdbg.lib`, `matdbg_resources.lib`, `civetweb.lib`,
+   `filamat.lib`, `glslangd.lib`, `SPIRVd.lib`, `OSDependentd.lib`, `SPIRV-Tools.lib`,
+   `spirv-cross-core.lib`, `spirv-cross-glsl.lib`, plus the regular Windows set. A
+   missing file fails with `LNK1181: cannot open input file`. The hook's cache
+   directory is the `Searching for Filament libraries under ...` line in `build.log`.
+   ```powershell
+   Add-Type -AssemblyName System.IO.Compression.FileSystem
+   [IO.Compression.ZipFile]::OpenRead("<cache dir>\filament-v1.77.2-windows-debug-115171555c6d3c2e.zip").Entries.FullName
+   ```
+2. **No LNK2005.** On Linux both `libmatdbg.a` and `libfgviewer.a` bundle civetweb,
+   so force-loading both gives duplicate `mg_*` definitions (ticket the-c8d3). On
+   Windows nothing is bundled — `civetweb.lib` is its own input — and CBuilder
+   emits the `libraries` list as plain `matdbg.lib fgviewer.lib`
+   (no `/WHOLEARCHIVE`), so the linker extracts only members that something
+   references. `LNK2005 ... already defined in civetweb.obj` means a
+   `/WHOLEARCHIVE:matdbg.lib` (or `fgviewer.lib`) has crept onto the link line.
+3. **CRT match.** The hook compiles with `/MDd` and `_DEBUG` in debug mode. The
+   pinned debug archive was built with `-MDd`; its objects carry
+   `/FAILIFMISMATCH:"RuntimeLibrary=MDd_DynamicDebug"`,
+   `/FAILIFMISMATCH:"_ITERATOR_DEBUG_LEVEL=2"` and `/DEFAULTLIB:"MSVCRTD"`. A
+   mismatch fails with `LNK2038`. Check the artifact side with
+   `dumpbin /directives filament.lib | findstr /i "RuntimeLibrary ITERATOR DEFAULTLIB"`.
+4. **Result.** The link completes with no `LNK1181`, `LNK2001`, `LNK2005` or
+   `LNK2038`, and `libthermion_dart.dll` is about the same size as before the
+   debug-server inputs were added (no `matdbg` member is extracted while the
+   artifact is built with `FILAMENT_ENABLE_MATDBG=0`).
+
 # Web
 
 By default, Filament WASM builds are single-threaded with no support for `-pthread` (`WEBGL_PTHREADS=0`).
