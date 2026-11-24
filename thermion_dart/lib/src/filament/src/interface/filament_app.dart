@@ -42,11 +42,13 @@ class FilamentConfig<T, U> {
 /// APIs that need a disabled feature throw [UnsupportedError] naming the
 /// `features.*` key instead of failing deeper in the FFI layer.
 enum ThermionFeature {
-  /// glTF loading ([FilamentApp.loadGltfFromBuffer]), glTF/bone/morph
+  /// glTF loading ([FilamentApp.loadGltfFromBuffer]), glTF clip and bone
   /// animation and the gltfio ubershader materials
   /// ([FilamentApp.createUbershaderMaterialInstance]). Procedural geometry
   /// keeps working without it: [FilamentApp.createUnlitMaterialInstance]
-  /// uses a precompiled unlit material in such builds.
+  /// uses a precompiled unlit material in such builds, and custom morph
+  /// animation (`setMorphAnimationData`/`clearMorphAnimationData`) keeps
+  /// working too — the entity-keyed morph buffer does not use gltfio.
   gltf,
 
   /// KTX1/KTX2 textures including Basis Universal ([FilamentApp.loadKtx2],
