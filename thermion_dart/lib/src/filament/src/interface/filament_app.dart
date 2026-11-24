@@ -47,8 +47,11 @@ enum ThermionFeature {
   /// ([FilamentApp.createUbershaderMaterialInstance]). Procedural geometry
   /// keeps working without it: [FilamentApp.createUnlitMaterialInstance]
   /// uses a precompiled unlit material in such builds, and custom morph
-  /// animation (`setMorphAnimationData`/`clearMorphAnimationData`) keeps
-  /// working too — the entity-keyed morph buffer does not use gltfio.
+  /// animation keeps working too through
+  /// [AnimationManager.setMorphAnimation]/[AnimationManager.clearMorphAnimation]
+  /// — the entity-keyed morph buffer does not use gltfio. The asset-level
+  /// [ThermionAsset.setMorphAnimationData] matches morph targets by their
+  /// glTF names, so it needs glTF support.
   gltf,
 
   /// KTX1/KTX2 textures including Basis Universal ([FilamentApp.loadKtx2],

@@ -254,4 +254,29 @@ void main() async {
           await red.destroy();
         });
   }, skip: skip);
+
+  test('entity-keyed morph animation works without gltf', () async {
+    // Custom morph animation without glTF goes through
+    // AnimationManager.setMorphAnimation/clearMorphAnimation: the entity-keyed
+    // morph buffer is gltfio-free and compiled into every build. The
+    // asset-level setMorphAnimationData is NOT the slim-build API — it
+    // matches morph targets by their glTF names (getMorphTargetName*), which
+    // need features.gltf.
+    await testHelper.withViewer((viewer) async {
+      final geometry = await viewer.createGeometry(GeometryUtils.cube());
+      final entity = geometry.entity;
+      final animationManager = app.animationManager;
+
+      // The buffer APIs accept an entity directly, without any glTF asset
+      // or morph target names. setMorphAnimation installs the morph
+      // component itself.
+      expect(animationManager.setMorphAnimation(entity, [0.0, 1.0], [0], 1, 2, 1000.0), isTrue);
+      await animationManager.update(1);
+      await animationManager.update(500_000_000);
+      expect(animationManager.clearMorphAnimation(entity), isTrue);
+      animationManager.removeMorphAnimationComponent(entity);
+
+      await viewer.destroyAsset(geometry);
+    }, bg: kBlue);
+  }, skip: skip);
 }
