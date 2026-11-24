@@ -35,25 +35,26 @@ extern "C"
     {
         THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-  
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
+
+        // Gate on the skin interface, not the asset type: any SceneAsset with
+        // a skin target (an instance for glTF owners) can carry a bone
+        // animation component.
+        auto *skinTarget = sceneAsset->getSkinTarget();
+        if (!skinTarget || skinTarget->getSkinCount() == 0) {
             return false;
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
 
-        animationManager->addBoneAnimationComponent(sceneAsset);
-        return true;
+        return animationManager->addBoneAnimationComponent(sceneAsset);
     }
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_removeBoneAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
     {
         THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            return false;
-        }
-
+        // No asset-type gate: removal simply no-ops when the skin target has
+        // no bone animation component (or no skin target exists at all).
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         animationManager->removeBoneAnimationComponent(sceneAsset);
         return true;
@@ -116,8 +117,9 @@ extern "C"
         THERMION_ENGINE_API_GUARD;
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if (sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            Log("Error - incorrect asset type, cannot reset to reset pose");
+        auto *skinTarget = sceneAsset->getSkinTarget();
+        if (!skinTarget || skinTarget->getSkinCount() == 0) {
+            Log("Error - asset has no skin, cannot reset to rest pose");
             return;
         }
 
@@ -139,14 +141,21 @@ extern "C"
     {
         THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
+        // Gate on skinTarget + skin/bone bounds instead of the asset type so
+        // non-glTF SceneAsset implementations work through the same virtual
+        // skin interface.
+        auto *skinTarget = sceneAsset->getSkinTarget();
+        if (!skinTarget || skinIndex < 0 || (size_t)skinIndex >= skinTarget->getSkinCount() ||
+            boneIndex < 0 || (size_t)boneIndex >= skinTarget->getBoneCount(skinIndex)) {
+            Log("ERROR: invalid skin/bone index for bone animation.");
             return false;
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        animationManager->addBoneAnimationComponent(sceneAsset);
-        animationManager->addBoneAnimation(sceneAsset, skinIndex, boneIndex, frameData, numFrames, frameLengthInMs, fadeOutInSecs, fadeInInSecs, maxDelta, loop);
-        return true;
+        if (!animationManager->addBoneAnimationComponent(sceneAsset)) {
+            return false;
+        }
+        return animationManager->addBoneAnimation(sceneAsset, skinIndex, boneIndex, frameData, numFrames, frameLengthInMs, fadeOutInSecs, fadeInInSecs, maxDelta, loop);
 
     }
 
@@ -160,7 +169,10 @@ extern "C"
         THERMION_ENGINE_API_GUARD;
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto asset = reinterpret_cast<SceneAsset *>(sceneAsset);
-        if (asset->getType() == SceneAsset::SceneAssetType::Gltf && asset->isInstance())
+        // Owner assets resolve to their skin target (first instance for glTF
+        // owners); gate on skin bounds, not asset type.
+        asset = asset->getSkinTarget();
+        if (asset && skinIndex >= 0 && (size_t)skinIndex < asset->getSkinCount())
         {
             const auto transforms = animationManager->getBoneRestTranforms(asset, skinIndex);
             auto numTransforms = transforms.size();
@@ -193,7 +205,10 @@ extern "C"
         THERMION_ENGINE_API_GUARD;
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto asset = reinterpret_cast<SceneAsset *>(sceneAsset);
-        if (asset->getType() == SceneAsset::SceneAssetType::Gltf && asset->isInstance())
+        asset = asset->getSkinTarget();
+        if (asset && skinIndex >= 0 && (size_t)skinIndex < asset->getSkinCount() &&
+            boneIndex >= 0 && (size_t)boneIndex < asset->getBoneCount(skinIndex) &&
+            asset->getInverseBindMatrices(skinIndex) != nullptr)
         {
             auto transform = animationManager->getInverseBindMatrix(asset, skinIndex, boneIndex);
             for (int colNum = 0; colNum < 4; colNum++)
@@ -203,8 +218,8 @@ extern "C"
                     out[(colNum * 4) + rowNum] = transform[colNum][rowNum];
                 }
             }
-        } else { 
-            LOG_ERROR("AnimationManager_getInverseBindMatrix can only be called with an GltfSceneAssetInstance");
+        } else {
+            LOG_ERROR("AnimationManager_getInverseBindMatrix requires an asset with a skin and valid skin/bone indices");
         }
     }
 
@@ -225,11 +240,8 @@ extern "C"
     {
         THERMION_ENGINE_API_GUARD;
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            return -1;
-        }
-        
+        // getMorphTargetNames is a virtual on SceneAsset; asset types without
+        // morph target metadata return an empty list, so no type gate needed.
         auto names = sceneAsset->getMorphTargetNames(utils::Entity::import(childEntity));
         return (int)names.size();
     }
