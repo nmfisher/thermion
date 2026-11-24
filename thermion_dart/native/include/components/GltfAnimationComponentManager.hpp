@@ -17,6 +17,8 @@
 
 #include <utils/SingleInstanceComponentManager.h>
 
+#include <mutex>
+
 #include "Log.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
 #include "scene/AnimationComponentBase.hpp"
@@ -66,6 +68,10 @@ namespace thermion
                     utils::SingleInstanceComponentManager<GltfAnimationComponent>(em, "GltfAnimationComponentManager"),
                     mTransformManager(transformManager), mRenderableManager(renderableManager) {};
             ~GltfAnimationComponentManager() = default;
+            // All public methods take mMutex internally, so direct FFI calls
+            // serialize against the frame tick (update()) without relying on
+            // the AnimationManager's mutex or the engine API lock (which
+            // compiles to nothing on web worker builds).
             void addAnimationComponent(FilamentInstance *target);
             void removeAnimationComponent(FilamentInstance *target);
 
@@ -77,6 +83,7 @@ namespace thermion
             void update(uint64_t frameTimeInNanos) override;
 
         private:
+            std::mutex mMutex;
             filament::TransformManager &mTransformManager;
             filament::RenderableManager &mRenderableManager;
             uint64_t mLastUpdateTime;

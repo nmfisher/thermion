@@ -22,6 +22,8 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void AnimationManager_destroy(TAnimationManager *tAnimationManager) {
         THERMION_ENGINE_API_GUARD;
+        // glTF clip playback tickables are non-owning; their owner must call
+        // GltfAnimationManager_destroy (TGltfAnimationManager.h) first.
         delete reinterpret_cast<AnimationManager *>(tAnimationManager);
     }
 

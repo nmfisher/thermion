@@ -21,6 +21,7 @@
 #include "ThermionFeatures.h"
 #include "c_api/APIBoundaryTypes.h"
 #include "c_api/TAnimationManager.h"
+#include "c_api/TGltfAnimationManager.h"
 #include "c_api/TEngine.h"
 #include "c_api/TRenderableManager.h"
 #include "c_api/TTransformManager.h"
@@ -1657,7 +1658,7 @@ extern "C"
   // dispatched synchronously on the caller's thread and panicked for morph
   // animations — this wrapper runs it on the render thread like the others.
   EMSCRIPTEN_KEEPALIVE void AnimationManager_setGltfAnimationTimeJobThread(TJobThread *jobThread,
-      TAnimationManager *tAnimationManager,
+      TGltfAnimationManager *tGltfAnimationManager,
       TSceneAsset *tSceneAsset,
       int animationIndex,
       float timeInSeconds,
@@ -1667,7 +1668,7 @@ extern "C"
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          AnimationManager_setGltfAnimationTime(tAnimationManager, tSceneAsset, animationIndex, timeInSeconds);
+          AnimationManager_setGltfAnimationTime(tGltfAnimationManager, tSceneAsset, animationIndex, timeInSeconds);
           PROXY(onComplete(requestId));
         });
     auto fut = rt->addTask(lambda);

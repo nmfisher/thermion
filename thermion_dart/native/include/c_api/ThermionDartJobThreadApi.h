@@ -1,6 +1,7 @@
 #pragma once
 
 #include "APIBoundaryTypes.h"
+#include "TGltfAnimationManager.h"
 
 #include "TEngine.h"
 #include "TMaterialInstance.h"
@@ -272,7 +273,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void AnimationManager_updateJobThread(TJobThread *jobThread, TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete);
 
         EMSCRIPTEN_KEEPALIVE void AnimationManager_setGltfAnimationTimeJobThread(TJobThread *jobThread,
-            TAnimationManager *tAnimationManager,
+            TGltfAnimationManager *tGltfAnimationManager,
             TSceneAsset *tSceneAsset,
             int animationIndex,
             float timeInSeconds,

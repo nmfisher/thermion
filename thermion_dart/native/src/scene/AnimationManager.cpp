@@ -36,68 +36,27 @@ namespace thermion
 
     AnimationManager::~AnimationManager()
     {
+        // Tickables are non-owning: their owners (e.g. the glTF animation
+        // manager) remove and destroy them before this manager dies.
     }
 
-    void AnimationManager::registerAnimationSystem(const std::string &name, TickableAnimationSystem *system)
+    void AnimationManager::addTickable(TickableAnimationSystem *system)
     {
         std::lock_guard lock(mMutex);
-        for (auto &entry : mAnimationSystems)
+        if (std::find(mTickables.begin(), mTickables.end(), system) == mTickables.end())
         {
-            if (entry.first == name)
-            {
-                // Already registered; the manager owns the existing system,
-                // so drop the duplicate to avoid leaking it.
-                if (entry.second.get() != system)
-                {
-                    delete system;
-                }
-                return;
-            }
+            mTickables.push_back(system);
         }
-        mAnimationSystems.emplace_back(name, std::unique_ptr<TickableAnimationSystem>(system));
     }
 
-    void AnimationManager::unregisterAnimationSystem(const std::string &name)
+    void AnimationManager::removeTickable(TickableAnimationSystem *system)
     {
         std::lock_guard lock(mMutex);
-        auto it = std::find_if(mAnimationSystems.begin(), mAnimationSystems.end(),
-                               [&](auto &entry)
-                               { return entry.first == name; });
-        if (it != mAnimationSystems.end())
+        auto it = std::find(mTickables.begin(), mTickables.end(), system);
+        if (it != mTickables.end())
         {
-            mAnimationSystems.erase(it);
+            mTickables.erase(it);
         }
-    }
-
-    TickableAnimationSystem *AnimationManager::findAnimationSystem(const std::string &name)
-    {
-        std::lock_guard lock(mMutex);
-        return findAnimationSystemLocked(name);
-    }
-
-    TickableAnimationSystem *AnimationManager::findAnimationSystemLocked(const std::string &name)
-    {
-        for (auto &entry : mAnimationSystems)
-        {
-            if (entry.first == name)
-            {
-                return entry.second.get();
-            }
-        }
-        return nullptr;
-    }
-
-    TickableAnimationSystem *AnimationManager::getOrCreateAnimationSystemLocked(
-        const std::string &name,
-        const std::function<TickableAnimationSystem *()> &factory)
-    {
-        auto *system = findAnimationSystemLocked(name);
-        if (!system)
-        {
-            system = factory();
-            mAnimationSystems.emplace_back(name, std::unique_ptr<TickableAnimationSystem>(system));
-        }
-        return system;
     }
 
     bool AnimationManager::setMorphAnimationBuffer(
@@ -416,15 +375,15 @@ namespace thermion
     void AnimationManager::update(uint64_t frameTimeInNanos)
     {
         std::lock_guard lock(mMutex);
-        // Tick registered systems (glTF clip playback) FIRST. Clip playback
+        // Tick added tickables (glTF clip playback) FIRST. Clip playback
         // writes joint transforms and morph weights directly; the runtime
         // morph/bone managers below must run afterwards so they overwrite or
         // blend onto the clip pose (bone fade-in/out explicitly reads the
         // transform "possibly set by the glTF animation loop above"). Ticking
         // clips last would clobber runtime animations every frame.
-        for (auto &entry : mAnimationSystems)
+        for (auto *tickable : mTickables)
         {
-            entry.second->update(frameTimeInNanos);
+            tickable->update(frameTimeInNanos);
         }
         mMorphAnimationComponentManager->update(frameTimeInNanos);
         mBoneAnimationComponentManager->update(frameTimeInNanos);

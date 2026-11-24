@@ -6,9 +6,11 @@ namespace thermion
 {
     /// An animation system driven by AnimationManager::update(). The core
     /// AnimationManager ticks its own morph/bone component managers and any
-    /// registered optional systems (e.g. the glTF-only embedded clip playback
-    /// in GltfAnimationComponentManager), so optional animation features can
-    /// hook into the frame loop without core code depending on them.
+    /// systems added via addTickable() (e.g. the glTF-only embedded clip
+    /// playback in GltfAnimationComponentManager), so optional animation
+    /// features can hook into the frame loop without core code depending on
+    /// them. The system's owner keeps ownership and must removeTickable()
+    /// before destroying it.
     class TickableAnimationSystem
     {
     public:
