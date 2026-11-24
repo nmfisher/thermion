@@ -1090,6 +1090,24 @@ namespace thermion
         return instance->getBoneName(skinIndex, boneIndex);
     }
 
+    size_t GltfSceneAsset::getSkinCount() const
+    {
+        auto &instance = _instances.front();
+        return instance->getSkinCount();
+    }
+
+    const math::mat4f *GltfSceneAsset::getInverseBindMatrices(size_t skinIndex) const
+    {
+        auto &instance = _instances.front();
+        return instance->getInverseBindMatrices(skinIndex);
+    }
+
+    void GltfSceneAsset::updateBoneMatrices()
+    {
+        auto &instance = _instances.front();
+        instance->updateBoneMatrices();
+    }
+
     std::vector<std::string> GltfSceneAsset::getMorphTargetNames(utils::Entity childEntity) const
     {
         std::vector<std::string> names;

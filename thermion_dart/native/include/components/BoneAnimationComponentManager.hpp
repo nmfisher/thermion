@@ -12,18 +12,16 @@
 #include <math/mat3.h>
 #include <math/norm.h>
 
-#include <gltfio/Animator.h>
-#include <gltfio/math.h>
-
 #include <utils/SingleInstanceComponentManager.h>
 
 #include "Log.hpp"
+#include "MathUtils.hpp"
 #include "scene/AnimationComponentBase.hpp"
+#include "scene/SceneAsset.hpp"
 
 namespace thermion
 {
     using namespace filament;
-    using namespace filament::gltfio;
     using namespace utils;
 
     struct BoneAnimation : AnimationComponentBase {
@@ -42,7 +40,9 @@ namespace thermion
     ///
     struct BoneAnimationComponent 
     {
-        filament::gltfio::FilamentInstance * target;
+        // The animated asset. Only the gltfio-free SceneAsset skin interface
+        // (getEntity/getBones/updateBoneMatrices) is used.
+        SceneAsset *target;
         std::vector<BoneAnimation> animations;
     };
     
@@ -56,8 +56,8 @@ namespace thermion
                     mTransformManager(transformManager), mRenderableManager(renderableManager) {};
             ~BoneAnimationComponentManager() {};
             
-            void addAnimationComponent(FilamentInstance *target);
-            void removeAnimationComponent(FilamentInstance *target);
+            void addAnimationComponent(SceneAsset *target);
+            void removeAnimationComponent(SceneAsset *target);
             void update(uint64_t frameTimeInNanos); 
 
         private:

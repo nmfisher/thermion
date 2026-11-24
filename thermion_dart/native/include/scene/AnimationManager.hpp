@@ -71,11 +71,11 @@ namespace thermion
             utils::Entity entity);
 
         
-        /// @param instance
+        /// @param asset
         /// @param skinIndex
         /// @param boneIndex
         /// @return
-        math::mat4f getInverseBindMatrix(GltfSceneAssetInstance *instance, int skinIndex, int boneIndex);
+        math::mat4f getInverseBindMatrix(SceneAsset *asset, int skinIndex, int boneIndex);
 
         /// Immediately start animating the bone at [boneIndex] under the parent instance [entity] at skin [skinIndex].
         /// @param entity the mesh entity to animate
@@ -85,7 +85,7 @@ namespace thermion
         /// @param frameLengthInMs the length of each frame in ms
         /// @return true if the bone animation was successfully enqueued
         bool addBoneAnimation(
-            GltfSceneAssetInstance *instance,
+            SceneAsset *asset,
             int skinIndex,
             int boneIndex,
             const float *const frameData,
@@ -97,18 +97,18 @@ namespace thermion
             bool loop = false);
 
         
-        /// @param instance
+        /// @param asset
         /// @param skinIndex
         /// @return
-        std::vector<math::mat4f> getBoneRestTranforms(GltfSceneAssetInstance *instance, int skinIndex);
+        std::vector<math::mat4f> getBoneRestTranforms(SceneAsset *asset, int skinIndex);
 
         
-        /// @param instance
-        void resetToRestPose(GltfSceneAssetInstance *instance);
+        /// @param asset
+        void resetToRestPose(SceneAsset *asset);
 
         
-        /// @param instance
-        void updateBoneMatrices(GltfSceneAssetInstance *instance);
+        /// @param asset
+        void updateBoneMatrices(SceneAsset *asset);
 
         
         /// @param instance
@@ -159,13 +159,13 @@ namespace thermion
         void removeGltfAnimationComponent(GltfSceneAssetInstance *instance);
 
         
-        /// @param instance
+        /// @param asset
         /// @return
-        bool addBoneAnimationComponent(GltfSceneAssetInstance *instance);
+        bool addBoneAnimationComponent(SceneAsset *asset);
 
         
-        /// @param instance
-        void removeBoneAnimationComponent(GltfSceneAssetInstance *instance);
+        /// @param asset
+        void removeBoneAnimationComponent(SceneAsset *asset);
 
         
         /// @param asset

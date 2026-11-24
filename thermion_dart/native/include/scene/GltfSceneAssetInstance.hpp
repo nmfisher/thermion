@@ -162,6 +162,10 @@ namespace thermion
         const utils::Entity *getBones(size_t skinIndex) const override;
         const char *getBoneName(size_t skinIndex, size_t boneIndex) const override;
 
+        size_t getSkinCount() const override;
+        const math::mat4f *getInverseBindMatrices(size_t skinIndex) const override;
+        void updateBoneMatrices() override;
+
         std::vector<std::string> getMorphTargetNames(utils::Entity childEntity) const override;
 
         bool inUse = true;

@@ -86,18 +86,9 @@ extern "C"
             return false;
         }
 
-        GltfSceneAssetInstance *instance;
-
-        if (sceneAsset->isInstance())
-        {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-        } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
-        }
-        
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
 
-        animationManager->addBoneAnimationComponent(instance);
+        animationManager->addBoneAnimationComponent(sceneAsset);
         return true;
     }
 
@@ -109,22 +100,8 @@ extern "C"
             return false;
         }
 
-          
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            return false;
-        }
-
-        GltfSceneAssetInstance *instance;
-
-        if (sceneAsset->isInstance())
-        {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-        } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
-        }
-
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        animationManager->removeBoneAnimationComponent(instance);
+        animationManager->removeBoneAnimationComponent(sceneAsset);
         return true;
     }
 
@@ -190,18 +167,7 @@ extern "C"
             return;
         }
 
-          
-        GltfSceneAssetInstance *instance;
-
-        if (sceneAsset->isInstance())
-        {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-        } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
-        }
-
-        animationManager->resetToRestPose(instance);
-        
+        animationManager->resetToRestPose(sceneAsset);
     }
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_addBoneAnimation(
@@ -224,16 +190,8 @@ extern "C"
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        GltfSceneAssetInstance *instance;
-
-        if (sceneAsset->isInstance())
-        {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
-        } else {
-            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
-        }
-        animationManager->addBoneAnimationComponent(instance);
-        animationManager->addBoneAnimation(instance, skinIndex, boneIndex, frameData, numFrames, frameLengthInMs, fadeOutInSecs, fadeInInSecs, maxDelta, loop);
+        animationManager->addBoneAnimationComponent(sceneAsset);
+        animationManager->addBoneAnimation(sceneAsset, skinIndex, boneIndex, frameData, numFrames, frameLengthInMs, fadeOutInSecs, fadeInInSecs, maxDelta, loop);
         return true;
 
     }
@@ -250,8 +208,7 @@ extern "C"
         auto asset = reinterpret_cast<SceneAsset *>(sceneAsset);
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf && asset->isInstance())
         {
-            auto *instance = reinterpret_cast<GltfSceneAssetInstance *>(asset);
-            const auto transforms = animationManager->getBoneRestTranforms(instance, skinIndex);
+            const auto transforms = animationManager->getBoneRestTranforms(asset, skinIndex);
             auto numTransforms = transforms.size();
             if (numTransforms != numBones)
             {
@@ -284,8 +241,7 @@ extern "C"
         auto asset = reinterpret_cast<SceneAsset *>(sceneAsset);
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf && asset->isInstance())
         {
-            auto *instance = reinterpret_cast<GltfSceneAssetInstance *>(asset);
-            auto transform = animationManager->getInverseBindMatrix(instance, skinIndex, boneIndex);
+            auto transform = animationManager->getInverseBindMatrix(asset, skinIndex, boneIndex);
             for (int colNum = 0; colNum < 4; colNum++)
             {
                 for (int rowNum = 0; rowNum < 4; rowNum++)
@@ -463,8 +419,8 @@ extern "C"
         TSceneAsset *sceneAsset)
     {
         THERMION_ENGINE_API_GUARD;
-        auto instance = ((GltfSceneAssetInstance *)sceneAsset);
-        ((AnimationManager *)tAnimationManager)->updateBoneMatrices(instance);
+        auto asset = reinterpret_cast<SceneAsset *>(sceneAsset);
+        ((AnimationManager *)tAnimationManager)->updateBoneMatrices(asset);
         return true;
     }
 

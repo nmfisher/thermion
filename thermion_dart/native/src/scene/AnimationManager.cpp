@@ -96,12 +96,11 @@ namespace thermion
         morphAnimations.clear();
     }
 
-    void AnimationManager::resetToRestPose(GltfSceneAssetInstance *instance)
+    void AnimationManager::resetToRestPose(SceneAsset *asset)
     {
         std::lock_guard lock(mMutex);
 
-        auto filamentInstance = instance->getInstance();
-        auto skinCount = filamentInstance->getSkinCount();
+        auto skinCount = asset->getSkinCount();
 
         TransformManager &transformManager = mEngine->getTransformManager();
 
@@ -132,35 +131,28 @@ namespace thermion
         //              - pop the bone, reset its transform and mark it as completed
         for (int skinIndex = 0; skinIndex < skinCount; skinIndex++)
         {
-            std::unordered_set<Entity, Entity::Hasher> joints;
-            std::unordered_set<Entity, Entity::Hasher> completed;
-            std::stack<Entity> stack;
+            auto transforms = getBoneRestTranforms(asset, skinIndex);
 
-            auto transforms = getBoneRestTranforms(instance, skinIndex);
-
-            for (int i = 0; i < filamentInstance->getJointCountAt(skinIndex); i++)
+            for (int i = 0; i < asset->getBoneCount(skinIndex); i++)
             {
                 auto restTransform = transforms[i];
-                const auto &joint = filamentInstance->getJointsAt(skinIndex)[i];
+                const auto &joint = asset->getBones(skinIndex)[i];
                 auto transformInstance = transformManager.getInstance(joint);
                 transformManager.setTransform(transformInstance, restTransform);
             }
         }
-        filamentInstance->getAnimator()->updateBoneMatrices();
+        asset->updateBoneMatrices();
         return;
     }
 
-    std::vector<math::mat4f> AnimationManager::getBoneRestTranforms(GltfSceneAssetInstance *instance, int skinIndex)
+    std::vector<math::mat4f> AnimationManager::getBoneRestTranforms(SceneAsset *asset, int skinIndex)
     {
 
         std::vector<math::mat4f> transforms;
 
-        auto filamentInstance = instance->getInstance();
-        auto skinCount = filamentInstance->getSkinCount();
-
         TransformManager &transformManager = mEngine->getTransformManager();
 
-        transforms.resize(filamentInstance->getJointCountAt(skinIndex));
+        transforms.resize(asset->getBoneCount(skinIndex));
 
         //
         // To reset the skeleton to its rest pose, we could just call animator->resetBoneMatrices(),
@@ -191,9 +183,9 @@ namespace thermion
         std::unordered_set<Entity, Entity::Hasher> completed;
         std::stack<Entity> stack;
 
-        for (int i = 0; i < filamentInstance->getJointCountAt(skinIndex); i++)
+        for (int i = 0; i < asset->getBoneCount(skinIndex); i++)
         {
-            const auto &joint = filamentInstance->getJointsAt(skinIndex)[i];
+            const auto &joint = asset->getBones(skinIndex)[i];
             joints.push_back(joint);
             stack.push(joint);
         }
@@ -227,11 +219,11 @@ namespace thermion
             // otherwise let's get the inverse bind matrix for the joint
             math::mat4f inverseBindMatrix;
             bool found = false;
-            for (int i = 0; i < filamentInstance->getJointCountAt(skinIndex); i++)
+            for (int i = 0; i < asset->getBoneCount(skinIndex); i++)
             {
-                if (filamentInstance->getJointsAt(skinIndex)[i] == joint)
+                if (asset->getBones(skinIndex)[i] == joint)
                 {
-                    inverseBindMatrix = filamentInstance->getInverseBindMatricesAt(skinIndex)[i];
+                    inverseBindMatrix = asset->getInverseBindMatrices(skinIndex)[i];
                     found = true;
                     break;
                 }
@@ -262,13 +254,13 @@ namespace thermion
         return transforms;
     }
 
-    void AnimationManager::updateBoneMatrices(GltfSceneAssetInstance *instance)
+    void AnimationManager::updateBoneMatrices(SceneAsset *asset)
     {
         std::lock_guard lock(mMutex);
-        instance->getInstance()->getAnimator()->updateBoneMatrices();
+        asset->updateBoneMatrices();
     }
 
-    bool AnimationManager::addBoneAnimation(GltfSceneAssetInstance *instance,
+    bool AnimationManager::addBoneAnimation(SceneAsset *asset,
                                             int skinIndex,
                                             int boneIndex,
                                             const float *const frameData,
@@ -285,7 +277,6 @@ namespace thermion
         animation.boneIndex = boneIndex;
         animation.frameData.clear();
 
-        const auto &inverseBindMatrix = instance->getInstance()->getInverseBindMatricesAt(skinIndex)[boneIndex];
         for (int i = 0; i < numFrames; i++)
         {
             math::mat4f frame(
@@ -321,12 +312,12 @@ namespace thermion
         animation.fadeInInSecs = fadeInInSecs;
         animation.maxDelta = maxDelta;
         animation.skinIndex = skinIndex;
-        if (!mBoneAnimationComponentManager->hasComponent(instance->getInstance()->getRoot()))
+        if (!mBoneAnimationComponentManager->hasComponent(asset->getEntity()))
         {
             Log("ERROR: specified entity is not animatable (has no animation component attached).");
             return false;
         }
-        auto animationComponentInstance = mBoneAnimationComponentManager->getInstance(instance->getInstance()->getRoot());
+        auto animationComponentInstance = mBoneAnimationComponentManager->getInstance(asset->getEntity());
 
         auto &animationComponent = mBoneAnimationComponentManager->elementAt<0>(animationComponentInstance);
         auto &boneAnimations = animationComponent.animations;
@@ -411,9 +402,9 @@ namespace thermion
         mLastUpdateTime = frameTimeInNanos;
     }
 
-    math::mat4f AnimationManager::getInverseBindMatrix(GltfSceneAssetInstance *instance, int skinIndex, int boneIndex)
+    math::mat4f AnimationManager::getInverseBindMatrix(SceneAsset *asset, int skinIndex, int boneIndex)
     {
-        return instance->getInstance()->getInverseBindMatricesAt(skinIndex)[boneIndex];
+        return asset->getInverseBindMatrices(skinIndex)[boneIndex];
     }
 
     bool AnimationManager::addGltfAnimationComponent(GltfSceneAssetInstance *instance)
@@ -431,18 +422,18 @@ namespace thermion
         TRACE("Removed glTF animation component");
     }
 
-    bool AnimationManager::addBoneAnimationComponent(GltfSceneAssetInstance *instance)
+    bool AnimationManager::addBoneAnimationComponent(SceneAsset *asset)
     {
         std::lock_guard lock(mMutex);
-        mBoneAnimationComponentManager->addAnimationComponent(instance->getInstance());
+        mBoneAnimationComponentManager->addAnimationComponent(asset);
         TRACE("Added bone animation component");
         return true;
     }
 
-    void AnimationManager::removeBoneAnimationComponent(GltfSceneAssetInstance *instance)
+    void AnimationManager::removeBoneAnimationComponent(SceneAsset *asset)
     {
         std::lock_guard lock(mMutex);
-        mBoneAnimationComponentManager->removeAnimationComponent(instance->getInstance());
+        mBoneAnimationComponentManager->removeAnimationComponent(asset);
         TRACE("Removed bone animation component");
     }
 
