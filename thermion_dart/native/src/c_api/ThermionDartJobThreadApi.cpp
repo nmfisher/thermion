@@ -2337,17 +2337,7 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetJobThread(TJobThread *jobThread, TScene *tScene, TFilamentAsset *tAsset, uint32_t requestId, VoidCallback onComplete)
-  {
-    auto *rt = reinterpret_cast<JobThread*>(jobThread);
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          Scene_addFilamentAsset(tScene, tAsset);
-          PROXY(onComplete(requestId));
-        });
-    auto fut = rt->addTask(lambda);
-  }
+
 
   EMSCRIPTEN_KEEPALIVE void FilamentAsset_getWireframeJobThread(TJobThread *jobThread, TFilamentAsset *tFilamentAsset, void (*onComplete)(EntityId))
   {

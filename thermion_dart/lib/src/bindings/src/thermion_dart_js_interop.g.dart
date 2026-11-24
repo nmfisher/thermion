@@ -2156,14 +2156,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
-  external void _Scene_addFilamentAsset(Pointer<TScene> tScene, Pointer<TFilamentAsset> asset);
-  external void _Scene_addFilamentAssetJobThread(
-    Pointer<TJobThread> jobThread,
-    Pointer<TScene> tScene,
-    Pointer<TFilamentAsset> tAsset,
-    int requestId,
-    VoidCallback onComplete,
-  );
   external Pointer<TSkybox> _Scene_getSkybox(Pointer<TScene> tScene);
   external void _Scene_removeEntity(Pointer<TScene> tScene, EntityId entityId);
   external void _Scene_removeEntityJobThread(
@@ -8403,28 +8395,6 @@ void Scene_addEntityJobThread(
     jobThread.cast(),
     tScene.cast(),
     entityId,
-    requestId,
-    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
-  );
-  return result;
-}
-
-void Scene_addFilamentAsset(Pointer<TScene> tScene, Pointer<TFilamentAsset> asset) {
-  final result = GeneratedBindings.instance._Scene_addFilamentAsset(tScene.cast(), asset.cast());
-  return result;
-}
-
-void Scene_addFilamentAssetJobThread(
-  Pointer<TJobThread> jobThread,
-  Pointer<TScene> tScene,
-  Pointer<TFilamentAsset> tAsset,
-  int requestId,
-  DartVoidCallback onComplete,
-) {
-  final result = GeneratedBindings.instance._Scene_addFilamentAssetJobThread(
-    jobThread.cast(),
-    tScene.cast(),
-    tAsset.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );

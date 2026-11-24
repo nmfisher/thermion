@@ -12,9 +12,6 @@
 #include <filament/TransformManager.h>
 #include <filament/View.h>
 
-#include <gltfio/FilamentAsset.h>
-#include <gltfio/FilamentInstance.h>
-
 #include "Log.hpp"
 
 #ifdef __cplusplus
@@ -60,14 +57,6 @@ namespace thermion
             auto *light = reinterpret_cast<IndirectLight *>(tIndirectLight);
             scene->setIndirectLight(light);
         }
-
-        EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAsset(TScene* tScene, TFilamentAsset *tAsset) {
-            THERMION_ENGINE_API_GUARD;
-            auto *scene = reinterpret_cast<Scene *>(tScene);
-            auto *asset = reinterpret_cast<gltfio::FilamentAsset*>(tAsset);
-            scene->addEntities(asset->getEntities(), asset->getEntityCount());
-        }
-
 
 #ifdef __cplusplus
     }
