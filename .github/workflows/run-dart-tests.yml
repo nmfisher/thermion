@@ -411,8 +411,10 @@ jobs:
   # Apple Clang's default -Werror=return-type (macOS). test/slim_build_test.dart
   # skips itself on default builds and runs for real on this one; the pure-Dart
   # resolve_pubspec_features_test.dart covers the `features` user-define parsing.
-  # Same pubspec rewrite as dart-tests-runtime-materials: strip the local-only
-  # hooks.user_defines block, then append the slim configuration.
+  # The pubspec rewrite inserts the slim `features` block under
+  # hooks.user_defines.thermion_dart while KEEPING the existing `materials`
+  # block — stripping the whole hooks block would drop every Material_create*
+  # factory from the build and fail the export check below.
   dart-tests-slim:
     name: Slim Build Tests (${{ matrix.name }}, features off)
     strategy:
@@ -454,20 +456,17 @@ jobs:
         shell: bash
         run: |
           awk '
-            /^hooks:/ { skip=1; next }
-            skip && /^[^[:space:]#]/ { skip=0 }
-            !skip { print }
+            { print }
+            /^    thermion_dart:$/ {
+              print "      features:"
+              print "        gltf: false"
+              print "        ktx: false"
+              print "        image_decoding: false"
+            }
           ' thermion_dart/pubspec.yaml > thermion_dart/pubspec.yaml.tmp
           mv thermion_dart/pubspec.yaml.tmp thermion_dart/pubspec.yaml
-          cat >> thermion_dart/pubspec.yaml <<'EOF'
-          hooks:
-            user_defines:
-              thermion_dart:
-                features:
-                  gltf: false
-                  ktx: false
-                  image_decoding: false
-          EOF
+          grep -q '^      materials:$' thermion_dart/pubspec.yaml
+          grep -q '^      features:$' thermion_dart/pubspec.yaml
 
       - name: Clean cached Filament libraries
         shell: bash
