@@ -9,10 +9,10 @@ namespace thermion
     /// registered optional systems (e.g. the glTF-only embedded clip playback
     /// in GltfAnimationComponentManager), so optional animation features can
     /// hook into the frame loop without core code depending on them.
-    class ITickableAnimationSystem
+    class TickableAnimationSystem
     {
     public:
-        virtual ~ITickableAnimationSystem() = default;
+        virtual ~TickableAnimationSystem() = default;
 
         /// @param frameTimeInNanos the number of nanoseconds elapsed since
         /// the engine started (same clock as AnimationManager::update).

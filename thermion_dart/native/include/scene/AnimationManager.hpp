@@ -13,7 +13,7 @@
 #include "c_api/APIBoundaryTypes.h"
 
 #include "scene/AnimationComponentBase.hpp"
-#include "scene/ITickableAnimationSystem.hpp"
+#include "scene/TickableAnimationSystem.hpp"
 #include "scene/SceneAsset.hpp"
 
 namespace thermion
@@ -61,14 +61,14 @@ namespace thermion
         /// that is already registered is a no-op.
         /// @param name identifier used by findAnimationSystem (e.g. "gltf")
         /// @param system
-        void registerAnimationSystem(const std::string &name, ITickableAnimationSystem *system);
+        void registerAnimationSystem(const std::string &name, TickableAnimationSystem *system);
 
         /// @param name
         void unregisterAnimationSystem(const std::string &name);
 
         /// Returns the registered system for [name], or nullptr.
         /// @param name
-        ITickableAnimationSystem *findAnimationSystem(const std::string &name);
+        TickableAnimationSystem *findAnimationSystem(const std::string &name);
 
         /// Locks the manager's mutex for callers that must hold it across a
         /// system lookup plus operations on the returned system (e.g. glTF
@@ -81,7 +81,7 @@ namespace thermion
         std::unique_lock<std::mutex> lock() { return std::unique_lock<std::mutex>(mMutex); }
 
         /// Like findAnimationSystem, but the caller must hold lock().
-        ITickableAnimationSystem *findAnimationSystemLocked(const std::string &name);
+        TickableAnimationSystem *findAnimationSystemLocked(const std::string &name);
 
         /// Returns the registered system for [name], creating and registering
         /// it via [factory] on first use. Lookup and registration happen
@@ -91,9 +91,9 @@ namespace thermion
         /// caller still used the pointer). The caller must hold lock(); the
         /// factory runs under the mutex and must not call back into this
         /// manager's public methods.
-        ITickableAnimationSystem *getOrCreateAnimationSystemLocked(
+        TickableAnimationSystem *getOrCreateAnimationSystemLocked(
             const std::string &name,
-            const std::function<ITickableAnimationSystem *()> &factory);
+            const std::function<TickableAnimationSystem *()> &factory);
 
         /// The engine this manager was created with (used by optional
         /// animation systems to obtain Filament interfaces).
@@ -192,7 +192,7 @@ namespace thermion
         // Owned optional animation systems (e.g. glTF clip playback),
         // ticked before the core component managers so runtime morph/bone
         // animations apply on top of (and can blend with) the clip pose.
-        std::vector<std::pair<std::string, std::unique_ptr<ITickableAnimationSystem>>> mAnimationSystems;
+        std::vector<std::pair<std::string, std::unique_ptr<TickableAnimationSystem>>> mAnimationSystems;
         uint64_t mLastUpdateTime;
     };
 }

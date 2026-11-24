@@ -1,7 +1,7 @@
 // glTF-only embedded clip playback C API. The core AnimationManager
 // (TAnimationManager.cpp) has no gltfio dependency; the clip playback
 // functions below drive a GltfAnimationComponentManager registered into
-// the AnimationManager as an ITickableAnimationSystem, so clips are
+// the AnimationManager as a TickableAnimationSystem, so clips are
 // ticked by the same AnimationManager_update() frame hook.
 
 #include "rendering/EngineApiLock.hpp"
@@ -31,7 +31,7 @@ extern "C"
     static GltfAnimationComponentManager *getGltfAnimationSystemLocked(AnimationManager *animationManager)
     {
         return static_cast<GltfAnimationComponentManager *>(
-            animationManager->getOrCreateAnimationSystemLocked("gltf", [animationManager]() -> ITickableAnimationSystem *
+            animationManager->getOrCreateAnimationSystemLocked("gltf", [animationManager]() -> TickableAnimationSystem *
             {
                 auto *engine = animationManager->getEngine();
                 return new GltfAnimationComponentManager(

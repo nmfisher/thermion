@@ -20,7 +20,7 @@
 #include "Log.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
 #include "scene/AnimationComponentBase.hpp"
-#include "scene/ITickableAnimationSystem.hpp"
+#include "scene/TickableAnimationSystem.hpp"
 
 template class std::vector<float>;
 namespace thermion
@@ -57,7 +57,7 @@ namespace thermion
     };
 
     class GltfAnimationComponentManager : public utils::SingleInstanceComponentManager<GltfAnimationComponent>,
-                                          public ITickableAnimationSystem {
+                                          public TickableAnimationSystem {
         public:
             GltfAnimationComponentManager(
                 utils::EntityManager &em,

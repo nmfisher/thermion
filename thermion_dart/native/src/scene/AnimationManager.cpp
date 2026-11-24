@@ -38,7 +38,7 @@ namespace thermion
     {
     }
 
-    void AnimationManager::registerAnimationSystem(const std::string &name, ITickableAnimationSystem *system)
+    void AnimationManager::registerAnimationSystem(const std::string &name, TickableAnimationSystem *system)
     {
         std::lock_guard lock(mMutex);
         for (auto &entry : mAnimationSystems)
@@ -54,7 +54,7 @@ namespace thermion
                 return;
             }
         }
-        mAnimationSystems.emplace_back(name, std::unique_ptr<ITickableAnimationSystem>(system));
+        mAnimationSystems.emplace_back(name, std::unique_ptr<TickableAnimationSystem>(system));
     }
 
     void AnimationManager::unregisterAnimationSystem(const std::string &name)
@@ -69,13 +69,13 @@ namespace thermion
         }
     }
 
-    ITickableAnimationSystem *AnimationManager::findAnimationSystem(const std::string &name)
+    TickableAnimationSystem *AnimationManager::findAnimationSystem(const std::string &name)
     {
         std::lock_guard lock(mMutex);
         return findAnimationSystemLocked(name);
     }
 
-    ITickableAnimationSystem *AnimationManager::findAnimationSystemLocked(const std::string &name)
+    TickableAnimationSystem *AnimationManager::findAnimationSystemLocked(const std::string &name)
     {
         for (auto &entry : mAnimationSystems)
         {
@@ -87,15 +87,15 @@ namespace thermion
         return nullptr;
     }
 
-    ITickableAnimationSystem *AnimationManager::getOrCreateAnimationSystemLocked(
+    TickableAnimationSystem *AnimationManager::getOrCreateAnimationSystemLocked(
         const std::string &name,
-        const std::function<ITickableAnimationSystem *()> &factory)
+        const std::function<TickableAnimationSystem *()> &factory)
     {
         auto *system = findAnimationSystemLocked(name);
         if (!system)
         {
             system = factory();
-            mAnimationSystems.emplace_back(name, std::unique_ptr<ITickableAnimationSystem>(system));
+            mAnimationSystems.emplace_back(name, std::unique_ptr<TickableAnimationSystem>(system));
         }
         return system;
     }
