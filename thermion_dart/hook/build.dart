@@ -544,6 +544,10 @@ outputDirectory : ${outputDirectory.path}
     for (final material in BuiltInMaterial.values) {
       defines['${material.key.toUpperCase()}_ENABLED'] = selectedMaterials.contains(material) ? '1' : '0';
     }
+    // unlit_fallback is hook-managed, not user-selectable: it is
+    // compiled and enabled further below, only when features.gltf is
+    // false. Every build still gets an explicit value macro.
+    defines['UNLIT_FALLBACK_ENABLED'] = '0';
     // matc/resgen target set for the compiled material variants, resolved by
     // the material backend suffix (see resolveMaterialBackend above).
     final materialBackends = switch (materialSuffix) {
@@ -584,10 +588,10 @@ outputDirectory : ${outputDirectory.path}
     // here, ONLY when gltf is off, with the same version-matched matc/resgen
     // pipeline as the built-in helpers (never by filamat at runtime).
     // Default builds are untouched — no extra compiler step, no extra
-    // bytes. MaterialProvider_createMaterialInstance's C stub
-    // (TMaterialProvider.cpp, under UNLIT_FALLBACK_ENABLED) builds the
-    // package through the builtInMaterialFactory(BUILT_IN_UNLIT_FALLBACK)
-    // case in TMaterialInstance.cpp and hands out instances of it.
+    // bytes. Dart builds the package through
+    // Material_createBuiltIn(BUILT_IN_UNLIT_FALLBACK) (the
+    // UNLIT_FALLBACK_ENABLED case in TMaterialInstance.cpp) and sets
+    // baseColorFactor to opaque white on each instance.
     if (!features.gltf) {
       logger.info("features.gltf: false -> compiling the precompiled unlit fallback material");
       final fallbackDir = await compileUnlitFallbackMaterial(

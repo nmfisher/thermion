@@ -10,10 +10,19 @@ void main() {
   test('each built-in requires its own true key', () {
     final warnings = <String>[];
     expect(selectBuiltInMaterials(null, onWarning: warnings.add), isEmpty);
-    for (final material in BuiltInMaterial.values) {
+    for (final material in BuiltInMaterial.values.where((m) => m != BuiltInMaterial.unlitFallback)) {
       expect(selectBuiltInMaterials({material.key: true}, onWarning: warnings.add), [material]);
     }
     expect(warnings, isEmpty);
+
+    // unlit_fallback is hook-managed (features.gltf: false builds only),
+    // never a user-selectable materials.* key.
+    expect(
+      selectBuiltInMaterials({BuiltInMaterial.unlitFallback.key: true}, onWarning: warnings.add),
+      isEmpty,
+    );
+    expect(warnings.single, contains('unlit_fallback'));
+    warnings.clear();
 
     final selection = selectBuiltInMaterials({
       'include_defaults': true,

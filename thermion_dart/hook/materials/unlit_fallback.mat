@@ -17,8 +17,8 @@
 //   - no `* getColor()`: with the colour buffer left at its zero-filled
 //     default, multiplying by it would render black.
 //
-// The C stub in TMaterialProvider.cpp initialises baseColorFactor to
-// (1, 1, 1, 1) on every instance it hands out; a .mat uniform parameter is
+// FFIMaterial.createInstance initialises baseColorFactor to (1, 1, 1, 1)
+// in Dart on every instance it hands out; a .mat uniform parameter is
 // zero-initialised otherwise. Like hook/materials/unlit_fixed_size.mat, this
 // is an opaque, single-sided, depth-tested and depth-written unlit material.
 //

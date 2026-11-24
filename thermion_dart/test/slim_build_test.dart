@@ -162,9 +162,10 @@ void main() async {
     // false) and the gltfio UbershaderProvider that serves it in a default
     // build starts baseColorFactor at opaque white. The precompiled fallback
     // must behave the same: a .mat uniform parameter is zero-initialised, so
-    // the C stub sets baseColorFactor to white on every instance, and the
-    // material neither requires nor multiplies vertex colours (a Geometry
-    // built with createDummyColors: false leaves the COLOR buffer at zero).
+    // the Dart built-in branch sets baseColorFactor to white on every
+    // instance, and the material neither requires nor multiplies vertex
+    // colours (a Geometry built with createDummyColors: false leaves the
+    // COLOR buffer at zero).
     await ViewerBuilder(testHelper)
         .setBackgroundColor(kBlue)
         .setCameraLookAt(Vector3(0, 0, 4), focus: Vector3.zero())

@@ -16,7 +16,6 @@
 #include "Log.hpp"
 #include "c_api/TMaterialProvider.h"
 #include "c_api/TMaterialInstance.h"
-#include "material/UnlitFallbackProvider.hpp"
 
 #ifdef __cplusplus
 namespace thermion
@@ -119,19 +118,13 @@ namespace thermion
         }
 
 #else // !THERMION_ENABLE_GLTF
-        // Stub contract (docs/feature-optout-proposal.md §5.4). There is no
-        // ubershader provider in this build, so explicit ubershader requests
-        // (createUbershaderMaterialInstance / createUbershaderMaterial on the
-        // Dart side) get null; Dart turns that into UnsupportedError.
-        //
-        // The unlit variant is different: it is the material procedural code
-        // requests through createUnlitMaterialInstance() (bounding-box
-        // helpers, TextureProjection, explicit materials for createGeometry).
-        // GltfAssetLoader_create's stub handed Dart an UnlitFallbackProvider
-        // carrying the engine, so this context-free entry point (no Engine
-        // parameter) can build the precompiled UNLIT_FALLBACK package on first
-        // use and return an instance from it. The Material is cached on the
-        // provider, which GltfAssetLoader_destroy tears down (§5.6).
+        // Stub contract. There is no ubershader provider in this build:
+        // every request returns null. Dart guards explicit ubershader
+        // requests (createUbershaderMaterialInstance / createUbershaderMaterial)
+        // with UnsupportedError, and createUnlitMaterialInstance never
+        // reaches this entry point — it builds the precompiled unlit
+        // fallback through Material_createBuiltIn(BUILT_IN_UNLIT_FALLBACK)
+        // on the Dart side.
         EMSCRIPTEN_KEEPALIVE TMaterialInstance *MaterialProvider_createMaterialInstance(
             TMaterialProvider *tMaterialProvider, 
             bool doubleSided,
@@ -212,29 +205,10 @@ namespace thermion
             (void)hasIOR;
             (void)hasVolume;
 
-            auto *provider = reinterpret_cast<UnlitFallbackProvider *>(tMaterialProvider);
-            if (!unlit || !provider || !provider->engine) {
-                Log("MaterialProvider_createMaterialInstance: glTF support is disabled in this build (features.gltf: false)");
-                return nullptr;
-            }
-            if (!provider->unlitMaterial) {
-                const auto factory = builtInMaterialFactory(BUILT_IN_UNLIT_FALLBACK);
-                provider->unlitMaterial = factory
-                    ? reinterpret_cast<filament::Material *>(factory(reinterpret_cast<TEngine *>(provider->engine)))
-                    : nullptr;
-            }
-            if (!provider->unlitMaterial) {
-                Log("MaterialProvider_createMaterialInstance: the precompiled unlit fallback material is not compiled into this build (features.gltf: false without UNLIT_FALLBACK_ENABLED)");
-                return nullptr;
-            }
-            auto *instance = provider->unlitMaterial->createInstance();
-            // Same default as the gltfio ubershader's unlit variant
-            // (UbershaderProvider starts baseColorFactor at opaque white).
-            // A .mat uniform parameter is zero-initialised, so an instance
-            // handed out untouched would otherwise render transparent black
-            // instead of white (unlit_fallback.mat).
-            instance->setParameter("baseColorFactor", filament::math::float4{1.0f, 1.0f, 1.0f, 1.0f});
-            return reinterpret_cast<TMaterialInstance *>(instance);
+            (void)tMaterialProvider;
+            (void)unlit;
+            Log("MaterialProvider_createMaterialInstance: glTF support is disabled in this build (features.gltf: false)");
+            return nullptr;
         }
 #endif // THERMION_ENABLE_GLTF
 

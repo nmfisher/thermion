@@ -8,6 +8,9 @@ void main() async {
 
   test('every built-in ID resolves to a usable material package', () async {
     for (final key in BuiltInMaterial.values) {
+      // Hook-managed, compiled only into features.gltf: false builds
+      // (exercised there by slim_build_test.dart).
+      if (key == BuiltInMaterial.unlitFallback) continue;
       final material = await FilamentApp.instance!.createBuiltInMaterial(key);
       final instance = await material.createInstance();
       await instance.destroy();

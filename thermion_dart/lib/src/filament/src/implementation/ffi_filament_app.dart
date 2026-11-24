@@ -253,12 +253,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final nameComponentManager = NameComponentManager_create();
 
-    // The gltfio loader is also the carrier for the material provider handle.
-    // In a `features.gltf: false` build the C stub returns an
-    // UnlitFallbackProvider holding the engine, so this handle is non-null in
-    // every build and createUnlitMaterialInstance can go through the same
-    // context-free MaterialProvider_createMaterialInstance entry point.
-    // glTF loading itself still throws UnsupportedError via checkSupported.
+    // The gltfio loader is also the carrier for the material provider
+    // handle. In a `features.gltf: false` build GltfAssetLoader_create's
+    // stub returns null, so both handles are null: glTF loading throws
+    // UnsupportedError via checkSupported, and createUnlitMaterialInstance
+    // builds its precompiled fallback in Dart through
+    // Material_createBuiltIn instead of the provider.
     var gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
       (cb) => GltfAssetLoader_createJobThread(jobThreadHandle, engine, nullptr, nameComponentManager, cb),
     );
@@ -501,6 +501,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // Detachment and destruction run together on the owning thread, after
     // earlier commands and before engine resource teardown.
     await renderManager.destroy();
+
+    // The Dart-side unlit fallback Material (slim builds only) is
+    // engine-bound: destroy it before the engine itself.
+    final unlitFallback = _unlitFallbackMaterial;
+    _unlitFallbackMaterial = null;
+    if (unlitFallback != null) {
+      await unlitFallback.destroy();
+    }
 
     // Filament's contract is: tear down everything created on top of the
     // Engine before destroying the Engine itself. Order matters — the
@@ -1023,11 +1031,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   /// Shared FFI call for [createUbershaderMaterialInstance] and
-  /// [createUnlitMaterialInstance]. The latter calls it directly with
-  /// `unlit: true`, bypassing the public method's glTF guard: the unlit key is
-  /// the procedural fallback, and in a `features.gltf: false` build
-  /// MaterialProvider_createMaterialInstance's stub builds the precompiled
-  /// UNLIT_FALLBACK package from the provider's engine (no Dart branch).
+  /// [createUnlitMaterialInstance] on builds with glTF support. In a
+  /// `features.gltf: false` build there is no provider at all:
+  /// MaterialProvider_createMaterialInstance's stub returns null and
+  /// [createUnlitMaterialInstance] takes its Dart-side built-in branch
+  /// instead.
   Future<MaterialInstance> _createMaterialInstance({
     bool doubleSided = false,
     bool unlit = false,
@@ -1131,22 +1139,30 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   /// not come through here; it renders with Filament's engine default
   /// material.)
   ///
-  /// With glTF support this is the gltfio ubershader's unlit variant. Without
-  /// it (features.gltf: false) the same context-free C entry point returns an
-  /// instance of the small precompiled package the hook compiled for exactly
-  /// this case (hook/materials/unlit_fallback.mat, UNLIT_FALLBACK_ENABLED /
-  /// BUILT_IN_UNLIT_FALLBACK) — the fallback lives in
-  /// MaterialProvider_createMaterialInstance's stub, so there is no
-  /// Dart-side branch here (docs/feature-optout-proposal.md §5.6, decision
-  /// D5). Both variants have the same semantics: `baseColorFactor` starts at
-  /// opaque white (set it on the instance to colour the material) and vertex
-  /// colours are ignored (`hasVertexColors: false`). In a slim build only the
-  /// explicit ubershader request ([createUbershaderMaterialInstance], for
-  /// any `unlit` value) throws [UnsupportedError].
+  /// With glTF support this is the gltfio ubershader's unlit variant.
+  /// Without it (features.gltf: false) there is no provider — this branch
+  /// builds the small precompiled package the hook compiled for exactly
+  /// this case (hook/materials/unlit_fallback.mat, UNLIT_FALLBACK_ENABLED)
+  /// through Material_createBuiltIn(BUILT_IN_UNLIT_FALLBACK). Both
+  /// variants have the same semantics: `baseColorFactor` starts at opaque
+  /// white (set it on the instance to colour the material) and vertex
+  /// colours are ignored (`hasVertexColors: false`). In a slim build only
+  /// the explicit ubershader request ([createUbershaderMaterialInstance],
+  /// for any `unlit` value) throws [UnsupportedError].
   @override
   Future<MaterialInstance> createUnlitMaterialInstance() async {
+    if (!supports(ThermionFeature.gltf)) {
+      _unlitFallbackMaterial ??= await createBuiltInMaterial(BuiltInMaterial.unlitFallback);
+      return _unlitFallbackMaterial!.createInstance();
+    }
     return _createMaterialInstance(unlit: true, hasVertexColors: false);
   }
+
+  /// Cached fallback Material for [createUnlitMaterialInstance] in
+  /// `features.gltf: false` builds; destroyed with the app before the
+  /// engine (instances handed out are the callers' responsibility, the
+  /// same contract as the ubershader provider's materials).
+  FFIMaterial? _unlitFallbackMaterial;
 
   @override
   Future<WireframeMaterialInstance> createWireframeMaterialInstance() async {

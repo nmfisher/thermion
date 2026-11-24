@@ -28,8 +28,6 @@
 #include "scene/GltfSceneAsset.hpp"
 #endif
 
-#include "material/UnlitFallbackProvider.hpp"
-
 #include <utils/EntityManager.h>
 #include <utils/NameComponentManager.h>
 
@@ -202,33 +200,24 @@ EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tS
 }
 
 #else // !THERMION_ENABLE_GLTF
-// Stub contract (docs/feature-optout-proposal.md §5.2/§5.4): the same C
-// symbols with the same signatures, no gltfio references.
-//
-// The loader handle doubles as the unlit fallback material provider: it
-// captures the engine so MaterialProvider_createMaterialInstance can build the
-// precompiled UNLIT_FALLBACK package without an Engine parameter (§5.6).
-// glTF loading itself still returns null; Dart's guards turn that into
-// UnsupportedError before any of it is reached.
+// Stub contract: the same C symbols with the same signatures, no gltfio
+// references. There is no loader and no material provider in this build:
+// create returns null, destroy tolerates the null handle, and Dart's
+// guards turn glTF requests into UnsupportedError before any of it is
+// reached. The unlit fallback material is built in Dart through
+// Material_createBuiltIn(BUILT_IN_UNLIT_FALLBACK).
 
 EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, TMaterialProvider *tMaterialProvider, TNameComponentManager *tNameComponentManager) {
     THERMION_ENGINE_API_GUARD;
+    (void)tEngine;
     (void)tMaterialProvider;
     (void)tNameComponentManager;
-    return reinterpret_cast<TGltfAssetLoader *>(new UnlitFallbackProvider{
-        reinterpret_cast<filament::Engine *>(tEngine), nullptr});
+    return nullptr;
 }
 
 EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_destroy(TGltfAssetLoader *tAssetLoader) {
     THERMION_ENGINE_API_GUARD;
-    auto *provider = reinterpret_cast<UnlitFallbackProvider *>(tAssetLoader);
-    if (!provider) {
-        return;
-    }
-    if (provider->unlitMaterial && provider->engine) {
-        provider->engine->destroy(provider->unlitMaterial);
-    }
-    delete provider;
+    (void)tAssetLoader; // create returned nullptr; nothing to free.
 }
 
 EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
@@ -254,7 +243,8 @@ EMSCRIPTEN_KEEPALIVE TMaterialInstance *GltfAssetLoader_getMaterialInstance(TRen
 }
 
 EMSCRIPTEN_KEEPALIVE TMaterialProvider *GltfAssetLoader_getMaterialProvider(TGltfAssetLoader *tAssetLoader) {
-    return reinterpret_cast<TMaterialProvider *>(tAssetLoader);
+    (void)tAssetLoader; // no provider exists without gltfio.
+    return nullptr;
 }
 
 EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createFromFilamentAsset(

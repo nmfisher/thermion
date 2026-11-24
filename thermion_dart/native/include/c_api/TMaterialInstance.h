@@ -25,7 +25,8 @@ extern "C"
 	    BUILT_IN_UNLIT_FIXED_SIZE = 13,
 	    // Not user-selectable through `materials.*`: the hook compiles and links
 	    // it only for features.gltf: false builds (UNLIT_FALLBACK_ENABLED), where
-	    // it replaces the gltfio ubershader behind createUnlitMaterialInstance.
+	    // Dart's createUnlitMaterialInstance builds it through
+	    // Material_createBuiltIn instead of the gltfio ubershader provider.
 	    BUILT_IN_UNLIT_FALLBACK = 14,
 	} TBuiltInMaterial;
 

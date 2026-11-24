@@ -16,7 +16,12 @@ List<BuiltInMaterial> selectBuiltInMaterials(Object? materialConfig, {required v
   if (materialConfig is! Map) {
     throw MaterialToolsError('materials must be a map in pubspec.yaml.');
   }
-  final knownMaterialKeys = {'backends', ...BuiltInMaterial.values.map((material) => material.key)};
+  // unlit_fallback is hook-managed (compiled only for features.gltf:
+  // false builds), never a user-selectable materials.* key.
+  final knownMaterialKeys = {
+    'backends',
+    ...BuiltInMaterial.values.where((m) => m != BuiltInMaterial.unlitFallback).map((material) => material.key),
+  };
   for (final MapEntry(:key, :value) in materialConfig.entries) {
     if (!knownMaterialKeys.contains(key)) {
       onWarning('Unknown key materials.$key in pubspec.yaml.');
@@ -26,7 +31,7 @@ List<BuiltInMaterial> selectBuiltInMaterials(Object? materialConfig, {required v
   }
   return [
     for (final material in BuiltInMaterial.values)
-      if (materialConfig[material.key] == true) material,
+      if (material != BuiltInMaterial.unlitFallback && materialConfig[material.key] == true) material,
   ];
 }
 
@@ -92,8 +97,9 @@ Future<Map<BuiltInMaterial, Directory>> compileBuiltInMaterials({
 ///
 /// Returns the output directory holding `unlit_fallback.c`/`unlit_fallback.h`
 /// (symbols `UNLIT_FALLBACK_UNLIT_FALLBACK_DATA`/`_SIZE`, consumed by
-/// TMaterialInstance.cpp under UNLIT_FALLBACK_ENABLED). Default builds never
-/// call this, so they pay no matc/resgen step for it.
+/// TMaterialInstance.cpp under UNLIT_FALLBACK_ENABLED; Dart builds the
+/// package through Material_createBuiltIn(BUILT_IN_UNLIT_FALLBACK)).
+/// Default builds never call this, so they pay no matc/resgen step for it.
 Future<Directory> compileUnlitFallbackMaterial({
   required Directory root,
   required List<String> backends,
