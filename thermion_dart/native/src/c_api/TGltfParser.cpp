@@ -2,6 +2,24 @@
 #include "Log.hpp"
 #include "ThermionFeatures.h"
 
+// Include the std headers cgltf.h needs BEFORE the visibility push below:
+// their declarations (and any inline/template definitions) must keep default
+// visibility, not be hidden along with the cgltf symbols. The include guards
+// make the repeated includes inside cgltf.h no-ops.
+#include <stddef.h>
+#include <stdint.h>
+#include <assert.h>
+#include <string.h>
+#include <stdio.h>
+#include <limits.h>
+#include <float.h>
+#include <stdlib.h>
+
+#include <vector>
+#include <string>
+#include <cstring>
+#include <cstdlib>
+
 // Don't define CGLTF_IMPLEMENTATION in a glTF build: cgltf is already compiled
 // into Filament's gltfio_core archive, which is linked there. A
 // `features.gltf: false` build does NOT link gltfio_core (the only provider
@@ -10,21 +28,19 @@
 // GltfMeshData therefore keep working in every build.
 #if !THERMION_ENABLE_GLTF
 #define CGLTF_IMPLEMENTATION
+#endif
 // The vendored copy is an implementation detail of GltfParser_parseBuffer,
 // not part of the C API: hide the cgltf_* definitions (and declarations)
 // from the shared library's dynamic symbol table, matching the Android
-// --exclude-libs/version-script behaviour for archive symbols.
+// --exclude-libs/version-script behaviour for archive symbols. GCC/Clang
+// only — MSVC does not support visibility pragmas.
+#if !THERMION_ENABLE_GLTF && (defined(__GNUC__) || defined(__clang__))
 #pragma GCC visibility push(hidden)
 #endif
 #include "cgltf.h"
-#if !THERMION_ENABLE_GLTF
+#if !THERMION_ENABLE_GLTF && (defined(__GNUC__) || defined(__clang__))
 #pragma GCC visibility pop
 #endif
-
-#include <vector>
-#include <string>
-#include <cstring>
-#include <cstdlib>
 
         // Helper to convert cgltf_primitive_type to TPrimitiveType
         static TPrimitiveType convertPrimitiveType(cgltf_primitive_type type)
