@@ -21,7 +21,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
   /// The glTF clip playback APIs drive gltfio's Animator against glTF assets,
   /// so those are unavailable in a `features.gltf: false` build. Their C stubs
   /// (TGltfAnimationManager.cpp) return false/0/null; this turns that into an
-  /// actionable error instead (docs/feature-optout-proposal.md §6.2).
+  /// actionable error instead.
   /// Deliberately NOT guarded: [update] (a per-frame no-op without gltf) and
   /// the entity-keyed morph APIs — [addMorphAnimationComponent],
   /// [removeMorphAnimationComponent], [setMorphAnimation] and

@@ -403,8 +403,8 @@ jobs:
             ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5
 
-  # Slim-build job for the compile-time feature opt-outs
-  # (docs/feature-optout-proposal.md §5.7): rebuild libthermion_dart with
+  # Slim-build job for the compile-time feature opt-outs: rebuild
+  # libthermion_dart with
   # gltf/ktx/image_decoding all OFF — every gltfio/ktxreader/stb reference
   # drops from the link line, so an unguarded reference is a LINK error here
   # and a guard that leaves a non-void function without a return fails under
@@ -485,7 +485,7 @@ jobs:
         shell: bash
         working-directory: thermion_dart
         run: |
-          # Stub contract (docs/feature-optout-proposal.md §5.4): the generated
+          # Stub contract: the generated
           # bindings are shared by every build variant and look each symbol up
           # lazily, so a missing export would only fail at the first Dart call.
           # Check the slim library against the names in the FFI bindings file.

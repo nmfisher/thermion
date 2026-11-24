@@ -469,12 +469,12 @@ Map<File, String> checkOutputStems(List<File> inputs) {
 
 /// Key of the unlit fallback material (hook/materials/unlit_fallback.mat).
 ///
-/// Not a [BuiltInMaterial]: users never select it through `materials.*`. The
-/// hook compiles it only for `features.gltf: false` builds, where it replaces
-/// the gltfio ubershader behind createUnlitMaterialInstance
-/// (docs/feature-optout-proposal.md §5.6, decision D5; see
-/// compileUnlitFallbackMaterial in built_in_materials.dart). Reserved so a
-/// linked user material cannot collide with its resgen symbols.
+/// Not a user-selectable [BuiltInMaterial]: users never select it through
+/// `materials.*`. The hook compiles it only for `features.gltf: false`
+/// builds, where it replaces the gltfio ubershader behind
+/// createUnlitMaterialInstance (see compileUnlitFallbackMaterial in
+/// built_in_materials.dart). Reserved so a linked user material cannot
+/// collide with its resgen symbols.
 const unlitFallbackMaterialKey = 'unlit_fallback';
 
 final reservedResgenPrefixes = Set<String>.unmodifiable({

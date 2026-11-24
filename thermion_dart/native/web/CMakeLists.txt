@@ -14,8 +14,8 @@ option(THERMION_WEB_MAIN_THREAD
 option(THERMION_ENABLE_RUNTIME_MATERIALS
   "Compile materials from GLSL source at runtime (links filamat)" OFF)
 
-# Compile-time feature opt-outs (../include/ThermionFeatures.h,
-# docs/feature-optout-proposal.md §4.6). Every published web engine is built
+# Compile-time feature opt-outs (../include/ThermionFeatures.h).
+# Every published web engine is built
 # with all three ON (a zip per subset would multiply the variants); the
 # options exist so a `-slim` engine can later be published as one extra
 # suffix, exactly like `-runtime-materials`. Like the native hook, a switch is

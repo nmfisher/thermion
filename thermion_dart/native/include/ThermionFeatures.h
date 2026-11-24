@@ -1,7 +1,6 @@
 #pragma once
 
-// Compile-time feature switches for the native library
-// (docs/feature-optout-proposal.md §5.1).
+// Compile-time feature switches for the native library.
 //
 // The build hook (hook/build.dart, `features` user define) passes
 // -DTHERMION_ENABLE_<FEATURE>=0 only for DISABLED features. Enabled features
@@ -40,9 +39,8 @@
 // Runtime material compilation is opt-in and off by default. It uses the
 // same value-macro convention as the three switches above: the header
 // defaults it to 0 and hook/build.dart passes -DTHERMION_ENABLE_RUNTIME_MATERIALS=1
-// only when `runtime_materials: true`. This is the atomic migration allowed
-// by proposal §5.1 (decision D3): every guard — TMaterialCompiler.cpp,
-// TThermionFeatures.cpp and the web CMake options — is a value check now, so
+// only when `runtime_materials: true`. Every guard — TMaterialCompiler.cpp,
+// TThermionFeatures.cpp and the web CMake options — is a value check, so
 // a macro defined to 0 selects the stub instead of the real compiler.
 #ifndef THERMION_ENABLE_RUNTIME_MATERIALS
 #define THERMION_ENABLE_RUNTIME_MATERIALS 0

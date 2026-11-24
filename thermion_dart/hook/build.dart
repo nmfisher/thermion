@@ -121,11 +121,11 @@ void main(List<String> args) async {
     }
     final backend = backendResolution.backend;
 
-    // Compile-time feature opt-outs (docs/feature-optout-proposal.md §4):
+    // Compile-time feature opt-outs:
     //   features: { gltf: false, ktx: false, image_decoding: false }
     // Opt-out — absent key = enabled, so every existing app builds exactly as
     // before. Resolved here, before the web branch, so both branches see it;
-    // the hook rejects gltf:true with a decoder off (decision D2).
+    // the hook rejects gltf:true with a decoder off.
     final features = resolveFeatures(input.userDefines['features'], onWarning: logger.warning);
 
     if (!input.config.buildCodeAssets) {
@@ -409,7 +409,7 @@ outputDirectory : ${outputDirectory.path}
       // features.gltf: false the Thermion wrappers compile to stubs
       // (THERMION_ENABLE_GLTF=0, native/include/ThermionFeatures.h) and an
       // unguarded gltfio reference is a LINK error here, not a dlopen failure
-      // on a device (docs/feature-optout-proposal.md §4.3, §5.7).
+      // on a device.
       if (features.gltf) "gltfio_core",
       // The full "gltfio" archive (createFilamentMaterialProvider, the
       // filamat-backed glTF material compiler) was listed on desktop but
@@ -576,16 +576,16 @@ outputDirectory : ${outputDirectory.path}
       }
     }
 
-    // Unlit fallback for procedural-only builds (docs/feature-optout-proposal.md
-    // §5.6, decision D5). With features.gltf: false there is no gltfio
-    // ubershader provider, so the unlit material that procedural code
-    // requests through createUnlitMaterialInstance() (explicit materials for
-    // createGeometry, bounding-box helpers, TextureProjection) is a small
-    // precompiled package instead: compiled here, ONLY when gltf is off, with
-    // the same version-matched matc/resgen pipeline as the built-in helpers
-    // (never by filamat at runtime). Default builds are untouched — no extra
-    // compiler step, no extra bytes. MaterialProvider_createMaterialInstance's
-    // C stub (TMaterialProvider.cpp, under UNLIT_FALLBACK_ENABLED) builds the
+    // Unlit fallback for procedural-only builds. With features.gltf: false
+    // there is no gltfio ubershader provider, so the unlit material that
+    // procedural code requests through createUnlitMaterialInstance()
+    // (explicit materials for createGeometry, bounding-box helpers,
+    // TextureProjection) is a small precompiled package instead: compiled
+    // here, ONLY when gltf is off, with the same version-matched matc/resgen
+    // pipeline as the built-in helpers (never by filamat at runtime).
+    // Default builds are untouched — no extra compiler step, no extra
+    // bytes. MaterialProvider_createMaterialInstance's C stub
+    // (TMaterialProvider.cpp, under UNLIT_FALLBACK_ENABLED) builds the
     // package through the builtInMaterialFactory(BUILT_IN_UNLIT_FALLBACK)
     // case in TMaterialInstance.cpp and hands out instances of it.
     if (!features.gltf) {

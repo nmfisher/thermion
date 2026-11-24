@@ -31,8 +31,8 @@
 #include <third_party/stb/stb_image.h>
 #endif
 
-// Pattern B (docs/feature-optout-proposal.md §5.2): only the decoder-backed
-// entry points are guarded. LinearImage itself (Image_createEmpty, Image_get*,
+// Only the decoder-backed entry points are guarded. LinearImage itself
+// (Image_createEmpty, Image_get*,
 // Texture_loadImage) is core and unaffected.
 
 #ifdef __cplusplus
@@ -108,7 +108,7 @@ namespace thermion
 
             return reinterpret_cast<TLinearImage *>(linearImage);
 #else
-            // Stub (proposal §5.4): the stb decoder is not linked in this
+            // Stub: the stb decoder is not linked in this
             // build (features.image_decoding: false); Dart's decodeImage
             // throws UnsupportedError before reaching here.
             ERROR("Image_decode: image decoding is disabled in this build (features.image_decoding: false)");

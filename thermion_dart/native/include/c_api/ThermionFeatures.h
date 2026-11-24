@@ -8,9 +8,8 @@ extern "C"
 {
 #endif
 
-// Compile-time feature bitmask of the loaded library
-// (docs/feature-optout-proposal.md §6.1). Always compiled, never guarded, so
-// every build variant exports it:
+// Compile-time feature bitmask of the loaded library. Always compiled,
+// never guarded, so every build variant exports it:
 //   bit 0  THERMION_ENABLE_GLTF
 //   bit 1  THERMION_ENABLE_KTX
 //   bit 2  THERMION_ENABLE_IMAGE_DECODING

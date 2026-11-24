@@ -19,8 +19,7 @@
 /// ```
 ///
 /// Semantics are opt-out: an absent key (or no `features` map at all) keeps
-/// the feature, so existing apps build exactly as before. See
-/// docs/feature-optout-proposal.md §4.
+/// the feature, so existing apps build exactly as before.
 library;
 
 import 'material_tools.dart' show MaterialToolsError;
@@ -34,7 +33,7 @@ const List<String> featureKeys = ['gltf', 'ktx', 'image_decoding'];
 
 /// The C define each disabled feature adds to the Thermion compile. The
 /// headers default every switch to 1, so enabled features pass nothing and
-/// default compile commands stay byte-identical (proposal §4.3/§5.1).
+/// default compile commands stay byte-identical.
 const Map<String, String> _featureDefines = {
   'gltf': 'THERMION_ENABLE_GLTF',
   'ktx': 'THERMION_ENABLE_KTX',
@@ -53,7 +52,7 @@ const Map<String, String> _featureDefines = {
 ///  - an unknown key only warns through [onWarning] (forward compatibility
 ///    with older hook versions, same as `materials.<unknown>`).
 ///
-/// Cross-feature rule (proposal decision D2): `gltf: true` together with
+/// Cross-feature rule: `gltf: true` together with
 /// `ktx: false` or `image_decoding: false` is rejected. Filament's
 /// `ResourceLoader` never reports load progress with an empty provider map
 /// and silently skips textures whose decoder is missing, so a glTF build
@@ -108,7 +107,7 @@ ThermionFeatures resolveFeatures(Object? raw, {required void Function(String) on
 
 /// The `THERMION_ENABLE_<FEATURE>` -> `0` entries for every disabled
 /// feature, in [featureKeys] order. Enabled features contribute nothing
-/// (proposal §4.3).
+/// so their compile commands are unchanged.
 Map<String, String> disabledFeatureDefines(ThermionFeatures features) {
   final enabled = {'gltf': features.gltf, 'ktx': features.ktx, 'image_decoding': features.imageDecoding};
   return {

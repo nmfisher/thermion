@@ -118,8 +118,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     } catch (_) {
       // Legacy engine without the probe (pre-probe web engines). Every such
       // engine was built with all three native opt-outs on; runtime
-      // materials keeps its own probe (docs/feature-optout-proposal.md §4.6,
-      // decision D4).
+      // materials keeps its own probe.
       final legacy = 0x7 | (bindings.MaterialCompiler_isSupported() != 0 ? 1 << 3 : 0);
       _logger.warning(
         "Thermion_getEnabledFeatures is not exported by this engine; assuming an "
@@ -137,7 +136,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   bool supports(ThermionFeature feature) => buildSupports(feature);
 
   /// Throws [UnsupportedError] naming the `features.*` key when [feature] is
-  /// disabled in this build (docs/feature-optout-proposal.md §6.2).
+  /// disabled in this build.
   void checkSupported(ThermionFeature feature, String api) {
     if (!supports(feature)) {
       throw UnsupportedError(
@@ -258,9 +257,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // In a `features.gltf: false` build the C stub returns an
     // UnlitFallbackProvider holding the engine, so this handle is non-null in
     // every build and createUnlitMaterialInstance can go through the same
-    // context-free MaterialProvider_createMaterialInstance entry point
-    // (docs/feature-optout-proposal.md §5.5, §5.6). glTF loading itself
-    // still throws UnsupportedError via checkSupported.
+    // context-free MaterialProvider_createMaterialInstance entry point.
+    // glTF loading itself still throws UnsupportedError via checkSupported.
     var gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
       (cb) => GltfAssetLoader_createJobThread(jobThreadHandle, engine, nullptr, nameComponentManager, cb),
     );

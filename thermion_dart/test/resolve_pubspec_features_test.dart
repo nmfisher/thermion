@@ -99,7 +99,7 @@ void main() {
     }
   });
 
-  group('decision D2: gltf with a disabled decoder is rejected', () {
+  group('gltf with a disabled decoder is rejected', () {
     test('gltf: true + ktx: false', () {
       expect(
         () => resolveFeatures({'gltf': true, 'ktx': false}, onWarning: (_) {}),

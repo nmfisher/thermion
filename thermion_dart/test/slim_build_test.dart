@@ -3,8 +3,7 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 import 'helpers.dart';
 
-/// Slim-build test (docs/feature-optout-proposal.md §5.7 criterion 4, review
-/// decision D1).
+/// Slim-build test for the compile-time feature opt-outs.
 ///
 /// On a `features.gltf: false` build the gltfio archives are not linked:
 /// procedural geometry must still create, instance, render and destroy

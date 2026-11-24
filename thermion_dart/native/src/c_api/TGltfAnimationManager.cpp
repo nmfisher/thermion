@@ -252,8 +252,8 @@ extern "C"
     }
 
 #else // !THERMION_ENABLE_GLTF
-// Stub contract (docs/feature-optout-proposal.md §5.2 Pattern A / §5.4): the
-// whole file is glTF-only clip playback, so every symbol keeps its signature
+// Stub contract: the whole file is glTF-only clip playback, so every symbol
+// keeps its signature
 // and no gltfio symbol is referenced. create returns null (FFIFilamentApp's
 // Dart guards turn glTF requests into UnsupportedError before any of this is
 // reached); destroy tolerates the null handle; the clip entry points report

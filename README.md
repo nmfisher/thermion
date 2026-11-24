@@ -171,8 +171,7 @@ rejected by the build hook: Filament's resource loader has no defined
 completion semantics without its texture decoders. Disable `gltf` as well.
 Unknown keys under `features` warn; non-boolean values are build errors.
 Web engines are prebuilt with every feature, so `features.*` only affects
-native builds (the hook logs a warning on web). See
-`docs/feature-optout-proposal.md` for the design and measurements.
+native builds (the hook logs a warning on web).
 
 #### Optional helper materials
 

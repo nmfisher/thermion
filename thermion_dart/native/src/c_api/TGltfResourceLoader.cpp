@@ -75,10 +75,10 @@ EMSCRIPTEN_KEEPALIVE TGltfResourceLoader *GltfResourceLoader_create(TEngine *tEn
     // to register their own.
     //
     // The hook rejects `features.gltf: true` with `features.ktx: false` or
-    // `features.image_decoding: false` (proposal decision D2), so a glTF
+    // `features.image_decoding: false`, so a glTF
     // build always links both decoders and registers both providers here.
     // Guarded registration is the intended implementation once that
-    // combination is enabled (proposal §5.3):
+    // combination is enabled:
     //   #if THERMION_ENABLE_IMAGE_DECODING ... createStbProvider ...
     //   #if THERMION_ENABLE_KTX        ... createKtx2Provider ...
     auto stbDecoder = gltfio::createStbProvider(engine);
@@ -147,7 +147,7 @@ EMSCRIPTEN_KEEPALIVE float GltfResourceLoader_asyncGetLoadProgress(TGltfResource
 }
 
 #else // !THERMION_ENABLE_GLTF
-// Stub contract (docs/feature-optout-proposal.md §5.2/§5.4): same symbols,
+// Stub contract: same symbols,
 // same signatures, no gltfio references. Loads report failure rather than
 // hanging a poller (progress stays 0, begin/load return false).
 

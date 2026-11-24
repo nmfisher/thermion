@@ -56,7 +56,7 @@ EMSCRIPTEN_KEEPALIVE const void* FilamentAsset_getSourceAsset(
 }
 
 #else // !THERMION_ENABLE_GLTF
-// Stub contract (docs/feature-optout-proposal.md §5.4): counts return 0,
+// Stub contract: counts return 0,
 // getters return null, void functions are no-ops.
 
 EMSCRIPTEN_KEEPALIVE uint32_t FilamentAsset_getEntityCount(

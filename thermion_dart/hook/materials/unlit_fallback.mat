@@ -1,5 +1,4 @@
-// Unlit fallback for `features.gltf: false` builds
-// (docs/feature-optout-proposal.md §5.6, review decision D5).
+// Unlit fallback for `features.gltf: false` builds.
 //
 // With glTF support off there is no gltfio ubershader provider, so the unlit
 // material that procedural code requests through

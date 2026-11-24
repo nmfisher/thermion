@@ -5,9 +5,9 @@
 // Don't define CGLTF_IMPLEMENTATION in a glTF build: cgltf is already compiled
 // into Filament's gltfio_core archive, which is linked there. A
 // `features.gltf: false` build does NOT link gltfio_core (the only provider
-// of cgltf_parse/cgltf_free/... — see docs/feature-optout-proposal.md §3.1),
+// of cgltf_parse/cgltf_free/...),
 // so there the vendored copy is compiled here instead. parseGltf /
-// GltfMeshData therefore keep working in every build (proposal §5.4).
+// GltfMeshData therefore keep working in every build.
 #if !THERMION_ENABLE_GLTF
 #define CGLTF_IMPLEMENTATION
 // The vendored copy is an implementation detail of GltfParser_parseBuffer,
