@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -68,6 +69,31 @@ namespace thermion
         /// Returns the registered system for [name], or nullptr.
         /// @param name
         ITickableAnimationSystem *findAnimationSystem(const std::string &name);
+
+        /// Locks the manager's mutex for callers that must hold it across a
+        /// system lookup plus operations on the returned system (e.g. glTF
+        /// clip playback in TGltfAnimation.cpp). update() holds the same
+        /// mutex while ticking, so this serializes direct FFI calls against
+        /// the frame tick (RenderManager::tick does not take the engine API
+        /// lock on web worker builds). While holding this lock, only the
+        /// *Locked methods below may be called on this manager; the public
+        /// methods take the same non-recursive mutex themselves.
+        std::unique_lock<std::mutex> lock() { return std::unique_lock<std::mutex>(mMutex); }
+
+        /// Like findAnimationSystem, but the caller must hold lock().
+        ITickableAnimationSystem *findAnimationSystemLocked(const std::string &name);
+
+        /// Returns the registered system for [name], creating and registering
+        /// it via [factory] on first use. Lookup and registration happen
+        /// under one hold of the manager mutex, so two concurrent callers can
+        /// never both create a system (the duplicate-name branch of
+        /// registerAnimationSystem would delete the loser's system while the
+        /// caller still used the pointer). The caller must hold lock(); the
+        /// factory runs under the mutex and must not call back into this
+        /// manager's public methods.
+        ITickableAnimationSystem *getOrCreateAnimationSystemLocked(
+            const std::string &name,
+            const std::function<ITickableAnimationSystem *()> &factory);
 
         /// The engine this manager was created with (used by optional
         /// animation systems to obtain Filament interfaces).

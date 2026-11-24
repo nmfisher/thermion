@@ -72,6 +72,11 @@ namespace thermion
     ITickableAnimationSystem *AnimationManager::findAnimationSystem(const std::string &name)
     {
         std::lock_guard lock(mMutex);
+        return findAnimationSystemLocked(name);
+    }
+
+    ITickableAnimationSystem *AnimationManager::findAnimationSystemLocked(const std::string &name)
+    {
         for (auto &entry : mAnimationSystems)
         {
             if (entry.first == name)
@@ -80,6 +85,19 @@ namespace thermion
             }
         }
         return nullptr;
+    }
+
+    ITickableAnimationSystem *AnimationManager::getOrCreateAnimationSystemLocked(
+        const std::string &name,
+        const std::function<ITickableAnimationSystem *()> &factory)
+    {
+        auto *system = findAnimationSystemLocked(name);
+        if (!system)
+        {
+            system = factory();
+            mAnimationSystems.emplace_back(name, std::unique_ptr<ITickableAnimationSystem>(system));
+        }
+        return system;
     }
 
     bool AnimationManager::setMorphAnimationBuffer(

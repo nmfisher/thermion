@@ -23,20 +23,22 @@ extern "C"
 
     // Returns the glTF clip playback system for this AnimationManager,
     // creating and registering it on first use. The system is owned by the
-    // AnimationManager handle and destroyed with it.
-    static GltfAnimationComponentManager *getGltfAnimationSystem(AnimationManager *animationManager)
+    // AnimationManager handle and destroyed with it. The caller must hold
+    // animationManager->lock(): lookup + creation + registration run under
+    // one mutex hold, so two concurrent callers can never both create a
+    // system (registerAnimationSystem's duplicate-name branch would delete
+    // the loser's system while this function still returned its pointer).
+    static GltfAnimationComponentManager *getGltfAnimationSystemLocked(AnimationManager *animationManager)
     {
-        auto *system = reinterpret_cast<GltfAnimationComponentManager *>(animationManager->findAnimationSystem("gltf"));
-        if (!system)
-        {
-            auto *engine = animationManager->getEngine();
-            system = new GltfAnimationComponentManager(
-                utils::EntityManager::get(),
-                engine->getTransformManager(),
-                engine->getRenderableManager());
-            animationManager->registerAnimationSystem("gltf", system);
-        }
-        return system;
+        return static_cast<GltfAnimationComponentManager *>(
+            animationManager->getOrCreateAnimationSystemLocked("gltf", [animationManager]() -> ITickableAnimationSystem *
+            {
+                auto *engine = animationManager->getEngine();
+                return new GltfAnimationComponentManager(
+                    utils::EntityManager::get(),
+                    engine->getTransformManager(),
+                    engine->getRenderableManager());
+            }));
     }
 
     // Resolves the glTF instance the clip functions operate on (owner assets
@@ -65,7 +67,11 @@ extern "C"
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        getGltfAnimationSystem(animationManager)->addAnimationComponent(instance->getInstance());
+        // Hold the manager mutex across lookup + component mutation so
+        // direct FFI calls serialize against AnimationManager::update()
+        // (RenderManager::tick calls update() without the engine API lock).
+        auto lock = animationManager->lock();
+        getGltfAnimationSystemLocked(animationManager)->addAnimationComponent(instance->getInstance());
         TRACE("Added glTF animation component");
         return true;
     }
@@ -81,7 +87,8 @@ extern "C"
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        getGltfAnimationSystem(animationManager)->removeAnimationComponent(instance->getInstance());
+        auto lock = animationManager->lock();
+        getGltfAnimationSystemLocked(animationManager)->removeAnimationComponent(instance->getInstance());
         TRACE("Removed glTF animation component");
         return true;
     }
@@ -106,7 +113,8 @@ extern "C"
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto *system = getGltfAnimationSystem(animationManager);
+        auto lock = animationManager->lock();
+        auto *system = getGltfAnimationSystemLocked(animationManager);
         system->addAnimationComponent(instance->getInstance());
 
         if (index < 0)
@@ -134,7 +142,8 @@ extern "C"
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        getGltfAnimationSystem(animationManager)->removeGltfAnimation(instance->getInstance(), index);
+        auto lock = animationManager->lock();
+        getGltfAnimationSystemLocked(animationManager)->removeGltfAnimation(instance->getInstance(), index);
         return true;
     }
 
@@ -153,7 +162,8 @@ extern "C"
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        getGltfAnimationSystem(animationManager)->setGltfAnimationTime(instance->getInstance(), animationIndex, timeInSeconds);
+        auto lock = animationManager->lock();
+        getGltfAnimationSystemLocked(animationManager)->setGltfAnimationTime(instance->getInstance(), animationIndex, timeInSeconds);
         return true;
     }
 
@@ -171,7 +181,8 @@ extern "C"
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        return getGltfAnimationSystem(animationManager)->getGltfAnimationDuration(instance->getInstance(), animationIndex);
+        auto lock = animationManager->lock();
+        return getGltfAnimationSystemLocked(animationManager)->getGltfAnimationDuration(instance->getInstance(), animationIndex);
     }
 
     EMSCRIPTEN_KEEPALIVE int AnimationManager_getGltfAnimationCount(
@@ -188,7 +199,8 @@ extern "C"
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto names = getGltfAnimationSystem(animationManager)->getGltfAnimationNames(instance->getInstance());
+        auto lock = animationManager->lock();
+        auto names = getGltfAnimationSystemLocked(animationManager)->getGltfAnimationNames(instance->getInstance());
         return (int)names.size();
     }
 
@@ -208,7 +220,8 @@ extern "C"
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto names = getGltfAnimationSystem(animationManager)->getGltfAnimationNames(instance->getInstance());
+        auto lock = animationManager->lock();
+        auto names = getGltfAnimationSystemLocked(animationManager)->getGltfAnimationNames(instance->getInstance());
         std::string name = names[index];
         strcpy(outPtr, name.c_str());
     }
