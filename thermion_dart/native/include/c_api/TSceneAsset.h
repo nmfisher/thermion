@@ -19,14 +19,6 @@ extern "C"
         enum TVertexBufferStorageMode vertexBufferStorageMode,
         Aabb3 boundingBox
     );
-    EMSCRIPTEN_KEEPALIVE TSceneAsset * SceneAsset_createFromFilamentAsset(
-        TEngine *tEngine,
-        TGltfAssetLoader *tAssetLoader,
-        TNameComponentManager *tNameComponentManager,
-        TFilamentAsset *tFilamentAsset,
-        uint32_t requiredGeometryCapabilities
-    );
-    EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset);
     EMSCRIPTEN_KEEPALIVE enum TSceneAssetType SceneAsset_getType(TSceneAsset *tSceneAsset);
     EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset);   
     EMSCRIPTEN_KEEPALIVE void SceneAsset_addToScene(TSceneAsset *tSceneAsset, TScene *tScene);
