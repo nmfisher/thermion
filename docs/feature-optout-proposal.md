@@ -281,7 +281,7 @@ hooks:
 `draco`, `basis_transcoder`, `filameshio`, `image`, `filamat` get no keys: §3
 shows they are transitive-only, core, already gated, or already absent.
 
-### 4.2 Parsing and validation (`lib/src/hooks/feature_flags.dart`)
+### 4.2 Parsing and validation (`lib/src/hooks/resolve_pubspec_features.dart`)
 
 `resolveFeatures(raw, onWarning)` → `({bool gltf, bool ktx, bool imageDecoding})`;
 null → all true; non-map → throw; unknown keys → `onWarning`; non-bool →
@@ -298,7 +298,7 @@ branch) so both branches see it. Cross-feature rules:
   libs drop regardless of other keys — they have no other client.
 - `runtime_materials` is orthogonal (filamat never references gltfio).
 
-Unit-tested by `test/feature_flags_test.dart` (pure Dart, no native build).
+Unit-tested by `test/resolve_pubspec_features_test.dart` (pure Dart, no native build).
 
 ### 4.3 Hook effects (native branch)
 
@@ -731,16 +731,16 @@ Verified locally on Linux x64 (`xvfb-run` + llvmpipe) for the default, the
 issues; `test/slim_build_test.dart` passes 4/4 on both slim builds and skips
 all 4 on the default build; the default regression set (geometry, instancing,
 asset, glTF/bone/morph animation, KTX upload lifetime, image,
-`feature_flags_test`) is unchanged. Every translation unit was also compiled
+`resolve_pubspec_features_test`) is unchanged. Every translation unit was also compiled
 with `-fsyntax-only -Werror=return-type -Wundef` in each valid feature
 configuration.
 
 CI (`.github/workflows/run-dart-tests.yml`):
 
-- `test/feature_flags_test.dart` runs with the pure-Dart test list;
+- `test/resolve_pubspec_features_test.dart` runs with the pure-Dart test list;
 - `dart-tests-slim` (Linux + macOS) rewrites the package's `hooks:` block with
   `features: {gltf: false, ktx: false, image_decoding: false}`, rebuilds, runs
-  `slim_build_test.dart` + `feature_flags_test.dart` and — on Linux — checks
+  `slim_build_test.dart` + `resolve_pubspec_features_test.dart` and — on Linux — checks
   that the slim library exports every entry point named in the generated FFI
   bindings. The macOS runner is what makes the `-Werror=return-type` guarantee
   real; a future unguarded gltfio/ktxreader/stb reference is a link error here
