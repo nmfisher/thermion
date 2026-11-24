@@ -88,7 +88,14 @@ extern "C"
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto lock = animationManager->lock();
-        getGltfAnimationSystemLocked(animationManager)->removeAnimationComponent(instance->getInstance());
+        // Teardown path (called on every glTF asset destroy): never lazily
+        // allocate a frame-ticked component manager just to remove nothing.
+        auto *system = static_cast<GltfAnimationComponentManager *>(animationManager->findAnimationSystemLocked("gltf"));
+        if (!system)
+        {
+            return true;
+        }
+        system->removeAnimationComponent(instance->getInstance());
         TRACE("Removed glTF animation component");
         return true;
     }
@@ -143,7 +150,13 @@ extern "C"
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto lock = animationManager->lock();
-        getGltfAnimationSystemLocked(animationManager)->removeGltfAnimation(instance->getInstance(), index);
+        // If no clip system exists, nothing can be playing; do not allocate one.
+        auto *system = static_cast<GltfAnimationComponentManager *>(animationManager->findAnimationSystemLocked("gltf"));
+        if (!system)
+        {
+            return true;
+        }
+        system->removeGltfAnimation(instance->getInstance(), index);
         return true;
     }
 
@@ -163,7 +176,11 @@ extern "C"
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto lock = animationManager->lock();
-        getGltfAnimationSystemLocked(animationManager)->setGltfAnimationTime(instance->getInstance(), animationIndex, timeInSeconds);
+        // Pure animator access; no GltfAnimationComponentManager state is
+        // involved, so no clip system needs to exist (or be allocated).
+        auto *animator = instance->getInstance()->getAnimator();
+        animator->applyAnimation(animationIndex, timeInSeconds);
+        animator->updateBoneMatrices();
         return true;
     }
 
@@ -182,7 +199,8 @@ extern "C"
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto lock = animationManager->lock();
-        return getGltfAnimationSystemLocked(animationManager)->getGltfAnimationDuration(instance->getInstance(), animationIndex);
+        // Read-only animator query; no clip system needed.
+        return instance->getInstance()->getAnimator()->getAnimationDuration(animationIndex);
     }
 
     EMSCRIPTEN_KEEPALIVE int AnimationManager_getGltfAnimationCount(
@@ -200,8 +218,8 @@ extern "C"
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto lock = animationManager->lock();
-        auto names = getGltfAnimationSystemLocked(animationManager)->getGltfAnimationNames(instance->getInstance());
-        return (int)names.size();
+        // Read-only animator query; no clip system needed.
+        return (int)instance->getInstance()->getAnimator()->getAnimationCount();
     }
 
     EMSCRIPTEN_KEEPALIVE void AnimationManager_getGltfAnimationName(
@@ -221,8 +239,13 @@ extern "C"
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto lock = animationManager->lock();
-        auto names = getGltfAnimationSystemLocked(animationManager)->getGltfAnimationNames(instance->getInstance());
-        std::string name = names[index];
-        strcpy(outPtr, name.c_str());
+        // Read-only animator query; no clip system needed.
+        auto *animator = instance->getInstance()->getAnimator();
+        if (index < 0 || (size_t)index >= animator->getAnimationCount())
+        {
+            strcpy(outPtr, "FILAMENT_ERROR_NOT_FOUND");
+            return;
+        }
+        strcpy(outPtr, animator->getAnimationName(index));
     }
 }

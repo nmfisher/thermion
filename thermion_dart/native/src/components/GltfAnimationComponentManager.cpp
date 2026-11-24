@@ -80,6 +80,11 @@ namespace thermion
     }   
 
     void GltfAnimationComponentManager::removeGltfAnimation(FilamentInstance *target, int index) {
+        // Stopping a clip on an asset that never played one is a no-op;
+        // getInstance() on a missing component would assert/UB.
+        if (!hasComponent(target->getRoot())) {
+            return;
+        }
         auto animationComponentInstance = getInstance(target->getRoot());
         auto &animationComponent = elementAt<0>(animationComponentInstance);
 
