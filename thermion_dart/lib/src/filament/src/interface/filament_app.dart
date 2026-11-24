@@ -22,8 +22,61 @@ class FilamentConfig<T, U> {
   });
 }
 
+/// Compile-time features of the loaded Thermion build.
+///
+/// Each one can be switched off when building the consuming app, under
+/// `hooks.user_defines.thermion_dart.features` in its pubspec.yaml (all on
+/// by default; see "Compile-time feature opt-outs" in the package README):
+///
+/// ```yaml
+/// hooks:
+///   user_defines:
+///     thermion_dart:
+///       features:
+///         gltf: false            # glTF loading, glTF animation, ubershader materials
+///         ktx: false             # KTX1/KTX2 (incl. Basis) textures
+///         image_decoding: false  # PNG/JPEG decoding
+/// ```
+///
+/// [FilamentApp.supports] reports which of them the loaded library has.
+/// APIs that need a disabled feature throw [UnsupportedError] naming the
+/// `features.*` key instead of failing deeper in the FFI layer.
+enum ThermionFeature {
+  /// glTF loading ([FilamentApp.loadGltfFromBuffer]), glTF clip and bone
+  /// animation and the gltfio ubershader materials
+  /// ([FilamentApp.createUbershaderMaterialInstance]). Procedural geometry
+  /// keeps working without it: [FilamentApp.createUnlitMaterialInstance]
+  /// uses a precompiled unlit material in such builds, and custom morph
+  /// animation keeps working too through
+  /// [AnimationManager.setMorphAnimation]/[AnimationManager.clearMorphAnimation]
+  /// — the entity-keyed morph buffer does not use gltfio. The asset-level
+  /// [ThermionAsset.setMorphAnimationData] matches morph targets by their
+  /// glTF names, so it needs glTF support.
+  gltf,
+
+  /// KTX1/KTX2 textures including Basis Universal ([FilamentApp.loadKtx2],
+  /// `loadKtx`/`createIblFromKtx` on the viewer).
+  ktx,
+
+  /// PNG/JPEG decoding for [FilamentApp.decodeImage]; `createImage` and
+  /// `Texture.setLinearImage` are unaffected.
+  imageDecoding,
+
+  /// Runtime material compilation (`runtime_materials`); mirrors
+  /// [FilamentApp.runtimeMaterialsSupported].
+  runtimeMaterials,
+}
+
 abstract class FilamentApp<T> {
   static FilamentApp? instance;
+
+  /// Whether the loaded build includes [feature].
+  ///
+  /// Read once from the native library at startup
+  /// (`Thermion_getEnabledFeatures`), so the answer never changes for the
+  /// lifetime of the process. Web engines are prebuilt with every feature;
+  /// an engine older than the probe reports all features enabled.
+  bool supports(ThermionFeature feature);
 
   /// A handle to the native Filament Engine instance attached to this application.
   Pointer<TEngine> get engine;
@@ -147,6 +200,11 @@ abstract class FilamentApp<T> {
   /// Creates a caller-owned material from an embedded helper package.
   /// Destroy its instances before destroying the material. Throws [StateError]
   /// if the build omits the selected package.
+  ///
+  /// [BuiltInMaterial.unlitFallback] is not selectable here: it is the
+  /// internal fallback behind [createUnlitMaterialInstance] in
+  /// `features.gltf: false` builds. Requesting it throws [StateError]
+  /// directing you to [createUnlitMaterialInstance].
   Future<Material> createBuiltInMaterial(BuiltInMaterial material);
 
   /// Material package format version expected by the loaded native build.
@@ -167,7 +225,8 @@ abstract class FilamentApp<T> {
   Future<Material> createMaterial(Uint8List data);
 
   /// Whether the loaded native build supports compiling materials from
-  /// source at runtime (the `runtime_materials` build flag).
+  /// source at runtime (the `runtime_materials` build flag; the same fact as
+  /// `supports(ThermionFeature.runtimeMaterials)`, kept for compatibility).
   ///
   /// False when the app was built without the flag — including the default
   /// web engine (the filamat-enabled web variant reports true). When false,
@@ -493,7 +552,8 @@ abstract class FilamentApp<T> {
   /// [requiredGeometryCapabilities] describes the geometry properties that the loaded
   /// asset must support. The loader may provide a compatible superset, which
   /// is reported by [ThermionAsset.geometryCapabilities]. Incompatible
-  /// requirements throw [ArgumentError].
+  /// requirements throw [ArgumentError]. Throws [UnsupportedError] when
+  /// `supports(ThermionFeature.gltf)` is false.
   Future<ThermionAsset> loadGltfFromBuffer(
     Uint8List data, {
     int initialInstances = 1,
@@ -595,5 +655,7 @@ abstract class FilamentApp<T> {
   // Parse glTF file and extract geometry data for physics collision detection.
   // Returns vertex positions (xyz) and optional indices.
   // If [meshName] is specified, only extracts data for that specific mesh.
+  // Requires features.gltf (the native cgltf parser ships with gltfio):
+  // throws UnsupportedError when gltf is disabled in this build.
   Future<GltfMeshData> parseGltf(Uint8List data, {String? meshName});
 }

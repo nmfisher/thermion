@@ -1,6 +1,7 @@
 #include "rendering/EngineApiLock.hpp"
- 
 
+
+#include "ThermionFeatures.h"
 #include "c_api/TGltfAssetLoader.h"
 #include "c_api/TSceneAsset.h"
 
@@ -15,6 +16,7 @@
 #include <filament/TransformManager.h>
 #include <filament/View.h>
 
+#if THERMION_ENABLE_GLTF
 #include <gltfio/Animator.h>
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
@@ -23,12 +25,14 @@
 #include <gltfio/math.h>
 #include <gltfio/materials/uberarchive.h>
 
+#include "scene/GltfSceneAsset.hpp"
+#endif
+
 #include <utils/EntityManager.h>
 #include <utils/NameComponentManager.h>
 
 #include "Log.hpp"
 
-#include "scene/GltfSceneAsset.hpp"
 #include "scene/SceneAsset.hpp"
 
 #ifdef __cplusplus
@@ -40,6 +44,7 @@ namespace thermion
 
 #endif
 
+#if THERMION_ENABLE_GLTF
 
 EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, TMaterialProvider *tMaterialProvider, TNameComponentManager *tNameComponentManager) {
     THERMION_ENGINE_API_GUARD;
@@ -140,22 +145,6 @@ EMSCRIPTEN_KEEPALIVE TMaterialProvider *GltfAssetLoader_getMaterialProvider(TGlt
     return reinterpret_cast<TMaterialProvider *>(&materialProvider);
 }
 
-EMSCRIPTEN_KEEPALIVE int32_t FilamentAsset_getResourceUriCount(
-    TFilamentAsset *tFilamentAsset
-) {
-    THERMION_ENGINE_API_GUARD;
-    auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset *>(tFilamentAsset);
-    return filamentAsset->getResourceUriCount();
-}
-
-EMSCRIPTEN_KEEPALIVE const char* const* FilamentAsset_getResourceUris(
-    TFilamentAsset *tFilamentAsset
-) {
-    THERMION_ENGINE_API_GUARD;
-    auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset *>(tFilamentAsset);
-    return filamentAsset->getResourceUris();    
-}
-
 EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createFromFilamentAsset(
     TEngine *tEngine,
     TGltfAssetLoader *tAssetLoader,
@@ -208,6 +197,96 @@ EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tS
     auto *filamentAsset = gltfAsset->getAsset();
     TRACE("SceneAsset %d FilamentAsset %d", sceneAsset, filamentAsset);
     return reinterpret_cast<TFilamentAsset *>(filamentAsset);
+}
+
+#else // !THERMION_ENABLE_GLTF
+// Stub contract: the same C symbols with the same signatures, no gltfio
+// references. There is no loader and no material provider in this build:
+// create returns null, destroy tolerates the null handle, and Dart's
+// guards turn glTF requests into UnsupportedError before any of it is
+// reached. The unlit fallback material is built in Dart through
+// Material_createBuiltIn(BUILT_IN_UNLIT_FALLBACK).
+
+EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, TMaterialProvider *tMaterialProvider, TNameComponentManager *tNameComponentManager) {
+    THERMION_ENGINE_API_GUARD;
+    (void)tEngine;
+    (void)tMaterialProvider;
+    (void)tNameComponentManager;
+    return nullptr;
+}
+
+EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_destroy(TGltfAssetLoader *tAssetLoader) {
+    THERMION_ENGINE_API_GUARD;
+    (void)tAssetLoader; // create returned nullptr; nothing to free.
+}
+
+EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
+    TEngine *tEngine,
+    TGltfAssetLoader *tAssetLoader,
+    const uint8_t *data,
+    size_t length,
+    uint32_t numInstances)
+{
+    (void)tEngine;
+    (void)tAssetLoader;
+    (void)data;
+    (void)length;
+    (void)numInstances;
+    Log("GltfAssetLoader_load: glTF support is disabled in this build (features.gltf: false)");
+    return nullptr;
+}
+
+EMSCRIPTEN_KEEPALIVE TMaterialInstance *GltfAssetLoader_getMaterialInstance(TRenderableManager *tRenderableManager, TFilamentAsset *tAsset) {
+    (void)tRenderableManager;
+    (void)tAsset;
+    return nullptr;
+}
+
+EMSCRIPTEN_KEEPALIVE TMaterialProvider *GltfAssetLoader_getMaterialProvider(TGltfAssetLoader *tAssetLoader) {
+    (void)tAssetLoader; // no provider exists without gltfio.
+    return nullptr;
+}
+
+EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createFromFilamentAsset(
+    TEngine *tEngine,
+    TGltfAssetLoader *tAssetLoader,
+    TNameComponentManager *tNameComponentManager,
+    TFilamentAsset *tFilamentAsset,
+    uint32_t requiredGeometryCapabilities
+) {
+    Log("SceneAsset_createFromFilamentAsset: glTF support is disabled in this build (features.gltf: false)");
+    return nullptr;
+}
+
+EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset) {
+    // No asset can be Gltf-typed in a build without gltfio.
+    return nullptr;
+}
+
+#endif // THERMION_ENABLE_GLTF
+
+EMSCRIPTEN_KEEPALIVE int32_t FilamentAsset_getResourceUriCount(
+    TFilamentAsset *tFilamentAsset
+) {
+#if THERMION_ENABLE_GLTF
+    THERMION_ENGINE_API_GUARD;
+    auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset *>(tFilamentAsset);
+    return filamentAsset->getResourceUriCount();
+#else
+    return 0;
+#endif
+}
+
+EMSCRIPTEN_KEEPALIVE const char* const* FilamentAsset_getResourceUris(
+    TFilamentAsset *tFilamentAsset
+) {
+#if THERMION_ENABLE_GLTF
+    THERMION_ENGINE_API_GUARD;
+    auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset *>(tFilamentAsset);
+    return filamentAsset->getResourceUris();
+#else
+    return nullptr;
+#endif
 }
 
 #ifdef __cplusplus

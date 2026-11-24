@@ -16,7 +16,12 @@ List<BuiltInMaterial> selectBuiltInMaterials(Object? materialConfig, {required v
   if (materialConfig is! Map) {
     throw MaterialToolsError('materials must be a map in pubspec.yaml.');
   }
-  final knownMaterialKeys = {'backends', ...BuiltInMaterial.values.map((material) => material.key)};
+  // unlit_fallback is hook-managed (compiled only for features.gltf:
+  // false builds), never a user-selectable materials.* key.
+  final knownMaterialKeys = {
+    'backends',
+    ...BuiltInMaterial.values.where((m) => m != BuiltInMaterial.unlitFallback).map((material) => material.key),
+  };
   for (final MapEntry(:key, :value) in materialConfig.entries) {
     if (!knownMaterialKeys.contains(key)) {
       onWarning('Unknown key materials.$key in pubspec.yaml.');
@@ -26,7 +31,7 @@ List<BuiltInMaterial> selectBuiltInMaterials(Object? materialConfig, {required v
   }
   return [
     for (final material in BuiltInMaterial.values)
-      if (materialConfig[material.key] == true) material,
+      if (material != BuiltInMaterial.unlitFallback && materialConfig[material.key] == true) material,
   ];
 }
 
@@ -84,6 +89,65 @@ Future<Map<BuiltInMaterial, Directory>> compileBuiltInMaterials({
   addDependency?.call(root.uri.resolve('pubspec.yaml'));
   addDependency?.call(pinFile.uri);
   return outputs;
+}
+
+/// Compiles the unlit fallback material into a resgen C blob for a native
+/// `features.gltf: false` build, with the same version-matched matc/resgen
+/// pipeline and cache layout as [compileBuiltInMaterials].
+///
+/// Returns the output directory holding `unlit_fallback.c`/`unlit_fallback.h`
+/// (symbols `UNLIT_FALLBACK_UNLIT_FALLBACK_DATA`/`_SIZE`, consumed by
+/// TMaterialInstance.cpp under UNLIT_FALLBACK_ENABLED; Dart builds the
+/// package through Material_createBuiltIn(BUILT_IN_UNLIT_FALLBACK)).
+/// Default builds never call this, so they pay no matc/resgen step for it.
+Future<Directory> compileUnlitFallbackMaterial({
+  required Directory root,
+  required List<String> backends,
+  required void Function(String) onLog,
+  UrlDownloader? download,
+  void Function(Uri)? addDependency,
+}) async {
+  final packageVersion = await readPubspecVersion(root);
+  final hostArch = await detectHostArchitecture() ?? 'x64';
+  final pinFile = File(path.join(root.path, filamentPinFileName));
+  final warnings = <String>[];
+  final toolsPin = parseFilamentPin(pinFile.existsSync() ? pinFile.readAsStringSync() : null, warnings: warnings);
+  warnings.forEach(onLog);
+  final variantKey = '${backends.join('_')}-resgen';
+  final cacheDir = path.join(
+    root.path,
+    '.dart_tool',
+    'thermion_dart',
+    'materials',
+    unlitFallbackMaterialKey,
+    variantKey,
+  );
+  final result = await compileUserMaterials(
+    appRoot: root,
+    config: MaterialCompilationConfig(
+      inputs: ['hook/materials/$unlitFallbackMaterialKey.mat'],
+      output: cacheDir,
+      backends: backends,
+      resgen: true,
+    ),
+    filamentVersion: filamentVersion,
+    packageVersion: packageVersion,
+    hostOS: Platform.operatingSystem,
+    hostArch: hostArch,
+    toolsPin: toolsPin,
+    download: download,
+    onLog: onLog,
+  );
+  final normalizedCache = path.normalize(cacheDir);
+  for (final uri in result.dependencies) {
+    final depPath = path.normalize(uri.toFilePath(windows: Platform.isWindows));
+    if (depPath != normalizedCache && !path.isWithin(normalizedCache, depPath)) {
+      addDependency?.call(uri);
+    }
+  }
+  addDependency?.call(root.uri.resolve('pubspec.yaml'));
+  addDependency?.call(pinFile.uri);
+  return result.outputDir;
 }
 
 /// Compiles and stages the built-in materials for a web build.

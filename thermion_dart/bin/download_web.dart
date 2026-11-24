@@ -88,7 +88,12 @@ Future<Directory> _downloadToCache(String version, String zipSuffix, Directory c
 }
 
 List<BuiltInMaterial> _parseMaterials(String raw) {
-  final byKey = {for (final m in BuiltInMaterial.values) m.key: m};
+  // unlit_fallback is hook-managed (native features.gltf: false builds only),
+  // never a user-selectable helper key.
+  final byKey = {
+    for (final m in BuiltInMaterial.values)
+      if (m != BuiltInMaterial.unlitFallback) m.key: m,
+  };
   final selected = <BuiltInMaterial>{};
   for (final token in raw.split(',')) {
     final key = token.trim();
@@ -145,7 +150,10 @@ void main(List<String> args) async {
       stdout.writeln('                  hybrid            WebGPU-capable engine with GLSL and WGSL');
       stdout.writeln('                  WebGPU and hybrid use the main-thread engine with precompiled materials.');
       stdout.writeln('  --materials    Comma-separated helper keys, for example gizmo,image.');
-      stdout.writeln('                 Available keys: ${BuiltInMaterial.values.map((m) => m.key).join(', ')}');
+      stdout.writeln(
+        '                 Available keys: '
+        '${BuiltInMaterial.values.where((m) => m != BuiltInMaterial.unlitFallback).map((m) => m.key).join(', ')}',
+      );
       return;
     }
   }

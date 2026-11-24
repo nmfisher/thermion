@@ -104,6 +104,56 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   static final _logger = Logger("FFIFilamentApp");
 
+  /// Feature bitmask reported by the loaded library via
+  /// `Thermion_getEnabledFeatures` (c_api/ThermionFeatures.h): bit 0 gltf,
+  /// bit 1 ktx, bit 2 image_decoding, bit 3 runtime_materials. Resolved once
+  /// per process — the library cannot change underneath a running app.
+  static int? _enabledFeatures;
+
+  static int get enabledFeatures => _enabledFeatures ??= _readEnabledFeatures();
+
+  static int _readEnabledFeatures() {
+    try {
+      return bindings.Thermion_getEnabledFeatures();
+    } catch (_) {
+      // Legacy engine without the probe (pre-probe web engines). Every such
+      // engine was built with all three native opt-outs on; runtime
+      // materials keeps its own probe.
+      final legacy = 0x7 | (bindings.MaterialCompiler_isSupported() != 0 ? 1 << 3 : 0);
+      _logger.warning(
+        "Thermion_getEnabledFeatures is not exported by this engine; assuming an "
+        "older engine with every feature enabled (runtime materials: ${(legacy >> 3) & 1}).",
+      );
+      return legacy;
+    }
+  }
+
+  /// [supports] for callers without an app instance (engine initialization
+  /// runs before FilamentApp.instance exists).
+  static bool buildSupports(ThermionFeature feature) => (enabledFeatures & (1 << feature.index)) != 0;
+
+  @override
+  bool supports(ThermionFeature feature) => buildSupports(feature);
+
+  /// Throws [UnsupportedError] naming the `features.*` key when [feature] is
+  /// disabled in this build.
+  void checkSupported(ThermionFeature feature, String api) {
+    if (!supports(feature)) {
+      throw UnsupportedError(
+        '$api is not available in this build: $feature is disabled '
+        '(features.${_featureKey(feature)}: false in hooks.user_defines.thermion_dart). '
+        'Check FilamentApp.instance!.supports(ThermionFeature.${feature.name}) before calling.',
+      );
+    }
+  }
+
+  static String _featureKey(ThermionFeature feature) => switch (feature) {
+    ThermionFeature.gltf => 'gltf',
+    ThermionFeature.ktx => 'ktx',
+    ThermionFeature.imageDecoding => 'image_decoding',
+    ThermionFeature.runtimeMaterials => 'runtime_materials',
+  };
+
   FFIFilamentApp(
     this.engine,
     this.gltfAssetLoader,
@@ -203,14 +253,27 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final nameComponentManager = NameComponentManager_create();
 
-    final gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
+    // The gltfio loader is also the carrier for the material provider
+    // handle. In a `features.gltf: false` build GltfAssetLoader_create's
+    // stub returns null, so both handles are null: glTF loading throws
+    // UnsupportedError via checkSupported, and createUnlitMaterialInstance
+    // builds its precompiled fallback in Dart through
+    // Material_createBuiltIn instead of the provider.
+    var gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
       (cb) => GltfAssetLoader_createJobThread(jobThreadHandle, engine, nullptr, nameComponentManager, cb),
     );
+    var ubershaderMaterialProvider = GltfAssetLoader_getMaterialProvider(gltfAssetLoader);
+    if (!buildSupports(ThermionFeature.gltf)) {
+      _logger.warning(
+        "This build has glTF support disabled (features.gltf: false): glTF loading, "
+        "glTF animation and ubershader materials are unavailable; createUnlitMaterialInstance "
+        "uses the precompiled unlit fallback material.",
+      );
+    }
 
     final renderer = await withPointerCallback<TRenderer>(
       (cb) => Engine_createRendererJobThread(jobThreadHandle, engine, cb),
     );
-    final ubershaderMaterialProvider = GltfAssetLoader_getMaterialProvider(gltfAssetLoader);
 
     final transformManager = Engine_getTransformManager(engine);
     final lightManager = Engine_getLightManager(engine);
@@ -439,6 +502,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // earlier commands and before engine resource teardown.
     await renderManager.destroy();
 
+    // The Dart-side unlit fallback Material (slim builds only) is
+    // engine-bound: destroy it before the engine itself.
+    final unlitFallback = _unlitFallbackMaterial;
+    _unlitFallbackMaterial = null;
+    if (unlitFallback != null) {
+      await unlitFallback.destroy();
+    }
+
     // Filament's contract is: tear down everything created on top of the
     // Engine before destroying the Engine itself. Order matters — the
     // AssetLoader holds Engine-bound Materials (via its internally-created
@@ -455,9 +526,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       (requestId, cb) =>
           AnimationManager_destroyJobThread(jobThreadHandle, (animationManager).animationManager, requestId, cb),
     );
-    await withVoidCallback(
-      (requestId, cb) => GltfAssetLoader_destroyJobThread(jobThreadHandle, gltfAssetLoader, requestId, cb),
-    );
+    if (gltfAssetLoader != nullptr) {
+      await withVoidCallback(
+        (requestId, cb) => GltfAssetLoader_destroyJobThread(jobThreadHandle, gltfAssetLoader, requestId, cb),
+      );
+    }
     NameComponentManager_destroy(nameComponentManager);
 
     await withVoidCallback(
@@ -619,6 +692,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   // alpha channel (even if the original image did not contain one).
   //
   Future<LinearImage> decodeImage(Uint8List data, {String name = "image", bool requireAlpha = false}) async {
+    checkSupported(ThermionFeature.imageDecoding, 'decodeImage');
     var now = DateTime.now();
     final namePtr = name.toNativeUtf8().cast<Char>();
     var ptr = Image_decode(data.address, data.length, namePtr, requireAlpha);
@@ -664,6 +738,22 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   @override
   Future<FFIMaterial> createBuiltInMaterial(BuiltInMaterial material) async {
+    // unlit_fallback is not a materials.* key: the hook links it only into
+    // features.gltf: false builds, to back createUnlitMaterialInstance
+    // (which owns the cached material and builds it through
+    // _createBuiltInMaterial). Reject direct requests in every build,
+    // pointing at that API instead of a materials.unlit_fallback setting
+    // that does not exist (and would be rejected by the hook).
+    if (material == BuiltInMaterial.unlitFallback) {
+      throw StateError(
+        'BuiltInMaterial.unlitFallback is an internal fallback, not a materials.* option. '
+        'Use createUnlitMaterialInstance() instead.',
+      );
+    }
+    return _createBuiltInMaterial(material);
+  }
+
+  Future<FFIMaterial> _createBuiltInMaterial(BuiltInMaterial material) async {
     final unavailable = StateError(
       'BuiltInMaterial.${material.name} requires materials.${material.key}: true in this build.',
     );
@@ -913,6 +1003,95 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     bool hasIOR = false,
     bool hasVolume = false,
   }) async {
+    checkSupported(ThermionFeature.gltf, 'createUbershaderMaterialInstance');
+    return _createMaterialInstance(
+      doubleSided: doubleSided,
+      unlit: unlit,
+      hasVertexColors: hasVertexColors,
+      hasBaseColorTexture: hasBaseColorTexture,
+      hasNormalTexture: hasNormalTexture,
+      hasOcclusionTexture: hasOcclusionTexture,
+      hasEmissiveTexture: hasEmissiveTexture,
+      useSpecularGlossiness: useSpecularGlossiness,
+      alphaMode: alphaMode,
+      enableDiagnostics: enableDiagnostics,
+      hasMetallicRoughnessTexture: hasMetallicRoughnessTexture,
+      metallicRoughnessUV: metallicRoughnessUV,
+      hasSpecularGlossiness: hasSpecularGlossiness,
+      specularGlossinessUV: specularGlossinessUV,
+      baseColorUV: baseColorUV,
+      hasClearCoatTexture: hasClearCoatTexture,
+      clearCoatUV: clearCoatUV,
+      hasClearCoatRoughnessTexture: hasClearCoatRoughnessTexture,
+      clearCoatRoughnessUV: clearCoatRoughnessUV,
+      hasClearCoatNormalTexture: hasClearCoatNormalTexture,
+      clearCoatNormalUV: clearCoatNormalUV,
+      hasClearCoat: hasClearCoat,
+      hasTransmission: hasTransmission,
+      hasTextureTransforms: hasTextureTransforms,
+      emissiveUV: emissiveUV,
+      aoUV: aoUV,
+      normalUV: normalUV,
+      hasTransmissionTexture: hasTransmissionTexture,
+      transmissionUV: transmissionUV,
+      hasSheenColorTexture: hasSheenColorTexture,
+      sheenColorUV: sheenColorUV,
+      hasSheenRoughnessTexture: hasSheenRoughnessTexture,
+      sheenRoughnessUV: sheenRoughnessUV,
+      hasVolumeThicknessTexture: hasVolumeThicknessTexture,
+      volumeThicknessUV: volumeThicknessUV,
+      hasSheen: hasSheen,
+      hasIOR: hasIOR,
+      hasVolume: hasVolume,
+    );
+  }
+
+  /// Shared FFI call for [createUbershaderMaterialInstance] and
+  /// [createUnlitMaterialInstance] on builds with glTF support. In a
+  /// `features.gltf: false` build there is no provider at all:
+  /// MaterialProvider_createMaterialInstance's stub returns null and
+  /// [createUnlitMaterialInstance] takes its Dart-side built-in branch
+  /// instead.
+  Future<MaterialInstance> _createMaterialInstance({
+    bool doubleSided = false,
+    bool unlit = false,
+    bool hasVertexColors = false,
+    bool hasBaseColorTexture = false,
+    bool hasNormalTexture = false,
+    bool hasOcclusionTexture = false,
+    bool hasEmissiveTexture = false,
+    bool useSpecularGlossiness = false,
+    AlphaMode alphaMode = AlphaMode.OPAQUE,
+    bool enableDiagnostics = false,
+    bool hasMetallicRoughnessTexture = false,
+    int metallicRoughnessUV = 0,
+    bool hasSpecularGlossiness = false,
+    int specularGlossinessUV = 0,
+    int baseColorUV = 0,
+    bool hasClearCoatTexture = false,
+    int clearCoatUV = 0,
+    bool hasClearCoatRoughnessTexture = false,
+    int clearCoatRoughnessUV = 0,
+    bool hasClearCoatNormalTexture = false,
+    int clearCoatNormalUV = 0,
+    bool hasClearCoat = false,
+    bool hasTransmission = false,
+    bool hasTextureTransforms = false,
+    int emissiveUV = 0,
+    int aoUV = 0,
+    int normalUV = 0,
+    bool hasTransmissionTexture = false,
+    int transmissionUV = 0,
+    bool hasSheenColorTexture = false,
+    int sheenColorUV = 0,
+    bool hasSheenRoughnessTexture = false,
+    int sheenRoughnessUV = 0,
+    bool hasVolumeThicknessTexture = false,
+    int volumeThicknessUV = 0,
+    bool hasSheen = false,
+    bool hasIOR = false,
+    bool hasVolume = false,
+  }) async {
     final materialInstance = await withPointerCallback<TMaterialInstance>((cb) {
       MaterialProvider_createMaterialInstanceJobThread(
         jobThreadHandle,
@@ -970,10 +1149,36 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return instance;
   }
 
-  //
+  /// An unlit, opaque material instance for procedural code: explicit
+  /// materials passed to [createGeometry], the bounding-box helpers and
+  /// TextureProjection. ([createGeometry] without `materialInstances` does
+  /// not come through here; it renders with Filament's engine default
+  /// material.)
+  ///
+  /// With glTF support this is the gltfio ubershader's unlit variant.
+  /// Without it (features.gltf: false) there is no provider — this branch
+  /// builds the small precompiled package the hook compiled for exactly
+  /// this case (hook/materials/unlit_fallback.mat, UNLIT_FALLBACK_ENABLED)
+  /// through Material_createBuiltIn(BUILT_IN_UNLIT_FALLBACK). Both
+  /// variants have the same semantics: `baseColorFactor` starts at opaque
+  /// white (set it on the instance to colour the material) and vertex
+  /// colours are ignored (`hasVertexColors: false`). In a slim build only
+  /// the explicit ubershader request ([createUbershaderMaterialInstance],
+  /// for any `unlit` value) throws [UnsupportedError].
+  @override
   Future<MaterialInstance> createUnlitMaterialInstance() async {
-    return createUbershaderMaterialInstance(unlit: true, hasVertexColors: false);
+    if (!supports(ThermionFeature.gltf)) {
+      _unlitFallbackMaterial ??= await _createBuiltInMaterial(BuiltInMaterial.unlitFallback);
+      return _unlitFallbackMaterial!.createInstance();
+    }
+    return _createMaterialInstance(unlit: true, hasVertexColors: false);
   }
+
+  /// Cached fallback Material for [createUnlitMaterialInstance] in
+  /// `features.gltf: false` builds; destroyed with the app before the
+  /// engine (instances handed out are the callers' responsibility, the
+  /// same contract as the ubershader provider's materials).
+  FFIMaterial? _unlitFallbackMaterial;
 
   @override
   Future<WireframeMaterialInstance> createWireframeMaterialInstance() async {
@@ -1456,6 +1661,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     Set<SceneAssetGeometryCapability> requiredGeometryCapabilities = const {},
     String? resourceUri,
   }) async {
+    checkSupported(ThermionFeature.gltf, 'loadGltfFromBuffer');
     final geometryRequirements = Set<SceneAssetGeometryCapability>.unmodifiable(requiredGeometryCapabilities);
     if (initialInstances <= 0) {
       throw Exception("initialInstances must be at least 1");
@@ -1978,6 +2184,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   //
   Future<Texture> loadKtx2(Uint8List data) async {
+    checkSupported(ThermionFeature.ktx, 'loadKtx2');
     _logger.info("Loading KTX2 from ${data.length} bytes");
     // Ktx2Reader internally calls Texture::Builder().build, which on web must
     // happen on the engine's render thread; routing through the *JobThread
@@ -2008,7 +2215,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   //
-  Future<GltfMeshData> parseGltf(Uint8List data, {String? meshName}) {
+  Future<GltfMeshData> parseGltf(Uint8List data, {String? meshName}) async {
+    // parseGltf is part of the gltf feature: its native parser (cgltf via
+    // gltfio_core) is only compiled/linked when features.gltf is enabled;
+    // GltfParser_parseBuffer is a plain failure stub otherwise. async so the
+    // guard's UnsupportedError surfaces as a rejected Future, like the other
+    // checkSupported-guarded APIs.
+    checkSupported(ThermionFeature.gltf, 'parseGltf');
     return FFIGltfMeshData.parse(data, meshName: meshName);
   }
 }

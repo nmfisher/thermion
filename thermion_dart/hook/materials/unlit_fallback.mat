@@ -1,0 +1,51 @@
+// Unlit fallback for `features.gltf: false` builds.
+//
+// With glTF support off there is no gltfio ubershader provider, so the unlit
+// material that procedural code requests through
+// FilamentApp.createUnlitMaterialInstance() (bounding-box helpers,
+// TextureProjection, explicit materials passed to createGeometry) comes from
+// this package instead. It reproduces the semantics the ubershader path
+// gives that call — opaque white until the caller sets `baseColorFactor`,
+// and no vertex colours, because createUnlitMaterialInstance requests
+// hasVertexColors: false:
+//
+//   - no `requires: [ color ]`: the ubershader variant without
+//     VertexAttribute::COLOR is used for the same request, and procedural
+//     geometry may legitimately declare no colour attribute at all (e.g.
+//     VertexBufferBuilder-based renderables) or leave the buffer uninitialised
+//     (Geometry(..., createDummyColors: false));
+//   - no `* getColor()`: with the colour buffer left at its zero-filled
+//     default, multiplying by it would render black.
+//
+// FFIMaterial.createInstance initialises baseColorFactor to (1, 1, 1, 1)
+// in Dart on every instance it hands out; a .mat uniform parameter is
+// zero-initialised otherwise. Like hook/materials/unlit_fixed_size.mat, this
+// is an opaque, single-sided, depth-tested and depth-written unlit material.
+//
+// The build hook compiles it with the version-matched matc/resgen pipeline
+// ONLY when features.gltf is false (UNLIT_FALLBACK_ENABLED /
+// BUILT_IN_UNLIT_FALLBACK in c_api/TMaterialInstance.h); default builds never
+// compile or link it.
+material {
+    name : UnlitFallback,
+    parameters : [
+        {
+            type : float4,
+            name : baseColorFactor,
+            precision : low
+        }
+    ],
+    shadingModel : unlit,
+    blending : opaque,
+    doubleSided : false,
+    depthWrite : true,
+    depthCulling : true,
+    culling : back
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = materialParams.baseColorFactor;
+    }
+}

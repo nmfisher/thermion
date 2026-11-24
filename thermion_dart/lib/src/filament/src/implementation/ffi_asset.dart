@@ -306,6 +306,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   @override
   Future releaseSourceData() async {
     _throwIfNotAlive();
+    _app.checkSupported(ThermionFeature.gltf, 'releaseSourceData');
     if (isInstance) {
       throw StateError("releaseSourceData must be called on the owning asset, not an instance");
     }
@@ -755,6 +756,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<List<String>> getBoneNames({int skinIndex = 0}) async {
+    // Bones only exist on skinned glTF assets (see getBoneCount).
+    _app.checkSupported(ThermionFeature.gltf, 'getBoneNames');
     var boneCount = await getBoneCount(skinIndex: skinIndex);
     var names = <String>[];
     for (int i = 0; i < boneCount; i++) {
@@ -771,6 +774,11 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   // Gets the number of bones at skin [skinIndex].
   // Returns the number of bones, or 0 if none found.
   Future<int> getBoneCount({int skinIndex = 0}) async {
+    // Bones only exist on skinned glTF assets, which cannot exist in a
+    // `features.gltf: false` build. The shared C entry point would report the
+    // SceneAsset base-class default (0) there, so make the unsupported build
+    // explicit instead.
+    _app.checkSupported(ThermionFeature.gltf, 'getBoneCount');
     return SceneAsset_getBoneCount(asset, skinIndex);
   }
 
@@ -781,6 +789,9 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<List<String>> getGltfAnimationNames() async {
+    // Check the build before the asset type: a procedural asset on a slim
+    // build must report the disabled feature, not silently "no animations".
+    _app.checkSupported(ThermionFeature.gltf, 'getGltfAnimationNames');
     if (type != SceneAssetType.gltf) {
       _logger.warning("getGltfAnimationNames should only be called on gltf assets");
       return [];
@@ -803,6 +814,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<double> getGltfAnimationDuration(int animationIndex) async {
+    _app.checkSupported(ThermionFeature.gltf, 'getGltfAnimationDuration');
     if (type != SceneAssetType.gltf) {
       throw Exception("getGltfAnimationDuration can only be called on glTF assets");
     }
@@ -812,6 +824,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<double> getGltfAnimationDurationByName(String name) async {
+    _app.checkSupported(ThermionFeature.gltf, 'getGltfAnimationDurationByName');
     if (type != SceneAssetType.gltf) {
       throw Exception("getGltfAnimationDurationByName can only be called on glTF assets");
     }
@@ -1050,6 +1063,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<List<ThermionEntity>> getBones({int skinIndex = 0}) async {
+    _app.checkSupported(ThermionFeature.gltf, 'getBones');
     if (skinIndex != 0) {
       throw UnimplementedError("TOOD");
     }
@@ -1216,19 +1230,28 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       return;
     }
 
-    final manager = _app.animationManager.getNativeHandle();
-    final animationAsset = type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF && !isInstance
-        ? _getInstances().first._asset
-        : _asset;
-    if (type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF) {
-      final gltfManager = _app.animationManager.gltfAnimationManager;
-      if (!AnimationManager_removeGltfAnimationComponent(gltfManager, animationAsset)) {
-        _logger.warning("Failed to remove glTF animation component");
+    // glTF/bone components only exist on glTF assets, which cannot exist in a
+    // `features.gltf: false` build: skip those calls there instead of logging
+    // a bogus failure for every destroyed asset. (The glTF clip call is a C
+    // stub in that build; the bone call is shared and would simply no-op.)
+    if (_app.supports(ThermionFeature.gltf)) {
+      final manager = _app.animationManager.getNativeHandle();
+      final animationAsset = type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF && !isInstance
+          ? _getInstances().first._asset
+          : _asset;
+      if (type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF) {
+        final gltfManager = _app.animationManager.gltfAnimationManager;
+        if (!AnimationManager_removeGltfAnimationComponent(gltfManager, animationAsset)) {
+          _logger.warning("Failed to remove glTF animation component");
+        }
+      }
+      if (!AnimationManager_removeBoneAnimationComponent(manager, animationAsset)) {
+        _logger.warning("Failed to remove bone animation component");
       }
     }
-    if (!AnimationManager_removeBoneAnimationComponent(manager, animationAsset)) {
-      _logger.warning("Failed to remove bone animation component");
-    }
+    // Morph components are keyed by entity and gltfio-free: the core
+    // AnimationManager compiles into every build (no C stubs), so this stays
+    // unconditional.
     _app.animationManager.removeMorphAnimationComponent(entity);
 
     for (final child in _getChildEntities()) {

@@ -1,6 +1,7 @@
 #include "rendering/EngineApiLock.hpp"
- 
 
+
+#include "ThermionFeatures.h"
 #include "c_api/TGltfResourceLoader.h"
 
 #include <filament/Engine.h>
@@ -14,6 +15,7 @@
 #include <filament/TransformManager.h>
 #include <filament/View.h>
 
+#if THERMION_ENABLE_GLTF
 #include <gltfio/Animator.h>
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
@@ -21,6 +23,7 @@
 #include <gltfio/TextureProvider.h>
 #include <gltfio/math.h>
 #include <gltfio/materials/uberarchive.h>
+#endif
 
 #include <utils/EntityManager.h>
 #include <utils/NameComponentManager.h>
@@ -30,6 +33,7 @@
 
 #include "Log.hpp"
 
+#if THERMION_ENABLE_GLTF
 namespace
 {
     // gltfio::ResourceLoader does not own its texture providers. They hold the
@@ -44,6 +48,7 @@ namespace
     std::mutex gTextureProvidersMutex;
     std::unordered_map<filament::gltfio::ResourceLoader *, TextureProviders> gTextureProviders;
 }
+#endif
 
 #ifdef __cplusplus
 namespace thermion
@@ -53,6 +58,8 @@ namespace thermion
         using namespace filament;
         
 #endif
+
+#if THERMION_ENABLE_GLTF
 
 EMSCRIPTEN_KEEPALIVE TGltfResourceLoader *GltfResourceLoader_create(TEngine *tEngine) {
     THERMION_ENGINE_API_GUARD;
@@ -66,6 +73,14 @@ EMSCRIPTEN_KEEPALIVE TGltfResourceLoader *GltfResourceLoader_create(TEngine *tEn
     // supporting PNG/JPEG via stb & KTX2 by default, but allowing user to disable/enable as needed.
     // We can then expose GltfResourceLoader_addTextureProvider and allow callers 
     // to register their own.
+    //
+    // The hook rejects `features.gltf: true` with `features.ktx: false` or
+    // `features.image_decoding: false`, so a glTF
+    // build always links both decoders and registers both providers here.
+    // Guarded registration is the intended implementation once that
+    // combination is enabled:
+    //   #if THERMION_ENABLE_IMAGE_DECODING ... createStbProvider ...
+    //   #if THERMION_ENABLE_KTX        ... createKtx2Provider ...
     auto stbDecoder = gltfio::createStbProvider(engine);
     auto ktxDecoder = gltfio::createKtx2Provider(engine);
     gltfResourceLoader->addTextureProvider("image/ktx2", ktxDecoder);
@@ -130,6 +145,46 @@ EMSCRIPTEN_KEEPALIVE float GltfResourceLoader_asyncGetLoadProgress(TGltfResource
     auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
     return gltfResourceLoader->asyncGetLoadProgress();
 }
+
+#else // !THERMION_ENABLE_GLTF
+// Stub contract: same symbols,
+// same signatures, no gltfio references. Loads report failure rather than
+// hanging a poller (progress stays 0, begin/load return false).
+
+EMSCRIPTEN_KEEPALIVE TGltfResourceLoader *GltfResourceLoader_create(TEngine *tEngine) {
+    Log("GltfResourceLoader_create: glTF support is disabled in this build (features.gltf: false)");
+    return nullptr;
+}
+
+EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroy(TEngine *tEngine, TGltfResourceLoader *tGltfResourceLoader) {
+}
+
+EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceData(
+    TGltfResourceLoader *loader, const char *uri, uint8_t *data, size_t length,
+    void (*onRelease)(void *, size_t, void *), void *userData) {
+    // Filament never takes ownership in this build; hand the buffer straight
+    // back so a caller that reached the raw binding does not leak it.
+    if (onRelease) {
+        onRelease(data, length, userData);
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE bool GltfResourceLoader_loadResources(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset) {
+    return false;
+}
+
+EMSCRIPTEN_KEEPALIVE bool GltfResourceLoader_asyncBeginLoad(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset) {
+    return false;
+}
+
+EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncUpdateLoad(TGltfResourceLoader *tGltfResourceLoader) {
+}
+
+EMSCRIPTEN_KEEPALIVE float GltfResourceLoader_asyncGetLoadProgress(TGltfResourceLoader *tGltfResourceLoader) {
+    return 0.0f;
+}
+
+#endif // THERMION_ENABLE_GLTF
 
 
 #ifdef __cplusplus

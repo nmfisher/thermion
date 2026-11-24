@@ -40,6 +40,13 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
     });
     final instance = FFIMaterialInstance(ptr, _app);
     switch (builtIn) {
+      case BuiltInMaterial.unlitFallback:
+        // Same default as the gltfio ubershader's unlit variant
+        // (UbershaderProvider starts baseColorFactor at opaque white).
+        // A .mat uniform parameter is zero-initialised, so an instance
+        // handed out untouched would otherwise render transparent black
+        // instead of white (hook/materials/unlit_fallback.mat).
+        await instance.setParameterFloat4('baseColorFactor', 1, 1, 1, 1);
       case BuiltInMaterial.normalColor:
         await instance.setParameterFloat('opacity', 1.0);
       case BuiltInMaterial.sharpEdge:

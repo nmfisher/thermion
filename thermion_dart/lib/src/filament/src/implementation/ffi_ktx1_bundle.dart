@@ -44,6 +44,7 @@ class FFIKtx1Bundle extends Ktx1Bundle {
   ///
   ///
   static Future<Ktx1Bundle> create(FFIFilamentApp app, Uint8List data) async {
+    app.checkSupported(ThermionFeature.ktx, 'Ktx1Bundle (loadKtx / createIblFromKtx)');
     var bundle = Ktx1Bundle_create(data.address, data.length);
 
     if (bundle == nullptr) {

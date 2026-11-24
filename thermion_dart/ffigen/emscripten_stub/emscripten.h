@@ -7,7 +7,7 @@
 // EMSCRIPTEN_WEBGL_CONTEXT_HANDLE (html5_webgl.h). Shipping these stubs keeps
 // `make dart-bindings` working on machines without an Emscripten sysroot, so
 // every exported C symbol is picked up by regeneration instead of being added
-// to the generated file by hand (docs/feature-optout-proposal.md §10.1.5).
+// to the generated file by hand.
 #pragma once
 
 #define EMSCRIPTEN_KEEPALIVE

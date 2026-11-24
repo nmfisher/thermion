@@ -16,15 +16,24 @@
 #include <image/ColorTransform.h>
 #include <backend/DriverEnums.h>
 
-#include <ktxreader/Ktx1Reader.h>
-#include <ktxreader/Ktx2Reader.h>
-
+#include "ThermionFeatures.h"
 #include "c_api/TTexture.h"
 
 #include "Log.hpp"
 #include "rendering/EngineApiLock.hpp"
 
+#if THERMION_ENABLE_KTX
+#include <ktxreader/Ktx1Reader.h>
+#include <ktxreader/Ktx2Reader.h>
+#endif
+
+#if THERMION_ENABLE_IMAGE_DECODING
 #include <third_party/stb/stb_image.h>
+#endif
+
+// Only the decoder-backed entry points are guarded. LinearImage itself
+// (Image_createEmpty, Image_get*,
+// Texture_loadImage) is core and unaffected.
 
 #ifdef __cplusplus
 namespace thermion
@@ -43,7 +52,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t *data, size_t length, const char *name = "image", bool alpha = true)
         {
-
+#if THERMION_ENABLE_IMAGE_DECODING
             auto start = std::chrono::high_resolution_clock::now();
 
             int width, height, channels;
@@ -98,29 +107,48 @@ namespace thermion
             }
 
             return reinterpret_cast<TLinearImage *>(linearImage);
+#else
+            // Stub: the stb decoder is not linked in this
+            // build (features.image_decoding: false); Dart's decodeImage
+            // throws UnsupportedError before reaching here.
+            ERROR("Image_decode: image decoding is disabled in this build (features.image_decoding: false)");
+            return nullptr;
+#endif
         }
 
         EMSCRIPTEN_KEEPALIVE TKtx1Bundle *Ktx1Bundle_create(uint8_t *ktxData, size_t length)
         {
+#if THERMION_ENABLE_KTX
             auto *bundle = new image::Ktx1Bundle(ktxData, static_cast<uint32_t>(length));
             return reinterpret_cast<TKtx1Bundle *>(bundle);
+#else
+            ERROR("Ktx1Bundle_create: KTX support is disabled in this build (features.ktx: false)");
+            return nullptr;
+#endif
         }
 
         EMSCRIPTEN_KEEPALIVE bool Ktx1Bundle_isCubemap(TKtx1Bundle *tBundle)
         {
+#if THERMION_ENABLE_KTX
             auto *bundle = reinterpret_cast<image::Ktx1Bundle *>(tBundle);
             return bundle->isCubemap();
+#else
+            return false;
+#endif
         }
 
         EMSCRIPTEN_KEEPALIVE void Ktx1Bundle_destroy(
             TKtx1Bundle *tBundle)
         {
+#if THERMION_ENABLE_KTX
             auto *bundle = reinterpret_cast<image::Ktx1Bundle *>(tBundle);
             delete bundle;
+#endif
         }
 
         EMSCRIPTEN_KEEPALIVE void Ktx1Bundle_getSphericalHarmonics(TKtx1Bundle *tBundle, float *sphericalHarmonics)
         {
+#if THERMION_ENABLE_KTX
             auto *bundle = reinterpret_cast<image::Ktx1Bundle *>(tBundle);
             filament::math::float3 harmonics[9];
             if (sphericalHarmonics)
@@ -128,9 +156,14 @@ namespace thermion
                 bundle->getSphericalHarmonics(harmonics);
                 memcpy(sphericalHarmonics, harmonics, 27 * sizeof(float));
             }
+#else
+            (void)tBundle;
+            (void)sphericalHarmonics;
+#endif
         }
 
         EMSCRIPTEN_KEEPALIVE TTexture *Ktx2Reader_createTexture(TEngine *tEngine, uint8_t* data, size_t size) {
+#if THERMION_ENABLE_KTX
             THERMION_ENGINE_API_GUARD;
             std::vector<uint8_t> copy(data, data + size);
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -174,6 +207,11 @@ namespace thermion
 
             delete reader;
             return reinterpret_cast<TTexture *>(texture);
+#else
+            (void)tEngine; (void)data; (void)size;
+            ERROR("Ktx2Reader_createTexture: KTX support is disabled in this build (features.ktx: false)");
+            return nullptr;
+#endif
 
         }
 
@@ -183,6 +221,7 @@ namespace thermion
             uint32_t requestId,
             VoidCallback onTextureUploadComplete)
         {
+#if THERMION_ENABLE_KTX
             THERMION_ENGINE_API_GUARD;
 
             auto engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -211,6 +250,20 @@ namespace thermion
                         } },
                     (void *)callbackData);
             return reinterpret_cast<TTexture *>(texture);
+#else
+            // Stub (features.ktx: false). Dart's KTX guard throws before this
+            // is reached, but a raw caller hands over borrowed bundle memory
+            // and waits for onTextureUploadComplete to release it, so a stub
+            // that never fires the callback would leave it hanging (the
+            // GltfResourceLoader_addResourceData stub invokes onRelease for
+            // the same reason).
+            (void)tEngine; (void)tBundle;
+            ERROR("Ktx1Reader_createTexture: KTX support is disabled in this build (features.ktx: false)");
+            if (onTextureUploadComplete) {
+                onTextureUploadComplete(requestId);
+            }
+            return nullptr;
+#endif
         }
 
         EMSCRIPTEN_KEEPALIVE float *Image_getBytes(TLinearImage *tLinearImage)

@@ -14,6 +14,18 @@ option(THERMION_WEB_MAIN_THREAD
 option(THERMION_ENABLE_RUNTIME_MATERIALS
   "Compile materials from GLSL source at runtime (links filamat)" OFF)
 
+# Compile-time feature opt-outs (../include/ThermionFeatures.h).
+# Every published web engine is built
+# with all three ON (a zip per subset would multiply the variants); the
+# options exist so a `-slim` engine can later be published as one extra
+# suffix, exactly like `-runtime-materials`. Like the native hook, a switch is
+# passed only when OFF, so default compile commands are unchanged. The link
+# list below keeps naming every archive: wasm-ld only pulls referenced
+# members, and the guards below remove the references.
+option(THERMION_ENABLE_GLTF "Load glTF assets (gltfio_core, Draco, ubershader)" ON)
+option(THERMION_ENABLE_KTX "KTX1/KTX2 textures (ktxreader, basis_transcoder)" ON)
+option(THERMION_ENABLE_IMAGE_DECODING "PNG/JPEG decoding (stb)" ON)
+
 # WebGPU needs the Emdawnwebgpu package from the Filament web archive.
 # The browser's GPUDevice belongs to the thread that requested it.
 option(THERMION_ENABLE_WEBGPU
@@ -409,6 +421,17 @@ endif()
 # off cannot fall back to presence semantics.
 target_compile_definitions(${MODULE_NAME}
   PRIVATE THERMION_ENABLE_RUNTIME_MATERIALS=$<BOOL:${THERMION_ENABLE_RUNTIME_MATERIALS}>)
+
+# Feature opt-outs: only DISABLED features are passed (=0); the header defaults
+# every switch to 1, so the all-on build defines nothing (see
+# ../include/ThermionFeatures.h). Thermion_getEnabledFeatures reports the
+# resulting bitmask to Dart.
+foreach(_feature GLTF KTX IMAGE_DECODING)
+  if(NOT THERMION_ENABLE_${_feature})
+    target_compile_definitions(${MODULE_NAME} PRIVATE THERMION_ENABLE_${_feature}=0)
+    message(STATUS "Feature disabled: THERMION_ENABLE_${_feature}=0")
+  endif()
+endforeach()
 
 # Force linker to include all symbols from external libraries (prevents dead code elimination)
 # This is critical because nothing in Thermion directly references these libraries

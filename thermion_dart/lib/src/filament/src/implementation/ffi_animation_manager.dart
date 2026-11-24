@@ -18,8 +18,23 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
   @override
   Pointer<TAnimationManager> getNativeHandle() => animationManager;
 
+  /// The glTF clip playback APIs drive gltfio's Animator against glTF assets,
+  /// so those are unavailable in a `features.gltf: false` build. Their C stubs
+  /// (TGltfAnimationManager.cpp) return false/0/null; this turns that into an
+  /// actionable error instead.
+  /// Deliberately NOT guarded: [update] (a per-frame no-op without gltf) and
+  /// the entity-keyed morph APIs — [addMorphAnimationComponent],
+  /// [removeMorphAnimationComponent], [setMorphAnimation] and
+  /// [clearMorphAnimation]. Those drive the core AnimationManager's morph
+  /// buffer, which is gltfio-free and compiled into every build (no C stubs
+  /// exist for them); FFIAsset's destroy path also calls
+  /// removeMorphAnimationComponent for every asset type, procedural geometry
+  /// included.
+  void _requireGltf(String api) => app.checkSupported(ThermionFeature.gltf, api);
+
   @override
   Future<bool> addGltfAnimationComponent(ThermionAsset asset) async {
+    _requireGltf('addGltfAnimationComponent');
     if (asset.type != SceneAssetType.gltf) {
       throw Exception("Only supported for glTF assets");
     }
@@ -35,6 +50,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   Future<bool> removeGltfAnimationComponent(ThermionAsset asset) async {
+    _requireGltf('removeGltfAnimationComponent');
     if (asset.type != SceneAssetType.gltf) {
       _logger.warning("removeGltfAnimationComponent called on non-glTF asset");
       return false;
@@ -58,11 +74,13 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   Future<bool> addBoneAnimationComponent(ThermionAsset asset) async {
+    _requireGltf('addBoneAnimationComponent');
     return AnimationManager_addBoneAnimationComponent(animationManager, asset.getNativeHandle());
   }
 
   @override
   Future<bool> removeBoneAnimationComponent(ThermionAsset asset) async {
+    _requireGltf('removeBoneAnimationComponent');
     if (!asset.isInstance && asset.type == SceneAssetType.gltf) {
       asset = (await asset.getInstances())[0];
     }
@@ -80,6 +98,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
     double startOffset = 0.0,
     double speed = 1.0,
   }) {
+    _requireGltf('playGltfAnimation');
     if (asset.type != SceneAssetType.gltf) {
       throw Exception("Only supported for glTF assets");
     }
@@ -98,6 +117,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   bool stopGltfAnimation(ThermionAsset asset, int index) {
+    _requireGltf('stopGltfAnimation');
     if (asset.type != SceneAssetType.gltf) {
       throw Exception("Only supported for glTF assets");
     }
@@ -106,6 +126,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   Future<void> setGltfAnimationTime(ThermionAsset asset, int animationIndex, double timeInSeconds) async {
+    _requireGltf('setGltfAnimationTime');
     if (asset.type != SceneAssetType.gltf) {
       throw Exception("Only supported for glTF assets");
     }
@@ -127,16 +148,19 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   double getGltfAnimationDuration(ThermionAsset asset, int animationIndex) {
+    _requireGltf('getGltfAnimationDuration');
     return AnimationManager_getGltfAnimationDuration(gltfAnimationManager, asset.getNativeHandle(), animationIndex);
   }
 
   @override
   int getGltfAnimationCount(ThermionAsset asset) {
+    _requireGltf('getGltfAnimationCount');
     return AnimationManager_getGltfAnimationCount(gltfAnimationManager, asset.getNativeHandle());
   }
 
   @override
   String? getGltfAnimationName(ThermionAsset asset, int index) {
+    _requireGltf('getGltfAnimationName');
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       stackPtr = stackSave();
@@ -227,11 +251,13 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   int getMorphTargetNameCount(ThermionAsset asset, ThermionEntity entityId) {
+    _requireGltf('getMorphTargetNameCount');
     return AnimationManager_getMorphTargetNameCount(animationManager, asset.getNativeHandle(), entityId);
   }
 
   @override
   String? getMorphTargetName(ThermionAsset asset, ThermionEntity entityId, int index) {
+    _requireGltf('getMorphTargetName');
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       stackPtr = stackSave();
@@ -264,6 +290,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
     double maxDelta = 0.1,
     bool loop = false,
   }) async {
+    _requireGltf('addBoneAnimation');
     if (asset.type != SceneAssetType.gltf && asset.type != SceneAssetType.geometry) {
       throw UnimplementedError("TODO");
     }
@@ -304,6 +331,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   Future<List<double>> getRestLocalTransforms(ThermionAsset asset, int skinIndex) async {
+    _requireGltf('getRestLocalTransforms');
     if (asset.type != SceneAssetType.gltf && asset.type != SceneAssetType.geometry) {
       throw UnimplementedError("TODO");
     }
@@ -345,6 +373,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   Future<List<double>> getInverseBindMatrix(ThermionAsset asset, int skinIndex, int boneIndex) async {
+    _requireGltf('getInverseBindMatrix');
     if (asset.type != SceneAssetType.gltf && asset.type != SceneAssetType.geometry) {
       throw UnimplementedError("TODO");
     }
@@ -379,6 +408,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   Future<bool> updateBoneMatrices(ThermionAsset asset) async {
+    _requireGltf('updateBoneMatrices');
     if (asset.type != SceneAssetType.gltf && asset.type != SceneAssetType.geometry) {
       throw UnimplementedError("TODO");
     }
@@ -398,6 +428,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   Future resetToRestPose(ThermionAsset asset) async {
+    _requireGltf('resetToRestPose');
     if (asset.type != SceneAssetType.gltf && asset.type != SceneAssetType.geometry) {
       throw UnimplementedError("TODO");
     }

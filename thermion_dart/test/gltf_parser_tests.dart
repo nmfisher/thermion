@@ -6,9 +6,10 @@ import 'helpers.dart';
 void main() async {
   final testHelper = TestHelper("gltf_parser");
 
-  setUp(() async {
-    await testHelper.setup();
-  });
+  await testHelper.setup();
+  // parseGltf needs features.gltf (its cgltf parser ships inside gltfio);
+  // slim_build_test covers the UnsupportedError on a gltf: false build.
+  final skip = FilamentApp.instance!.supports(ThermionFeature.gltf) ? false : 'features.gltf is disabled';
 
   // parseGltf is the published cgltf-backed path (positions/indices merged
   // across the meshes of the file, strips/fans expanded to triangle lists
@@ -33,7 +34,7 @@ void main() async {
 
     print("Parsed ${mesh.vertices.length ~/ 3} vertices");
     print("Parsed ${indices.length ~/ 3} triangles");
-  });
+  }, skip: skip);
 
   test('parse cube.glb and verify vertex bounds', () async {
     final glbPath = "${testHelper.assetsDir}/cube.glb";
@@ -65,7 +66,7 @@ void main() async {
     expect(maxX - minX, greaterThan(0));
     expect(maxY - minY, greaterThan(0));
     expect(maxZ - minZ, greaterThan(0));
-  });
+  }, skip: skip);
 
   test('parse with non-existent mesh name throws', () async {
     final glbPath = "${testHelper.assetsDir}/cube.glb";
@@ -73,7 +74,7 @@ void main() async {
 
     // Try to parse with a mesh name that doesn't exist
     expectLater(FilamentApp.instance!.parseGltf(buffer, meshName: "NonExistentMesh"), throwsException);
-  });
+  }, skip: skip);
 
   test('verify indices point to valid vertices', () async {
     final glbPath = "${testHelper.assetsDir}/cube.glb";
@@ -87,5 +88,5 @@ void main() async {
     for (final index in indices) {
       expect(index, lessThan(vertexCount), reason: "Index $index out of bounds (vertex count: $vertexCount)");
     }
-  });
+  }, skip: skip);
 }

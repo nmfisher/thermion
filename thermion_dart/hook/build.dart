@@ -9,6 +9,7 @@ import 'package:path/path.dart' as path;
 import '../lib/filament_version.dart';
 import '../lib/src/filament/src/interface/built_in_material.dart';
 import '../lib/src/hooks/built_in_materials.dart';
+import '../lib/src/hooks/resolve_pubspec_features.dart';
 import '../lib/src/hooks/filament_artifacts.dart';
 import '../lib/src/hooks/material_backend_resolution.dart';
 import '../lib/src/hooks/material_tools.dart';
@@ -120,8 +121,25 @@ void main(List<String> args) async {
     }
     final backend = backendResolution.backend;
 
+    // Compile-time feature opt-outs:
+    //   features: { gltf: false, ktx: false, image_decoding: false }
+    // Opt-out — absent key = enabled, so every existing app builds exactly as
+    // before. Resolved here, before the web branch, so both branches see it;
+    // the hook rejects gltf:true with a decoder off.
+    final features = resolveFeatures(input.userDefines['features'], onWarning: logger.warning);
+
     if (!input.config.buildCodeAssets) {
       logger.info("buildCodeAssets is false, assumed to be building for web");
+      // Web engines are prebuilt with every feature (a zip per subset would
+      // multiply the published variants); the native-only switches are parsed
+      // and validated above, then reported rather than silently ignored.
+      if (anyFeatureDisabled(features)) {
+        logger.warning(
+          "web engines are prebuilt with all features; features.* only affects "
+          "native builds (features.gltf: ${features.gltf}, features.ktx: ${features.ktx}, "
+          "features.image_decoding: ${features.imageDecoding})",
+        );
+      }
       final webDir = _findWebDirectory(input, logger);
       if (webDir == null) {
         if (selectedMaterials.isNotEmpty) {
@@ -240,6 +258,17 @@ outputDirectory : ${outputDirectory.path}
       defines["THERMION_ENABLE_RUNTIME_MATERIALS"] = "1";
     }
 
+    // Disabled features pass an explicit 0; ThermionFeatures.h defaults every
+    // switch to 1, so an all-default build's compile command is IDENTICAL to
+    // today's (keeps the CBuilder build identity, and cache, unchanged).
+    if (anyFeatureDisabled(features)) {
+      logger.info(
+        "Feature opt-outs: gltf=${features.gltf} ktx=${features.ktx} "
+        "image_decoding=${features.imageDecoding}",
+      );
+      defines.addAll(disabledFeatureDefines(features));
+    }
+
     final libResult = await getLibDir(
       packageRoot,
       targetOS,
@@ -319,7 +348,7 @@ outputDirectory : ${outputDirectory.path}
       // libraries, and it links through CBuilder's `libraries` (see the
       // CBuilder call below) rather than #pragma comment(lib) directives.
       // Keeping the entries here makes this list the single source of truth
-      // for every platform; ThermionWin32.h declares no link inputs.
+      // for every platform; ThermionWin32.h only includes ThermionFeatures.h.
       if (targetOS == OS.windows) ...["Shlwapi", "opengl32", "gdi32", "user32", "shell32", "dwmapi", "comctl32"],
       "filament",
       // macOS adds bluegl/bluevk in its platform block below; Windows links
@@ -375,27 +404,36 @@ outputDirectory : ${outputDirectory.path}
       // runtime: "cannot locate symbol ...InProcessTracingBackend...".
       if (targetOS == OS.android) "perfetto",
       "filabridge",
-      "gltfio_core",
-      if (targetOS != OS.android && targetOS != OS.iOS) "gltfio",
+      // gltfio_core + its transitive archives (dracodec, uberzlib, the
+      // ubershader blob) are only linked when glTF support is enabled; with
+      // features.gltf: false the Thermion wrappers compile to stubs
+      // (THERMION_ENABLE_GLTF=0, native/include/ThermionFeatures.h) and an
+      // unguarded gltfio reference is a LINK error here, not a dlopen failure
+      // on a device.
+      if (features.gltf) "gltfio_core",
+      // The full "gltfio" archive (createFilamentMaterialProvider, the
+      // filamat-backed glTF material compiler) was listed on desktop but
+      // nothing in Thermion references it (only gltfio_core symbols are
+      // used), so it never contributed a byte. Dropped rather than gated.
       "filament-iblprefilter",
       "image",
       "filaflat",
-      "dracodec",
+      if (features.gltf) "dracodec",
       // Windows-only gltfio dependencies (meshopt extension, tangents).
-      if (targetOS == OS.windows) ...["meshoptimizer", "mikktspace"],
+      if (features.gltf && targetOS == OS.windows) ...["meshoptimizer", "mikktspace"],
       "ibl",
-      "ktxreader",
+      if (features.ktx) "ktxreader",
       "z",
-      "stb",
-      "uberzlib",
+      if (features.imageDecoding) "stb",
+      if (features.gltf) "uberzlib",
       // Linked DIRECTLY (not via the combined filamat archive): filament's
       // combine-static-libs.sh appends members with `ar -qc`, which does not
       // regenerate the archive symbol table, so smolv members bundled there
       // are invisible to linker symbol lookup. Keep it AFTER "filamat" above
       // (leaf library; left-to-right archive resolution).
       "smol-v",
-      "basis_transcoder",
-      "uberarchive",
+      if (features.ktx) "basis_transcoder",
+      if (features.gltf) "uberarchive",
       // Filament 1.75.0's libfilamat.a references external ZSTD_* symbols
       // (e.g. ZSTD_getFrameContentSize). Desktop/iOS/Android have no guarantee
       // of a system libzstd, so link the static libzstd.a bundled in the R2
@@ -430,8 +468,7 @@ outputDirectory : ${outputDirectory.path}
       // CBuilder emits the `libraries` list below as `<name>.lib` inputs
       // after /link, with libDir supplied via libraryDirectories. Windows used
       // to get these from #pragma comment(lib) in ThermionWin32.h; moving them
-      // here keeps the link list (and its runtime-materials conditions) in one
-      // place.
+      // here keeps the link list (and its feature conditions) in one place.
       libDir = Directory(libDir).uri.toFilePath(windows: targetOS == OS.windows);
     }
 
@@ -507,20 +544,27 @@ outputDirectory : ${outputDirectory.path}
     for (final material in BuiltInMaterial.values) {
       defines['${material.key.toUpperCase()}_ENABLED'] = selectedMaterials.contains(material) ? '1' : '0';
     }
+    // unlit_fallback is hook-managed, not user-selectable: it is
+    // compiled and enabled further below, only when features.gltf is
+    // false. Every build still gets an explicit value macro.
+    defines['UNLIT_FALLBACK_ENABLED'] = '0';
+    // matc/resgen target set for the compiled material variants, resolved by
+    // the material backend suffix (see resolveMaterialBackend above).
+    final materialBackends = switch (materialSuffix) {
+      '_apple' => ['metal'],
+      '_opengl' || '_web_webgl' => ['opengl'],
+      '_vulkan' => ['vulkan'],
+      '_webgpu' => ['webgpu'],
+      '_web_combined' => ['opengl', 'webgpu'],
+      _ => ['opengl', 'vulkan'],
+    };
 
     if (selectedMaterials.isNotEmpty) {
       final builtIns = await compileBuiltInMaterials(
         root: Directory.fromUri(packageRoot),
         materials: selectedMaterials,
         resgen: true,
-        backends: switch (materialSuffix) {
-          '_apple' => ['metal'],
-          '_opengl' || '_web_webgl' => ['opengl'],
-          '_vulkan' => ['vulkan'],
-          '_webgpu' => ['webgpu'],
-          '_web_combined' => ['opengl', 'webgpu'],
-          _ => ['opengl', 'vulkan'],
-        },
+        backends: materialBackends,
         download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
         onLog: logger.info,
         addDependency: output.dependencies.add,
@@ -534,6 +578,36 @@ outputDirectory : ${outputDirectory.path}
           outputDir: outputDir,
         );
       }
+    }
+
+    // Unlit fallback for procedural-only builds. With features.gltf: false
+    // there is no gltfio ubershader provider, so the unlit material that
+    // procedural code requests through createUnlitMaterialInstance()
+    // (explicit materials for createGeometry, bounding-box helpers,
+    // TextureProjection) is a small precompiled package instead: compiled
+    // here, ONLY when gltf is off, with the same version-matched matc/resgen
+    // pipeline as the built-in helpers (never by filamat at runtime).
+    // Default builds are untouched — no extra compiler step, no extra
+    // bytes. Dart builds the package through
+    // Material_createBuiltIn(BUILT_IN_UNLIT_FALLBACK) (the
+    // UNLIT_FALLBACK_ENABLED case in TMaterialInstance.cpp) and sets
+    // baseColorFactor to opaque white on each instance.
+    if (!features.gltf) {
+      logger.info("features.gltf: false -> compiling the precompiled unlit fallback material");
+      final fallbackDir = await compileUnlitFallbackMaterial(
+        root: Directory.fromUri(packageRoot),
+        backends: materialBackends,
+        download: (url, destination) => _downloadWithRetry(url.toString(), destination, logger),
+        onLog: logger.info,
+        addDependency: output.dependencies.add,
+      );
+      linkGeneratedIntoNativeBuild(
+        sources: sources,
+        includeDirs: includeDirs,
+        linkedSources: [File(path.join(fallbackDir.path, '$unlitFallbackMaterialKey.c'))],
+        outputDir: fallbackDir,
+      );
+      defines['UNLIT_FALLBACK_ENABLED'] = '1';
     }
 
     // link_generated: compile the user's generated material .c files into

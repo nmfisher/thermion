@@ -1,12 +1,19 @@
 #include "c_api/TGltfParser.h"
 #include "Log.hpp"
+#include "ThermionFeatures.h"
 
-// Don't define CGLTF_IMPLEMENTATION - cgltf is already compiled in filament libs
+#include <cstring>
+
+// parseGltf is part of the gltf feature: a `features.gltf: false` build
+// compiles the whole-file stub below instead of the parser. cgltf comes
+// from Filament's gltfio_core archive, which is only linked when gltf is
+// enabled — no vendored cgltf copy is compiled here in any variant.
+#if THERMION_ENABLE_GLTF
+
 #include "cgltf.h"
 
 #include <vector>
 #include <string>
-#include <cstring>
 #include <cstdlib>
 
         // Helper to convert cgltf_primitive_type to TPrimitiveType
@@ -358,4 +365,32 @@ extern "C" {
         return -1; // No matching mesh found
     }
 }
+
+#else // !THERMION_ENABLE_GLTF
+// Stub contract: the same C symbol with the same signature, no cgltf
+// references. Dart's checkSupported(ThermionFeature.gltf) guard turns
+// parseGltf into UnsupportedError before this is reached; a direct C call
+// gets a zeroed out-struct and a failure code (nothing to dispose).
+
+extern "C" {
+
+    EMSCRIPTEN_KEEPALIVE int GltfParser_parseBuffer(
+        const uint8_t *data,
+        size_t length,
+        const char *meshName,
+        TMeshData *outMeshData)
+    {
+        (void)data;
+        (void)length;
+        (void)meshName;
+        if (outMeshData)
+        {
+            memset(outMeshData, 0, sizeof(TMeshData));
+        }
+        Log("GltfParser_parseBuffer: glTF support is disabled in this build (features.gltf: false)");
+        return -1;
+    }
+}
+
+#endif // THERMION_ENABLE_GLTF
 
