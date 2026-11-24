@@ -1,11 +1,15 @@
 // glTF-only embedded clip playback C API. The core AnimationManager
 // (TAnimationManager.cpp) has no gltfio dependency; the clip playback
-// functions below drive a GltfAnimationComponentManager registered into
-// the AnimationManager as a TickableAnimationSystem, so clips are
-// ticked by the same AnimationManager_update() frame hook.
+// functions below drive a GltfAnimationComponentManager owned by this
+// translation unit and added to the AnimationManager via addTickable(),
+// so clips are ticked by the same AnimationManager_update() frame hook.
 
 #include "rendering/EngineApiLock.hpp"
 #include "Log.hpp"
+
+#include <memory>
+#include <mutex>
+#include <unordered_map>
 
 #include <utils/Entity.h>
 
@@ -21,24 +25,66 @@ extern "C"
 
 #include "c_api/TAnimationManager.h"
 
+    // One clip playback system per AnimationManager, owned here (not by the
+    // AnimationManager, which only holds a non-owning tickable pointer).
+    // Created lazily on first clip use; removed via removeTickable() and
+    // destroyed when the AnimationManager is destroyed (wrapper below).
+    // The map has its own mutex because web worker builds compile
+    // THERMION_ENGINE_API_GUARD to nothing.
+    static std::mutex gGltfSystemsMutex;
+    static std::unordered_map<AnimationManager *, std::unique_ptr<GltfAnimationComponentManager>> gGltfSystems;
+
     // Returns the glTF clip playback system for this AnimationManager,
-    // creating and registering it on first use. The system is owned by the
-    // AnimationManager handle and destroyed with it. The caller must hold
-    // animationManager->lock(): lookup + creation + registration run under
-    // one mutex hold, so two concurrent callers can never both create a
-    // system (registerAnimationSystem's duplicate-name branch would delete
-    // the loser's system while this function still returned its pointer).
-    static GltfAnimationComponentManager *getGltfAnimationSystemLocked(AnimationManager *animationManager)
+    // creating it and adding it as a tickable on first use.
+    static GltfAnimationComponentManager *getOrCreateGltfSystem(AnimationManager *animationManager)
     {
-        return static_cast<GltfAnimationComponentManager *>(
-            animationManager->getOrCreateAnimationSystemLocked("gltf", [animationManager]() -> TickableAnimationSystem *
+        std::lock_guard lock(gGltfSystemsMutex);
+        auto &system = gGltfSystems[animationManager];
+        if (!system)
+        {
+            auto *engine = animationManager->getEngine();
+            system = std::make_unique<GltfAnimationComponentManager>(
+                utils::EntityManager::get(),
+                engine->getTransformManager(),
+                engine->getRenderableManager());
+            animationManager->addTickable(system.get());
+        }
+        return system.get();
+    }
+
+    // Returns the existing clip playback system, or nullptr. Teardown and
+    // query paths must never lazily allocate a frame-ticked component
+    // manager just to remove/stop nothing.
+    static GltfAnimationComponentManager *findGltfSystem(AnimationManager *animationManager)
+    {
+        std::lock_guard lock(gGltfSystemsMutex);
+        auto it = gGltfSystems.find(animationManager);
+        return it == gGltfSystems.end() ? nullptr : it->second.get();
+    }
+
+    // The core AnimationManager_create stays in TAnimationManager.cpp
+    // (100% core). This glTF-only translation unit owns the destroy export
+    // so the tickable it added is removed and freed before the manager
+    // itself dies; the frame tick can never see a dangling pointer.
+    EMSCRIPTEN_KEEPALIVE void AnimationManager_destroy(TAnimationManager *tAnimationManager)
+    {
+        THERMION_ENGINE_API_GUARD;
+        auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
+        std::unique_ptr<GltfAnimationComponentManager> system;
+        {
+            std::lock_guard lock(gGltfSystemsMutex);
+            auto it = gGltfSystems.find(animationManager);
+            if (it != gGltfSystems.end())
             {
-                auto *engine = animationManager->getEngine();
-                return new GltfAnimationComponentManager(
-                    utils::EntityManager::get(),
-                    engine->getTransformManager(),
-                    engine->getRenderableManager());
-            }));
+                system = std::move(it->second);
+                gGltfSystems.erase(it);
+            }
+        }
+        if (system)
+        {
+            animationManager->removeTickable(system.get());
+        }
+        delete animationManager;
     }
 
     // Resolves the glTF instance the clip functions operate on (owner assets
@@ -67,11 +113,7 @@ extern "C"
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        // Hold the manager mutex across lookup + component mutation so
-        // direct FFI calls serialize against AnimationManager::update()
-        // (RenderManager::tick calls update() without the engine API lock).
-        auto lock = animationManager->lock();
-        getGltfAnimationSystemLocked(animationManager)->addAnimationComponent(instance->getInstance());
+        getOrCreateGltfSystem(animationManager)->addAnimationComponent(instance->getInstance());
         TRACE("Added glTF animation component");
         return true;
     }
@@ -87,10 +129,9 @@ extern "C"
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto lock = animationManager->lock();
-        // Teardown path (called on every glTF asset destroy): never lazily
-        // allocate a frame-ticked component manager just to remove nothing.
-        auto *system = static_cast<GltfAnimationComponentManager *>(animationManager->findAnimationSystemLocked("gltf"));
+        // Teardown path (called on every glTF asset destroy): no system
+        // means no components to remove.
+        auto *system = findGltfSystem(animationManager);
         if (!system)
         {
             return true;
@@ -120,8 +161,7 @@ extern "C"
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto lock = animationManager->lock();
-        auto *system = getGltfAnimationSystemLocked(animationManager);
+        auto *system = getOrCreateGltfSystem(animationManager);
         system->addAnimationComponent(instance->getInstance());
 
         if (index < 0)
@@ -149,9 +189,8 @@ extern "C"
         }
 
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto lock = animationManager->lock();
         // If no clip system exists, nothing can be playing; do not allocate one.
-        auto *system = static_cast<GltfAnimationComponentManager *>(animationManager->findAnimationSystemLocked("gltf"));
+        auto *system = findGltfSystem(animationManager);
         if (!system)
         {
             return true;
@@ -174,8 +213,6 @@ extern "C"
             return false;
         }
 
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto lock = animationManager->lock();
         // Pure animator access; no GltfAnimationComponentManager state is
         // involved, so no clip system needs to exist (or be allocated).
         auto *animator = instance->getInstance()->getAnimator();
@@ -197,8 +234,6 @@ extern "C"
             return -1.0;
         }
 
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto lock = animationManager->lock();
         // Read-only animator query; no clip system needed.
         return instance->getInstance()->getAnimator()->getAnimationDuration(animationIndex);
     }
@@ -216,8 +251,6 @@ extern "C"
             return -1;
         }
 
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto lock = animationManager->lock();
         // Read-only animator query; no clip system needed.
         return (int)instance->getInstance()->getAnimator()->getAnimationCount();
     }
@@ -237,8 +270,6 @@ extern "C"
             return;
         }
 
-        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto lock = animationManager->lock();
         // Read-only animator query; no clip system needed.
         auto *animator = instance->getInstance()->getAnimator();
         if (index < 0 || (size_t)index >= animator->getAnimationCount())

@@ -1,10 +1,7 @@
 #pragma once
 
-#include <functional>
 #include <memory>
 #include <mutex>
-#include <string>
-#include <utility>
 #include <vector>
 
 #include <filament/Engine.h>
@@ -32,8 +29,8 @@ namespace thermion
     // SceneAsset skin interface, so they stay core code with no gltfio dependency.
     //
     // Embedded glTF clip playback is handled by an optional animation system
-    // (GltfAnimationComponentManager, see TGltfAnimation.cpp) registered via
-    // registerAnimationSystem() and ticked by update().
+    // (GltfAnimationComponentManager, see TGltfAnimation.cpp) added via
+    // addTickable() and ticked by update().
     //
     // AnimationManager maintains two component managers (one for each type of
     // runtime animation listed above). Calling update() with the number of
@@ -55,45 +52,18 @@ namespace thermion
         /// @param frameTimeInNanos 
         void update(uint64_t frameTimeInNanos);
 
-        /// Register an optional animation system (e.g. glTF clip playback) to
-        /// be ticked by update(). The AnimationManager takes ownership and
-        /// destroys the system on unregister/destruction. Registering a name
-        /// that is already registered is a no-op.
-        /// @param name identifier used by findAnimationSystem (e.g. "gltf")
+        /// Add an optional animation system (e.g. glTF clip playback) to be
+        /// ticked by update(), before the core morph/bone managers. The
+        /// caller keeps ownership and must call removeTickable() before
+        /// destroying the system (the glTF animation manager does this on
+        /// its own create/destroy). Adding the same system twice is a no-op.
         /// @param system
-        void registerAnimationSystem(const std::string &name, TickableAnimationSystem *system);
+        void addTickable(TickableAnimationSystem *system);
 
-        /// @param name
-        void unregisterAnimationSystem(const std::string &name);
-
-        /// Returns the registered system for [name], or nullptr.
-        /// @param name
-        TickableAnimationSystem *findAnimationSystem(const std::string &name);
-
-        /// Locks the manager's mutex for callers that must hold it across a
-        /// system lookup plus operations on the returned system (e.g. glTF
-        /// clip playback in TGltfAnimation.cpp). update() holds the same
-        /// mutex while ticking, so this serializes direct FFI calls against
-        /// the frame tick (RenderManager::tick does not take the engine API
-        /// lock on web worker builds). While holding this lock, only the
-        /// *Locked methods below may be called on this manager; the public
-        /// methods take the same non-recursive mutex themselves.
-        std::unique_lock<std::mutex> lock() { return std::unique_lock<std::mutex>(mMutex); }
-
-        /// Like findAnimationSystem, but the caller must hold lock().
-        TickableAnimationSystem *findAnimationSystemLocked(const std::string &name);
-
-        /// Returns the registered system for [name], creating and registering
-        /// it via [factory] on first use. Lookup and registration happen
-        /// under one hold of the manager mutex, so two concurrent callers can
-        /// never both create a system (the duplicate-name branch of
-        /// registerAnimationSystem would delete the loser's system while the
-        /// caller still used the pointer). The caller must hold lock(); the
-        /// factory runs under the mutex and must not call back into this
-        /// manager's public methods.
-        TickableAnimationSystem *getOrCreateAnimationSystemLocked(
-            const std::string &name,
-            const std::function<TickableAnimationSystem *()> &factory);
+        /// Stop ticking [system]. Does not destroy it; the caller owns it.
+        /// Removing a system that was never added is a no-op.
+        /// @param system
+        void removeTickable(TickableAnimationSystem *system);
 
         /// The engine this manager was created with (used by optional
         /// animation systems to obtain Filament interfaces).
@@ -189,10 +159,11 @@ namespace thermion
         std::mutex mMutex;
         std::unique_ptr<MorphAnimationComponentManager> mMorphAnimationComponentManager;
         std::unique_ptr<BoneAnimationComponentManager> mBoneAnimationComponentManager;
-        // Owned optional animation systems (e.g. glTF clip playback),
+        // Non-owning optional animation systems (e.g. glTF clip playback),
         // ticked before the core component managers so runtime morph/bone
         // animations apply on top of (and can blend with) the clip pose.
-        std::vector<std::pair<std::string, std::unique_ptr<TickableAnimationSystem>>> mAnimationSystems;
+        // Owners add/remove them via addTickable/removeTickable.
+        std::vector<TickableAnimationSystem *> mTickables;
         uint64_t mLastUpdateTime;
     };
 }
