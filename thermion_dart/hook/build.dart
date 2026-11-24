@@ -7,6 +7,7 @@ import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import '../lib/filament_version.dart';
+import '../lib/src/filament/src/interface/built_in_material.dart';
 import '../lib/src/hooks/built_in_materials.dart';
 import '../lib/src/hooks/filament_artifacts.dart';
 import '../lib/src/hooks/material_backend_resolution.dart';
@@ -500,6 +501,13 @@ outputDirectory : ${outputDirectory.path}
       );
     }
 
+    // Value-macro convention (ThermionFeatures.h): every built-in material key
+    // gets an explicit =0/=1 define, so the native guards are `#if` value
+    // checks and no translation unit can fall back to presence semantics.
+    for (final material in BuiltInMaterial.values) {
+      defines['${material.key.toUpperCase()}_ENABLED'] = selectedMaterials.contains(material) ? '1' : '0';
+    }
+
     if (selectedMaterials.isNotEmpty) {
       final builtIns = await compileBuiltInMaterials(
         root: Directory.fromUri(packageRoot),
@@ -525,7 +533,6 @@ outputDirectory : ${outputDirectory.path}
           linkedSources: [File(path.join(outputDir.path, '${material.resgenPrefix}.c'))],
           outputDir: outputDir,
         );
-        defines['${material.key.toUpperCase()}_ENABLED'] = '1';
       }
     }
 
