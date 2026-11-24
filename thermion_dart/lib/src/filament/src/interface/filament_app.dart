@@ -200,6 +200,11 @@ abstract class FilamentApp<T> {
   /// Creates a caller-owned material from an embedded helper package.
   /// Destroy its instances before destroying the material. Throws [StateError]
   /// if the build omits the selected package.
+  ///
+  /// [BuiltInMaterial.unlitFallback] is not selectable here: it is the
+  /// internal fallback behind [createUnlitMaterialInstance] in
+  /// `features.gltf: false` builds. Requesting it throws [StateError]
+  /// directing you to [createUnlitMaterialInstance].
   Future<Material> createBuiltInMaterial(BuiltInMaterial material);
 
   /// Material package format version expected by the loaded native build.

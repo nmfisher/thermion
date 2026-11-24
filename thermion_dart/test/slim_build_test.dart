@@ -279,4 +279,15 @@ void main() async {
       await viewer.destroyAsset(geometry);
     }, bg: kBlue);
   }, skip: skip);
+
+  test('createBuiltInMaterial(unlitFallback) points at createUnlitMaterialInstance', () async {
+    // unlit_fallback is hook-managed, not a materials.* key: even in this
+    // slim build (where the package IS linked) it must not be requested
+    // directly. The error names the public API, not a materials setting
+    // that does not exist.
+    await expectLater(
+      app.createBuiltInMaterial(BuiltInMaterial.unlitFallback),
+      throwsA(isA<StateError>().having((e) => e.message, 'message', contains('createUnlitMaterialInstance'))),
+    );
+  }, skip: skip);
 }

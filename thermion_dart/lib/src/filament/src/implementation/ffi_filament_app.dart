@@ -738,6 +738,22 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   @override
   Future<FFIMaterial> createBuiltInMaterial(BuiltInMaterial material) async {
+    // unlit_fallback is not a materials.* key: the hook links it only into
+    // features.gltf: false builds, to back createUnlitMaterialInstance
+    // (which owns the cached material and builds it through
+    // _createBuiltInMaterial). Reject direct requests in every build,
+    // pointing at that API instead of a materials.unlit_fallback setting
+    // that does not exist (and would be rejected by the hook).
+    if (material == BuiltInMaterial.unlitFallback) {
+      throw StateError(
+        'BuiltInMaterial.unlitFallback is an internal fallback, not a materials.* option. '
+        'Use createUnlitMaterialInstance() instead.',
+      );
+    }
+    return _createBuiltInMaterial(material);
+  }
+
+  Future<FFIMaterial> _createBuiltInMaterial(BuiltInMaterial material) async {
     final unavailable = StateError(
       'BuiltInMaterial.${material.name} requires materials.${material.key}: true in this build.',
     );
@@ -1152,7 +1168,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   @override
   Future<MaterialInstance> createUnlitMaterialInstance() async {
     if (!supports(ThermionFeature.gltf)) {
-      _unlitFallbackMaterial ??= await createBuiltInMaterial(BuiltInMaterial.unlitFallback);
+      _unlitFallbackMaterial ??= await _createBuiltInMaterial(BuiltInMaterial.unlitFallback);
       return _unlitFallbackMaterial!.createInstance();
     }
     return _createMaterialInstance(unlit: true, hasVertexColors: false);
