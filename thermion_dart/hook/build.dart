@@ -9,7 +9,7 @@ import 'package:path/path.dart' as path;
 import '../lib/filament_version.dart';
 import '../lib/src/filament/src/interface/built_in_material.dart';
 import '../lib/src/hooks/built_in_materials.dart';
-import '../lib/src/hooks/feature_flags.dart';
+import '../lib/src/hooks/resolve_pubspec_features.dart';
 import '../lib/src/hooks/filament_artifacts.dart';
 import '../lib/src/hooks/material_backend_resolution.dart';
 import '../lib/src/hooks/material_tools.dart';

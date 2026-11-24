@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:thermion_dart/src/hooks/feature_flags.dart';
+import 'package:thermion_dart/src/hooks/resolve_pubspec_features.dart';
 import 'package:thermion_dart/src/hooks/material_tools.dart' show MaterialToolsError;
 
 void main() {

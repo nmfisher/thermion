@@ -5,8 +5,9 @@
 // The single probe Dart reads at initialization to back
 // FilamentApp.supports(ThermionFeature). Keep in sync with the bit layout in
 // c_api/ThermionFeatures.h and with the `features` keys resolved by
-// hook/build.dart (lib/src/hooks/feature_flags.dart). Runtime materials is a
-// value macro like the others (ThermionFeatures.h defaults it to 0).
+// hook/build.dart (lib/src/hooks/resolve_pubspec_features.dart). Runtime
+// materials is a value macro like the others (ThermionFeatures.h defaults it
+// to 0).
 extern "C" EMSCRIPTEN_KEEPALIVE uint32_t Thermion_getEnabledFeatures() {
     uint32_t features = 0;
 #if THERMION_ENABLE_GLTF

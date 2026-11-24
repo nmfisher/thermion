@@ -2,8 +2,8 @@
 /// the native libraries (gltfio, KTX/Basis, PNG/JPEG decoding).
 ///
 /// Kept free of any build-hook or native-assets imports so it can be unit
-/// tested directly (see test/feature_flags_test.dart) and imported by
-/// hook/build.dart via a relative path, exactly like
+/// tested directly (see test/resolve_pubspec_features_test.dart) and imported
+/// by hook/build.dart via a relative path, exactly like
 /// `selectBuiltInMaterials` / `resolveBackendUserDefine`.
 ///
 /// Shape (consuming app's pubspec.yaml):
