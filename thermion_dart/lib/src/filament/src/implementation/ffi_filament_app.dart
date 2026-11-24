@@ -116,14 +116,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     Future<Uint8List> Function(String uri)? loadResource,
     Pointer<TLightManager> lightManagerPointer,
     Pointer<TRenderableManager> renderableManagerPointer,
-    Pointer<TAnimationManager> animationManagerPointer, {
+    Pointer<TAnimationManager> animationManagerPointer,
+    Pointer<TGltfAnimationManager> gltfAnimationManagerPointer, {
     Backend backend = Backend.DEFAULT,
   }) : _backend = backend {
     this._loadResource = loadResource ?? defaultResourceLoader;
     this.lightManager = FFILightManager(lightManagerPointer, this);
     this.renderableManager = FFIRenderableManager(renderableManagerPointer, this);
     this.transformManager = FFITransformManager(transformManagerPtr, this);
-    this.animationManager = FFIAnimationManager(animationManagerPointer, this);
+    this.animationManager = FFIAnimationManager(animationManagerPointer, gltfAnimationManagerPointer, this);
     this.renderManager = FFIRenderManager(renderManager, this);
 
     // A new engine starts uncapped. Scheduler stop/start within this engine
@@ -251,9 +252,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       lightManager,
       renderableManager,
       animationManager,
+      gltfAnimationManager,
       backend: config.backend,
     );
-    (FilamentApp.instance as FFIFilamentApp).animationManager.gltfAnimationManager = gltfAnimationManager;
 
     _logger.info("Initialization complete");
   }
@@ -446,14 +447,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // The glTF clip playback handle must be removed from the core manager's
     // frame tick and freed before the core manager itself is destroyed.
     // Awaited on the owning thread, after earlier queued work.
-    final gltfAnimationManager = animationManager.gltfAnimationManager;
-    if (gltfAnimationManager != null) {
-      await withVoidCallback(
-        (requestId, cb) =>
-            GltfAnimationManager_destroyJobThread(jobThreadHandle, gltfAnimationManager, requestId, cb),
-      );
-      animationManager.gltfAnimationManager = null;
-    }
+    await withVoidCallback(
+      (requestId, cb) =>
+          GltfAnimationManager_destroyJobThread(jobThreadHandle, animationManager.gltfAnimationManager, requestId, cb),
+    );
     await withVoidCallback(
       (requestId, cb) =>
           AnimationManager_destroyJobThread(jobThreadHandle, (animationManager).animationManager, requestId, cb),

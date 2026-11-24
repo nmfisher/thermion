@@ -23,6 +23,7 @@ class FailingSkyboxApp extends FFIFilamentApp {
         app.lightManager.getNativeHandle(),
         app.renderableManager.getNativeHandle(),
         app.animationManager.getNativeHandle(),
+        app.animationManager.gltfAnimationManager,
       );
 
   @override

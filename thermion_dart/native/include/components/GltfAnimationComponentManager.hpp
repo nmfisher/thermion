@@ -79,7 +79,6 @@ namespace thermion
             void removeGltfAnimation(FilamentInstance *target, int index);
             void setGltfAnimationTime(FilamentInstance *target, int animationIndex, float timeInSeconds);
             float getGltfAnimationDuration(FilamentInstance *target, int animationIndex);
-            std::vector<std::string> getGltfAnimationNames(FilamentInstance *target);
             void update(uint64_t frameTimeInNanos) override;
 
         private:
