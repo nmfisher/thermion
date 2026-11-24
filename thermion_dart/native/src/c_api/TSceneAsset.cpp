@@ -1,13 +1,9 @@
 #include "rendering/EngineApiLock.hpp"
 
-#include <utils/NameComponentManager.h>
-
-#include "c_api/TGltfAssetLoader.h"
 #include "c_api/TSceneAsset.h"
 #include "Log.hpp"
 
 #include "scene/GeometrySceneAsset.hpp"
-#include "scene/GltfSceneAsset.hpp"
 #include "scene/SceneAsset.hpp"
 
 using namespace thermion;
@@ -64,60 +60,6 @@ extern "C"
         );
 
         return reinterpret_cast<TSceneAsset *>(sceneAsset);
-    }
-
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createFromFilamentAsset(
-        TEngine *tEngine,
-        TGltfAssetLoader *tAssetLoader,
-        TNameComponentManager *tNameComponentManager,
-        TFilamentAsset *tFilamentAsset,
-        uint32_t requiredGeometryCapabilities
-    ) {
-        THERMION_ENGINE_API_GUARD;
-        auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-        auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
-        auto *filamentAsset = reinterpret_cast<filament::gltfio::FilamentAsset *>(tFilamentAsset);
-
-        auto *assetLoader = reinterpret_cast<filament::gltfio::AssetLoader *>(tAssetLoader);
-        if (!GltfSceneAsset::supportsRequiredGeometryCapabilities(requiredGeometryCapabilities)) {
-            Log("Unsupported or incompatible required geometry capabilities: 0x%x",
-                requiredGeometryCapabilities);
-            return nullptr;
-        }
-        auto *sceneAsset = new GltfSceneAsset(
-            filamentAsset,
-            assetLoader,
-            engine,
-            nameComponentManager,
-            requiredGeometryCapabilities
-        );
-
-        if ((sceneAsset->getGeometryCapabilities() & requiredGeometryCapabilities) !=
-            requiredGeometryCapabilities) {
-            Log("Failed to provide required geometry capabilities: requested 0x%x, provided 0x%x",
-                requiredGeometryCapabilities, sceneAsset->getGeometryCapabilities());
-            delete sceneAsset;
-            return nullptr;
-        }
-
-        return reinterpret_cast<TSceneAsset *>(sceneAsset);
-    }
-    
-    EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset) {
-        THERMION_ENGINE_API_GUARD;
-        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            Log("Error - not a gltf asset");
-            return nullptr;
-        }
-        
-        // A GltfSceneAssetInstance is Gltf-typed too but is not a
-        // GltfSceneAsset; resolve it to its owner like the buffer getters do.
-        auto gltfAsset = reinterpret_cast<GltfSceneAsset *>(
-            sceneAsset->isInstance() ? sceneAsset->getInstanceOwner() : sceneAsset);
-        auto *filamentAsset = gltfAsset->getAsset();
-        TRACE("SceneAsset %d FilamentAsset %d", sceneAsset, filamentAsset);
-        return reinterpret_cast<TFilamentAsset *>(filamentAsset);
     }
 
     EMSCRIPTEN_KEEPALIVE TSceneAssetType SceneAsset_getType(TSceneAsset *tSceneAsset) {
