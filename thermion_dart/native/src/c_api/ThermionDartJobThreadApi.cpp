@@ -1641,6 +1641,30 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void GltfAnimationManager_createJobThread(TJobThread *jobThread, TAnimationManager *tAnimationManager, void (*onComplete)(TGltfAnimationManager *))
+  {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *gltfAnimationManager = GltfAnimationManager_create(tAnimationManager);
+          PROXY(onComplete(gltfAnimationManager));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void GltfAnimationManager_destroyJobThread(TJobThread *jobThread, TGltfAnimationManager *tGltfAnimationManager, uint32_t requestId, VoidCallback onComplete)
+  {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          GltfAnimationManager_destroy(tGltfAnimationManager);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void AnimationManager_updateJobThread(TJobThread *jobThread, TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete) {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::packaged_task<void()> lambda(

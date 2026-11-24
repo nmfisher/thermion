@@ -226,8 +226,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     );
 
     // Dedicated glTF clip playback handle, created with the core
-    // TAnimationManager and added to its frame tick (addTickable).
-    final gltfAnimationManager = GltfAnimationManager_create(animationManager);
+    // TAnimationManager and added to its frame tick (addTickable). Runs on
+    // the owning thread like the core manager's creation, so the tickable
+    // list is never mutated concurrently with a frame tick.
+    final gltfAnimationManager = await withPointerCallback<TGltfAnimationManager>(
+      (cb) => GltfAnimationManager_createJobThread(jobThreadHandle, animationManager, cb),
+    );
 
     await withVoidCallback(
       (requestId, cb) =>
@@ -441,7 +445,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // animators bound to the Engine, and NameComponentManager is standalone.
     // The glTF clip playback handle must be removed from the core manager's
     // frame tick and freed before the core manager itself is destroyed.
-    animationManager.destroyGltfAnimationManager();
+    // Awaited on the owning thread, after earlier queued work.
+    final gltfAnimationManager = animationManager.gltfAnimationManager;
+    if (gltfAnimationManager != null) {
+      await withVoidCallback(
+        (requestId, cb) =>
+            GltfAnimationManager_destroyJobThread(jobThreadHandle, gltfAnimationManager, requestId, cb),
+      );
+      animationManager.gltfAnimationManager = null;
+    }
     await withVoidCallback(
       (requestId, cb) =>
           AnimationManager_destroyJobThread(jobThreadHandle, (animationManager).animationManager, requestId, cb),

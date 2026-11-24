@@ -1488,8 +1488,31 @@ external ffi.Pointer<TGltfAnimationManager> GltfAnimationManager_create(
   ffi.Pointer<TAnimationManager> tAnimationManager,
 );
 
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TAnimationManager>,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGltfAnimationManager>)>>,
+  )
+>(isLeaf: true)
+external void GltfAnimationManager_createJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGltfAnimationManager>)>> onComplete,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TGltfAnimationManager>)>(isLeaf: true)
 external void GltfAnimationManager_destroy(ffi.Pointer<TGltfAnimationManager> tGltfAnimationManager);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TGltfAnimationManager>, ffi.Uint32, VoidCallback)>(
+  isLeaf: true,
+)
+external void GltfAnimationManager_destroyJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TGltfAnimationManager> tGltfAnimationManager,
+  int requestId,
+  VoidCallback onComplete,
+);
 
 @ffi.Native<
   ffi.Pointer<TGltfAssetLoader> Function(
