@@ -10,8 +10,16 @@
 // GltfMeshData therefore keep working in every build (proposal §5.4).
 #if !THERMION_ENABLE_GLTF
 #define CGLTF_IMPLEMENTATION
+// The vendored copy is an implementation detail of GltfParser_parseBuffer,
+// not part of the C API: hide the cgltf_* definitions (and declarations)
+// from the shared library's dynamic symbol table, matching the Android
+// --exclude-libs/version-script behaviour for archive symbols.
+#pragma GCC visibility push(hidden)
 #endif
 #include "cgltf.h"
+#if !THERMION_ENABLE_GLTF
+#pragma GCC visibility pop
+#endif
 
 #include <vector>
 #include <string>
