@@ -11,47 +11,48 @@
 #include "Log.hpp"
 #include "MathUtils.hpp"
 
+#include "ThermionFeatures.h"
 #include "c_api/TMaterialInstance.h"
 
 // The Dart build hook compiles enabled materials on demand and places their
 // generated resgen headers on the compiler include path.
-#ifdef IMAGE_ENABLED
+#if IMAGE_ENABLED
 #include "image.h"
 #endif
-#ifdef GRID_ENABLED
+#if GRID_ENABLED
 #include "grid.h"
 #endif
-#ifdef GIZMO_ENABLED
+#if GIZMO_ENABLED
 #include "gizmo_material.h"
 #endif
-#ifdef TRANSLATION_AXIS_ENABLED
+#if TRANSLATION_AXIS_ENABLED
 #include "translation_axis.h"
 #endif
-#ifdef BONE_OVERLAY_ENABLED
+#if BONE_OVERLAY_ENABLED
 #include "bone_overlay.h"
 #endif
-#ifdef SILHOUETTE_ENABLED
+#if SILHOUETTE_ENABLED
 #include "silhouette.h"
 #endif
-#ifdef EDGE_OUTLINE_ENABLED
+#if EDGE_OUTLINE_ENABLED
 #include "edge_outline.h"
 #endif
-#ifdef WIREFRAME_ENABLED
+#if WIREFRAME_ENABLED
 #include "wireframe.h"
 #endif
-#ifdef NORMAL_COLOR_ENABLED
+#if NORMAL_COLOR_ENABLED
 #include "normal_color.h"
 #endif
-#ifdef SHARP_EDGE_ENABLED
+#if SHARP_EDGE_ENABLED
 #include "sharp_edge.h"
 #endif
-#ifdef CAPTURE_UV_ENABLED
+#if CAPTURE_UV_ENABLED
 #include "capture_uv.h"
 #endif
-#ifdef LINEAR_DEPTH_ENABLED
+#if LINEAR_DEPTH_ENABLED
 #include "linear_depth.h"
 #endif
-#ifdef UNLIT_FIXED_SIZE_ENABLED
+#if UNLIT_FIXED_SIZE_ENABLED
 #include "unlit_fixed_size.h"
 #endif
 
@@ -73,46 +74,46 @@ static TMaterial* buildBuiltInMaterial(TEngine* tEngine, const uint8_t* data, si
 
 BuiltInMaterialFactory builtInMaterialFactory(TBuiltInMaterial id) {
     switch (id) {
-#ifdef IMAGE_ENABLED
+#if IMAGE_ENABLED
         RESGEN_FACTORY(IMAGE);
 #endif
-#ifdef GRID_ENABLED
+#if GRID_ENABLED
         RESGEN_FACTORY(GRID);
 #endif
-#ifdef GIZMO_ENABLED
+#if GIZMO_ENABLED
         case BUILT_IN_GIZMO:
             return [](TEngine* engine) {
                 return buildBuiltInMaterial(engine, GIZMO_MATERIAL_GIZMO_DATA, GIZMO_MATERIAL_GIZMO_SIZE);
             };
 #endif
-#ifdef TRANSLATION_AXIS_ENABLED
+#if TRANSLATION_AXIS_ENABLED
         RESGEN_FACTORY(TRANSLATION_AXIS);
 #endif
-#ifdef BONE_OVERLAY_ENABLED
+#if BONE_OVERLAY_ENABLED
         RESGEN_FACTORY(BONE_OVERLAY);
 #endif
-#ifdef SILHOUETTE_ENABLED
+#if SILHOUETTE_ENABLED
         RESGEN_FACTORY(SILHOUETTE);
 #endif
-#ifdef EDGE_OUTLINE_ENABLED
+#if EDGE_OUTLINE_ENABLED
         RESGEN_FACTORY(EDGE_OUTLINE);
 #endif
-#ifdef WIREFRAME_ENABLED
+#if WIREFRAME_ENABLED
         RESGEN_FACTORY(WIREFRAME);
 #endif
-#ifdef NORMAL_COLOR_ENABLED
+#if NORMAL_COLOR_ENABLED
         RESGEN_FACTORY(NORMAL_COLOR);
 #endif
-#ifdef SHARP_EDGE_ENABLED
+#if SHARP_EDGE_ENABLED
         RESGEN_FACTORY(SHARP_EDGE);
 #endif
-#ifdef CAPTURE_UV_ENABLED
+#if CAPTURE_UV_ENABLED
         RESGEN_FACTORY(CAPTURE_UV);
 #endif
-#ifdef LINEAR_DEPTH_ENABLED
+#if LINEAR_DEPTH_ENABLED
         RESGEN_FACTORY(LINEAR_DEPTH);
 #endif
-#ifdef UNLIT_FIXED_SIZE_ENABLED
+#if UNLIT_FIXED_SIZE_ENABLED
         RESGEN_FACTORY(UNLIT_FIXED_SIZE);
 #endif
         default: return nullptr;
@@ -153,49 +154,49 @@ namespace thermion
         }
 
         // Compatibility exports for existing native callers.
-#ifdef IMAGE_ENABLED
+#if IMAGE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createImageMaterial(TEngine *tEngine) {
             return builtInMaterialFactory(BUILT_IN_IMAGE)(tEngine);
         }
 #endif
 
-#ifdef GRID_ENABLED
+#if GRID_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGridMaterial(TEngine *tEngine) {
             return builtInMaterialFactory(BUILT_IN_GRID)(tEngine);
         }
 #endif
 
-#ifdef GIZMO_ENABLED
+#if GIZMO_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGizmoMaterial(TEngine *tEngine) {
             return builtInMaterialFactory(BUILT_IN_GIZMO)(tEngine);
         }
 #endif
 
-#ifdef SILHOUETTE_ENABLED
+#if SILHOUETTE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSilhouetteMaterial(TEngine *tEngine) {
             return builtInMaterialFactory(BUILT_IN_SILHOUETTE)(tEngine);
         }
 #endif
 
-#ifdef EDGE_OUTLINE_ENABLED
+#if EDGE_OUTLINE_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createEdgeOutlineMaterial(TEngine *tEngine) {
             return builtInMaterialFactory(BUILT_IN_EDGE_OUTLINE)(tEngine);
         }
 #endif
 
-#ifdef WIREFRAME_ENABLED
+#if WIREFRAME_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createWireframeMaterial(TEngine *tEngine) {
             return builtInMaterialFactory(BUILT_IN_WIREFRAME)(tEngine);
         }
 #endif
 
-#ifdef TRANSLATION_AXIS_ENABLED
+#if TRANSLATION_AXIS_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createTranslationAxisMaterial(TEngine *tEngine) {
             return builtInMaterialFactory(BUILT_IN_TRANSLATION_AXIS)(tEngine);
         }
 #endif
 
-#ifdef BONE_OVERLAY_ENABLED
+#if BONE_OVERLAY_ENABLED
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createBoneOverlayMaterial(TEngine *tEngine) {
             return builtInMaterialFactory(BUILT_IN_BONE_OVERLAY)(tEngine);
         }

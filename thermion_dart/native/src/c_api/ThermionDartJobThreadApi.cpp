@@ -18,6 +18,7 @@
 #include <filament/LightManager.h>
 #include <filament/BufferObject.h>
 
+#include "ThermionFeatures.h"
 #include "c_api/APIBoundaryTypes.h"
 #include "c_api/TAnimationManager.h"
 #include "c_api/TEngine.h"
@@ -805,49 +806,49 @@ extern "C"
   }
 
   // Compatibility exports for existing native callers.
-#ifdef IMAGE_ENABLED
+#if IMAGE_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialJobThread(TJobThread *jobThread, TEngine *engine, void (*onComplete)(TMaterial *))
   {
     Material_createBuiltInJobThread(jobThread, engine, BUILT_IN_IMAGE, onComplete);
   }
 #endif
 
-#ifdef GIZMO_ENABLED
+#if GIZMO_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createGizmoMaterialJobThread(TJobThread *jobThread, TEngine *engine, void (*onComplete)(TMaterial *))
   {
     Material_createBuiltInJobThread(jobThread, engine, BUILT_IN_GIZMO, onComplete);
   }
 #endif
 
-#ifdef SILHOUETTE_ENABLED
+#if SILHOUETTE_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createSilhouetteMaterialJobThread(TJobThread *jobThread, TEngine *engine, void (*onComplete)(TMaterial *))
   {
     Material_createBuiltInJobThread(jobThread, engine, BUILT_IN_SILHOUETTE, onComplete);
   }
 #endif
 
-#ifdef EDGE_OUTLINE_ENABLED
+#if EDGE_OUTLINE_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createEdgeOutlineMaterialJobThread(TJobThread *jobThread, TEngine *engine, void (*onComplete)(TMaterial *))
   {
     Material_createBuiltInJobThread(jobThread, engine, BUILT_IN_EDGE_OUTLINE, onComplete);
   }
 #endif
 
-#ifdef WIREFRAME_ENABLED
+#if WIREFRAME_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createWireframeMaterialJobThread(TJobThread *jobThread, TEngine *engine, void (*onComplete)(TMaterial *))
   {
     Material_createBuiltInJobThread(jobThread, engine, BUILT_IN_WIREFRAME, onComplete);
   }
 #endif
 
-#ifdef TRANSLATION_AXIS_ENABLED
+#if TRANSLATION_AXIS_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createTranslationAxisMaterialJobThread(TJobThread *jobThread, TEngine *engine, void (*onComplete)(TMaterial *))
   {
     Material_createBuiltInJobThread(jobThread, engine, BUILT_IN_TRANSLATION_AXIS, onComplete);
   }
 #endif
 
-#ifdef BONE_OVERLAY_ENABLED
+#if BONE_OVERLAY_ENABLED
   EMSCRIPTEN_KEEPALIVE void Material_createBoneOverlayMaterialJobThread(TJobThread *jobThread, TEngine *engine, void (*onComplete)(TMaterial *))
   {
     Material_createBuiltInJobThread(jobThread, engine, BUILT_IN_BONE_OVERLAY, onComplete);
