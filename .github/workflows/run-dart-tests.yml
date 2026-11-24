@@ -483,6 +483,7 @@ jobs:
       - name: Check the slim library exports every symbol the Dart bindings use
         if: matrix.name == 'Linux'
         shell: bash
+        working-directory: thermion_dart
         run: |
           # Stub contract (docs/feature-optout-proposal.md §5.4): the generated
           # bindings are shared by every build variant and look each symbol up
