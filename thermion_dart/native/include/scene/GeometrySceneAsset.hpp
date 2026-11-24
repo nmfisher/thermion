@@ -59,9 +59,6 @@ namespace thermion
             return _materialInstances.size();
         }
 
-        VertexBuffer *getVertexBuffer() const { return _vertexBuffer; }
-        IndexBuffer *getIndexBuffer() const { return _indexBuffer; }
-
         // SceneAsset geometry-buffer interface: a procedural asset exposes a
         // single primitive (index 0), on the asset itself and its instances.
         VertexBuffer *getVertexBuffer(size_t primitiveIndex) const override {
