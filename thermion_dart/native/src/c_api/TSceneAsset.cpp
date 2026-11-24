@@ -185,6 +185,9 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE TVertexBuffer *SceneAsset_getVertexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex) {
         THERMION_ENGINE_API_GUARD;
+        if (primitiveIndex < 0) {
+            return nullptr;
+        }
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         auto *vertexBuffer = asset->getVertexBuffer(static_cast<size_t>(primitiveIndex));
         return reinterpret_cast<TVertexBuffer *>(vertexBuffer);
@@ -203,6 +206,9 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE TIndexBuffer *SceneAsset_getIndexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex) {
         THERMION_ENGINE_API_GUARD;
+        if (primitiveIndex < 0) {
+            return nullptr;
+        }
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         auto *indexBuffer = asset->getIndexBuffer(static_cast<size_t>(primitiveIndex));
         return reinterpret_cast<TIndexBuffer *>(indexBuffer);
