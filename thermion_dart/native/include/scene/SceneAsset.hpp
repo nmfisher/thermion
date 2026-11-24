@@ -91,6 +91,17 @@ class SceneAsset {
             return {};
         }
 
+        /// The asset whose entity carries the runtime bone animation
+        /// component. Defaults to the asset itself. Owner assets whose
+        /// getEntity() differs from their instances' entities (e.g. glTF
+        /// owners) override this to return the instance that skin/bone
+        /// operations target, so add/remove of the bone animation component
+        /// always resolve to the same entity. Returns nullptr when no
+        /// instance exists yet.
+        virtual SceneAsset *getSkinTarget() {
+            return this;
+        }
+
         /// Skinning interface. Joint entities/counts/names are exposed by
         /// getBones/getBoneCount/getBoneName above; the accessors below
         /// complete the gltfio-free skin interface used by runtime bone

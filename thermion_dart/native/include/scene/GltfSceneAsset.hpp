@@ -230,6 +230,15 @@ namespace thermion
         const utils::Entity *getBones(size_t skinIndex) const override;
         const char *getBoneName(size_t skinIndex, size_t boneIndex) const override;
 
+        /// Bone animation components are keyed by instance entities, not the
+        /// owner's root entity (they are distinct utils::Entity IDs). Resolve
+        /// owner assets to their first instance so component add/remove and
+        /// teardown all agree on the same entity.
+        SceneAsset *getSkinTarget() override
+        {
+            return _instances.empty() ? nullptr : _instances.front().get();
+        }
+
         size_t getSkinCount() const override;
         const math::mat4f *getInverseBindMatrices(size_t skinIndex) const override;
         void updateBoneMatrices() override;

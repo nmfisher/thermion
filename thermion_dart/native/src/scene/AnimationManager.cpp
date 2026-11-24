@@ -140,6 +140,14 @@ namespace thermion
     {
         std::lock_guard lock(mMutex);
 
+        // Owner assets (e.g. glTF owners) resolve to the instance whose
+        // entities the skin interface operates on.
+        asset = asset->getSkinTarget();
+        if (!asset)
+        {
+            return;
+        }
+
         auto skinCount = asset->getSkinCount();
 
         TransformManager &transformManager = mEngine->getTransformManager();
@@ -352,6 +360,14 @@ namespace thermion
         animation.fadeInInSecs = fadeInInSecs;
         animation.maxDelta = maxDelta;
         animation.skinIndex = skinIndex;
+        // Normalize to the skin target so the component lookup uses the same
+        // entity as addBoneAnimationComponent (instance entity for glTF owners).
+        asset = asset->getSkinTarget();
+        if (!asset)
+        {
+            Log("ERROR: asset has no skin target (no instance).");
+            return false;
+        }
         if (!mBoneAnimationComponentManager->hasComponent(asset->getEntity()))
         {
             Log("ERROR: specified entity is not animatable (has no animation component attached).");
@@ -399,6 +415,16 @@ namespace thermion
     bool AnimationManager::addBoneAnimationComponent(SceneAsset *asset)
     {
         std::lock_guard lock(mMutex);
+        // Normalize owner assets to their skin target (first instance for
+        // glTF owners). Registering the component under the owner's root
+        // entity would leave it dangling on destruction: teardown removes
+        // the component by instance entity, and the update loop would then
+        // dereference a freed target (use-after-free).
+        asset = asset->getSkinTarget();
+        if (!asset)
+        {
+            return false;
+        }
         mBoneAnimationComponentManager->addAnimationComponent(asset);
         TRACE("Added bone animation component");
         return true;
@@ -407,6 +433,11 @@ namespace thermion
     void AnimationManager::removeBoneAnimationComponent(SceneAsset *asset)
     {
         std::lock_guard lock(mMutex);
+        asset = asset->getSkinTarget();
+        if (!asset)
+        {
+            return;
+        }
         mBoneAnimationComponentManager->removeAnimationComponent(asset);
         TRACE("Removed bone animation component");
     }
