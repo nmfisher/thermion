@@ -736,7 +736,18 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external JSBigInt _FrameScheduler_steadyClockUs();
   external void _FrameScheduler_stop();
   external Pointer<TGltfAnimationManager> _GltfAnimationManager_create(Pointer<TAnimationManager> tAnimationManager);
+  external void _GltfAnimationManager_createJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<NativeFunction<void Function(PointerClass<TGltfAnimationManager>)>> onComplete,
+  );
   external void _GltfAnimationManager_destroy(Pointer<TGltfAnimationManager> tGltfAnimationManager);
+  external void _GltfAnimationManager_destroyJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TGltfAnimationManager> tGltfAnimationManager,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external Pointer<TGltfAssetLoader> _GltfAssetLoader_create(
     Pointer<TEngine> tEngine,
     Pointer<TMaterialProvider> tMaterialProvider,
@@ -4896,8 +4907,36 @@ Pointer<TGltfAnimationManager> GltfAnimationManager_create(Pointer<TAnimationMan
   return Pointer<TGltfAnimationManager>(result);
 }
 
+void GltfAnimationManager_createJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TAnimationManager> tAnimationManager,
+  Pointer<NativeFunction<void Function(Pointer<TGltfAnimationManager>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._GltfAnimationManager_createJobThread(
+    jobThread.cast(),
+    tAnimationManager.cast(),
+    onComplete.cast(),
+  );
+  return result;
+}
+
 void GltfAnimationManager_destroy(Pointer<TGltfAnimationManager> tGltfAnimationManager) {
   final result = GeneratedBindings.instance._GltfAnimationManager_destroy(tGltfAnimationManager.cast());
+  return result;
+}
+
+void GltfAnimationManager_destroyJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TGltfAnimationManager> tGltfAnimationManager,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._GltfAnimationManager_destroyJobThread(
+    jobThread.cast(),
+    tGltfAnimationManager.cast(),
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
   return result;
 }
 
@@ -14469,7 +14508,7 @@ extension NativeFunctionPointer18<T extends NativeType> on void Function(DartEnt
   }
 }
 
-extension NativeFunctionPointer24<T extends NativeType> on void Function(double) {
+extension NativeFunctionPointer25<T extends NativeType> on void Function(double) {
   Pointer<NativeFunction<void Function(double)>> addFunction() {
     return Pointer<NativeFunction<void Function(double)>>(
       NativeLibrary.instance.addFunction<void Function(double)>(this.toJS, 'vf'),
@@ -14477,7 +14516,7 @@ extension NativeFunctionPointer24<T extends NativeType> on void Function(double)
   }
 }
 
-extension NativeFunctionPointer34<T extends NativeType> on void Function() {
+extension NativeFunctionPointer35<T extends NativeType> on void Function() {
   Pointer<NativeFunction<void Function()>> addFunction() {
     return Pointer<NativeFunction<void Function()>>(
       NativeLibrary.instance.addFunction<void Function()>(this.toJS, 'v'),
