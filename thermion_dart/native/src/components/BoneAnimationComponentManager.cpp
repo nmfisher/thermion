@@ -41,6 +41,7 @@ namespace thermion
 
             // When fading in/out, interpolate between the "current" transform (which has possibly been set by the glTF animation loop above)
             // and the first (for fading in) or last (for fading out) frame.
+            bool updated = false;
             for (int i = (int)boneAnimations.size() - 1; i >= 0; i--)
             {
                 auto &animationStatus = boneAnimations[i];
@@ -156,13 +157,21 @@ namespace thermion
                 }
 
                 mTransformManager.setTransform(jointTransform, composeMatrix(newTranslation, newRotation, newScale));
-
-                target->updateBoneMatrices();
+                updated = true;
 
                 if (animationStatus.loop && elapsedInSeconds >= (animationStatus.durationInSecs + animationStatus.fadeInInSecs + animationStatus.fadeOutInSecs))
                 {
                     animationStatus.startTimeInNanos = frameTimeInNanos;
                 }
+            }
+
+            // updateBoneMatrices() recomputes and uploads the skinning matrices for the entire
+            // skeleton, so call it once after all bone transforms for this asset have been
+            // applied rather than once per bone. Skip it entirely on idle frames where no
+            // bone transform was set.
+            if (updated)
+            {
+                target->updateBoneMatrices();
             }
         }
     }
