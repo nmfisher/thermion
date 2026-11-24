@@ -29,7 +29,7 @@ namespace thermion
     // SceneAsset skin interface, so they stay core code with no gltfio dependency.
     //
     // Embedded glTF clip playback is handled by an optional animation system
-    // (GltfAnimationComponentManager, see TGltfAnimation.cpp) added via
+    // (GltfAnimationComponentManager, see TGltfAnimationManager.cpp) added via
     // addTickable() and ticked by update().
     //
     // AnimationManager maintains two component managers (one for each type of
