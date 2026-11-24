@@ -8,6 +8,7 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import '../lib/filament_version.dart';
 import '../lib/src/hooks/built_in_materials.dart';
+import '../lib/src/hooks/debug_server_link.dart';
 import '../lib/src/hooks/filament_artifacts.dart';
 import '../lib/src/hooks/material_backend_resolution.dart';
 import '../lib/src/hooks/material_tools.dart';
@@ -254,6 +255,32 @@ outputDirectory : ${outputDirectory.path}
     // match the convention of the other includeDirs entries.
     final artifactIncludeRel = path.relative(libResult.includeDir.path, from: pkgRootFilePath);
 
+    // Debug-server archives (matdbg + fgviewer). Resolved here, after the
+    // artifact is on disk, because the Windows debug zip is checked for the
+    // .lib files it actually ships (see debug_server_link.dart for why that
+    // zip currently has matdbg.lib but no fgviewer.lib). Everything below
+    // keys off this one result: the archives on the link line, the debug-only
+    // filamat link and the ENABLE_MATDBG define.
+    final debugServer = resolveDebugServerLink(
+      targetOS: targetOSName,
+      debug: buildMode == BuildMode.debug,
+      shipped: (archive) =>
+          File(path.join(libDir, "$archive.lib")).existsSync(),
+    );
+    for (final archive in debugServer.notShipped) {
+      logger.info(
+        "Debug build: the artifact ships no $archive.lib; not linking $archive "
+        "(see BUILDING.md, Windows debug checklist)",
+      );
+    }
+    if (debugServer.matdbgLinked) {
+      // Marks a build whose link line carries matdbg (and, on Windows, its
+      // dependency archives), so native/plugin code guarded by this can use
+      // filament::matdbg. Nothing in thermion's own sources consumes it yet.
+      logger.info("Debug build: linking matdbg (ENABLE_MATDBG=1)");
+      defines["ENABLE_MATDBG"] = "1";
+    }
+
     var sources = Directory(path.join(pkgRootFilePath, "native", "src"))
         .listSync(recursive: true)
         .whereType<File>()
@@ -336,33 +363,33 @@ outputDirectory : ${outputDirectory.path}
       // above. Release builds link it only when enabled (it would otherwise
       // be dead weight — tens of MB of glslang/SPIRV-Tools), with two
       // exceptions that must ALWAYS link it:
-      // - debug: filament's debug archives ship libmatdbg.a, whose
-      //   ShaderReplacer references filamat::Chunk.
+      // - debug with matdbg linked (every debug platform except iOS):
+      //   matdbg's ShaderReplacer/DebugServer use filamat::GLSLTools and the
+      //   Chunk/dictionary classes, and debug filament archives reference
+      //   matdbg. Windows is included: its debug zip ships matdbg.lib, so
+      //   the archive is on the link line and must resolve.
       // - Linux: the Linux archives deliberately exclude libzstd.a
       //   (scripts/build_linux.sh — "bundled in Filament already"), so the
       //   combined filamat archive is the only zstd provider for
       //   basis_transcoder/MaterialParser/gltfio (ZSTD_* symbols).
-      if (runtimeMaterials || targetOS == OS.linux || (buildMode == BuildMode.debug && targetOS != OS.windows))
-        "filamat",
+      if (runtimeMaterials || targetOS == OS.linux || debugServer.matdbgLinked) "filamat",
       // libfilamat.a references SHADERS_PACKAGE etc. from libshaders.a
       // (the generated shader-common chunks CodeGenerator emits into every
       // material). On Linux, "shaders" was already linked for gltfio; other
       // platforms only need it when runtime_materials pulls the CodeGenerator
-      // in (matdbg's filamat use is Chunk-only and doesn't reach it).
+      // in (matdbg's filamat use is GLSLTools/Chunk only and doesn't reach it).
       if (runtimeMaterials && targetOS != OS.linux) "shaders",
       if (targetOS == OS.linux) "shaders",
       // Windows splits filamat's shader-compiler dependencies into separate
-      // .lib files; filamat.lib alone leaves them unresolved.
-      if (runtimeMaterials && targetOS == OS.windows) ...[
-        "OSDependent",
-        "glslang",
-        "SPIRV",
-        "SPIRV-Tools",
-        "SPIRV-Tools-opt",
-        "spirv-cross-core",
-        "spirv-cross-glsl",
-        "spirv-cross-msl",
-      ],
+      // .lib files (no combined filamat archive like Linux/Android); filamat.lib
+      // alone leaves them unresolved. Needed whenever filamat's compiler side
+      // is linked: runtime_materials, or matdbg in a debug build (GLSLTools
+      // pulls glslang; ShaderExtractor pulls SPIRV-Tools and spirv-cross).
+      // glslang's targets carry a `d` suffix in the debug artifact
+      // (glslangd.lib), hence the build-mode-dependent names.
+      if (targetOS == OS.windows &&
+          (runtimeMaterials || debugServer.matdbgLinked))
+        ...windowsShaderCompilerArchives(debug: buildMode == BuildMode.debug),
       "utils",
       // Android links Filament's Perfetto tracing archive. utils is always
       // built with src/android/Systrace.cpp on Android, and its debug object
@@ -408,14 +435,21 @@ outputDirectory : ${outputDirectory.path}
       "geometry",
       // Debug builds of Filament enable the Material Debug Server and Frame
       // Graph viewer (build.sh -d/-t -> FILAMENT_ENABLE_MATDBG/FGVIEWER), so
-      // the debug zips for desktop (macOS/Linux) and Android ship
-      // libmatdbg.a/libfgviewer.a and their filament archives reference them
-      // (e.g. filament::matdbg::DebugServer). Without these the debug shared
+      // the macOS/Android debug zips ship libmatdbg.a/libfgviewer.a and
+      // their filament archives reference them (e.g.
+      // filament::matdbg::DebugServer). Without these the debug shared
       // library keeps undefined matdbg/fgviewer symbols and dlopen fails at
       // runtime, just like the perfetto case above. iOS debug never enables
-      // them (its cmake invocation passes neither option); Windows links
-      // libraries via the `libraries` list below instead.
-      if ({OS.macOS, OS.android}.contains(targetOS) && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
+      // them (its cmake invocation passes neither option). Windows is
+      // artifact-driven (debugServer above): its zip ships matdbg.lib but no
+      // fgviewer.lib, and every dependency is a separate .lib, so matdbg's
+      // own inputs follow it. Linux places the same archives after the
+      // objects (linuxDebugLibs below).
+      if ({OS.macOS, OS.android}.contains(targetOS)) ...debugServer.archives,
+      if (targetOS == OS.windows && debugServer.matdbgLinked) ...[
+        ...windowsMatdbgDependencies,
+        ...debugServer.archives,
+      ],
     ];
 
     // Keep Linux's matdbg/fgviewer archives separate from the main list. This
@@ -423,7 +457,10 @@ outputDirectory : ${outputDirectory.path}
     // both archives bundle civetweb, and force-loading both produces duplicate
     // mg_* definitions. They now use normal archive semantics in `libraries`
     // below, which extracts only the members needed by Filament. See the-c8d3.
-    final linuxDebugLibs = (targetOS == OS.linux && buildMode == BuildMode.debug) ? ["matdbg", "fgviewer"] : <String>[];
+    // Windows takes the same route: CBuilder emits `libraries` as plain
+    // `<name>.lib` inputs (no /WHOLEARCHIVE), and its archives bundle nothing
+    // (civetweb.lib is a separate input), so no member is loaded twice.
+    final linuxDebugLibs = targetOS == OS.linux ? debugServer.archives : <String>[];
 
     if (targetOS == OS.windows) {
       // CBuilder emits the `libraries` list below as `<name>.lib` inputs
