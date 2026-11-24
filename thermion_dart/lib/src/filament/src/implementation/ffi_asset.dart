@@ -774,8 +774,10 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   // Gets the number of bones at skin [skinIndex].
   // Returns the number of bones, or 0 if none found.
   Future<int> getBoneCount({int skinIndex = 0}) async {
-    // Bones only exist on skinned glTF assets; the C stub reports 0 without
-    // gltf, so make the unsupported build explicit instead.
+    // Bones only exist on skinned glTF assets, which cannot exist in a
+    // `features.gltf: false` build. The shared C entry point would report the
+    // SceneAsset base-class default (0) there, so make the unsupported build
+    // explicit instead.
     _app.checkSupported(ThermionFeature.gltf, 'getBoneCount');
     return SceneAsset_getBoneCount(asset, skinIndex);
   }
@@ -1229,8 +1231,9 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     }
 
     // glTF/bone components only exist on glTF assets, which cannot exist in a
-    // `features.gltf: false` build: skip the (stubbed) calls there instead of
-    // logging a bogus failure for every destroyed asset.
+    // `features.gltf: false` build: skip those calls there instead of logging
+    // a bogus failure for every destroyed asset. (The glTF clip call is a C
+    // stub in that build; the bone call is shared and would simply no-op.)
     if (_app.supports(ThermionFeature.gltf)) {
       final manager = _app.animationManager.getNativeHandle();
       final animationAsset = type == TSceneAssetType.SCENE_ASSET_TYPE_GLTF && !isInstance
@@ -1246,8 +1249,9 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
         _logger.warning("Failed to remove bone animation component");
       }
     }
-    // Morph components are keyed by entity (the C stub is a no-op without
-    // gltf), so this stays unconditional.
+    // Morph components are keyed by entity and gltfio-free: the core
+    // AnimationManager compiles into every build (no C stubs), so this stays
+    // unconditional.
     _app.animationManager.removeMorphAnimationComponent(entity);
 
     for (final child in _getChildEntities()) {

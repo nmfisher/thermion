@@ -18,14 +18,18 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
   @override
   Pointer<TAnimationManager> getNativeHandle() => animationManager;
 
-  /// Every asset-facing animation API drives gltfio's Animator against glTF
-  /// assets, so those are unavailable in a `features.gltf: false` build. The
-  /// C stubs would return false/0/-1; this turns that into an actionable
-  /// error instead (docs/feature-optout-proposal.md §6.2). Deliberately NOT
-  /// guarded: [update] (a per-frame no-op without gltf) and the entity-keyed
-  /// morph component add/remove — FFIAsset's destroy path calls
+  /// The glTF clip playback APIs drive gltfio's Animator against glTF assets,
+  /// so those are unavailable in a `features.gltf: false` build. Their C stubs
+  /// (TGltfAnimationManager.cpp) return false/0/null; this turns that into an
+  /// actionable error instead (docs/feature-optout-proposal.md §6.2).
+  /// Deliberately NOT guarded: [update] (a per-frame no-op without gltf) and
+  /// the entity-keyed morph APIs — [addMorphAnimationComponent],
+  /// [removeMorphAnimationComponent], [setMorphAnimation] and
+  /// [clearMorphAnimation]. Those drive the core AnimationManager's morph
+  /// buffer, which is gltfio-free and compiled into every build (no C stubs
+  /// exist for them); FFIAsset's destroy path also calls
   /// removeMorphAnimationComponent for every asset type, procedural geometry
-  /// included, so those must keep working as no-ops (the C stubs are no-ops).
+  /// included.
   void _requireGltf(String api) => app.checkSupported(ThermionFeature.gltf, api);
 
   @override
@@ -185,7 +189,6 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
     int numFrames,
     double frameLengthInMs,
   ) {
-    _requireGltf('setMorphAnimation');
     if (numMorphTargets <= 0) {
       throw RangeError.range(numMorphTargets, 1, null, 'numMorphTargets');
     }
@@ -243,7 +246,6 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   bool clearMorphAnimation(ThermionEntity entityId) {
-    _requireGltf('clearMorphAnimation');
     return AnimationManager_clearMorphAnimation(animationManager, entityId);
   }
 
