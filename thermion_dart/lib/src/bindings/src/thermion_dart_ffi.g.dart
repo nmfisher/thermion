@@ -6496,7 +6496,7 @@ final class TMeshData extends ffi.Struct {
 final class TMipLevel extends ffi.Struct {
   external ffi.Pointer<ffi.Uint8> data;
 
-  @ffi.Size()
+  @ffi.Uint32()
   external int size;
 
   @ffi.Uint32()

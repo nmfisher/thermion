@@ -12518,21 +12518,21 @@ final class TMipLevel extends Struct {
     NativeLibrary.instance.setValue(addr, val.toJS, '*');
   }
 
-  size_t get size {
+  int get size {
     final addr = Pointer<TMipLevel>(this.address.addr + 4);
     if (addr.addr % 4 != 0) {
       final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
-      return data.getInt32(addr.addr, Endian.little);
+      return data.getUint32(addr.addr, Endian.little);
     }
-    final value = NativeLibrary.instance.getValue(addr, 'i32');
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
     return value;
   }
 
-  set size(size_t val) {
+  set size(int val) {
     final addr = Pointer<TMipLevel>(this.address.addr + 4);
     if (addr.addr % 4 != 0) {
       final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
-      data.setInt32(addr.addr, val, Endian.little);
+      data.setUint32(addr.addr, val, Endian.little);
       return;
     }
     NativeLibrary.instance.setValue(addr, val.toJS, 'i32');

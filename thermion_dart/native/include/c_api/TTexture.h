@@ -255,7 +255,7 @@ EMSCRIPTEN_KEEPALIVE bool Texture_setImage(
 // are the level's tightly packed pixels in `format`/`type` layout.
 typedef struct TMipLevel {
     const uint8_t *data;
-    size_t size;
+    uint32_t size;
     uint32_t width;
     uint32_t height;
     uint32_t depth;
