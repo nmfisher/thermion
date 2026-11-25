@@ -354,6 +354,18 @@ abstract class Texture<T> extends NativeHandle {
     PixelDataType type,
   );
 
+  /// Uploads a complete mip chain in one batched operation.
+  ///
+  /// [levels] is ordered from mip level 0 (the largest image) upward: entry
+  /// [i] becomes mip level [i], and the texture must have been created with at
+  /// least [levels.length] levels. Each entry's region must fit its level.
+  /// All entries are validated before anything is uploaded, so a rejected
+  /// chain leaves the texture unchanged.
+  ///
+  /// The pixel data in [levels] is copied before this method returns its
+  /// Future; callers may reuse the buffers immediately.
+  Future<void> setMipChain(List<TextureMipLevel> levels);
+
   /// Sets an external image (like a video or camera frame) as the texture source
   Future setExternalImage(dynamic externalImage);
 
@@ -366,6 +378,30 @@ abstract class Texture<T> extends NativeHandle {
 
   // Destroys this texture.
   Future destroy();
+}
+
+/// One level of a texture mip chain for [Texture.setMipChain].
+///
+/// [data] holds the level's tightly packed pixels in [format]/[type] layout,
+/// exactly as for [Texture.setImage]. [width] x [height] is the level's size
+/// in texels (each level of a 2D chain is half the previous one, rounded down,
+/// to a minimum of 1x1) and [depth] is 1 for 2D textures.
+class TextureMipLevel {
+  final Uint8List data;
+  final int width;
+  final int height;
+  final int depth;
+  final PixelDataFormat format;
+  final PixelDataType type;
+
+  const TextureMipLevel({
+    required this.data,
+    required this.width,
+    required this.height,
+    this.depth = 1,
+    required this.format,
+    required this.type,
+  });
 }
 
 /// Pixel data format enum, representing different channel combinations

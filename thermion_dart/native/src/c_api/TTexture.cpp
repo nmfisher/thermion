@@ -721,6 +721,78 @@ namespace thermion
             return true;
         }
 
+        EMSCRIPTEN_KEEPALIVE bool Texture_setMipChain(
+            TEngine *tEngine,
+            TTexture *tTexture,
+            const TMipLevel *levels,
+            uint32_t levelCount,
+            void (*onRelease)(void *, size_t, void *),
+            void *userData)
+        {
+            THERMION_ENGINE_API_GUARD;
+            auto engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto texture = reinterpret_cast<filament::Texture *>(tTexture);
+
+            if (!levels || levelCount == 0 || levelCount > texture->getLevels())
+            {
+                ERROR("Texture_setMipChain: cannot upload %u levels into a texture with %zu levels",
+                      levelCount, texture->getLevels());
+                return false;
+            }
+
+            // Validate the whole chain before uploading anything, so a bad
+            // level cannot leave the texture partially updated. Filament only
+            // checks these in debug builds; a release build would read past
+            // the caller's buffer instead.
+            for (uint32_t level = 0; level < levelCount; level++)
+            {
+                const TMipLevel &mip = levels[level];
+                if (!mip.data || mip.width == 0 || mip.height == 0 || mip.depth == 0 ||
+                    mip.width > texture->getWidth(level) ||
+                    mip.height > texture->getHeight(level) ||
+                    mip.depth > texture->getDepth(level))
+                {
+                    ERROR("Texture_setMipChain: level %u region %ux%ux%u does not fit texture level %ux%ux%u",
+                          level, mip.width, mip.height, mip.depth,
+                          (uint32_t)texture->getWidth(level), (uint32_t)texture->getHeight(level),
+                          (uint32_t)texture->getDepth(level));
+                    return false;
+                }
+            }
+
+            for (uint32_t level = 0; level < levelCount; level++)
+            {
+                const TMipLevel &mip = levels[level];
+                auto bufferFormat = static_cast<PixelBufferDescriptor::PixelDataFormat>(mip.format);
+                auto pixelDataType = static_cast<PixelBufferDescriptor::PixelDataType>(mip.type);
+
+                filament::Texture::PixelBufferDescriptor pbd(
+                    const_cast<uint8_t *>(mip.data),
+                    mip.size,
+                    bufferFormat,
+                    pixelDataType,
+                    1, // alignment
+                    0, // left
+                    0, // top
+                    0, // stride
+                    onRelease,
+                    userData);
+
+                texture->setImage(
+                    *engine,
+                    level,
+                    0,
+                    0,
+                    0,
+                    mip.width,
+                    mip.height,
+                    mip.depth,
+                    std::move(pbd));
+            }
+
+            return true;
+        }
+
         EMSCRIPTEN_KEEPALIVE uint32_t Texture_getWidth(TTexture *tTexture, uint32_t level)
         {
             THERMION_ENGINE_API_GUARD;

@@ -4966,6 +4966,49 @@ external void Texture_setImageJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
 );
 
+@ffi.Native<
+  ffi.Bool Function(
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<TTexture>,
+    ffi.Pointer<TMipLevel>,
+    ffi.Uint32,
+    ffi.Pointer<
+      ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> buffer, ffi.Size size, ffi.Pointer<ffi.Void> userData)>
+    >,
+    ffi.Pointer<ffi.Void>,
+  )
+>(isLeaf: true)
+external bool Texture_setMipChain(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<TMipLevel> levels,
+  int levelCount,
+  ffi.Pointer<
+    ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> buffer, ffi.Size size, ffi.Pointer<ffi.Void> userData)>
+  >
+  onRelease,
+  ffi.Pointer<ffi.Void> userData,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<TTexture>,
+    ffi.Pointer<TMipLevel>,
+    ffi.Uint32,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>,
+  )
+>(isLeaf: true)
+external void Texture_setMipChainJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<TMipLevel> levels,
+  int levelCount,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
+);
+
 /// Compile-time feature bitmask of the loaded engine: bit 0 gltf, bit 1 ktx,
 /// bit 2 image_decoding, bit 3 runtime_materials (c_api/ThermionFeatures.h).
 @ffi.Native<ffi.Uint32 Function()>(isLeaf: true)
@@ -6399,6 +6442,28 @@ final class TMeshData extends ffi.Struct {
 
   @ffi.UnsignedInt()
   external int primitiveType;
+}
+
+final class TMipLevel extends ffi.Struct {
+  external ffi.Pointer<ffi.Uint8> data;
+
+  @ffi.Size()
+  external int size;
+
+  @ffi.Uint32()
+  external int width;
+
+  @ffi.Uint32()
+  external int height;
+
+  @ffi.Uint32()
+  external int depth;
+
+  @ffi.UnsignedInt()
+  external int format;
+
+  @ffi.UnsignedInt()
+  external int type;
 }
 
 final class TMovementIntent extends ffi.Struct {

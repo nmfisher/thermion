@@ -1988,6 +1988,84 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  // Pixel snapshot shared by every level of one Texture_setMipChainJobThread
+  // request. Released when Filament has consumed the last level.
+  struct MipChainSnapshot
+  {
+    std::atomic<uint32_t> pending;
+    uint8_t *pixels;
+  };
+
+  static void releaseMipChainLevel(void *, size_t, void *user)
+  {
+    auto *snapshot = static_cast<MipChainSnapshot *>(user);
+    if (snapshot->pending.fetch_sub(1) == 1)
+    {
+      delete[] snapshot->pixels;
+      delete snapshot;
+    }
+  }
+
+  // Copies all level pixels synchronously before returning, like
+  // Texture_setImageJobThread, but into a single allocation; the queued task
+  // then uploads the whole chain under one engine API lock. Delivers
+  // Texture_setMipChain's result to onComplete (false for a null/empty chain).
+  EMSCRIPTEN_KEEPALIVE void Texture_setMipChainJobThread(TJobThread *jobThread,
+      TEngine *tEngine,
+      TTexture *tTexture,
+      const TMipLevel *levels,
+      uint32_t levelCount,
+      void (*onComplete)(bool))
+  {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
+
+    if (!levels || levelCount == 0)
+    {
+      std::packaged_task<void()> lambda(
+          [=]() mutable
+          {
+            PROXY(onComplete(false));
+          });
+      rt->addTask(lambda);
+      return;
+    }
+
+    size_t total = 0;
+    for (uint32_t i = 0; i < levelCount; i++)
+    {
+      total += levels[i].size;
+    }
+    auto *pixels = new uint8_t[total];
+    auto *owned = new TMipLevel[levelCount];
+    size_t offset = 0;
+    for (uint32_t i = 0; i < levelCount; i++)
+    {
+      owned[i] = levels[i];
+      owned[i].data = pixels + offset;
+      if (levels[i].size != 0)
+      {
+        std::copy_n(levels[i].data, levels[i].size, pixels + offset);
+      }
+      offset += levels[i].size;
+    }
+    auto *snapshot = new MipChainSnapshot{levelCount, pixels};
+
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          bool result = Texture_setMipChain(tEngine, tTexture, owned, levelCount, releaseMipChainLevel, snapshot);
+          if (!result)
+          {
+            // Nothing was submitted, so Filament will never release the levels.
+            delete[] pixels;
+            delete snapshot;
+          }
+          delete[] owned;
+          PROXY(onComplete(result));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void RenderTarget_getColorTextureJobThread(TJobThread *jobThread, TRenderTarget *tRenderTarget, void (*onComplete)(TTexture *))
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);

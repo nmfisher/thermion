@@ -130,6 +130,53 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
   }
 
   @override
+  Future<void> setMipChain(List<TextureMipLevel> levels) async {
+    if (levels.isEmpty) {
+      throw ArgumentError.value(levels, 'levels', 'A mip chain must contain at least one level');
+    }
+    // Dart only hands out a TypedData's address as a direct argument of a leaf
+    // call (the address is guaranteed to stay valid for that call alone), but
+    // TMipLevel carries one pointer per level. So the chain is gathered into
+    // one native buffer that the descriptors can point at safely. Both that
+    // buffer and the descriptor array are only borrowed for the duration of
+    // the call: Texture_setMipChainJobThread snapshots them before returning.
+    var totalBytes = 0;
+    for (final level in levels) {
+      totalBytes += level.data.lengthInBytes;
+    }
+    final pixels = allocate<Uint8>(totalBytes);
+    final levelPtrs = allocate<TMipLevel>(levels.length * sizeOf<TMipLevel>());
+    try {
+      final pixelBytes = pixels.asTypedList(totalBytes);
+      final entries = <TMipLevel>[for (var i = 0; i < levels.length; i++) levelPtrs[i]];
+      var offset = 0;
+      for (var i = 0; i < levels.length; i++) {
+        final level = levels[i];
+        final size = level.data.lengthInBytes;
+        pixelBytes.setRange(offset, offset + size, level.data);
+        entries[i]
+          ..data = pixels + offset
+          ..size = size
+          ..width = level.width
+          ..height = level.height
+          ..depth = level.depth
+          ..format = level.format.value
+          ..type = level.type.value;
+        offset += size;
+      }
+      final success = await withBoolCallback(
+        (cb) => Texture_setMipChainJobThread(_jobThreadHandle, _engine, pointer, levelPtrs, levels.length, cb),
+      );
+      if (!success) {
+        throw Exception("Failed to set mip chain");
+      }
+    } finally {
+      free(levelPtrs);
+      free(pixels);
+    }
+  }
+
+  @override
   Future<void> setSubImage(
     int level,
     int xOffset,
