@@ -758,6 +758,35 @@ namespace thermion
                           (uint32_t)texture->getDepth(level));
                     return false;
                 }
+
+                // The caller's byte count must cover the whole level, using
+                // Filament's own size computation with exactly the descriptor
+                // geometry the upload loop below constructs (tightly packed:
+                // stride 0 means width, alignment 1, no left/top offset).
+                // Without this a short buffer in a later level would pass
+                // validation, earlier levels would already be submitted, and
+                // Filament would read past the caller's buffer.
+                // computeTextureDataSize covers one slice, so multiply by
+                // depth for 3D/array levels. The COMPRESSED pseudo-type is
+                // not an unpacked upload: computeTextureDataSize yields 0 for
+                // it, so reject it explicitly instead of trusting that 0.
+                if (mip.type == PIXELDATATYPE_COMPRESSED)
+                {
+                    ERROR("Texture_setMipChain: level %u uses compressed pixel data, which setMipChain does not support",
+                          level);
+                    return false;
+                }
+                auto bufferFormat = static_cast<filament::Texture::Format>(mip.format);
+                auto pixelDataType = static_cast<filament::Texture::Type>(mip.type);
+                size_t required = filament::Texture::computeTextureDataSize(
+                                      bufferFormat, pixelDataType, mip.width, mip.height, 1) *
+                                  mip.depth;
+                if (mip.size < required)
+                {
+                    ERROR("Texture_setMipChain: level %u buffer is %u bytes, needs %zu for %ux%ux%u",
+                          level, mip.size, required, mip.width, mip.height, mip.depth);
+                    return false;
+                }
             }
 
             for (uint32_t level = 0; level < levelCount; level++)

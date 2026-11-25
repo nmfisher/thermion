@@ -157,6 +157,70 @@ void main() {
       }
     });
 
+    test('rejects a short buffer in a later level without uploading any level', () async {
+      final texture = await createTexture(3);
+      await texture.setMipChain([
+        _solidLevel(8, 8, 0, 255, 255),
+        _solidLevel(4, 4, 0, 255, 255),
+        _solidLevel(2, 2, 0, 255, 255),
+      ]);
+
+      // Levels 0 and 1 are valid; level 2 claims 2x2 RGBA8 (16 bytes) but its
+      // buffer holds only 15. The whole chain must be rejected before the
+      // first setImage, so level 0 keeps its previous pixels — a partial
+      // upload would show red here (and Filament would read past the buffer).
+      final shortLevel = TextureMipLevel(
+        data: Uint8List(2 * 2 * 4 - 1),
+        width: 2,
+        height: 2,
+        format: PixelDataFormat.RGBA,
+        type: PixelDataType.UBYTE,
+      );
+      await expectLater(
+        texture.setMipChain([_solidLevel(8, 8, 255, 0, 0), _solidLevel(4, 4, 255, 0, 0), shortLevel]),
+        throwsA(isA<Exception>()),
+      );
+
+      final target = await app.createRenderTarget(8, 8, color: texture);
+      final depth = await target.getDepthTexture();
+      try {
+        await _expectSolid(await _readLevel0(app, target, 8, 8), [0, 255, 255, 255]);
+      } finally {
+        await target.destroy();
+        await depth.destroy();
+        await texture.destroy();
+      }
+    });
+
+    test('rejects a short buffer in level 0 without uploading any level', () async {
+      final texture = await createTexture(2);
+      await texture.setMipChain([_solidLevel(8, 8, 30, 60, 90), _solidLevel(4, 4, 30, 60, 90)]);
+
+      await expectLater(
+        texture.setMipChain([
+          TextureMipLevel(
+            data: Uint8List(8 * 8 * 4 - 1),
+            width: 8,
+            height: 8,
+            format: PixelDataFormat.RGBA,
+            type: PixelDataType.UBYTE,
+          ),
+          _solidLevel(4, 4, 255, 0, 0),
+        ]),
+        throwsA(isA<Exception>()),
+      );
+
+      final target = await app.createRenderTarget(8, 8, color: texture);
+      final depth = await target.getDepthTexture();
+      try {
+        await _expectSolid(await _readLevel0(app, target, 8, 8), [30, 60, 90, 255]);
+      } finally {
+        await target.destroy();
+        await depth.destroy();
+        await texture.destroy();
+      }
+    });
+
     test('single-level setImage still uploads', () async {
       final texture = await createTexture(1);
       await texture.setImage(0, _solidLevel(8, 8, 0, 255, 0).data, 8, 8, PixelDataFormat.RGBA, PixelDataType.UBYTE);
