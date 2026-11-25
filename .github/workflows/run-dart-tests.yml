@@ -152,6 +152,7 @@ jobs:
             test/all_materials_smoke_test.dart \
             test/skybox_tests.dart \
             test/texture_mip_chain_test.dart \
+            test/material_compile_test.dart \
             --concurrency=1
 
       - name: Run tests (Windows)

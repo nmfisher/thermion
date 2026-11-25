@@ -157,6 +157,12 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Renderer_getFrameInfoHistoryJobThread(TJobThread *jobThread, TRenderer *tRenderer, TFrameInfo *out, size_t capacity, void (*onComplete)(size_t));
 
         EMSCRIPTEN_KEEPALIVE void Material_createInstanceJobThread(TJobThread *jobThread, TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *));
+        // Queues Material_compile for `variants` (a TUserVariantFilterBit mask)
+        // at `priority`, then flushes the engine so the backend starts
+        // compiling without waiting for the next frame. onComplete fires once
+        // every requested variant is compiled (immediately, compiling nothing,
+        // for a null material) so the Dart completion is never left pending.
+        EMSCRIPTEN_KEEPALIVE void Material_compileJobThread(TJobThread *jobThread, TEngine *tEngine, TMaterial *tMaterial, TCompilerPriorityQueue priority, uint32_t variants, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterTextureJobThread(TJobThread *jobThread, TMaterialInstance *tMaterialInstance, const char *propertyName, TTexture* tTexture, TTextureSampler* tSampler, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Material_createGizmoMaterialJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TMaterial *));

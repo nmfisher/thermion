@@ -2818,6 +2818,44 @@ external void MaterialProvider_createMaterialInstanceJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>> callback,
 );
 
+@ffi.Native<
+  ffi.Bool Function(
+    ffi.Pointer<TMaterial>,
+    ffi.UnsignedInt,
+    ffi.Uint32,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> userData)>>,
+    ffi.Pointer<ffi.Void>,
+  )
+>(isLeaf: true)
+external bool Material_compile(
+  ffi.Pointer<TMaterial> tMaterial,
+  int priority,
+  int variants,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> userData)>> onComplete,
+  ffi.Pointer<ffi.Void> userData,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<TMaterial>,
+    ffi.UnsignedInt,
+    ffi.Uint32,
+    ffi.Uint32,
+    VoidCallback,
+  )
+>(isLeaf: true)
+external void Material_compileJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TMaterial> tMaterial,
+  int priority,
+  int variants,
+  int requestId,
+  VoidCallback onComplete,
+);
+
 @ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TMaterial> Material_createBoneOverlayMaterial(ffi.Pointer<TEngine> tEngine);
 
@@ -6216,6 +6254,17 @@ final class TColorGrading extends ffi.Opaque {}
 
 final class TColorGradingBuilder extends ffi.Opaque {}
 
+sealed class TCompilerPriorityQueue {
+  /// !< We need this program NOW (compiled synchronously where the platform cannot compile in parallel)
+  static const COMPILER_PRIORITY_CRITICAL = 0;
+
+  /// !< We will need this program soon
+  static const COMPILER_PRIORITY_HIGH = 1;
+
+  /// !< We will need this program eventually
+  static const COMPILER_PRIORITY_LOW = 2;
+}
+
 sealed class TCullingMode {
   static const CULLING_MODE_NONE = 0;
   static const CULLING_MODE_FRONT = 1;
@@ -7062,6 +7111,18 @@ sealed class TTransparencyMode {
   /// first with back faces only, then with front faces; the culling
   /// mode is ignored. Can be combined with two-sided lighting
   static const TWO_PASSES_TWO_SIDES = 2;
+}
+
+sealed class TUserVariantFilterBit {
+  static const USER_VARIANT_DIRECTIONAL_LIGHTING = 1;
+  static const USER_VARIANT_DYNAMIC_LIGHTING = 2;
+  static const USER_VARIANT_SHADOW_RECEIVER = 4;
+  static const USER_VARIANT_SKINNING = 8;
+  static const USER_VARIANT_FOG = 16;
+  static const USER_VARIANT_VSM = 32;
+  static const USER_VARIANT_SSR = 64;
+  static const USER_VARIANT_STE = 128;
+  static const USER_VARIANT_ALL = 255;
 }
 
 sealed class TVertexAttribute {

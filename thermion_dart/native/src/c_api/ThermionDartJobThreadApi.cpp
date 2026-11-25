@@ -869,6 +869,58 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  // Context for one Material_compileJobThread request. Filament keeps the
+  // completion invocable until every requested variant is linked (or the
+  // engine is destroyed) and then calls it once, possibly from a
+  // Filament-internal thread after the queued task has finished; the
+  // trampoline frees the request before handing the completion to Dart.
+  struct MaterialCompileRequest
+  {
+    JobThread *rt;
+    VoidCallback onComplete;
+    uint32_t requestId;
+  };
+
+  static void materialCompileComplete(void *userData)
+  {
+    auto *request = static_cast<MaterialCompileRequest *>(userData);
+    // Only the web PROXY dispatches through the thread handle.
+    [[maybe_unused]] auto *rt = request->rt;
+    auto onComplete = request->onComplete;
+    auto requestId = request->requestId;
+    delete request;
+    PROXY(onComplete(requestId));
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Material_compileJobThread(TJobThread *jobThread,
+      TEngine *tEngine,
+      TMaterial *tMaterial,
+      TCompilerPriorityQueue priority,
+      uint32_t variants,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *request = new MaterialCompileRequest{rt, onComplete, requestId};
+          if (Material_compile(tMaterial, priority, variants, materialCompileComplete, request))
+          {
+            // Filament only submits the compile requests with the next command
+            // buffer; flush so they do not wait for the next rendered frame.
+            reinterpret_cast<filament::Engine *>(tEngine)->flush();
+          }
+          else
+          {
+            // Nothing was compiled and Filament will never call back.
+            delete request;
+            PROXY(onComplete(requestId));
+          }
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterTextureJobThread(TJobThread *jobThread,
       TMaterialInstance *tMaterialInstance,
       const char *propertyName,

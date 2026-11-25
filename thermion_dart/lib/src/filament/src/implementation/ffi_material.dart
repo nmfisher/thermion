@@ -59,6 +59,26 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
     return instance;
   }
 
+  @override
+  Future<void> compile({
+    CompilerPriorityQueue priority = CompilerPriorityQueue.low,
+    Set<UserVariantFilterBit> variants = UserVariantFilterBit.all,
+  }) {
+    // The job-thread wrapper flushes the engine after issuing the compile, and
+    // Filament posts the completion back to Dart when the last variant links.
+    return withVoidCallback((requestId, cb) {
+      Material_compileJobThread(
+        (_app as FFIFilamentApp).jobThreadHandle,
+        _app.engine,
+        pointer,
+        priority.toFFI(),
+        UserVariantFilterBit.maskOf(variants),
+        requestId,
+        cb,
+      );
+    });
+  }
+
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
       Engine_destroyMaterialJobThread((_app as FFIFilamentApp).jobThreadHandle, _app.engine, pointer, requestId, cb);
@@ -259,6 +279,16 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
   @override
   Pointer<TMaterialInstance> getNativeHandle() {
     return pointer;
+  }
+}
+
+extension TCompilerPriorityQueueExt on CompilerPriorityQueue {
+  int toFFI() {
+    return switch (this) {
+      CompilerPriorityQueue.critical => TCompilerPriorityQueue.COMPILER_PRIORITY_CRITICAL,
+      CompilerPriorityQueue.high => TCompilerPriorityQueue.COMPILER_PRIORITY_HIGH,
+      CompilerPriorityQueue.low => TCompilerPriorityQueue.COMPILER_PRIORITY_LOW,
+    };
   }
 }
 
