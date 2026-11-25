@@ -2,9 +2,11 @@
 
 Earlier entries are consolidated. [Original detailed history](https://github.com/nmfisher/thermion/blob/29a53ae682891be0aed05c59fe7ad5f490d2e44e/CHANGELOG.md).
 
-## Unreleased
+## 0.8.0 - 2026-11-25
 
-### Breaking change — built-in helper materials require explicit keys
+### Breaking changes
+
+#### Built-in helper materials require explicit keys
 
 Migrate when your app uses any feature in the table below, including through a
 widget or plugin. Thermion previously bundled most of these helpers by default.
@@ -52,7 +54,27 @@ dart run thermion_dart:download_web -o web --materials gizmo,image
 On any platform, requesting an omitted helper raises a `StateError` naming
 the key to enable.
 
-### Opt-in WebGPU backend
+#### Removed native FFIGizmo / TGizmo and embedded gizmo assets
+
+The unused legacy native gizmo implementation is removed: the `TGizmo`,
+`TGizmoType`, `TGizmoAxis` and `TGizmoPickResultType` types, the `Gizmo_*`
+C API / JobThread symbols, and the embedded translation/rotation gizmo GLB
+assets. Dart and Flutter apps are unaffected — `TransformationGizmo` is
+Dart-only and never used this code. Native C callers must move to the
+Dart-side `TransformationGizmo` (or supply their own gizmo implementation).
+
+#### SilhouetteView and EdgeDetectionView no longer extend FFIView
+
+`SilhouetteView` and `EdgeDetectionView` now compose a private view instead
+of inheriting from `FFIView`, so they can no longer be passed where a `View`
+is expected. `getHighlightOverlay()` is removed from the public `View`
+interface. View picking state (the pick-request list and native callback
+holder) is now allocated lazily on first use, so views that never pick —
+such as silhouette views — no longer pay for it at construction.
+
+### Features
+
+#### Opt-in WebGPU backend
 
 WebGPU is now available as an opt-in rendering backend alongside the default
 WebGL2. Nothing changes for existing apps: default builds keep the
@@ -117,6 +139,105 @@ when `Backend.WEBGPU` is requested without `navigator.gpu`.
 **Deprecation.** The legacy `webgpu: true` user define still works — it is
 equivalent to `backend: webgpu` — but is deprecated; replace it with
 `backend: webgpu`.
+
+#### Compile-time opt-outs for optional native libraries (slim builds)
+
+Apps can compile optional native libraries out of `libthermion_dart` for
+slimmer builds. Set the `features` user defines in the app's root
+`pubspec.yaml`, then rebuild. Every feature is on by default; an absent key
+keeps it, so existing apps build exactly as before.
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      features:
+        gltf: false            # no gltfio: glTF loading, glTF clip/bone animation, ubershader materials
+        ktx: false             # no KTX1/KTX2 textures (incl. Basis Universal)
+        image_decoding: false  # no PNG/JPEG decoding
+```
+
+Each disabled feature drops its Filament archives from the link line.
+`FilamentApp.supports(ThermionFeature)` reports what the loaded build
+contains; APIs that need a disabled feature (e.g. `loadGltf` with
+`gltf: false`) throw an `UnsupportedError` naming the key to re-enable.
+Procedural geometry keeps working without gltfio: `createUnlitMaterialInstance`
+uses a small precompiled fallback unlit material in `gltf: false` builds, and
+entity-keyed morph animation stays available. Runtime material compilation
+(filamat) remains separately opt-in through `runtime_materials: true` and is
+reported by `ThermionFeature.runtimeMaterials`; leave it off for the slimmest
+binaries. `gltf: true` cannot be combined with a disabled decoder — the build
+hook rejects it. Web engines are prebuilt with every feature, so `features.*`
+only affects native builds.
+
+#### Depth textures in the image material
+
+The image material accepts an `isDepthTexture` parameter
+(`setParameterInt('isDepthTexture', 1)` on a background-image or textured-quad
+material instance) to visualize depth textures: the inverted red channel is
+displayed in grayscale, with the existing background color, visibility, UV
+transform and fragment-depth behavior. Requires the `image` built-in material
+key (see the breaking change above).
+
+#### Renderer frame-time history
+
+`FilamentApp.getFrameInfoHistory(count: ...)` exposes Filament's
+`Renderer::getFrameInfoHistory` as `FrameTimingInfo` records, so frame-time
+budgets can include the renderer's own GPU work even when the view renders on
+Thermion's job thread. Unsupported and pending Filament sentinels map to
+`null`. Available on native and web.
+
+#### Up to 255 views per swapchain
+
+The 8-view limit is raised to 255. Swapchains now sync only when dirty
+instead of re-syncing every view on each attach/detach mutation, and the new
+batch `RenderManager.setAttachments` / `updateAttachments` API updates
+multi-view setups atomically.
+
+### Performance
+
+- Bone-matrix uploads run once per asset per frame instead of once per bone,
+  and frames with no active bone animation do zero bone-matrix uploads (#518).
+- Runtime morph/bone animation and glTF clip playback are decoupled from
+  gltfio (#515), as is the core `SceneAsset` path (#514) — the groundwork for
+  the `gltf: false` slim builds above.
+- Silhouettes render target entities directly through a per-view material
+  override instead of duplicating entities, so posed and morphed entities
+  silhouette correctly and `accessibleGeometryBuffers` is no longer required
+  for `setStencilHighlight` (#469).
+- Highlight overlays render directly onto the shared presentation target;
+  the extra intermediate render target and full-screen composite copy are
+  gone (#468).
+
+### Fixes
+
+- Frame capture runs atomically in the native `RenderManager`, removing
+  concurrent-render interleaving, mid-frame wedging and the fixed web sleeps
+  (#471).
+- Flutter preserves `View` `renderOrder` across texture resizes (#473).
+- Linux EGL texture ownership hardening: correct DRM render node selection,
+  leak-free teardown ordering and resize-leak fixes (#262).
+- Vulkan initializes `mipLevels` in `ExternalImageMetadata` on Linux and
+  Windows, fixing validation errors on external-image import (#465).
+- Linux Vulkan blits exports before texture notification and restricts
+  exportable textures to single-plane DRM modifiers (#464, #461).
+- Windows runs the D3D-interop blit on Filament's queue and publishes only
+  completed copies (#460).
+- Gizmo resource leaks fixed; the camera context is shared per pointer event
+  (#247).
+- Android uses 64-bit vsync timestamps, fixing the ~2-second animation
+  freeze/jump on 32-bit devices; iOS targets `targetTimestamp` with a
+  flexible ProMotion frame-rate range (#480).
+
+### Build
+
+- Windows linked libraries moved from `#pragma`s in `ThermionWin32.h` to
+  `hook/build.dart` (#511).
+- Windows Filament archives ship version-matched `matc`/`resgen` tools, built
+  with MSVC v143, and the build hook extracts them from the pinned ZIP
+  correctly (#484, #486, #489).
+- Web JS bindings regenerate cleanly from the repository without an
+  Emscripten SDK; CI fails if committed bindings drift (#508).
 
 ## 0.7.0 - 2026-11-13
 
