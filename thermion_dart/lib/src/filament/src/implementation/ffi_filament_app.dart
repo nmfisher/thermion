@@ -366,9 +366,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       // Offscreen swapchain: the WebGPU web engine renders into a hidden
       // canvas (never presented) so JavaScript can composite the frames.
       if (!webgpu_interop.supportsSkipPresent || backend != Backend.WEBGPU) {
-        throw UnsupportedError(
-          'skipPresent swapchains are only supported by the WebGPU backend in web builds.',
-        );
+        throw UnsupportedError('skipPresent swapchains are only supported by the WebGPU backend in web builds.');
       }
       flags |= webgpu_interop.skipPresentFlag;
     }

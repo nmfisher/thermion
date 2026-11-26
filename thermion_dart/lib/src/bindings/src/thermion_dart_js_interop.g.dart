@@ -2516,10 +2516,11 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext(Pointer<Char> canvasSelector);
   external void _Thermion_destroyCanvas(Pointer<Char> canvasSelector);
+  external int _Thermion_exportWebGPUDevice();
+
   /// Compile-time feature bitmask of the loaded engine: bit 0 gltf, bit 1 ktx,
   /// bit 2 image_decoding, bit 3 runtime_materials (c_api/ThermionFeatures.h).
   external int _Thermion_getEnabledFeatures();
-  external int _Thermion_exportWebGPUDevice();
   external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_getGLContext();
   external Pointer<Char> _Thermion_getOffscreenCanvasSelector(Pointer<Char> canvasSelector);
   external void _Thermion_setCanvasElementSize(Pointer<Char> name, int width, int height);
@@ -9379,15 +9380,15 @@ void Thermion_destroyCanvas(Pointer<Char> canvasSelector) {
   return result;
 }
 
+int Thermion_exportWebGPUDevice() {
+  final result = GeneratedBindings.instance._Thermion_exportWebGPUDevice();
+  return result;
+}
+
 /// Compile-time feature bitmask of the loaded engine: bit 0 gltf, bit 1 ktx,
 /// bit 2 image_decoding, bit 3 runtime_materials (c_api/ThermionFeatures.h).
 int Thermion_getEnabledFeatures() {
   final result = GeneratedBindings.instance._Thermion_getEnabledFeatures();
-  return result;
-}
-
-int Thermion_exportWebGPUDevice() {
-  final result = GeneratedBindings.instance._Thermion_exportWebGPUDevice();
   return result;
 }
 
@@ -12267,8 +12268,6 @@ final class TGtao extends Struct {
     return Pointer<TGtao>(NativeLibrary.instance.stackAlloc<TGtao>(20));
   }
 }
-
-const int THERMION_SWAP_CHAIN_CONFIG_SKIP_PRESENT = 4611686018427387904;
 
 extension TIndexBufferExt on Pointer<TIndexBuffer> {
   TIndexBuffer toDart() {
