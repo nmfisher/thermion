@@ -9,18 +9,37 @@
 // WebGPU.importJsDevice is exactly this JS-object -> handle direction, so
 // both engines submit to the same GPUDevice and queues.
 //
-// The Dart side (web/main.dart) describes its static scene once as JSON on
+// The Dart side (web/main.dart) describes its static geometry once as JSON on
 // window.thermionSidecarScene and fires 'thermion-sidecar-ready'. This module
-// mirrors that description into @meimu/mutracer, commits it with a single
-// Engine.update() (the scene never changes afterwards, so the static BLAS is
-// built exactly once), then accumulates path-traced samples every frame.
+// mirrors that description into @meimu/mutracer and commits it with a single
+// Engine.update() (the geometry never changes afterwards, so the static BLAS
+// is built exactly once). Everything that changes afterwards comes through two
+// per-frame channels the Dart side owns:
+//
+//   window.thermionSidecarCamera  { viewMatrix, position, focus, revision }
+//       refreshed EVERY frame. `revision` only increments when the orbit
+//       camera moved; a new revision is applied to the MuTracer camera (the
+//       column-major view matrix is inverted into its camera-to-world
+//       transform) and resets the sample accumulation.
+//   window.thermionSidecarMode    'raytrace' | 'viewport'
+//       'raytrace' (default): Render.refine() accumulates path-traced samples
+//       and display.present() runs the composite pass below.
+//       'viewport': no path tracing at all; Thermion's offscreen snapshot is
+//       drawn unchanged to the visible canvas (pass-through of the Filament
+//       raster frame). Both modes are presented by this sidecar, on the shared
+//       device, and the single offscreen swapchain is kept in both.
 //
 // Compositing: every frame (after Thermion rendered) the hidden offscreen
-// canvas' current swapchain texture is copied into a sampleable texture on
-// the shared queue; Display.addPostProcess registers a pass that runs inside
+// canvas' current swapchain texture is copied into a sampleable texture on the
+// shared queue; Display.addPostProcess registers a pass that runs inside
 // engine.display.present() on the same device and blends the path-traced
 // image over that copy. present() then draws the blended image to the visible
 // canvas — Thermion itself never presents (its swapchain is skipPresent).
+// Filament skips frames while the previous frame is still pending on the GPU,
+// and Blink hands out a blank texture to the first getCurrentTexture() caller
+// of every frame, so the snapshot is only taken on frames Thermion actually
+// rendered (see makeCompositor); on skipped frames the latest snapshot is
+// reused by both modes.
 import {
   Engine,
   Render,
@@ -32,8 +51,13 @@ import {
   DirectionalLight,
 } from '@meimu/mutracer';
 
+const progressEl = document.getElementById('progress');
 const statusEl = document.getElementById('status');
-const setStatus = (text) => { if (statusEl) statusEl.textContent = text; };
+const setStatus = (text) => {
+  // Dart owns the mode + controls hint (#mode_label); progress goes to
+  // #progress so the two never overwrite each other.
+  (progressEl ?? statusEl)?.replaceChildren(document.createTextNode(text));
+};
 const fail = (message) => {
   setStatus(message);
   throw new Error(message);
@@ -43,6 +67,7 @@ const fail = (message) => {
 //   ?samples=N   path-traced samples to accumulate (default 256)
 //   ?blend=F     0..1 weight of the path-traced image over Thermion's (0.85)
 //   ?exposure=E  linear exposure for the path-traced image (1)
+//   ?mode=viewport  start in viewport mode (handled by Dart; see main.dart)
 const query = new URLSearchParams(window.location.search);
 const maxSamples = Math.max(1, Number(query.get('samples')) || 256);
 const blend = Math.min(1, Math.max(0, Number(query.get('blend') ?? 0.85)));
@@ -87,6 +112,22 @@ function planeGeometry(width, height) {
   });
 }
 
+// Inverts a rigid (rotation + translation, no scale) column-major 4x4 view
+// matrix into the camera-to-world transform MuTracer's Camera.transform takes:
+// view = [R | t] with t = -R * eye, so inverse = [R^T | -R^T t].
+function cameraToWorld(view) {
+  const out = new Array(16);
+  out[0] = view[0]; out[1] = view[4]; out[2] = view[8]; out[3] = 0;
+  out[4] = view[1]; out[5] = view[5]; out[6] = view[9]; out[7] = 0;
+  out[8] = view[2]; out[9] = view[6]; out[10] = view[10]; out[11] = 0;
+  const tx = view[12], ty = view[13], tz = view[14];
+  out[12] = -(view[0] * tx + view[1] * ty + view[2] * tz);
+  out[13] = -(view[4] * tx + view[5] * ty + view[6] * tz);
+  out[14] = -(view[8] * tx + view[9] * ty + view[10] * tz);
+  out[15] = 1;
+  return out;
+}
+
 function mirrorScene(description) {
   const meshes = description.meshes.map((m) => {
     const geometry = m.geometry === 'unitCube' ? cubeGeometry()
@@ -117,7 +158,8 @@ function mirrorScene(description) {
     near: description.camera.near,
     far: description.camera.far,
   });
-  camera.transform = description.camera.transform; // camera-to-world
+  // Initial camera-to-world; superseded every frame by the per-frame channel.
+  camera.transform = description.camera.transform;
 
   return {
     scene: { meshes, lights: [sun], background: description.background },
@@ -125,7 +167,21 @@ function mirrorScene(description) {
   };
 }
 
-// --- Compositing pass -------------------------------------------------------
+// Fullscreen triangle shared by both passes: uv in [0,1], v flipped to image
+// (top-first) space, which is also the texel space of the canvas copy.
+const fullscreenVertex = /* wgsl */ `
+struct VSOut { @builtin(position) pos: vec4f, @location(0) uv: vec2f };
+@vertex
+fn vs(@builtin(vertex_index) i: u32) -> VSOut {
+  let p = vec2f(f32((i << 1u) & 2u), f32(i & 2u));
+  var out: VSOut;
+  out.pos = vec4f(p * 2.0 - 1.0, 0.0, 1.0);
+  out.uv = vec2f(p.x, 1.0 - p.y);
+  return out;
+}
+`;
+
+// --- Compositing pass (raytrace mode) ---------------------------------------
 // Runs inside display.present() on the shared device. `input` is MuTracer's
 // tone-mapped sRGB image (premultiplied). Thermion's frame is not imported
 // directly: WebGPU's importExternalTexture accepts video only, so instead the
@@ -146,12 +202,33 @@ function makeCompositor(device, offscreenCanvas, width, height) {
 
   // Snapshot of the latest Thermion frame, refreshed by captureThermion().
   let thermionCopy = null;
+  const stats = { captures: 0, skippedFrames: 0 };
+
+  // Filament does not necessarily render every animation frame: its beginFrame
+  // rejects a frame while the previous frame's GPU work is still pending
+  // (routinely every other frame on a software adapter). Blink nevertheless
+  // hands a fresh, blank texture to the first getCurrentTexture() caller of
+  // EVERY frame, so a sidecar that blindly snapshots "the current texture"
+  // copies blank frames on the skipped ones (a flickering composite in
+  // raytrace mode, a black canvas in viewport mode). Within one frame
+  // getCurrentTexture() returns the same texture to every caller, so the
+  // sidecar watches the texture Thermion itself acquires — Thermion's
+  // Emscripten surface code calls this very context method — and snapshots
+  // only when the current texture is that one, i.e. Thermion rendered this
+  // frame. On a skipped frame the previous snapshot stays the latest frame.
+  let thermionTexture = null;
+  const acquireCurrentTexture = thermionContext.getCurrentTexture.bind(thermionContext);
+  thermionContext.getCurrentTexture = () => (thermionTexture = acquireCurrentTexture());
 
   // Call once per animation frame, after Thermion rendered into the hidden
-  // canvas and before present(). getCurrentTexture() returns the same texture
-  // for every call within one frame, so this is exactly Thermion's target.
+  // canvas and before present(). Returns whether a new frame was captured.
   const captureThermion = () => {
-    const source = thermionContext.getCurrentTexture();
+    const source = acquireCurrentTexture();
+    if (source !== thermionTexture) {
+      stats.skippedFrames++;
+      return false;
+    }
+    stats.captures++;
     if (!thermionCopy || thermionCopy.width !== source.width ||
         thermionCopy.height !== source.height ||
         thermionCopy.format !== source.format) {
@@ -167,6 +244,7 @@ function makeCompositor(device, offscreenCanvas, width, height) {
     encoder.copyTextureToTexture({ texture: source }, { texture: thermionCopy },
       [source.width, source.height]);
     device.queue.submit([encoder.finish()]);
+    return true;
   };
 
   // scaleX/scaleY map post-process UVs onto the centered requested rectangle
@@ -187,18 +265,7 @@ function makeCompositor(device, offscreenCanvas, width, height) {
 struct Params { blend: f32, exposure: f32, scaleX: f32, scaleY: f32 };
 @group(0) @binding(3) var<uniform> params: Params;
 
-struct VSOut { @builtin(position) pos: vec4f, @location(0) uv: vec2f };
-@vertex
-fn vs(@builtin(vertex_index) i: u32) -> VSOut {
-  // Fullscreen triangle; uv in [0,1], v flipped to image (top-first) space,
-  // which is also the texel space of the canvas copy.
-  let p = vec2f(f32((i << 1u) & 2u), f32(i & 2u));
-  var out: VSOut;
-  out.pos = vec4f(p * 2.0 - 1.0, 0.0, 1.0);
-  out.uv = vec2f(p.x, 1.0 - p.y);
-  return out;
-}
-
+${fullscreenVertex}
 fn toLinear(c: vec3f) -> vec3f {
   return select(pow((c + 0.055) / 1.055, vec3f(2.4)), c / 12.92, c <= vec3f(0.04045));
 }
@@ -281,7 +348,93 @@ fn fs(in: VSOut) -> @location(0) vec4f {
     pass.end();
   };
 
-  return { captureThermion, postProcess };
+  return {
+    captureThermion,
+    postProcess,
+    get captured() { return thermionCopy; },
+    get info() {
+      return thermionCopy && { format: thermionCopy.format, width: thermionCopy.width, height: thermionCopy.height };
+    },
+    get stats() { return { ...stats }; },
+  };
+}
+
+// --- Viewport pass-through (viewport mode) ----------------------------------
+// Presents Thermion's offscreen snapshot UNCHANGED on the visible canvas: no
+// path tracing, no blend, no re-encoding — a fullscreen draw that samples the
+// copy and writes it to the visible canvas' current swapchain texture on the
+// shared device. The visible canvas' WebGPU context is the one MuTracer
+// configured for its own presentation (same device); this pass only borrows
+// its current texture, exactly as MuTracer's display does, so both modes end
+// up in the same place without a second swapchain for Thermion.
+function makeViewportPresenter(device, presentCanvas) {
+  const context = presentCanvas.getContext('webgpu');
+  if (!context) fail('The visible canvas has no WebGPU context.');
+
+  const module = device.createShaderModule({
+    label: 'thermion-sidecar-viewport',
+    code: /* wgsl */ `
+@group(0) @binding(0) var thermionTexture: texture_2d<f32>;
+@group(0) @binding(1) var thermionSampler: sampler;
+
+${fullscreenVertex}
+@fragment
+fn fs(in: VSOut) -> @location(0) vec4f {
+  // Pass-through of the Filament raster frame: same texel, same alpha.
+  return textureSampleLevel(thermionTexture, thermionSampler, in.uv, 0.0);
+}
+`,
+  });
+  const sampler = device.createSampler({ magFilter: 'linear', minFilter: 'linear' });
+  const pipelines = new Map();
+  let cached = { source: null, format: null, bindGroup: null };
+  let lastTarget = null;
+
+  // `source` is the latest captureThermion() copy; call once per frame.
+  const presentViewport = (source) => {
+    const target = context.getCurrentTexture();
+    lastTarget = { format: target.format, width: target.width, height: target.height };
+    let pipeline = pipelines.get(target.format);
+    if (!pipeline) {
+      pipeline = device.createRenderPipeline({
+        label: 'thermion-sidecar-viewport',
+        layout: 'auto',
+        vertex: { module, entryPoint: 'vs' },
+        fragment: { module, entryPoint: 'fs', targets: [{ format: target.format }] },
+        primitive: { topology: 'triangle-list' },
+      });
+      pipelines.set(target.format, pipeline);
+    }
+    if (cached.source !== source || cached.format !== target.format) {
+      cached = {
+        source,
+        format: target.format,
+        bindGroup: device.createBindGroup({
+          layout: pipeline.getBindGroupLayout(0),
+          entries: [
+            { binding: 0, resource: source.createView() },
+            { binding: 1, resource: sampler },
+          ],
+        }),
+      };
+    }
+    const encoder = device.createCommandEncoder({ label: 'thermion-sidecar-viewport' });
+    const pass = encoder.beginRenderPass({
+      colorAttachments: [{
+        view: target.createView(),
+        loadOp: 'clear',
+        storeOp: 'store',
+        clearValue: { r: 0, g: 0, b: 0, a: 0 },
+      }],
+    });
+    pass.setPipeline(pipeline);
+    pass.setBindGroup(0, cached.bindGroup);
+    pass.draw(3);
+    pass.end();
+    device.queue.submit([encoder.finish()]);
+  };
+
+  return { presentViewport, get info() { return lastTarget; } };
 }
 
 // --- Boot -------------------------------------------------------------------
@@ -297,6 +450,11 @@ async function start() {
   const offscreenCanvas = document.querySelector(bridge.offscreenCanvasSelector);
   const presentCanvas = document.querySelector(bridge.presentCanvasSelector);
   if (!offscreenCanvas || !presentCanvas) fail('Sidecar canvases are missing.');
+  // WebGPU validation errors are silent unless someone listens; surface them
+  // in the console so a bad pass never looks like a black canvas.
+  device.addEventListener('uncapturederror', (event) => {
+    console.error(`[mutracer_sidecar] WebGPU: ${event.error?.message ?? event.error}`);
+  });
 
   const { scene, camera } = mirrorScene(bridge.scene);
 
@@ -316,9 +474,9 @@ async function start() {
   const info = await engine.init();
   if (info.backend !== 'webgpu') fail('MuTracer fell back to WebGL; expected WebGPU.');
 
-  // Commit the static scene exactly once. Nothing in `scene` changes after
-  // this, so later update() calls report no changes and the BLAS is never
-  // rebuilt.
+  // Commit the static geometry exactly once. Nothing in `scene` changes after
+  // this, so later update() calls only ever report the camera (which never
+  // touches the BLAS) — the frame loop asserts exactly that.
   const committed = engine.update();
   if (!committed) fail('Scene mirror produced no changes to commit.');
   await engine.prepare(scene); // static BLAS, built once
@@ -332,23 +490,89 @@ async function start() {
   });
   engine.display.toneMapping = 'aces';
   engine.display.toneMappingExposure = 1;
-  const { captureThermion, postProcess } =
-    makeCompositor(device, offscreenCanvas, bridge.width, bridge.height);
-  engine.display.addPostProcess(postProcess);
+  const compositor = makeCompositor(device, offscreenCanvas, bridge.width, bridge.height);
+  engine.display.addPostProcess(compositor.postProcess);
+  const viewportPresenter = makeViewportPresenter(device, presentCanvas);
+  const { presentViewport } = viewportPresenter;
 
-  let blasRebuilt = false;
+  // Per-frame channel state.
+  const stats = {
+    mode: 'raytrace',
+    cameraRevision: -1, // last revision applied to the MuTracer camera
+    restarts: 0, // accumulation resets (camera or mode changes)
+    refineCalls: 0,
+    viewportFrames: 0,
+    raytraceFrames: 0,
+    unexpectedCommits: 0, // update() reported changes without a camera edit
+  };
+  const currentMode = () =>
+    window.thermionSidecarMode === 'viewport' ? 'viewport' : 'raytrace';
+  let mode = currentMode();
+  stats.mode = mode;
+  // Exposed for headless checks (README, Verification); read-only.
+  const debug = {
+    snapshot: () => ({
+      ...stats,
+      captures: compositor.stats.captures,
+      skippedFrames: compositor.stats.skippedFrames,
+      samples: render.samples,
+      converged: render.converged,
+      maxSamples,
+      cameraPosition: Array.from(camera.position),
+      capture: compositor.info,
+    }),
+  };
+  window.thermionSidecarDebug = debug;
+
   const frame = () => {
-    // No scene edits: update() is a no-op change check, kept to prove the
-    // BLAS-once contract (it must keep returning false).
-    if (engine.update()) blasRebuilt = true;
-    if (!render.converged) render.refine();
-    // Snapshot Thermion's freshly rendered swapchain texture (same frame, same
-    // queue) so the composite always uses the latest offscreen frame.
-    captureThermion();
-    if (render.samples > 0) {
-      engine.display.present(render);
+    // 1. Per-frame camera sync. A new revision means the orbit camera moved:
+    // apply it to the MuTracer camera and restart accumulation.
+    const channel = window.thermionSidecarCamera;
+    let cameraChanged = false;
+    if (channel && channel.revision !== stats.cameraRevision) {
+      stats.cameraRevision = channel.revision;
+      camera.transform = cameraToWorld(channel.viewMatrix);
+      cameraChanged = true;
+    }
+
+    // 2. Mode: Dart writes window.thermionSidecarMode on every toggle.
+    mode = currentMode();
+    const modeChanged = mode !== stats.mode;
+    stats.mode = mode;
+
+    // 3. Change check. A camera edit is expected to report a change; it
+    //    never re-commits the scene, so anything else is a BLAS-once violation.
+    if (engine.update() && !cameraChanged) stats.unexpectedCommits++;
+
+    // 4. Reset the accumulation when the camera or the mode changed, so the
+    //    path-traced image never mixes samples from different views.
+    if (cameraChanged || modeChanged) {
+      render.restart();
+      stats.restarts++;
+    }
+
+    // 5. Snapshot Thermion's freshly rendered swapchain texture (same frame,
+    //    same queue); on a frame Filament skipped this keeps the previous
+    //    snapshot, which is then the latest frame either mode can show.
+    compositor.captureThermion();
+
+    if (mode === 'viewport') {
+      // Pass-through of the Filament raster frame: no refine(), no blend.
+      if (compositor.captured) presentViewport(compositor.captured);
+      stats.viewportFrames++;
+      setStatus(`Viewport: Thermion\u2019s raster frame passed through unchanged (path tracing paused).`);
+    } else {
+      // No scene edits: path-trace and composite as before.
+      if (!render.converged) {
+        render.refine();
+        stats.refineCalls++;
+      }
+      if (render.samples > 0) {
+        engine.display.present(render);
+      }
+      stats.raytraceFrames++;
       setStatus(render.converged
-        ? `MuTracer sidecar: ${render.samples} samples on Thermion's GPUDevice (shared, BLAS built once${blasRebuilt ? ' — WARNING: scene re-committed' : ''}). Blend ${blend}.`
+        ? `MuTracer sidecar: ${render.samples} samples on Thermion's GPUDevice (shared, BLAS built once${stats.unexpectedCommits ? ' — WARNING: scene re-committed' : ''}). Blend ${blend}.`
         : `MuTracer sidecar: ${render.samples}/${maxSamples} samples\u2026`);
     }
     requestAnimationFrame(frame);

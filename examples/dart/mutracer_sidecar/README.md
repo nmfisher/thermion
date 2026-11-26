@@ -24,21 +24,31 @@ readback round-trip through the CPU.
   selector so the sidecar reads the very canvas Thermion renders into; the
   sidecar mirrors meshes, materials, sun and camera into MuTracer, commits it
   with a single `Engine.update()` and builds the static BLAS **once**
-  (`engine.prepare(scene)`; the per-frame `update()` afterwards must keep
-  reporting "no changes").
+  (`engine.prepare(scene)`; the per-frame `update()` afterwards must only ever
+  report the camera, never the scene).
 - Every frame the sidecar accumulates path-traced samples (`Render.refine`),
   snapshots Thermion's offscreen frame and calls `engine.display.present(render)`,
   which runs a registered `Display.addPostProcess` pass **on the shared
   device**: it blends the tone-mapped path-traced image over the Thermion
   snapshot in linear space, and `present()` draws the composite on the visible
   `#thermion_canvas`.
+- An **orbit camera** (drag = orbit, wheel = dolly) drives Thermion's camera,
+  and the very same view matrix is pushed to the sidecar **every frame**
+  (`window.thermionSidecarCamera`); the sidecar applies it to the MuTracer
+  camera and restarts the accumulation, so both renderers always show the
+  same view. A **mode toggle** (`R` key or the on-screen button) switches
+  between `raytrace` (the composite above) and `viewport` (Thermion's raster
+  frame passed through unchanged, no path tracing); both modes are presented
+  by the sidecar on the shared device.
 
 ```
 Thermion (Dart/WASM)                     MuTracer sidecar (JS)
   WebGPU backend ── GPUDevice ──────────── Engine({ device })   (same object)
-  createOffscreenSwapChain()               Render.refine() samples
+  createOffscreenSwapChain()               Render.refine() samples   (raytrace)
   hidden offscreen canvas ── texture ─────► composite post-process
                                copy         display.present() ──► visible canvas
+  orbit camera ── viewMatrix/revision ───► camera.transform + restart
+  mode (R / button) ──────────────────────► raytrace | viewport pass-through
 ```
 
 ## Prerequisites
@@ -86,33 +96,97 @@ dart run tool/serve.dart
 
 Open http://localhost:8080 in a WebGPU-capable browser (Chrome/Edge; on Linux
 without a GPU add `--enable-unsafe-webgpu`). The status line at the bottom
-reports sample progress and confirms the shared device + BLAS-once contract.
-Everything in `web/` except `index.html` and `main.dart` is a build artifact
-(see `.gitignore`).
+shows the current mode and the controls hint on the left (`mode: … ·
+drag=orbit · wheel=zoom · R=toggle`) and the sidecar's sample progress next to
+it. Everything in `web/` except `index.html` and `main.dart` is a build
+artifact (see `.gitignore`).
+
+## Controls and modes
+
+| Input               | Action                                                      |
+| ------------------- | ----------------------------------------------------------- |
+| drag on the canvas  | orbit around the focus point (yaw, pitch clamped to ±86°)    |
+| mouse wheel         | dolly (distance 1.5–30 scene units)                          |
+| `R` key / button    | toggle `raytrace` ↔ `viewport`                               |
+
+The camera is a spherical orbit around the scene's focus point
+(`web/main.dart`, `_OrbitState`). Every change is applied to the Thermion
+camera (`getActiveCamera()` → `lookAt(position, focus: focus)`) and the
+resulting view matrix is republished to the sidecar every animation frame:
+
+- `window.thermionSidecarCamera` — `{ viewMatrix, position, focus, revision }`
+  (the same JS object, mutated in place). `viewMatrix` is the column-major
+  world→camera matrix (`makeViewMatrix`, f32); `revision` only increments when
+  the camera actually moved. The Dart pump publishes it **before** calling
+  `app.render()`, and the sidecar's rAF callback runs after Dart's in the same
+  frame, so the sidecar always sees the matrix Thermion just rendered with.
+- `window.thermionSidecarMode` — `'raytrace'` (default) or `'viewport'`,
+  written on every toggle.
+
+The sidecar reacts as follows:
+
+- **raytrace** — a new `revision` is inverted (rigid inverse) into the
+  MuTracer camera's camera-to-world `transform` and `render.restart()` drops
+  the accumulated samples; then `Render.refine()` and the composite
+  `display.present()` continue as before. The per-frame `engine.update()`
+  still runs: a camera edit is expected to report a change (it never touches
+  the BLAS), and any *other* change would trip the "scene re-committed"
+  warning in the status line.
+- **viewport** — no `refine()` at all. The sidecar still snapshots Thermion's
+  offscreen frame (the single present-skip swapchain is kept in both modes)
+  and draws that snapshot **unchanged** to the visible canvas' current
+  swapchain texture with a fullscreen pass-through pass on the shared device
+  (same WebGPU context MuTracer presents to). No blend, no re-encoding, no
+  path tracing; the accumulation is reset on the mode switch so switching back
+  restarts from 0 samples.
+- Switching modes resets the accumulation too, so samples are never mixed
+  across views or modes.
+
+`window.thermionSidecarDebug.snapshot()` exposes the sidecar's counters
+(`mode`, `cameraRevision`, `restarts`, `refineCalls`, `viewportFrames`,
+`unexpectedCommits`, `samples`) for headless checks.
 
 URL parameters:
 
-| Query        | Default | Meaning                                        |
-| ------------ | ------- | ---------------------------------------------- |
-| `?samples=N` | `256`   | path-traced samples to accumulate              |
-| `?blend=F`   | `0.85`  | 0..1 weight of the traced image over Thermion's |
-| `?exposure=E`| `1`     | linear exposure of the traced image            |
+| Query            | Default    | Meaning                                        |
+| ---------------- | ---------- | ---------------------------------------------- |
+| `?samples=N`     | `256`      | path-traced samples to accumulate              |
+| `?blend=F`       | `0.85`     | 0..1 weight of the traced image over Thermion's |
+| `?exposure=E`    | `1`        | linear exposure of the traced image            |
+| `?mode=viewport` | `raytrace` | initial mode (`raytrace` or `viewport`)         |
 
-`?blend=0` shows Thermion's raw offscreen output alone; `?blend=1` shows the
-path-traced image alone — both still presented by the sidecar on the shared
-device.
+`?blend=0` shows Thermion's raw offscreen output alone through the composite
+pass; `?blend=1` shows the path-traced image alone — both still presented by
+the sidecar on the shared device. `?mode=viewport` is the same frame without
+the composite pass at all.
 
-## How the composite gets Thermion's frame
+## How both modes get Thermion's frame
 
 WebGPU cannot import a canvas as an external texture (`importExternalTexture`
 accepts video only), and Thermion's offscreen target is the hidden canvas'
 swapchain, which only exists for the duration of a frame. So every frame,
-after `app.render()` and before `present()`, the sidecar asks the hidden
+after `app.render()` and before presenting, the sidecar asks the hidden
 canvas' `GPUCanvasContext` (created by Emscripten for the present-skip
 swapchain) for `getCurrentTexture()` — the texture Thermion just rendered into
 — and copies it with `copyTextureToTexture` into a sampleable texture,
-submitted on the shared queue. The post-process pass samples that copy. The
-cost is one fullscreen texture copy per frame; nothing leaves the GPU.
+submitted on the shared queue. The raytrace post-process pass and the viewport
+pass-through pass both sample that copy. The cost is one fullscreen texture
+copy per frame; nothing leaves the GPU.
+
+One subtlety the spike ran into: **Filament does not render every animation
+frame.** Its `beginFrame` rejects a frame while the previous frame's GPU work
+is still pending — on the headless SwiftShader run that is every other frame
+— and Blink still hands a fresh, *blank* texture to the first
+`getCurrentTexture()` caller of every frame. A sidecar that snapshots "the
+current texture" unconditionally therefore copies blank frames on the skipped
+ones (a composite flickering 15% darker in raytrace mode; a black canvas every
+other frame in viewport mode). Within a frame `getCurrentTexture()` returns
+the same texture to every caller, so the sidecar wraps the hidden canvas'
+`getCurrentTexture` (instance level) to remember the texture *Thermion*
+acquired — Thermion's Emscripten surface code calls that very method — and
+snapshots only when the current texture is that one. On a skipped frame the
+previous snapshot remains the latest Thermion frame for both modes. The
+debug snapshot exposes `captures` and `skippedFrames` counters.
 
 ## Verification
 
@@ -134,14 +208,44 @@ Checked headlessly with Chromium + SwiftShader (`--enable-unsafe-webgpu
   the default blend is a mix of the two — so the scene mirror lines up with
   Thermion's camera and the composite reads Thermion's frame.
 
+Orbit camera + mode toggle (headless Playwright script, not committed):
+`window.thermionSidecarDebug.snapshot()` counters plus screenshots at 480x320:
+
+- **raytrace (default):** the status reaches `N samples on Thermion's
+  GPUDevice (shared, BLAS built once)`, `refineCalls >= N`,
+  `unexpectedCommits == 0`.
+- **viewport (R key):** `window.thermionSidecarMode` and the sidecar agree,
+  the label/button flip, `refineCalls` stays flat (no path tracing),
+  `restarts` increments and `samples` drops to 0; three screenshots 350 ms
+  apart are identical and non-blank (no blank-frame flicker). The viewport
+  screenshot matches a `?blend=0` reference (Thermion's raw frame) within a
+  few units per channel and differs clearly from the default composite.
+- **camera:** a 90x40 px drag raises `thermionSidecarCamera.revision` and
+  moves the eye position; the sidecar's `cameraRevision` follows and
+  `restarts` increments once per revision, in both modes. The viewport
+  (raster) screenshot changes after the drag, and so does the path-traced
+  screenshot after toggling back with the button; the sky/horizon mask of the
+  two (same camera, different renderers) overlaps with IoU > 0.85, while the
+  mask of the pre-drag screenshot does not — i.e. both renderers moved to the
+  same new view.
+- Toggling back with the button resets the accumulation again and
+  `refineCalls`/`samples` resume from 0.
+
+Cannot be checked headlessly here: perceived smoothness of the orbit on a
+real GPU (SwiftShader path-traces ~1 sample/s at 480x320), so each drag step
+resets the accumulation to a 1-sample image there.
+
 ## Files
 
 - `web/main.dart` — Thermion scene + offscreen swapchain
   (`createOffscreenSwapChain`) + device export (`webGPUDevice`) + JSON scene
-  bridge (including `offscreenCanvasSelector`); pumps `app.render()` every
-  animation frame.
+  bridge (including `offscreenCanvasSelector`); orbit camera (pointer/wheel
+  on the visible canvas → `camera.lookAt`) and the mode toggle (R key +
+  button); pumps `app.render()` every animation frame and publishes the
+  per-frame camera channel.
 - `js/mutracer_sidecar.js` — device import, scene mirror, BLAS-once commit,
-  path tracing, compositing post-process, presentation.
+  per-frame camera sync, frame snapshot (skipped-frame aware), path tracing,
+  compositing post-process, viewport pass-through, presentation.
 - `tool/build_sidecar.mjs` — esbuild bundle script (`npm run build`).
 - `tool/stage_engine.dart` — copies the local WebGPU engine into `web/`.
 - `tool/serve.dart` — COOP/COEP dev server for `web/`.
@@ -156,8 +260,14 @@ Checked headlessly with Chromium + SwiftShader (`--enable-unsafe-webgpu
   plumbing, not matched shading.
 - The composite blends two display-encoded images in linear space; it is not
   a physically merged render (no shared G-buffer).
-- Static scene only: the BLAS-once contract is asserted by the per-frame
-  `engine.update()` returning false. Editing the scene would re-commit and
+- Static geometry only: the BLAS-once contract is asserted by the per-frame
+  `engine.update()` reporting changes only on frames with a camera edit
+  (`unexpectedCommits` stays 0). Editing the scene would re-commit and
   rebuild BLASes, which is out of scope here.
+- The snapshot relies on Blink's contract that `getCurrentTexture()` returns
+  the same texture to every caller within a frame and on Emscripten's surface
+  code calling the context method (it does, via `getCurrentTexture()` on the
+  JS context). Both are implementation details of the engine build; if either
+  changes, the wrapper in `makeCompositor` is the place to revisit.
 - WebGPU only. On WebGL2 engines `createOffscreenSwapChain()` throws
   `UnsupportedError`; `offscreenCanvasSelector` and `webGPUDevice` are null.

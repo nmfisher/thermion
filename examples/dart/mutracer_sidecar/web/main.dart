@@ -11,10 +11,20 @@
 // in package:thermion_dart/thermion_dart_web.dart (PR #521):
 // createOffscreenSwapChain(), webGPUDevice and offscreenCanvasSelector().
 //
-// This Dart side deliberately keeps the scene static and mirrors every piece
-// of it into a plain JSON description (`window.thermionSidecarScene`), so the
-// sidecar never has to guess transforms, materials, the camera or the hidden
-// canvas Thermion renders into.
+// This Dart side deliberately keeps the geometry static and mirrors it into a
+// plain JSON description (`window.thermionSidecarScene`) ONCE, so the sidecar
+// never has to guess transforms or materials. Everything that changes per
+// frame goes through two small per-frame channels instead:
+//
+//   window.thermionSidecarCamera  { viewMatrix, position, focus, revision }
+//       published EVERY frame; `revision` only increments when the camera
+//       actually moved (the sidecar keys its accumulation reset on it).
+//   window.thermionSidecarMode    'raytrace' | 'viewport'
+//       written whenever the user toggles the mode (R key or button).
+//
+// Camera: an orbit camera (drag = orbit around the focus point, wheel =
+// dolly) drives the Thermion camera, and the very same view matrix is pushed
+// to the sidecar so both renderers stay in sync.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:js_interop';
@@ -36,6 +46,21 @@ import 'package:web/web.dart' as web;
 /// `app.offscreenCanvasSelector` instead (published to the sidecar below).
 const canvasSelector = '#thermion_canvas';
 
+/// Presentation modes understood by the sidecar.
+enum RenderMode {
+  /// Path-trace on the shared device and composite over Thermion's frame.
+  raytrace,
+
+  /// Present Thermion's offscreen raster frame unchanged (no path tracing).
+  viewport,
+}
+
+extension on RenderMode {
+  String get name => this == RenderMode.raytrace ? 'raytrace' : 'viewport';
+  RenderMode get other =>
+      this == RenderMode.raytrace ? RenderMode.viewport : RenderMode.raytrace;
+}
+
 // One static scene, described once and used for both renderers.
 final _cubeTransform = Matrix4.compose(
   Vector3(-0.7, 0.85, 0.0),
@@ -45,12 +70,76 @@ final _cubeTransform = Matrix4.compose(
 final _planeTransform = Matrix4.translation(Vector3(0, 0, 0));
 final _cameraPosition = Vector3(3.0, 2.6, 4.6);
 final _cameraFocus = Vector3(0, 0.7, 0);
+final _up = Vector3(0, 1, 0);
 final _sunDirection = Vector3(-0.6, -1.0, -0.4)..normalize();
 const _sunIntensityLux = 40000.0;
 const _skyColor = [0.35, 0.45, 0.60];
 const _cubeBaseColor = [0.85, 0.30, 0.20];
 const _planeBaseColor = [0.75, 0.75, 0.72];
 const _fovDegrees = 45.0;
+
+// Orbit camera tuning.
+const _orbitRadiansPerPixel = 0.005;
+const _pitchLimit = 1.5; // ~86 degrees; keeps the up vector meaningful.
+const _minDistance = 1.5;
+const _maxDistance = 30.0;
+const _dollyScalePerWheelPixel = 1.001; // ~10% per 100-unit wheel notch.
+
+const _controlsHint = 'drag=orbit · wheel=zoom · R=toggle';
+
+double _clampDouble(double value, double min, double max) =>
+    value < min ? min : (value > max ? max : value);
+
+/// Orbit camera state around a focus point, held as spherical coordinates so
+/// that drags are increments and the camera never drifts or flips.
+class _OrbitState {
+  _OrbitState({
+    required this.focus,
+    required this.distance,
+    required this.yaw,
+    required this.pitch,
+  });
+
+  /// Derives the spherical coordinates of an existing position/focus pair.
+  factory _OrbitState.fromPosition(Vector3 position, Vector3 focus) {
+    final offset = position - focus;
+    final distance = offset.length;
+    return _OrbitState(
+      focus: focus.clone(),
+      distance: distance,
+      yaw: math.atan2(offset.x, offset.z),
+      pitch: math.asin(_clampDouble(offset.y / distance, -1.0, 1.0)),
+    );
+  }
+
+  final Vector3 focus;
+  double distance;
+  double yaw; // azimuth around +Y, 0 = looking down -Z from +Z
+  double pitch; // elevation above the XZ plane
+
+  Vector3 get position => Vector3(
+        focus.x + distance * math.cos(pitch) * math.sin(yaw),
+        focus.y + distance * math.sin(pitch),
+        focus.z + distance * math.cos(pitch) * math.cos(yaw),
+      );
+
+  Matrix4 get viewMatrix => makeViewMatrix(position, focus, _up);
+
+  /// Applies a drag of [dx], [dy] CSS pixels: yaw follows the pointer
+  /// horizontally, pitch follows it vertically (clamped).
+  void orbit(double dx, double dy) {
+    yaw -= dx * _orbitRadiansPerPixel;
+    pitch = _clampDouble(pitch - dy * _orbitRadiansPerPixel, -_pitchLimit, _pitchLimit);
+  }
+
+  /// Applies a wheel delta in pixels: positive = dolly out.
+  void dolly(double deltaY) {
+    distance = _clampDouble(
+        distance * math.pow(_dollyScalePerWheelPixel, deltaY).toDouble(),
+        _minDistance,
+        _maxDistance);
+  }
+}
 
 List<double> _mat4ToList(Matrix4 m) =>
     List<double>.generate(16, (i) => m.storage[i]);
@@ -84,15 +173,27 @@ Future<Map<String, Object?>> _describeScene() async {
       'color': [1.0, 1.0, 1.0],
     },
     'background': [..._skyColor, 1.0],
+    // Initial camera only: live camera updates arrive per frame through
+    // `window.thermionSidecarCamera` (see _publishCamera).
     'camera': {
-      'transform': _mat4ToList(
-          (makeViewMatrix(_cameraPosition, _cameraFocus, Vector3(0, 1, 0))
-            ..invert())),
+      'transform': _mat4ToList(makeViewMatrix(
+        _cameraPosition,
+        _cameraFocus,
+        _up,
+      )..invert()),
       'fovDegrees': _fovDegrees,
       'near': 0.1,
       'far': 100.0,
     },
   };
+}
+
+/// Initial mode may be forced with `?mode=raytrace|viewport` (handy for
+/// headless checks); the default is the path-traced composite.
+RenderMode _initialMode() {
+  final query = web.window.location.search;
+  final params = Uri.splitQueryString(query.startsWith('?') ? query.substring(1) : query);
+  return params['mode'] == 'viewport' ? RenderMode.viewport : RenderMode.raytrace;
 }
 
 Future<void> main() async {
@@ -150,7 +251,8 @@ Future<void> main() async {
   final camera = await viewer.getActiveCamera();
   await camera.setProjectionFromVerticalFieldOfView(
       _fovDegrees, 0.1, 100.0, canvas.width / canvas.height);
-  await camera.lookAt(_cameraPosition, focus: _cameraFocus);
+  final orbit = _OrbitState.fromPosition(_cameraPosition, _cameraFocus);
+  await camera.lookAt(orbit.position, focus: orbit.focus);
   await camera.setExposure(16.0, 1 / 125.0, 100.0);
 
   // Static scene: sky color + sun + two ubershader meshes.
@@ -195,21 +297,156 @@ Future<void> main() async {
     return;
   }
 
-  final scene = await _describeScene();
+  // Geometry-only description, published once. Camera and mode are per-frame
+  // channels (below), so the sidecar never has to re-read the scene.
   final bridge = {
     'offscreenCanvasSelector': offscreenSelector,
     'presentCanvasSelector': canvasSelector,
     'width': canvas.width,
     'height': canvas.height,
-    'scene': scene,
+    'scene': await _describeScene(),
   };
   web.window.setProperty(
       'thermionSidecarScene'.toJS, jsonEncode(bridge).toJS);
 
+  // --- Orbit camera + mode toggle -------------------------------------------
+
+  // Camera edits from input; applied to the Thermion camera and published
+  // to the sidecar on the next pump, so drags and frames never interleave.
+  var cameraDirty = false;
+  var cameraRevision = 0;
+
+  var mode = _initialMode();
+
+  final modeLabel = web.document.querySelector('#mode_label');
+  final modeButton =
+      web.document.querySelector('#mode_toggle') as web.HTMLButtonElement?;
+
+  void publishMode() {
+    web.window.setProperty('thermionSidecarMode'.toJS, mode.name.toJS);
+    if (modeLabel != null) {
+      modeLabel.textContent = 'mode: ${mode.name} · $_controlsHint';
+    }
+    if (modeButton != null) {
+      modeButton.textContent = mode == RenderMode.raytrace
+          ? 'Viewport (R)'
+          : 'Raytrace (R)';
+      modeButton.title = mode == RenderMode.raytrace
+          ? 'Show Thermion\u2019s raster frame only (no path tracing)'
+          : 'Path-trace on the shared device and composite';
+    }
+  }
+
+  void toggleMode() {
+    mode = mode.other;
+    publishMode();
+  }
+
+  publishMode();
+
+  modeButton?.addEventListener('click', ((web.Event _) {
+    toggleMode();
+    // Keep Space/Enter from re-triggering the button while orbiting.
+    modeButton.blur();
+  }).toJS);
+
+  web.document.addEventListener('keydown', ((web.KeyboardEvent e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key == 'r' || e.key == 'R') {
+      e.preventDefault();
+      toggleMode();
+    }
+  }).toJS);
+
+  // Pointer input on the visible canvas (the one the sidecar presents to);
+  // Thermion's own canvas is hidden, so this is where the user looks.
+  var dragging = false;
+  var activePointer = -1;
+  var lastX = 0, lastY = 0; // clientX/clientY are integers in package:web
+
+  void onPointerDown(web.PointerEvent e) {
+    if (dragging) return;
+    dragging = true;
+    activePointer = e.pointerId;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    // Keep receiving moves outside the canvas until the pointer is released.
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } on Object catch (_) {
+      // Capture is best-effort (synthetic events may not allow it).
+    }
+    e.preventDefault();
+  }
+
+  void onPointerMove(web.PointerEvent e) {
+    if (!dragging || e.pointerId != activePointer) return;
+    orbit.orbit((e.clientX - lastX).toDouble(), (e.clientY - lastY).toDouble());
+    lastX = e.clientX;
+    lastY = e.clientY;
+    cameraDirty = true;
+    e.preventDefault();
+  }
+
+  void onPointerEnd(web.PointerEvent e) {
+    if (e.pointerId != activePointer) return;
+    dragging = false;
+    activePointer = -1;
+  }
+
+  canvas.addEventListener('pointerdown', onPointerDown.toJS);
+  canvas.addEventListener('pointermove', onPointerMove.toJS);
+  canvas.addEventListener('pointerup', onPointerEnd.toJS);
+  canvas.addEventListener('pointercancel', onPointerEnd.toJS);
+  canvas.addEventListener(
+      'wheel',
+      ((web.WheelEvent e) {
+        e.preventDefault();
+        orbit.dolly(e.deltaY);
+        cameraDirty = true;
+      }).toJS,
+      web.AddEventListenerOptions(passive: false));
+
+  // The per-frame camera channel object: the same JS object every frame,
+  // mutated in place, so the sidecar can keep a reference and only compare
+  // `revision`. `viewMatrix` is the column-major world->camera matrix
+  // (makeViewMatrix); the sidecar inverts it into MuTracer's camera transform.
+  final cameraChannel = JSObject();
+  cameraChannel.setProperty('viewMatrix'.toJS, Float32List(16).toJS);
+  cameraChannel.setProperty('revision'.toJS, 0.toJS);
+  web.window.setProperty('thermionSidecarCamera'.toJS, cameraChannel);
+
+  void publishCamera() {
+    final view = orbit.viewMatrix;
+    cameraChannel.setProperty(
+        'viewMatrix'.toJS, Float32List.fromList(view.storage).toJS);
+    final p = orbit.position;
+    cameraChannel.setProperty(
+        'position'.toJS, [p.x.toJS, p.y.toJS, p.z.toJS].toJS);
+    cameraChannel.setProperty('focus'.toJS,
+        [orbit.focus.x.toJS, orbit.focus.y.toJS, orbit.focus.z.toJS].toJS);
+    cameraChannel.setProperty('revision'.toJS, cameraRevision.toJS);
+  }
+
   // Drive Thermion frames. Each app.render() renders synchronously into the
   // hidden canvas on this (main-thread) engine; the sidecar reads that canvas
-  // via its own rAF callback, registered after this one.
+  // via its own rAF callback, registered after this one. The camera channel is
+  // refreshed every frame BEFORE rendering, so the sidecar's frame (same
+  // animation frame, later callback) always sees the matrix Thermion just
+  // rendered with.
   void pump(num timestamp) {
+    if (cameraDirty) {
+      cameraDirty = false;
+      cameraRevision++;
+      // Same spherical state for both renderers: Thermion via lookAt, the
+      // sidecar via the view matrix published below.
+      camera
+          .lookAt(orbit.position, focus: orbit.focus)
+          .catchError((Object error) {
+        Logger('mutracer_sidecar').severe('camera.lookAt failed: $error');
+      });
+    }
+    publishCamera();
     app.render();
     web.window.requestAnimationFrame(pump.toJS);
   }
@@ -222,7 +459,8 @@ Future<void> main() async {
 }
 
 void _fail(String message) {
-  final status = web.document.getElementById('status');
+  final status = web.document.getElementById('progress') ??
+      web.document.getElementById('status');
   if (status != null) status.textContent = message;
   throw StateError(message);
 }
