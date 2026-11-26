@@ -1,5 +1,6 @@
 #pragma once
 
+#include "c_api/APIBoundaryTypes.h"
 #include <emscripten/html5_webgl.h>
 #include <stdint.h>
 
@@ -60,12 +61,16 @@ void *Thermion_createWebGPUPlatform();
 extern uint64_t TSWAP_CHAIN_CONFIG_SKIP_PRESENT;
 
 // Selector ("#id") of the hidden canvas that receives the frames of the
-// SKIP_PRESENT swapchain created for the canvas [canvasSelector] (e.g.
-// "#thermion_canvas_0"). The canvas is created on first use and kept for the
-// lifetime of the page so it can be reused by later swapchains; it is sized
-// by Filament to match [canvasSelector] and is never visible.
+// SKIP_PRESENT swapchain belonging to [jobThread]'s engine. The viewer
+// canvas is resolved from the selector the job thread was created with
+// (JobThread_createForCanvas; "#thermion_canvas" when none was given), so
+// this always matches what createSurface renders into — also in
+// multi-viewer apps with one engine per canvas. The hidden canvas is
+// created on first use and kept for the lifetime of the page so it can be
+// reused by later swapchains; it is sized by Filament to match the viewer
+// canvas and is never visible.
 // Returns nullptr when the page has no document/body (e.g. a worker).
-const char *Thermion_getOffscreenCanvasSelector(const char *canvasSelector);
+const char *Thermion_getOffscreenCanvasSelector(TJobThread *jobThread);
 
 // Hands the GPUDevice used by Filament's WebGPU backend to JavaScript.
 //

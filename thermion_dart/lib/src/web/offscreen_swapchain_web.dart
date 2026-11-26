@@ -13,20 +13,15 @@ import 'package:thermion_dart/thermion_dart.dart';
 bool get supportsSkipPresent => true;
 
 /// Selector ("#id") of the hidden canvas that receives the offscreen
-/// (present-skip) swapchain frames of the canvas [canvasSelector], creating
-/// the canvas on first use. Null when the page has no document body.
-String? offscreenCanvasSelector(String canvasSelector) {
-  // toNativeUtf8 stack-allocates on the Wasm stack; JS callers never unwind
-  // it, so save/restore around the call or every invocation leaks stack.
-  final stack = bindings.stackSave();
-  try {
-    final selectorPtr = bindings.StringUtils(canvasSelector).toNativeUtf8();
-    final result = bindings.Thermion_getOffscreenCanvasSelector(selectorPtr);
-    if (result.address == 0) return null;
-    return bindings.CharPtr(result).toDartString();
-  } finally {
-    bindings.stackRestore(stack);
-  }
+/// (present-skip) swapchain frames of the engine owning [jobThreadAddress],
+/// creating the canvas on first use. The engine resolves its viewer canvas
+/// from the job thread's stored selector, so this always matches what
+/// createOffscreenSwapChain renders into — also in multi-viewer apps.
+/// Null when the page has no document body.
+String? offscreenCanvasSelector(int jobThreadAddress) {
+  final result = bindings.Thermion_getOffscreenCanvasSelector(bindings.Pointer<bindings.TJobThread>(jobThreadAddress));
+  if (result.address == 0) return null;
+  return bindings.CharPtr(result).toDartString();
 }
 
 /// Creates a swapchain with `THERMION_SWAP_CHAIN_CONFIG_SKIP_PRESENT` set:

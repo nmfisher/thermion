@@ -40,10 +40,11 @@ extension ThermionWebFilamentApp on FilamentApp {
   /// Selector ("#id") of the hidden canvas that receives this engine's
   /// offscreen ([createOffscreenSwapChain]) frames.
   ///
-  /// [canvasSelector] identifies the viewer canvas the offscreen frames
-  /// belong to; it defaults to the engine's default canvas,
-  /// "#thermion_canvas" (the same fallback the C++ engine uses when no
-  /// selector was passed to `FFIFilamentApp.create`).
+  /// The engine resolves its viewer canvas from the selector its job
+  /// thread was created with (`FFIFilamentApp.create(canvasSelector: ...)`,
+  /// defaulting to "#thermion_canvas"), so this always matches what
+  /// [createOffscreenSwapChain] renders into — also in multi-viewer apps
+  /// with one engine per canvas.
   ///
   /// The hidden canvas is created on first use and kept for the page's
   /// lifetime. JavaScript composites the frames itself: either draw the
@@ -58,9 +59,11 @@ extension ThermionWebFilamentApp on FilamentApp {
   /// Returns null WITHOUT touching the DOM when offscreen swapchains are
   /// unavailable: non-WebGPU backends, native builds, or a page with no
   /// document body.
-  String? offscreenCanvasSelector({String canvasSelector = '#thermion_canvas'}) {
+  String? get offscreenCanvasSelector {
     if (!offscreen.supportsSkipPresent || backend != Backend.WEBGPU) return null;
-    return offscreen.offscreenCanvasSelector(canvasSelector);
+    final app = this;
+    if (app is! FFIFilamentApp) return null;
+    return offscreen.offscreenCanvasSelector(app.jobThreadHandle.address);
   }
 
   /// Creates an offscreen (present-skip) swapchain: every frame is rendered

@@ -30,8 +30,7 @@ void main() {
     });
 
     test('offscreenCanvasSelector is null on native backends', () {
-      expect(app.offscreenCanvasSelector(), isNull);
-      expect(app.offscreenCanvasSelector(canvasSelector: '#some_canvas'), isNull);
+      expect(app.offscreenCanvasSelector, isNull);
     });
 
     test('createOffscreenSwapChain throws UnsupportedError on native', () async {

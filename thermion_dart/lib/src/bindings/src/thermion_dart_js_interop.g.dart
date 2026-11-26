@@ -2522,7 +2522,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   /// bit 2 image_decoding, bit 3 runtime_materials (c_api/ThermionFeatures.h).
   external int _Thermion_getEnabledFeatures();
   external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_getGLContext();
-  external Pointer<Char> _Thermion_getOffscreenCanvasSelector(Pointer<Char> canvasSelector);
+  external Pointer<Char> _Thermion_getOffscreenCanvasSelector(Pointer<TJobThread> jobThread);
   external void _Thermion_setCanvasElementSize(Pointer<Char> name, int width, int height);
   external Pointer<TToneMapper> _ToneMapper_createACES(Pointer<TEngine> tEngine);
   external void _ToneMapper_createACESJobThread(
@@ -9397,8 +9397,8 @@ DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_getGLContext() {
   return result;
 }
 
-Pointer<Char> Thermion_getOffscreenCanvasSelector(Pointer<Char> canvasSelector) {
-  final result = GeneratedBindings.instance._Thermion_getOffscreenCanvasSelector(canvasSelector);
+Pointer<Char> Thermion_getOffscreenCanvasSelector(Pointer<TJobThread> jobThread) {
+  final result = GeneratedBindings.instance._Thermion_getOffscreenCanvasSelector(jobThread.cast());
   return Pointer<Char>(result);
 }
 

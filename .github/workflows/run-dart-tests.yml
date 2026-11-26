@@ -153,6 +153,7 @@ jobs:
             test/skybox_tests.dart \
             test/texture_mip_chain_test.dart \
             test/material_compile_test.dart \
+            test/webgpu_device_export_native_test.dart \
             --concurrency=1
 
       - name: Run tests (Windows)

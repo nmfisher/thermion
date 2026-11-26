@@ -1,4 +1,5 @@
 #include "ThermionWebApi.h"
+#include "WebGLContext.hpp"
 #include "rendering/WebJobThread.hpp"
 
 #include <backend/platforms/WebGPUPlatformWasm.h>
@@ -27,7 +28,7 @@ public:
             // Offscreen swapchain: surface on the hidden canvas instead of the
             // viewer's, so nothing is presented and JavaScript composites the
             // rendered texture itself (see ThermionWebApi.h).
-            const char* offscreen = Thermion_getOffscreenCanvasSelector(selector);
+            const char* offscreen = thermion::offscreenCanvasSelectorFor(selector);
             if (offscreen) {
                 selector = offscreen;
             } else {

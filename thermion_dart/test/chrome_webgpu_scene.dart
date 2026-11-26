@@ -10,47 +10,58 @@ import 'package:web/web.dart' as web;
 @JS('finishWebGpuCheck')
 external void finishWebGpuCheck(JSBoolean passed, JSString message);
 
-/// Renders the red cube into [swapChain] and waits until the center pixel
-/// of [readCanvas] shows it. [readCanvas] is the visible canvas for a
-/// presenting swapchain, or the hidden offscreen canvas for a
-/// present-skip one.
+/// Samples the center pixel of [source] through a scratch 2D canvas.
+///
+/// Never call getContext('2d') on [source] itself: a canvas' context mode
+/// is locked for its lifetime, so a WebGPU canvas returns null for '2d'.
+/// drawImage copies the current contents, then getImageData reads them.
+Uint8ClampedList _sampleCenter(web.HTMLCanvasElement scratch, web.HTMLCanvasElement source) {
+  final context = scratch.getContext('2d') as web.CanvasRenderingContext2D;
+  context.clearRect(0, 0, scratch.width, scratch.height);
+  context.drawImage(source, 0, 0);
+  return context.getImageData(source.width ~/ 2, source.height ~/ 2, 1, 1).data.toDart;
+}
+
+bool _isGreen(Uint8ClampedList pixel) => pixel[1] > 100 && pixel[0] < 40 && pixel[2] < 40 && pixel[3] > 200;
+
+bool _isRed(Uint8ClampedList pixel) => pixel[0] > 100 && pixel[1] < 40 && pixel[2] < 40 && pixel[3] > 200;
+
+/// Renders the (single, shared) cube into [swapChain] and waits until the
+/// center pixel of [readCanvas] satisfies [matches]. [readCanvas] is the
+/// visible canvas for a presenting swapchain, or the hidden offscreen
+/// canvas for a present-skip one; pixels are read via [scratch].
 Future<Uint8ClampedList> _renderCubeInto(
   FFIFilamentApp app,
   ThermionViewerFFI viewer,
   SwapChain swapChain,
   web.HTMLCanvasElement readCanvas,
+  web.HTMLCanvasElement scratch,
+  bool Function(Uint8ClampedList) matches,
+  String expected,
   List<String> errors,
 ) async {
-  final sample = web.HTMLCanvasElement()
-    ..width = readCanvas.width
-    ..height = readCanvas.height;
-  final context = sample.getContext('2d') as web.CanvasRenderingContext2D;
-
   await app.renderManager.attach(viewer.view, swapChain);
   await viewer.setRendering(true);
   await viewer.view.setViewport(readCanvas.width, readCanvas.height);
-  await viewer.setPostProcessing(false);
-  await (await viewer.getActiveCamera()).lookAt(Vector3(0, 0, 5), focus: Vector3.zero());
-
-  final material = await app.createUbershaderMaterialInstance(unlit: true);
-  await material.setParameterFloat4('baseColorFactor', 1, 0, 0, 1);
-  final cube = await viewer.createGeometry(GeometryUtils.cube(), materialInstances: [material]);
-  await viewer.addToScene(cube);
 
   late Uint8ClampedList pixel;
   for (var frame = 0; frame < 30; frame++) {
     await app.render();
-    context.drawImage(readCanvas, 0, 0);
-    pixel = context.getImageData(readCanvas.width ~/ 2, readCanvas.height ~/ 2, 1, 1).data.toDart;
+    pixel = _sampleCenter(scratch, readCanvas);
     if (errors.isNotEmpty) throw StateError(errors.join('\n'));
-    if (pixel[0] > 100 && pixel[1] < 40 && pixel[2] < 40 && pixel[3] > 200) return pixel;
+    if (matches(pixel)) return pixel;
     await Future<void>.delayed(const Duration(milliseconds: 50));
   }
-  throw StateError('Expected a red center pixel. Got RGBA ${pixel.toList()}.');
+  throw StateError('Expected a $expected center pixel. Got RGBA ${pixel.toList()}.');
 }
 
 Future<String> renderCube() async {
   final canvas = web.document.getElementById('thermion_canvas') as web.HTMLCanvasElement;
+  // All pixel reads go through this scratch 2D canvas; the WebGPU canvases
+  // are never asked for a 2D context.
+  final scratch = web.HTMLCanvasElement()
+    ..width = canvas.width
+    ..height = canvas.height;
 
   final module = await (globalContext['__thermionReady'] as JSPromise<JSObject>).toDart;
   final errors = <String>[];
@@ -84,8 +95,8 @@ Future<String> renderCube() async {
   }
 
   // Default selector: the engine was created without a canvasSelector, so
-  // the extension must fall back to the engine's default canvas.
-  final offscreenSelector = app.offscreenCanvasSelector();
+  // the getter must resolve the engine's default canvas from its job thread.
+  final offscreenSelector = app.offscreenCanvasSelector;
   if (offscreenSelector != '#thermion_canvas__thermion_offscreen') {
     throw StateError('Expected the default hidden canvas selector, got "$offscreenSelector".');
   }
@@ -93,33 +104,38 @@ Future<String> renderCube() async {
   if (hidden == null) throw StateError('The hidden offscreen canvas was not created.');
   if (hidden.style.display != 'none') throw StateError('The offscreen canvas must never be visible.');
 
-  // 1) A normal swapchain still presents to the visible canvas.
-  final swapChain = await app.createSwapChain(nullptr);
-  final pixel = await _renderCubeInto(app, viewer, swapChain, canvas, errors);
+  await viewer.setPostProcessing(false);
+  await (await viewer.getActiveCamera()).lookAt(Vector3(0, 0, 5), focus: Vector3.zero());
 
-  // 2) An offscreen (present-skip) swapchain renders into the hidden canvas
-  //    and never touches the visible one.
+  // One cube for both steps; only its color changes between them.
+  final material = await app.createUbershaderMaterialInstance(unlit: true);
+  await material.setParameterFloat4('baseColorFactor', 0, 1, 0, 1);
+  final cube = await viewer.createGeometry(GeometryUtils.cube(), materialInstances: [material]);
+  await viewer.addToScene(cube);
+
+  // 1) A normal swapchain presents the GREEN cube to the visible canvas.
+  final swapChain = await app.createSwapChain(nullptr);
+  final greenPixel = await _renderCubeInto(app, viewer, swapChain, canvas, scratch, _isGreen, 'green', errors);
+
+  // 2) Switch the cube to RED and render through an offscreen (present-skip)
+  //    swapchain: the hidden canvas must show red while the visible canvas
+  //    keeps showing the last presented (green) frame.
   await viewer.setRendering(false);
   await app.renderManager.detach(viewer.view, swapChain: swapChain);
   await app.destroySwapChain(swapChain);
-
-  // Blank the visible canvas so any later presentation would show up.
-  final visibleContext = canvas.getContext('2d') as web.CanvasRenderingContext2D;
-  visibleContext.clearRect(0, 0, canvas.width, canvas.height);
+  await material.setParameterFloat4('baseColorFactor', 1, 0, 0, 1);
 
   final offscreen = await app.createOffscreenSwapChain(0);
-  final offscreenPixel = await _renderCubeInto(app, viewer, offscreen, hidden, errors);
+  final redPixel = await _renderCubeInto(app, viewer, offscreen, hidden, scratch, _isRed, 'red', errors);
 
-  // The visible canvas must have stayed blank while the offscreen frames
-  // rendered: nothing was presented to it.
-  final visiblePixel = visibleContext.getImageData(canvas.width ~/ 2, canvas.height ~/ 2, 1, 1).data.toDart;
-  if (visiblePixel[3] != 0) {
-    throw StateError('Offscreen swapchain presented to the visible canvas: RGBA ${visiblePixel.toList()}.');
+  final visiblePixel = _sampleCenter(scratch, canvas);
+  if (!_isGreen(visiblePixel)) {
+    throw StateError('Visible canvas must still show the green frame: RGBA ${visiblePixel.toList()}.');
   }
 
   await app.destroySwapChain(offscreen);
-  return 'presented RGBA ${pixel.toList()}, offscreen RGBA ${offscreenPixel.toList()}, '
-      'visible canvas untouched, device exported';
+  return 'visible green RGBA ${greenPixel.toList()}, offscreen red RGBA ${redPixel.toList()}, '
+      'visible stayed green RGBA ${visiblePixel.toList()}, device exported';
 }
 
 Future<void> main() async {

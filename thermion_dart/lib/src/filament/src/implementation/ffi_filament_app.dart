@@ -96,11 +96,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   final Pointer<TNameComponentManager> nameComponentManager;
 
-  /// CSS selector ("#id") of the canvas this engine presents to on web, or
-  /// null when no selector was given (the web engine then falls back to
-  /// "#thermion_canvas"; native ignores it).
-  final String? canvasSelector;
-
   late final Future<Uint8List> Function(String uri) _loadResource;
   late final FFILightManager lightManager;
   late final FFIRenderableManager renderableManager;
@@ -175,7 +170,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     Pointer<TAnimationManager> animationManagerPointer,
     Pointer<TGltfAnimationManager> gltfAnimationManagerPointer, {
     Backend backend = Backend.DEFAULT,
-    this.canvasSelector,
   }) : _backend = backend {
     this._loadResource = loadResource ?? defaultResourceLoader;
     this.lightManager = FFILightManager(lightManagerPointer, this);
@@ -324,7 +318,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       animationManager,
       gltfAnimationManager,
       backend: config.backend,
-      canvasSelector: canvasSelector,
     );
 
     _logger.info("Initialization complete");

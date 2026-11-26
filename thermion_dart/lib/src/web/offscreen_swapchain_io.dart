@@ -11,7 +11,7 @@ import '../filament/src/implementation/ffi_filament_app.dart';
 bool get supportsSkipPresent => false;
 
 /// Never reached (the extension guards on [supportsSkipPresent]).
-String? offscreenCanvasSelector(String canvasSelector) => null;
+String? offscreenCanvasSelector(int jobThreadAddress) => null;
 
 /// Never reached (the extension guards on [supportsSkipPresent]).
 Future<SwapChain> createOffscreenSwapChain(FFIFilamentApp app, int windowAddress, {bool hasStencilBuffer = false}) {

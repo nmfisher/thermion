@@ -1,5 +1,6 @@
 #include "ThermionWebApi.h"
 #include "WebGLContext.hpp"
+#include "rendering/JobThread.hpp"
 #include "rendering/WebJobThread.hpp"
 
 #include <map>
@@ -84,6 +85,22 @@ static bool ensureOffscreenCanvas(const char *canvasSelector) {
 // viewer canvas is destroyed.
 static std::mutex offscreenSelectorsMutex;
 static std::map<std::string, std::string> offscreenSelectors;
+
+// Shared by the C API (Dart getter) and ThermionWebGPUPlatform::createSurface
+// so both always resolve the same hidden canvas for a viewer canvas.
+const char *offscreenCanvasSelectorFor(const char *canvasSelector) {
+  if (!thermion::ensureOffscreenCanvas(canvasSelector)) {
+    std::cerr << "Offscreen swapchains need a document body to host their canvas" << std::endl;
+    return nullptr;
+  }
+  std::lock_guard<std::mutex> lock(thermion::offscreenSelectorsMutex);
+  // Operator[] keeps the stored string's address stable across calls.
+  std::string &selector = thermion::offscreenSelectors[canvasSelector ? canvasSelector : ""];
+  if (selector.empty()) {
+    selector = "#" + thermion::offscreenCanvasId(canvasSelector);
+  }
+  return selector.c_str();
+}
 
 static void removeOffscreenCanvas(const char *canvasSelector) {
   {
@@ -177,18 +194,16 @@ extern "C"
     return _context;
   }
 
-  EMSCRIPTEN_KEEPALIVE const char *Thermion_getOffscreenCanvasSelector(const char *canvasSelector) {
-    if (!thermion::ensureOffscreenCanvas(canvasSelector)) {
-      std::cerr << "Offscreen swapchains need a document body to host their canvas" << std::endl;
+  EMSCRIPTEN_KEEPALIVE const char *Thermion_getOffscreenCanvasSelector(TJobThread *jobThread) {
+    // Resolve the viewer canvas from the job thread's stored selector, the
+    // same value Thermion_createWebGPUPlatform uses, so the getter always
+    // matches the canvas createSurface renders offscreen frames into.
+    auto *rt = reinterpret_cast<thermion::JobThread *>(jobThread);
+    if (!rt) {
+      std::cerr << "Thermion_getOffscreenCanvasSelector requires a job thread" << std::endl;
       return nullptr;
     }
-    std::lock_guard<std::mutex> lock(thermion::offscreenSelectorsMutex);
-    // Operator[] keeps the stored string's address stable across calls.
-    std::string &selector = thermion::offscreenSelectors[canvasSelector ? canvasSelector : ""];
-    if (selector.empty()) {
-      selector = "#" + thermion::offscreenCanvasId(canvasSelector);
-    }
-    return selector.c_str();
+    return thermion::offscreenCanvasSelectorFor(rt->canvasSelector());
   }
 
 #if !defined(THERMION_SUPPORTS_WEBGPU)
