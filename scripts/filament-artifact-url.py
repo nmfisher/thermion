@@ -29,11 +29,15 @@ PLATFORMS = {
     "macos", "ios", "ios-simulator", "android",
     "linux", "linux-arm64", "windows", "web",
 }
+# WebGPU variants resolve "<platform>-webgpu/<variant>" pin entries and
+# "-webgpu" suffixed zip names, mirroring resolveFilamentArtifact(webgpu: true)
+# in thermion_dart/lib/src/hooks/filament_artifacts.dart.
+WEBGPU_PLATFORMS = {f"{p}-webgpu" for p in ("macos", "linux", "web")}
 
 root = Path(__file__).resolve().parent.parent
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("platform", choices=sorted(PLATFORMS))
+parser.add_argument("platform", choices=sorted(PLATFORMS | WEBGPU_PLATFORMS))
 parser.add_argument("variant", choices=["release", "debug"])
 parser.add_argument("--version", help="Filament tag (default: filament.version)")
 parser.add_argument("--pin", type=Path,
@@ -48,15 +52,23 @@ if version is None:
 if not re.fullmatch(r"v\d+\.\d+\.\d+", version):
     parser.error(f"Expected a Filament release tag, got {version!r}")
 
-name = f"filament-{version}-{args.platform}-{args.variant}.zip"
+# "linux-webgpu" -> zip "filament-<v>-linux-release-webgpu[-hash].zip",
+# pin entry "linux-webgpu/release" (same spelling as the hook).
+platform = args.platform
+zip_platform = platform
+if platform.endswith("-webgpu"):
+    zip_platform = platform[: -len("-webgpu")]
+name = f"filament-{version}-{zip_platform}-{args.variant}"
+if platform.endswith("-webgpu"):
+    name += "-webgpu"
 try:
     pin = json.loads(args.pin.read_text())
 except (OSError, ValueError):
     pin = {}  # missing/malformed pin -> legacy key (same fallback as the hook)
 
-sha = pin.get(f"{args.platform}/{args.variant}") if isinstance(pin, dict) else None
+sha = pin.get(f"{platform}/{args.variant}") if isinstance(pin, dict) else None
 if isinstance(sha, str) and re.fullmatch(r"[0-9a-fA-F]{64}", sha):
-    name = (f"filament-{version}-{args.platform}-{args.variant}"
-            f"-{sha.lower()[:HASH_LEN]}.zip")
+    name += f"-{sha.lower()[:HASH_LEN]}"
+name += ".zip"
 
 print(name if args.name_only else f"{R2_BASE}/{name}")

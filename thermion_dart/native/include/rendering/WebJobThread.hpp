@@ -31,6 +31,11 @@ public:
     // Borrowed selector for the job running on this thread; null outside a job.
     static const char* currentCanvasSelector();
 
+    // Borrowed selector this thread was created with ("#thermion_canvas"
+    // when none was given). Valid for the thread's lifetime, readable from
+    // any thread.
+    const char* canvasSelector() const { return _canvasSelector.c_str(); }
+
     // Posted callbacks outlive their worker and are serviced by browser events.
     void dispatchCallback(std::function<void()> callback) const;
     static void dispatchCallbackTo(pthread_t caller, std::function<void()> callback);

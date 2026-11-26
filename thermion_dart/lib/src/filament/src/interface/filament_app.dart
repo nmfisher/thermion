@@ -104,7 +104,12 @@ abstract class FilamentApp<T> {
   //
   Future<SwapChain> createHeadlessSwapChain(int width, int height, {bool hasStencilBuffer = false});
 
-  //
+  /// Creates a swapchain presenting to [handle] (a native window, or the
+  /// viewer canvas on web).
+  ///
+  /// For offscreen (present-skip) swapchains whose frames JavaScript
+  /// composites itself, see the web-only entrypoint
+  /// `package:thermion_dart/thermion_dart_web.dart`.
   Future<SwapChain> createSwapChain(T handle, {bool hasStencilBuffer = false});
 
   //

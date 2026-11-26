@@ -354,11 +354,30 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (hasStencilBuffer) {
       flags |= TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
     }
+
     final swapChain = await withPointerCallback<TSwapChain>(
-      (cb) => Engine_createSwapChainJobThread(jobThreadHandle, this.engine, window.cast<Void>(), flags, cb),
+      (cb) => Engine_createSwapChainJobThread(
+        jobThreadHandle,
+        this.engine,
+        Pointer<Void>.fromAddress(window.address),
+        flags,
+        cb,
+      ),
     );
+    if (swapChain == nullptr) {
+      throw Exception("Failed to create swapchain");
+    }
     _logger.info("Created swapchain from window");
-    final sc = FFISwapChain(swapChain, this);
+    return adoptSwapChain(swapChain.address);
+  }
+
+  /// Takes ownership of the swapchain at raw address [swapChainAddress]
+  /// (`Pointer.address`), created outside this class as a job on
+  /// [jobThreadHandle] — the web-only offscreen entry point in
+  /// `package:thermion_dart/thermion_dart_web.dart` — registering it for
+  /// teardown like [createSwapChain].
+  SwapChain adoptSwapChain(int swapChainAddress) {
+    final sc = FFISwapChain(Pointer<TSwapChain>.fromAddress(swapChainAddress), this);
     _swapChains.add(sc);
     return sc;
   }

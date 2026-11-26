@@ -2514,12 +2514,22 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<NativeFunction<void Function(bool)>> onComplete,
   );
   external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext(Pointer<Char> canvasSelector);
+  external Pointer<TSwapChain> _Thermion_createOffscreenSwapChain(Pointer<TEngine> tEngine, JSBigInt flags);
+  external void _Thermion_createOffscreenSwapChainJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TEngine> tEngine,
+    JSBigInt flags,
+    Pointer<NativeFunction<void Function(PointerClass<TSwapChain>)>> onComplete,
+  );
+  external Pointer<Void> _Thermion_createWebGPUPlatform();
   external void _Thermion_destroyCanvas(Pointer<Char> canvasSelector);
+  external int _Thermion_exportWebGPUDevice();
 
   /// Compile-time feature bitmask of the loaded engine: bit 0 gltf, bit 1 ktx,
   /// bit 2 image_decoding, bit 3 runtime_materials (c_api/ThermionFeatures.h).
   external int _Thermion_getEnabledFeatures();
   external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_getGLContext();
+  external Pointer<Char> _Thermion_getOffscreenCanvasSelector(Pointer<TJobThread> jobThread);
   external void _Thermion_setCanvasElementSize(Pointer<Char> name, int width, int height);
   external Pointer<TToneMapper> _ToneMapper_createACES(Pointer<TEngine> tEngine);
   external void _ToneMapper_createACESJobThread(
@@ -9364,8 +9374,38 @@ DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext(Pointer<Char> canva
   return result;
 }
 
+Pointer<TSwapChain> Thermion_createOffscreenSwapChain(Pointer<TEngine> tEngine, BigInt flags) {
+  final result = GeneratedBindings.instance._Thermion_createOffscreenSwapChain(tEngine.cast(), flags.toJSBigInt);
+  return Pointer<TSwapChain>(result);
+}
+
+void Thermion_createOffscreenSwapChainJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> tEngine,
+  BigInt flags,
+  Pointer<NativeFunction<void Function(Pointer<TSwapChain>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._Thermion_createOffscreenSwapChainJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    flags.toJSBigInt,
+    onComplete.cast(),
+  );
+  return result;
+}
+
+Pointer<Void> Thermion_createWebGPUPlatform() {
+  final result = GeneratedBindings.instance._Thermion_createWebGPUPlatform();
+  return Pointer<Void>(result);
+}
+
 void Thermion_destroyCanvas(Pointer<Char> canvasSelector) {
   final result = GeneratedBindings.instance._Thermion_destroyCanvas(canvasSelector);
+  return result;
+}
+
+int Thermion_exportWebGPUDevice() {
+  final result = GeneratedBindings.instance._Thermion_exportWebGPUDevice();
   return result;
 }
 
@@ -9379,6 +9419,11 @@ int Thermion_getEnabledFeatures() {
 DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_getGLContext() {
   final result = GeneratedBindings.instance._Thermion_getGLContext();
   return result;
+}
+
+Pointer<Char> Thermion_getOffscreenCanvasSelector(Pointer<TJobThread> jobThread) {
+  final result = GeneratedBindings.instance._Thermion_getOffscreenCanvasSelector(jobThread.cast());
+  return Pointer<Char>(result);
 }
 
 void Thermion_setCanvasElementSize(Pointer<Char> name, int width, int height) {
