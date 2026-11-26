@@ -856,7 +856,7 @@ jobs:
           - name: Linux
             artifact: dart-test-output-Linux
             baseline_asset: dart-test-output-Linux.zip
-            baseline_sha256: 24dd89d51a7f79219db3f37e4eef5c4cd22b3322d70e9a0abf58b00130505d7f
+            baseline_sha256: 57fc5338ae362018f3fe78bd708324578c8d4f87fcd482e13d60e3d471b23101
           - name: Windows
             artifact: dart-test-output-Windows
             baseline_asset: dart-test-output-Windows.zip
@@ -891,7 +891,7 @@ jobs:
           # with the approved PNG paths. Add --publish to upload and advance
           # these pins. Each version records its provenance in baseline-review.json.
           BASELINE_BASE_URL: https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/render-baselines
-          BASELINE_ID: run-44894053447-bb50cc2003aba92d6bc5
+          BASELINE_ID: run-45595627737-e3326f9e4922e943a820
           BASELINE_ASSET: ${{ matrix.baseline_asset }}
           BASELINE_SHA256: ${{ matrix.baseline_sha256 }}
         run: |
