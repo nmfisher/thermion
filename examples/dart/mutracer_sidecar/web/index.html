@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thermion + MuTracer sidecar (shared GPUDevice)</title>
+  <style>
+    html, body { margin: 0; padding: 0; overflow: hidden; background: #000; width: 100%; height: 100%; }
+    canvas { width: 100vw; height: 100vh; display: block; }
+    #status {
+      position: absolute; bottom: 8px; left: 8px; z-index: 10;
+      color: #ccc; font: 12px ui-monospace, monospace; pointer-events: none;
+      text-shadow: 0 1px 2px #000; max-width: 90vw;
+    }
+    #error {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      color: #f88; font: 14px ui-monospace, monospace; max-width: 80%;
+      text-align: center; display: none; white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="thermion_canvas"></canvas>
+  <div id="status">Loading engine…</div>
+  <div id="error"></div>
+
+  <script>
+    const canvas = document.getElementById('thermion_canvas');
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    window.sidecarFail = (message) => {
+      const el = document.getElementById('error');
+      el.textContent = String(message);
+      el.style.display = 'block';
+    };
+  </script>
+  <!-- The Emscripten module MUST load first and be awaited onto
+       window.thermion_dart before the Dart (WASM) entry runs; Dart then reads
+       it via NativeLibrary.initBindings("thermion_dart"). The WebGPU engine's
+       preRun requests the browser GPUDevice itself. -->
+  <script src="thermion_dart.js"></script>
+  <!-- The sidecar registers its 'thermion-sidecar-ready' listener before the
+       Dart entry can fire the event. -->
+  <script type="module" src="mutracer_sidecar.bundle.js"></script>
+  <script type="module">
+    try {
+      window.thermion_dart = await thermion_dart();
+    } catch (err) {
+      window.sidecarFail('Failed to load thermion_dart.js: ' + err +
+        '\n\nThis page requires cross-origin isolation (COOP/COEP); serve it with the COI server (see README).');
+      throw err;
+    }
+    try {
+      // dart2wasm runtime API (Dart >= 3.9): compileStreaming(Response) ->
+      // CompiledApp.instantiate(imports) -> InstantiatedApp.invokeMain().
+      const dart2wasm_runtime = await import('./main.mjs');
+      const app = await dart2wasm_runtime.compileStreaming(fetch('./main.wasm'));
+      const moduleInstance = await app.instantiate({});
+      moduleInstance.invokeMain();
+    } catch (err) {
+      window.sidecarFail('Failed to boot the Dart entry: ' + err);
+      throw err;
+    }
+  </script>
+</body>
+</html>
