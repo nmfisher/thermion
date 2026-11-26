@@ -2818,6 +2818,44 @@ external void MaterialProvider_createMaterialInstanceJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>> callback,
 );
 
+@ffi.Native<
+  ffi.Bool Function(
+    ffi.Pointer<TMaterial>,
+    ffi.UnsignedInt,
+    ffi.Uint32,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> userData)>>,
+    ffi.Pointer<ffi.Void>,
+  )
+>(isLeaf: true)
+external bool Material_compile(
+  ffi.Pointer<TMaterial> tMaterial,
+  int priority,
+  int variants,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> userData)>> onComplete,
+  ffi.Pointer<ffi.Void> userData,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<TMaterial>,
+    ffi.UnsignedInt,
+    ffi.Uint32,
+    ffi.Uint32,
+    VoidCallback,
+  )
+>(isLeaf: true)
+external void Material_compileJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TMaterial> tMaterial,
+  int priority,
+  int variants,
+  int requestId,
+  VoidCallback onComplete,
+);
+
 @ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TMaterial> Material_createBoneOverlayMaterial(ffi.Pointer<TEngine> tEngine);
 
@@ -4966,6 +5004,49 @@ external void Texture_setImageJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
 );
 
+@ffi.Native<
+  ffi.Bool Function(
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<TTexture>,
+    ffi.Pointer<TMipLevel>,
+    ffi.Uint32,
+    ffi.Pointer<
+      ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> buffer, ffi.Size size, ffi.Pointer<ffi.Void> userData)>
+    >,
+    ffi.Pointer<ffi.Void>,
+  )
+>(isLeaf: true)
+external bool Texture_setMipChain(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<TMipLevel> levels,
+  int levelCount,
+  ffi.Pointer<
+    ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> buffer, ffi.Size size, ffi.Pointer<ffi.Void> userData)>
+  >
+  onRelease,
+  ffi.Pointer<ffi.Void> userData,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<TTexture>,
+    ffi.Pointer<TMipLevel>,
+    ffi.Uint32,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>,
+  )
+>(isLeaf: true)
+external void Texture_setMipChainJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<TMipLevel> levels,
+  int levelCount,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
+);
+
 /// Compile-time feature bitmask of the loaded engine: bit 0 gltf, bit 1 ktx,
 /// bit 2 image_decoding, bit 3 runtime_materials (c_api/ThermionFeatures.h).
 @ffi.Native<ffi.Uint32 Function()>(isLeaf: true)
@@ -6173,6 +6254,17 @@ final class TColorGrading extends ffi.Opaque {}
 
 final class TColorGradingBuilder extends ffi.Opaque {}
 
+sealed class TCompilerPriorityQueue {
+  /// !< We need this program NOW (compiled synchronously where the platform cannot compile in parallel)
+  static const COMPILER_PRIORITY_CRITICAL = 0;
+
+  /// !< We will need this program soon
+  static const COMPILER_PRIORITY_HIGH = 1;
+
+  /// !< We will need this program eventually
+  static const COMPILER_PRIORITY_LOW = 2;
+}
+
 sealed class TCullingMode {
   static const CULLING_MODE_NONE = 0;
   static const CULLING_MODE_FRONT = 1;
@@ -6399,6 +6491,28 @@ final class TMeshData extends ffi.Struct {
 
   @ffi.UnsignedInt()
   external int primitiveType;
+}
+
+final class TMipLevel extends ffi.Struct {
+  external ffi.Pointer<ffi.Uint8> data;
+
+  @ffi.Uint32()
+  external int size;
+
+  @ffi.Uint32()
+  external int width;
+
+  @ffi.Uint32()
+  external int height;
+
+  @ffi.Uint32()
+  external int depth;
+
+  @ffi.UnsignedInt()
+  external int format;
+
+  @ffi.UnsignedInt()
+  external int type;
 }
 
 final class TMovementIntent extends ffi.Struct {
@@ -6997,6 +7111,18 @@ sealed class TTransparencyMode {
   /// first with back faces only, then with front faces; the culling
   /// mode is ignored. Can be combined with two-sided lighting
   static const TWO_PASSES_TWO_SIDES = 2;
+}
+
+sealed class TUserVariantFilterBit {
+  static const USER_VARIANT_DIRECTIONAL_LIGHTING = 1;
+  static const USER_VARIANT_DYNAMIC_LIGHTING = 2;
+  static const USER_VARIANT_SHADOW_RECEIVER = 4;
+  static const USER_VARIANT_SKINNING = 8;
+  static const USER_VARIANT_FOG = 16;
+  static const USER_VARIANT_VSM = 32;
+  static const USER_VARIANT_SSR = 64;
+  static const USER_VARIANT_STE = 128;
+  static const USER_VARIANT_ALL = 255;
 }
 
 sealed class TVertexAttribute {

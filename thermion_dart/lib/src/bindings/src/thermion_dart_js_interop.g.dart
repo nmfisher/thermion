@@ -1433,6 +1433,22 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     bool hasVolume,
     Pointer<NativeFunction<void Function(PointerClass<TMaterialInstance>)>> callback,
   );
+  external int _Material_compile(
+    Pointer<TMaterial> tMaterial,
+    int priority,
+    int variants,
+    Pointer<NativeFunction<void Function(PointerClass<Void> userData)>> onComplete,
+    Pointer<Void> userData,
+  );
+  external void _Material_compileJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TEngine> tEngine,
+    Pointer<TMaterial> tMaterial,
+    int priority,
+    int variants,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external Pointer<TMaterial> _Material_createBoneOverlayMaterial(Pointer<TEngine> tEngine);
   external void _Material_createBoneOverlayMaterialJobThread(
     Pointer<TJobThread> jobThread,
@@ -2478,6 +2494,23 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int depth,
     int bufferFormat,
     int pixelDataType,
+    Pointer<NativeFunction<void Function(bool)>> onComplete,
+  );
+  external int _Texture_setMipChain(
+    Pointer<TEngine> tEngine,
+    Pointer<TTexture> tTexture,
+    Pointer<TMipLevel> levels,
+    int levelCount,
+    Pointer<NativeFunction<void Function(PointerClass<Void> buffer, size_t size, PointerClass<Void> userData)>>
+    onRelease,
+    Pointer<Void> userData,
+  );
+  external void _Texture_setMipChainJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TEngine> tEngine,
+    Pointer<TTexture> tTexture,
+    Pointer<TMipLevel> levels,
+    int levelCount,
     Pointer<NativeFunction<void Function(bool)>> onComplete,
   );
   external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext(Pointer<Char> canvasSelector);
@@ -6509,6 +6542,44 @@ void MaterialProvider_createMaterialInstanceJobThread(
   return result;
 }
 
+bool Material_compile(
+  Pointer<TMaterial> tMaterial,
+  int priority,
+  int variants,
+  Pointer<NativeFunction<void Function(Pointer<Void> userData)>> onComplete,
+  Pointer<Void> userData,
+) {
+  final result = GeneratedBindings.instance._Material_compile(
+    tMaterial.cast(),
+    priority,
+    variants,
+    onComplete.cast(),
+    userData,
+  );
+  return result == 1;
+}
+
+void Material_compileJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> tEngine,
+  Pointer<TMaterial> tMaterial,
+  int priority,
+  int variants,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._Material_compileJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    tMaterial.cast(),
+    priority,
+    variants,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
 Pointer<TMaterial> Material_createBoneOverlayMaterial(Pointer<TEngine> tEngine) {
   final result = GeneratedBindings.instance._Material_createBoneOverlayMaterial(tEngine.cast());
   return Pointer<TMaterial>(result);
@@ -9250,6 +9321,44 @@ void Texture_setImageJobThread(
   return result;
 }
 
+bool Texture_setMipChain(
+  Pointer<TEngine> tEngine,
+  Pointer<TTexture> tTexture,
+  Pointer<TMipLevel> levels,
+  int levelCount,
+  Pointer<NativeFunction<void Function(Pointer<Void> buffer, size_t size, Pointer<Void> userData)>> onRelease,
+  Pointer<Void> userData,
+) {
+  final result = GeneratedBindings.instance._Texture_setMipChain(
+    tEngine.cast(),
+    tTexture.cast(),
+    levels.cast(),
+    levelCount,
+    onRelease.cast(),
+    userData,
+  );
+  return result == 1;
+}
+
+void Texture_setMipChainJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> tEngine,
+  Pointer<TTexture> tTexture,
+  Pointer<TMipLevel> levels,
+  int levelCount,
+  Pointer<NativeFunction<void Function(bool)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._Texture_setMipChainJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    tTexture.cast(),
+    levels.cast(),
+    levelCount,
+    onComplete.cast(),
+  );
+  return result;
+}
+
 DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext(Pointer<Char> canvasSelector) {
   final result = GeneratedBindings.instance._Thermion_createGLContext(canvasSelector);
   return result;
@@ -11462,6 +11571,17 @@ final class TColorGradingBuilder extends Struct {
   }
 }
 
+sealed class TCompilerPriorityQueue {
+  /// !< We need this program NOW (compiled synchronously where the platform cannot compile in parallel)
+  static const COMPILER_PRIORITY_CRITICAL = 0;
+
+  /// !< We will need this program soon
+  static const COMPILER_PRIORITY_HIGH = 1;
+
+  /// !< We will need this program eventually
+  static const COMPILER_PRIORITY_LOW = 2;
+}
+
 sealed class TCullingMode {
   static const CULLING_MODE_NONE = 0;
   static const CULLING_MODE_FRONT = 1;
@@ -12362,6 +12482,166 @@ final class TMeshData extends Struct {
 
   static Pointer<TMeshData> stackAlloc() {
     return Pointer<TMeshData>(NativeLibrary.instance.stackAlloc<TMeshData>(0));
+  }
+}
+
+extension TMipLevelExt on Pointer<TMipLevel> {
+  TMipLevel toDart() {
+    return TMipLevel(this);
+  }
+
+  TMipLevel operator [](int index) {
+    return TMipLevel(Pointer<TMipLevel>(addr + index * TMipLevel.byteSize));
+  }
+}
+
+final class TMipLevel extends Struct {
+  Pointer<TMipLevel> get address => super.address.cast();
+  static const int byteSize = 28;
+  Pointer<Uint8> get data {
+    final addr = Pointer<TMipLevel>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return Pointer<Uint8>(data.getUint32(addr.addr, Endian.little));
+    }
+    final value = NativeLibrary.instance.getValue(addr, '*');
+    return Pointer<Uint8>(value.toDartInt);
+  }
+
+  set data(Pointer<Uint8> val) {
+    final addr = Pointer<TMipLevel>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val.addr, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, '*');
+  }
+
+  int get size {
+    final addr = Pointer<TMipLevel>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getUint32(addr.addr, Endian.little);
+    }
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set size(int val) {
+    final addr = Pointer<TMipLevel>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
+  }
+
+  int get width {
+    final addr = Pointer<TMipLevel>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getUint32(addr.addr, Endian.little);
+    }
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set width(int val) {
+    final addr = Pointer<TMipLevel>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
+  }
+
+  int get height {
+    final addr = Pointer<TMipLevel>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getUint32(addr.addr, Endian.little);
+    }
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set height(int val) {
+    final addr = Pointer<TMipLevel>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
+  }
+
+  int get depth {
+    final addr = Pointer<TMipLevel>(this.address.addr + 16);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getUint32(addr.addr, Endian.little);
+    }
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set depth(int val) {
+    final addr = Pointer<TMipLevel>(this.address.addr + 16);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setUint32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
+  }
+
+  int get format {
+    final addr = Pointer<TMipLevel>(this.address.addr + 20);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getInt32(addr.addr, Endian.little);
+    }
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set format(int val) {
+    final addr = Pointer<TMipLevel>(this.address.addr + 20);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setInt32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
+  }
+
+  int get type {
+    final addr = Pointer<TMipLevel>(this.address.addr + 24);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getInt32(addr.addr, Endian.little);
+    }
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set type(int val) {
+    final addr = Pointer<TMipLevel>(this.address.addr + 24);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setInt32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i32');
+  }
+
+  TMipLevel(super.address);
+
+  static Pointer<TMipLevel> stackAlloc() {
+    return Pointer<TMipLevel>(NativeLibrary.instance.stackAlloc<TMipLevel>(28));
   }
 }
 
@@ -13837,6 +14117,18 @@ sealed class TTransparencyMode {
   static const TWO_PASSES_TWO_SIDES = 2;
 }
 
+sealed class TUserVariantFilterBit {
+  static const USER_VARIANT_DIRECTIONAL_LIGHTING = 1;
+  static const USER_VARIANT_DYNAMIC_LIGHTING = 2;
+  static const USER_VARIANT_SHADOW_RECEIVER = 4;
+  static const USER_VARIANT_SKINNING = 8;
+  static const USER_VARIANT_FOG = 16;
+  static const USER_VARIANT_VSM = 32;
+  static const USER_VARIANT_SSR = 64;
+  static const USER_VARIANT_STE = 128;
+  static const USER_VARIANT_ALL = 255;
+}
+
 sealed class TVertexAttribute {
   static const TVERTEX_ATTRIBUTE_POSITION = 0;
   static const TVERTEX_ATTRIBUTE_TANGENTS = 1;
@@ -14292,6 +14584,7 @@ int sizeOf<T extends NativeType>() {
   if (T == TFogOptions) return TFogOptions.byteSize;
   if (T == TFrameInfo) return TFrameInfo.byteSize;
   if (T == TGtao) return TGtao.byteSize;
+  if (T == TMipLevel) return TMipLevel.byteSize;
   if (T == TShadowOptions) return TShadowOptions.byteSize;
   if (T == TSoftShadowOptions) return TSoftShadowOptions.byteSize;
   if (T == TSsct) return TSsct.byteSize;
@@ -14406,6 +14699,9 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TMeshData:
         final ptr = TMeshData.stackAlloc();
+        return ptr.toDart() as T;
+      case TMipLevel:
+        final ptr = TMipLevel.stackAlloc();
         return ptr.toDart() as T;
       case TMovementIntent:
         final ptr = TMovementIntent.stackAlloc();

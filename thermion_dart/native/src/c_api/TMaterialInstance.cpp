@@ -446,6 +446,32 @@ namespace thermion
             auto blendingMode = material->getBlendingMode();
             return static_cast<TBlendingMode>(blendingMode);
         }
+
+        EMSCRIPTEN_KEEPALIVE bool Material_compile(
+            TMaterial *tMaterial,
+            TCompilerPriorityQueue priority,
+            uint32_t variants,
+            void (*onComplete)(void *),
+            void *userData)
+        {
+            THERMION_ENGINE_API_GUARD;
+            if (!tMaterial)
+            {
+                ERROR("Material_compile: material is null");
+                return false;
+            }
+            auto *material = reinterpret_cast<filament::Material *>(tMaterial);
+            // Filament invokes the callback (on the engine's thread, after the
+            // driver has linked every requested variant, or when the engine is
+            // destroyed) and ignores the Material* it passes, which may be
+            // dangling in the engine-destruction case.
+            material->compile(
+                static_cast<filament::Material::CompilerPriorityQueue>(priority),
+                static_cast<filament::UserVariantFilterMask>(variants),
+                nullptr,
+                [onComplete, userData](filament::Material *) { onComplete(userData); });
+            return true;
+        }
 #ifdef __cplusplus
     }
 }

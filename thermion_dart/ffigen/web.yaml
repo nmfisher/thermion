@@ -33,6 +33,7 @@ structs:
   include:
     - 'TCaptureViewRequest'
     - 'TFrameInfo'
+    - 'TMipLevel'
 unions:
   dependency-only: opaque
   exclude: 

@@ -122,8 +122,101 @@ enum TransparencyMode {
 /// `filament::Shading` and the native `TShading` values.
 enum MaterialShading { unlit, lit, subsurface, cloth, specularGlossiness }
 
+/// Queue Filament compiles a material's variants in, mirroring
+/// `filament::CompilerPriorityQueue` ([Material.compile]).
+enum CompilerPriorityQueue {
+  /// We need this program NOW. Where the platform cannot compile in parallel
+  /// but can amortize compilation, the shader is compiled synchronously.
+  critical,
+
+  /// We will need this program soon.
+  high,
+
+  /// We will need this program eventually.
+  low,
+}
+
+/// Shader variants a [Material] can be compiled for, mirroring
+/// `filament::UserVariantFilterBit`.
+///
+/// Pass the set the application renders to [Material.compile]; each bit is
+/// one variant in the native variant mask.
+enum UserVariantFilterBit {
+  /// Directional lighting.
+  directionalLighting(0x01),
+
+  /// Dynamic lighting. Since dynamic lighting moved to specialization
+  /// constants this no longer changes the offline-compiled material, but it
+  /// still prunes unnecessary pipeline compilations at runtime.
+  dynamicLighting(0x02),
+
+  /// Shadow receiver.
+  shadowReceiver(0x04),
+
+  /// Skinning.
+  skinning(0x08),
+
+  /// Fog.
+  fog(0x10),
+
+  /// Variance shadow maps.
+  vsm(0x20),
+
+  /// Screen-space reflections.
+  ssr(0x40),
+
+  /// Instanced stereo rendering.
+  ste(0x80);
+
+  const UserVariantFilterBit(this.mask);
+
+  /// This bit's value in the native `TUserVariantFilterBit` mask.
+  final int mask;
+
+  /// Every variant. Filament advises requesting only the variants an app
+  /// actually renders: for example [ste] is only used for stereoscopic
+  /// rendering and compiling it is wasted work otherwise.
+  static const Set<UserVariantFilterBit> all = {
+    directionalLighting,
+    dynamicLighting,
+    shadowReceiver,
+    skinning,
+    fog,
+    vsm,
+    ssr,
+    ste,
+  };
+
+  /// The native variant mask (bitwise OR of [bits]' [mask] values).
+  static int maskOf(Iterable<UserVariantFilterBit> bits) {
+    var mask = 0;
+    for (final bit in bits) {
+      mask |= bit.mask;
+    }
+    return mask;
+  }
+}
+
 abstract class Material<T> extends NativeHandle<T> {
   Future<MaterialInstance> createInstance();
+
+  /// Asynchronously compiles this material's shaders for [variants] so later
+  /// renders do not stall on shader compilation.
+  ///
+  /// The returned Future completes once every requested variant that the
+  /// material supports has been compiled, or when the engine is destroyed
+  /// first. Compilation happens on the backend and can take hundreds of
+  /// milliseconds; it progresses whenever the engine executes (a rendered
+  /// frame, a flush or a readback), so no rendering is required. [priority]
+  /// selects the queue Filament compiles in; when the same variant is
+  /// requested more than once, the first request's priority applies.
+  /// Compiling an already-compiled variant completes as soon as the engine
+  /// processes the request.
+  Future<void> compile({
+    CompilerPriorityQueue priority = CompilerPriorityQueue.low,
+    Set<UserVariantFilterBit> variants = UserVariantFilterBit.all,
+  });
+
   Future<bool> hasParameter(String propertyName);
   Future<BlendingMode> getBlendingMode();
   Future destroy();

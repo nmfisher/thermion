@@ -869,6 +869,58 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  // Context for one Material_compileJobThread request. Filament keeps the
+  // completion invocable until every requested variant is linked (or the
+  // engine is destroyed) and then calls it once, possibly from a
+  // Filament-internal thread after the queued task has finished; the
+  // trampoline frees the request before handing the completion to Dart.
+  struct MaterialCompileRequest
+  {
+    JobThread *rt;
+    VoidCallback onComplete;
+    uint32_t requestId;
+  };
+
+  static void materialCompileComplete(void *userData)
+  {
+    auto *request = static_cast<MaterialCompileRequest *>(userData);
+    // Only the web PROXY dispatches through the thread handle.
+    [[maybe_unused]] auto *rt = request->rt;
+    auto onComplete = request->onComplete;
+    auto requestId = request->requestId;
+    delete request;
+    PROXY(onComplete(requestId));
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Material_compileJobThread(TJobThread *jobThread,
+      TEngine *tEngine,
+      TMaterial *tMaterial,
+      TCompilerPriorityQueue priority,
+      uint32_t variants,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *request = new MaterialCompileRequest{rt, onComplete, requestId};
+          if (Material_compile(tMaterial, priority, variants, materialCompileComplete, request))
+          {
+            // Filament only submits the compile requests with the next command
+            // buffer; flush so they do not wait for the next rendered frame.
+            reinterpret_cast<filament::Engine *>(tEngine)->flush();
+          }
+          else
+          {
+            // Nothing was compiled and Filament will never call back.
+            delete request;
+            PROXY(onComplete(requestId));
+          }
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterTextureJobThread(TJobThread *jobThread,
       TMaterialInstance *tMaterialInstance,
       const char *propertyName,
@@ -1983,6 +2035,84 @@ extern "C"
               [](void *pixels, size_t, void *) {
                 delete[] static_cast<uint8_t*>(pixels);
               }, nullptr);
+          PROXY(onComplete(result));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
+  // Pixel snapshot shared by every level of one Texture_setMipChainJobThread
+  // request. Released when Filament has consumed the last level.
+  struct MipChainSnapshot
+  {
+    std::atomic<uint32_t> pending;
+    uint8_t *pixels;
+  };
+
+  static void releaseMipChainLevel(void *, size_t, void *user)
+  {
+    auto *snapshot = static_cast<MipChainSnapshot *>(user);
+    if (snapshot->pending.fetch_sub(1) == 1)
+    {
+      delete[] snapshot->pixels;
+      delete snapshot;
+    }
+  }
+
+  // Copies all level pixels synchronously before returning, like
+  // Texture_setImageJobThread, but into a single allocation; the queued task
+  // then uploads the whole chain under one engine API lock. Delivers
+  // Texture_setMipChain's result to onComplete (false for a null/empty chain).
+  EMSCRIPTEN_KEEPALIVE void Texture_setMipChainJobThread(TJobThread *jobThread,
+      TEngine *tEngine,
+      TTexture *tTexture,
+      const TMipLevel *levels,
+      uint32_t levelCount,
+      void (*onComplete)(bool))
+  {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
+
+    if (!levels || levelCount == 0)
+    {
+      std::packaged_task<void()> lambda(
+          [=]() mutable
+          {
+            PROXY(onComplete(false));
+          });
+      rt->addTask(lambda);
+      return;
+    }
+
+    size_t total = 0;
+    for (uint32_t i = 0; i < levelCount; i++)
+    {
+      total += levels[i].size;
+    }
+    auto *pixels = new uint8_t[total];
+    auto *owned = new TMipLevel[levelCount];
+    size_t offset = 0;
+    for (uint32_t i = 0; i < levelCount; i++)
+    {
+      owned[i] = levels[i];
+      owned[i].data = pixels + offset;
+      if (levels[i].size != 0)
+      {
+        std::copy_n(levels[i].data, levels[i].size, pixels + offset);
+      }
+      offset += levels[i].size;
+    }
+    auto *snapshot = new MipChainSnapshot{levelCount, pixels};
+
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          bool result = Texture_setMipChain(tEngine, tTexture, owned, levelCount, releaseMipChainLevel, snapshot);
+          if (!result)
+          {
+            // Nothing was submitted, so Filament will never release the levels.
+            delete[] pixels;
+            delete snapshot;
+          }
+          delete[] owned;
           PROXY(onComplete(result));
         });
     auto fut = rt->addTask(lambda);
