@@ -22,53 +22,61 @@ EMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_getGLContext();
 // (-DTHERMION_ENABLE_WEBGPU=ON for the web build).
 #if defined(THERMION_SUPPORTS_WEBGPU)
 void *Thermion_createWebGPUPlatform();
+
+// Creates an offscreen swapchain on [tEngine]: every frame is rendered into
+// the hidden canvas reported by Thermion_getOffscreenCanvasSelector instead
+// of the viewer's canvas, so nothing is ever presented to the user.
+// JavaScript composites the frame itself: draw the hidden canvas (e.g.
+// drawImage), or copy its WebGPU context's current texture
+// (context.getCurrentTexture()) into a texture you own with
+// copyTextureToTexture / copyExternalImageToTexture. Do NOT bind
+// getCurrentTexture() directly as a sampled texture: canvas surfaces only
+// carry RENDER_ATTACHMENT (+ COPY_SRC for READABLE swapchains), never
+// TEXTURE_BINDING, so sampling them fails WebGPU validation.
+//
+// Offscreen-ness is carried by this entry point alone: [flags] is handed to
+// Filament unmodified and must be a pure OR of
+// filament::backend::SWAP_CHAIN_CONFIG_* values (the TSWAP_CHAIN_CONFIG_*
+// exports mirror them 1:1; Thermion defines no swapchain flag of its own).
+// The usual choice is TSWAP_CHAIN_CONFIG_TRANSPARENT |
+// TSWAP_CHAIN_CONFIG_READABLE, plus TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER
+// when requested. Headless swapchains (Engine_createHeadlessSwapChain)
+// never need this: they create no canvas surface, so there is no present
+// step to skip.
+//
+// Returns nullptr when the page has no document/body to host the hidden
+// canvas (e.g. a worker), or when [tEngine] is null.
+//
+// Must run as a job on [tEngine]'s job thread: the viewer canvas (and so
+// its hidden canvas) is resolved from the job thread's selector exactly like
+// Thermion_createWebGPUPlatform, also in multi-viewer apps with one engine
+// per canvas. Use Thermion_createOffscreenSwapChainJobThread.
+TSwapChain *Thermion_createOffscreenSwapChain(TEngine *tEngine, uint64_t flags);
+
+// Runs Thermion_createOffscreenSwapChain as a job on [jobThread] (the same
+// dispatch Engine_createSwapChainJobThread uses) and reports the TSwapChain,
+// or nullptr, to [onComplete] on the thread that created the job thread.
+void Thermion_createOffscreenSwapChainJobThread(TJobThread *jobThread, TEngine *tEngine, uint64_t flags, void (*onComplete)(TSwapChain *));
 #endif
 
 // ---------------------------------------------------------------------------
-// Offscreen (present-skip) swapchains and WebGPU device export.
+// Offscreen swapchains and WebGPU device export.
 //
 // Both features are web-only. They exist so a JavaScript-side compositor
 // (e.g. a ray-tracing sidecar) can drive the final image: Thermion renders
-// into a texture that is never presented, and shares the GPUDevice the
+// into a canvas that is never presented, and shares the GPUDevice the
 // WebGPU backend runs on.
 // ---------------------------------------------------------------------------
 
-// Thermion-owned swapchain flag, OR-ed into the `flags` argument of
-// Engine_createSwapChain. It has no effect on Engine_createHeadlessSwapChain:
-// headless swapchains never create a canvas surface
-// (ThermionWebGPUPlatform::createSurface is not involved), so there is no
-// present step to skip.
-//
-// When set, the swapchain is offscreen: every frame is rendered into the
-// hidden canvas returned by Thermion_getOffscreenCanvasSelector instead of
-// the viewer's canvas, so nothing is ever presented to the user. JavaScript
-// composites the frame itself: draw the hidden canvas (e.g. drawImage), or
-// copy its WebGPU context's current texture (context.getCurrentTexture())
-// into a texture you own with copyTextureToTexture /
-// copyExternalImageToTexture. Do NOT bind getCurrentTexture() directly as a
-// sampled texture: canvas surfaces only carry RENDER_ATTACHMENT (+ COPY_SRC
-// for READABLE swapchains), never TEXTURE_BINDING, so sampling them fails
-// WebGPU validation.
-//
-// Only the WebGPU backend honours the flag (build with
-// -DTHERMION_ENABLE_WEBGPU=ON); other backends ignore it and present as usual.
-// The platform strips the bit before handing flags to Filament, so it never
-// reaches Filament's own swapchain-config layer.
-// The bit sits above every filament::backend::SWAP_CHAIN_CONFIG_* flag so it
-// never changes meaning for Filament. TSWAP_CHAIN_CONFIG_SKIP_PRESENT exports
-// the same value for bindings, like the TSWAP_CHAIN_CONFIG_* variables.
-#define THERMION_SWAP_CHAIN_CONFIG_SKIP_PRESENT ((uint64_t)1 << 62)
-extern uint64_t TSWAP_CHAIN_CONFIG_SKIP_PRESENT;
-
 // Selector ("#id") of the hidden canvas that receives the frames of the
-// SKIP_PRESENT swapchain belonging to [jobThread]'s engine. The viewer
-// canvas is resolved from the selector the job thread was created with
-// (JobThread_createForCanvas; "#thermion_canvas" when none was given), so
-// this always matches what createSurface renders into — also in
-// multi-viewer apps with one engine per canvas. The hidden canvas is
-// created on first use and kept for the lifetime of the page so it can be
-// reused by later swapchains; it is sized by Filament to match the viewer
-// canvas and is never visible.
+// offscreen swapchains (Thermion_createOffscreenSwapChain) belonging to
+// [jobThread]'s engine. The viewer canvas is resolved from the selector the
+// job thread was created with (JobThread_createForCanvas;
+// "#thermion_canvas" when none was given), so this always matches the
+// canvas those swapchains render into — also in multi-viewer apps with one
+// engine per canvas. The hidden canvas is created on first use and kept for
+// the lifetime of the page so it can be reused by later swapchains; it is
+// sized by Filament to match the viewer canvas and is never visible.
 // Returns nullptr when the page has no document/body (e.g. a worker).
 const char *Thermion_getOffscreenCanvasSelector(TJobThread *jobThread);
 

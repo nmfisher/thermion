@@ -2299,7 +2299,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_READABLE;
-  external Pointer<Int32> _TSWAP_CHAIN_CONFIG_SKIP_PRESENT;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_TRANSPARENT;
   external Pointer<TTextureSampler> _TextureSampler_create();
   external void _TextureSampler_createJobThread(
@@ -2515,6 +2514,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<NativeFunction<void Function(bool)>> onComplete,
   );
   external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext(Pointer<Char> canvasSelector);
+  external Pointer<TSwapChain> _Thermion_createOffscreenSwapChain(Pointer<TEngine> tEngine, JSBigInt flags);
+  external void _Thermion_createOffscreenSwapChainJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TEngine> tEngine,
+    JSBigInt flags,
+    Pointer<NativeFunction<void Function(PointerClass<TSwapChain>)>> onComplete,
+  );
+  external Pointer<Void> _Thermion_createWebGPUPlatform();
   external void _Thermion_destroyCanvas(Pointer<Char> canvasSelector);
   external int _Thermion_exportWebGPUDevice();
 
@@ -8823,14 +8830,6 @@ BigInt get TSWAP_CHAIN_CONFIG_READABLE {
   return bigIntasUintN(64, value).toDart;
 }
 
-BigInt get TSWAP_CHAIN_CONFIG_SKIP_PRESENT {
-  final value = NativeLibrary.instance.getValueBigInt(
-    GeneratedBindings.instance._TSWAP_CHAIN_CONFIG_SKIP_PRESENT,
-    "i64",
-  );
-  return bigIntasUintN(64, value).toDart;
-}
-
 BigInt get TSWAP_CHAIN_CONFIG_TRANSPARENT {
   final value = NativeLibrary.instance.getValueBigInt(
     GeneratedBindings.instance._TSWAP_CHAIN_CONFIG_TRANSPARENT,
@@ -9373,6 +9372,31 @@ void Texture_setMipChainJobThread(
 DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext(Pointer<Char> canvasSelector) {
   final result = GeneratedBindings.instance._Thermion_createGLContext(canvasSelector);
   return result;
+}
+
+Pointer<TSwapChain> Thermion_createOffscreenSwapChain(Pointer<TEngine> tEngine, BigInt flags) {
+  final result = GeneratedBindings.instance._Thermion_createOffscreenSwapChain(tEngine.cast(), flags.toJSBigInt);
+  return Pointer<TSwapChain>(result);
+}
+
+void Thermion_createOffscreenSwapChainJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> tEngine,
+  BigInt flags,
+  Pointer<NativeFunction<void Function(Pointer<TSwapChain>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._Thermion_createOffscreenSwapChainJobThread(
+    jobThread.cast(),
+    tEngine.cast(),
+    flags.toJSBigInt,
+    onComplete.cast(),
+  );
+  return result;
+}
+
+Pointer<Void> Thermion_createWebGPUPlatform() {
+  final result = GeneratedBindings.instance._Thermion_createWebGPUPlatform();
+  return Pointer<Void>(result);
 }
 
 void Thermion_destroyCanvas(Pointer<Char> canvasSelector) {

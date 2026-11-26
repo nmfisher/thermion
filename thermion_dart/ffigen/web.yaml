@@ -21,8 +21,17 @@ headers:
 #   - native/include: the c_api headers include each other as "c_api/...".
 # A real sysroot can still be supplied with --compiler-opts (the Makefile's
 # FFIGEN_JS_COMPILER_OPTS), which overrides these entries.
+#
+# -DTHERMION_SUPPORTS_WEBGPU mirrors the web build's definition for WebGPU
+# engines (native/web/CMakeLists.txt) so the declarations guarded by it in
+# ThermionWebApi.h (Thermion_createOffscreenSwapChain and its JobThread
+# dispatcher) get bindings. One binding file serves every engine variant:
+# the export only exists in WebGPU engines, and the Dart callers guard on
+# it (supportsSkipPresent probes the module for the export; a WebGL2 engine
+# never reaches the call).
 compiler-opts:
   - '-D__EMSCRIPTEN__'
+  - '-DTHERMION_SUPPORTS_WEBGPU'
   - '-Iffigen/emscripten_stub'
   - '-Inative/include'
 # Fail loudly on a missing include instead of generating a wrong binding file

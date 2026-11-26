@@ -361,8 +361,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   /// Creates a swapchain from a raw window handle address and raw
   /// `TSWAP_CHAIN_CONFIG_*` flags, and registers it for teardown like
   /// [createSwapChain]. Platform-neutral escape hatch for platform-specific
-  /// flag bits; the web-only offscreen (present-skip) swapchain in
-  /// `package:thermion_dart/thermion_dart_web.dart` routes through here.
+  /// flag bits (always pure Filament `SWAP_CHAIN_CONFIG_*` values, which
+  /// `TSWAP_CHAIN_CONFIG_*` mirrors 1:1).
   ///
   /// [flags] is the bindings' flag word: `int` on native, `BigInt` on web
   /// (the generated signatures differ; each platform passes its own type).
@@ -380,7 +380,16 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to create swapchain");
     }
     _logger.info("Created swapchain from window");
-    final sc = FFISwapChain(swapChain, this);
+    return adoptSwapChain(swapChain.address);
+  }
+
+  /// Takes ownership of the swapchain at raw address [swapChainAddress]
+  /// (`Pointer.address`), created outside this class as a job on
+  /// [jobThreadHandle] — the web-only offscreen entry point in
+  /// `package:thermion_dart/thermion_dart_web.dart` — registering it for
+  /// teardown like [createSwapChain].
+  SwapChain adoptSwapChain(int swapChainAddress) {
+    final sc = FFISwapChain(Pointer<TSwapChain>.fromAddress(swapChainAddress), this);
     _swapChains.add(sc);
     return sc;
   }

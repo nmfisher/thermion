@@ -22,25 +22,19 @@ public:
         return WebGPUPlatformWasm::getSurfaceExtent(const_cast<char*>(_canvasSelector.c_str()));
     }
 
-    wgpu::Surface createSurface(void* /*nativeWindow*/, uint64_t flags) override {
-        const char* selector = _canvasSelector.c_str();
-        if (flags & THERMION_SWAP_CHAIN_CONFIG_SKIP_PRESENT) {
-            // Offscreen swapchain: surface on the hidden canvas instead of the
-            // viewer's, so nothing is presented and JavaScript composites the
-            // rendered texture itself (see ThermionWebApi.h).
-            const char* offscreen = thermion::offscreenCanvasSelectorFor(selector);
-            if (offscreen) {
-                selector = offscreen;
-            } else {
-                std::cerr << "Offscreen swapchain requested but no document is available; "
-                             "presenting to the viewer canvas instead" << std::endl;
-            }
-        }
-        // Same cast as getSurfaceExtent: the Wasm platform takes the canvas
-        // selector through the void* nativeWindow parameter. Strip our own
-        // flag bit so it never leaks into Filament's swapchain-config layer.
-        return WebGPUPlatformWasm::createSurface(
-            const_cast<char*>(selector), flags & ~THERMION_SWAP_CHAIN_CONFIG_SKIP_PRESENT);
+    wgpu::Surface createSurface(void* nativeWindow, uint64_t flags) override {
+        // The Wasm platform takes the canvas selector through the void*
+        // nativeWindow parameter (same cast as getSurfaceExtent). The general
+        // Engine_createSwapChain path passes no window on web, so the surface
+        // is the viewer canvas this platform was created with; an offscreen
+        // swapchain (Thermion_createOffscreenSwapChain) passes its hidden
+        // canvas selector instead, so nothing is presented. Either way flags
+        // are pure filament::backend::SWAP_CHAIN_CONFIG_* values and reach
+        // Filament untouched.
+        const char* selector = nativeWindow
+            ? static_cast<const char*>(nativeWindow)
+            : _canvasSelector.c_str();
+        return WebGPUPlatformWasm::createSurface(const_cast<char*>(selector), flags);
     }
 
 private:

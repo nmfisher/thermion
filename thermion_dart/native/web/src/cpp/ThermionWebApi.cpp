@@ -12,6 +12,7 @@
 
 #include <backend/Platform.h>
 #include <backend/platforms/PlatformWebGL.h>
+#include <filament/Engine.h>
 
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
@@ -38,8 +39,9 @@ EMSCRIPTEN_WEBGL_CONTEXT_HANDLE createWebGLContextForCurrentJob() {
 }
 
 // ---------------------------------------------------------------------------
-// Hidden canvas backing a SKIP_PRESENT (offscreen) swapchain. One canvas per
-// viewer canvas, created on first use and reused by later swapchains.
+// Hidden canvas backing an offscreen swapchain (Thermion_createOffscreenSwapChain).
+// One canvas per viewer canvas, created on first use and reused by later
+// swapchains.
 // ---------------------------------------------------------------------------
 
 // DOM id of the hidden canvas for a viewer canvas selector: the viewer's id
@@ -86,7 +88,7 @@ static bool ensureOffscreenCanvas(const char *canvasSelector) {
 static std::mutex offscreenSelectorsMutex;
 static std::map<std::string, std::string> offscreenSelectors;
 
-// Shared by the C API (Dart getter) and ThermionWebGPUPlatform::createSurface
+// Shared by the C API (the Dart getter and Thermion_createOffscreenSwapChain)
 // so both always resolve the same hidden canvas for a viewer canvas.
 const char *offscreenCanvasSelectorFor(const char *canvasSelector) {
   if (!thermion::ensureOffscreenCanvas(canvasSelector)) {
@@ -119,8 +121,6 @@ static void removeOffscreenCanvas(const char *canvasSelector) {
 
 extern "C"
 {
-
-  EMSCRIPTEN_KEEPALIVE uint64_t TSWAP_CHAIN_CONFIG_SKIP_PRESENT = THERMION_SWAP_CHAIN_CONFIG_SKIP_PRESENT;
 
   EMSCRIPTEN_KEEPALIVE void Thermion_setCanvasElementSize(const char *elementName, int width, int height) {
     if(emscripten_set_canvas_element_size(elementName, width, height) == EM_TRUE) {
@@ -210,6 +210,44 @@ extern "C"
   // WebGPU builds define this next to the platform (ThermionWebGPUPlatform.cpp).
   EMSCRIPTEN_KEEPALIVE uint32_t Thermion_exportWebGPUDevice(void) {
     return 0;
+  }
+#endif
+
+#if defined(THERMION_SUPPORTS_WEBGPU)
+  EMSCRIPTEN_KEEPALIVE TSwapChain *Thermion_createOffscreenSwapChain(TEngine *tEngine, uint64_t flags) {
+    auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+    if (!engine) {
+      return nullptr;
+    }
+    // Same viewer-canvas resolution as Thermion_createWebGPUPlatform: the
+    // selector of the job thread running this job, so the hidden canvas
+    // belongs to this engine's own viewer canvas.
+    const char *viewerSelector = thermion::WebJobThread::currentCanvasSelector();
+    // offscreenCanvasSelectorFor reports (and returns nullptr for) a page
+    // without a document body: an offscreen swapchain needs its hidden
+    // canvas, so there is nothing to fall back to.
+    const char *offscreenSelector = thermion::offscreenCanvasSelectorFor(
+        viewerSelector ? viewerSelector : "#thermion_canvas");
+    if (!offscreenSelector) {
+      return nullptr;
+    }
+    // The hidden canvas is the swapchain's surface target: the WebGPU
+    // platform takes a canvas selector through the native window handle.
+    // flags reach Filament untouched (pure SWAP_CHAIN_CONFIG_* values).
+    auto *swapChain = engine->createSwapChain(const_cast<char *>(offscreenSelector), flags);
+    return reinterpret_cast<TSwapChain *>(swapChain);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Thermion_createOffscreenSwapChainJobThread(TJobThread *jobThread, TEngine *tEngine, uint64_t flags, void (*onComplete)(TSwapChain *))
+  {
+    auto *rt = reinterpret_cast<thermion::JobThread *>(jobThread);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *swapChain = Thermion_createOffscreenSwapChain(tEngine, flags);
+          rt->dispatchCallback([=]() { onComplete(swapChain); });
+        });
+    auto fut = rt->addTask(lambda);
   }
 #endif
 

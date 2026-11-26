@@ -57,10 +57,10 @@ extension ThermionWebFilamentApp on FilamentApp {
   /// `copyExternalImageToTexture` first.
   ///
   /// Returns null WITHOUT touching the DOM when offscreen swapchains are
-  /// unavailable: non-WebGPU backends, native builds, or a page with no
-  /// document body.
+  /// unavailable: non-WebGPU backends, WebGL2 engine builds, native builds,
+  /// or a page with no document body.
   String? get offscreenCanvasSelector {
-    if (!offscreen.supportsSkipPresent || backend != Backend.WEBGPU) return null;
+    if (backend != Backend.WEBGPU || !offscreen.supportsSkipPresent) return null;
     final app = this;
     if (app is! FFIFilamentApp) return null;
     return offscreen.offscreenCanvasSelector(app.jobThreadHandle.address);
@@ -72,18 +72,24 @@ extension ThermionWebFilamentApp on FilamentApp {
   ///
   /// [windowAddress] is the raw native window handle address
   /// (`Pointer.address`); pass 0 on web — the engine renders to its own
-  /// canvas, like `createSwapChain(nullptr)`. Web + WebGPU backend only;
-  /// throws [UnsupportedError] everywhere else.
+  /// canvas, like `createSwapChain(nullptr)`. WebGPU engines on web only
+  /// (a WebGL2 engine build reports the feature unavailable); throws
+  /// [UnsupportedError] synchronously everywhere else.
   Future<SwapChain> createOffscreenSwapChain(int windowAddress, {bool hasStencilBuffer = false}) {
-    if (!offscreen.supportsSkipPresent || backend != Backend.WEBGPU) {
+    if (backend != Backend.WEBGPU || !offscreen.supportsSkipPresent) {
       throw UnsupportedError(
-        'Offscreen (present-skip) swapchains are only supported by the WebGPU backend in web builds.',
+        'Offscreen (present-skip) swapchains are only supported by the WebGPU engine in web builds.',
       );
     }
     final app = this;
     if (app is! FFIFilamentApp) {
       throw UnsupportedError('Offscreen swapchains require the FFI filament app.');
     }
-    return offscreen.createOffscreenSwapChain(app, windowAddress, hasStencilBuffer: hasStencilBuffer);
+    // The engine's web-only Thermion_createOffscreenSwapChain export, run as
+    // a job on the engine's thread; the swapchain is registered for teardown
+    // like any other.
+    return offscreen
+        .createOffscreenSwapChain(app.jobThreadHandle.address, app.engine.address, hasStencilBuffer: hasStencilBuffer)
+        .then(app.adoptSwapChain);
   }
 }
