@@ -36,8 +36,10 @@ public:
             }
         }
         // Same cast as getSurfaceExtent: the Wasm platform takes the canvas
-        // selector through the void* nativeWindow parameter.
-        return WebGPUPlatformWasm::createSurface(const_cast<char*>(selector), flags);
+        // selector through the void* nativeWindow parameter. Strip our own
+        // flag bit so it never leaks into Filament's swapchain-config layer.
+        return WebGPUPlatformWasm::createSurface(
+            const_cast<char*>(selector), flags & ~THERMION_SWAP_CHAIN_CONFIG_SKIP_PRESENT);
     }
 
 private:
@@ -74,8 +76,12 @@ extern "C" EMSCRIPTEN_KEEPALIVE uint32_t Thermion_exportWebGPUDevice() {
     // GPUDevice to JavaScript via Module, where a sidecar can import it
     // (WebGPU.importJsDevice) to share the device with Thermion.
     const uint32_t handle = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(device.Get()));
+    // EM_ASM passes integer args as SIGNED 32-bit values, and with the
+    // emdawnwebgpu port device.Get() is a heap pointer: handles >= 0x80000000
+    // arrive negative and getJsObject(negative) returns undefined. >>> 0
+    // restores the unsigned pointer before the table lookup.
     EM_ASM({
-        Module['thermionWebGPUDevice'] = WebGPU.getJsObject($0);
+        Module['thermionWebGPUDevice'] = WebGPU.getJsObject($0 >>> 0);
     }, handle);
     return handle;
 }

@@ -33,7 +33,7 @@ import 'package:logging/logging.dart';
 import 'ffi_frame_info_history.dart' as frame_info_history;
 import 'ffi_gltf_mesh_data.dart';
 import 'resource_loader.dart';
-import 'webgpu_interop.dart' as webgpu_interop;
+import 'swapchain_flags.dart' as swapchain_flags;
 
 int _geometryCapabilitiesToNative(Set<SceneAssetGeometryCapability> capabilities) {
   var bits = TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_NONE;
@@ -97,8 +97,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   final Pointer<TNameComponentManager> nameComponentManager;
 
   /// CSS selector ("#id") of the canvas this engine presents to on web, or
-  /// null on native. Identifies the canvas whose hidden counterpart backs
-  /// present-skip swapchains ([offscreenCanvasSelector]).
+  /// null when no selector was given (the web engine then falls back to
+  /// "#thermion_canvas"; native ignores it).
   final String? canvasSelector;
 
   late final Future<Uint8List> Function(String uri) _loadResource;
@@ -357,53 +357,39 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   //
   @override
-  Future<SwapChain> createSwapChain(Pointer window, {bool hasStencilBuffer = false, bool skipPresent = false}) async {
+  Future<SwapChain> createSwapChain(Pointer window, {bool hasStencilBuffer = false}) {
     var flags = TSWAP_CHAIN_CONFIG_TRANSPARENT | TSWAP_CHAIN_CONFIG_READABLE;
     if (hasStencilBuffer) {
       flags |= TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
     }
-    if (skipPresent) {
-      // Offscreen swapchain: the WebGPU web engine renders into a hidden
-      // canvas (never presented) so JavaScript can composite the frames.
-      if (!webgpu_interop.supportsSkipPresent || backend != Backend.WEBGPU) {
-        throw UnsupportedError('skipPresent swapchains are only supported by the WebGPU backend in web builds.');
-      }
-      flags |= webgpu_interop.skipPresentFlag;
-    }
+    return createSwapChainFromFlags(window.address, flags);
+  }
+
+  /// Creates a swapchain from a raw window handle address and raw
+  /// `TSWAP_CHAIN_CONFIG_*` flags, and registers it for teardown like
+  /// [createSwapChain]. Platform-neutral escape hatch for platform-specific
+  /// flag bits; the web-only offscreen (present-skip) swapchain in
+  /// `package:thermion_dart/thermion_dart_web.dart` routes through here.
+  ///
+  /// [flags] is the bindings' flag word: `int` on native, `BigInt` on web
+  /// (the generated signatures differ; each platform passes its own type).
+  Future<SwapChain> createSwapChainFromFlags(int windowAddress, Object flags) async {
     final swapChain = await withPointerCallback<TSwapChain>(
-      (cb) => Engine_createSwapChainJobThread(jobThreadHandle, this.engine, window.cast<Void>(), flags, cb),
+      (cb) => swapchain_flags.engineCreateSwapChainJobThread(
+        jobThreadHandle,
+        this.engine,
+        Pointer<Void>.fromAddress(windowAddress),
+        flags,
+        cb,
+      ),
     );
-    _logger.info(skipPresent ? "Created offscreen (present-skip) swapchain" : "Created swapchain from window");
+    if (swapChain == nullptr) {
+      throw Exception("Failed to create swapchain");
+    }
+    _logger.info("Created swapchain from window");
     final sc = FFISwapChain(swapChain, this);
     _swapChains.add(sc);
     return sc;
-  }
-
-  /// The browser `GPUDevice` driving this engine's WebGPU backend, as a
-  /// `JSObject` (cast it to `web.GPUDevice` from `package:web` to use it).
-  ///
-  /// Web + [Backend.WEBGPU] only. The engine exports the device to JavaScript
-  /// (`Module['thermionWebGPUDevice']`); a sidecar renderer can import it to
-  /// share GPU resources with Thermion. Null everywhere else, including before
-  /// the engine was created.
-  Object? get webGPUDevice {
-    if (backend != Backend.WEBGPU) return null;
-    return _webGPUDevice ??= webgpu_interop.exportWebGPUDevice();
-  }
-
-  Object? _webGPUDevice;
-
-  /// Selector ("#id") of the hidden canvas that receives this engine's
-  /// offscreen ([createSwapChain] with `skipPresent: true`) frames, or null
-  /// when offscreen swapchains are unavailable (native, or no canvas).
-  ///
-  /// JavaScript composites from it, e.g. by sampling the canvas' WebGPU
-  /// context (`getCurrentTexture()` returns the frame's texture for the
-  /// current task) or drawing the canvas.
-  String? get offscreenCanvasSelector {
-    final selector = canvasSelector;
-    if (selector == null) return null;
-    return webgpu_interop.offscreenCanvasSelector(selector);
   }
 
   //

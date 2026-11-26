@@ -33,17 +33,26 @@ void *Thermion_createWebGPUPlatform();
 // ---------------------------------------------------------------------------
 
 // Thermion-owned swapchain flag, OR-ed into the `flags` argument of
-// Engine_createSwapChain / Engine_createHeadlessSwapChain.
+// Engine_createSwapChain. It has no effect on Engine_createHeadlessSwapChain:
+// headless swapchains never create a canvas surface
+// (ThermionWebGPUPlatform::createSurface is not involved), so there is no
+// present step to skip.
 //
 // When set, the swapchain is offscreen: every frame is rendered into the
 // hidden canvas returned by Thermion_getOffscreenCanvasSelector instead of
 // the viewer's canvas, so nothing is ever presented to the user. JavaScript
-// composites the frame itself, e.g. by sampling the hidden canvas's WebGPU
-// context (context.getCurrentTexture() returns the frame's GPUTexture for the
-// current task) or drawing the canvas.
+// composites the frame itself: draw the hidden canvas (e.g. drawImage), or
+// copy its WebGPU context's current texture (context.getCurrentTexture())
+// into a texture you own with copyTextureToTexture /
+// copyExternalImageToTexture. Do NOT bind getCurrentTexture() directly as a
+// sampled texture: canvas surfaces only carry RENDER_ATTACHMENT (+ COPY_SRC
+// for READABLE swapchains), never TEXTURE_BINDING, so sampling them fails
+// WebGPU validation.
 //
 // Only the WebGPU backend honours the flag (build with
 // -DTHERMION_ENABLE_WEBGPU=ON); other backends ignore it and present as usual.
+// The platform strips the bit before handing flags to Filament, so it never
+// reaches Filament's own swapchain-config layer.
 // The bit sits above every filament::backend::SWAP_CHAIN_CONFIG_* flag so it
 // never changes meaning for Filament. TSWAP_CHAIN_CONFIG_SKIP_PRESENT exports
 // the same value for bindings, like the TSWAP_CHAIN_CONFIG_* variables.

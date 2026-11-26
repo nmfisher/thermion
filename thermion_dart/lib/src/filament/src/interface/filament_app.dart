@@ -107,11 +107,10 @@ abstract class FilamentApp<T> {
   /// Creates a swapchain presenting to [handle] (a native window, or the
   /// viewer canvas on web).
   ///
-  /// [skipPresent] creates an offscreen swapchain: frames are rendered into a
-  /// texture that is never presented, for JavaScript to composite (see
-  /// `FFIFilamentApp.offscreenCanvasSelector`). Web + WebGPU backend only;
-  /// other platforms throw [UnsupportedError].
-  Future<SwapChain> createSwapChain(T handle, {bool hasStencilBuffer = false, bool skipPresent = false});
+  /// For offscreen (present-skip) swapchains whose frames JavaScript
+  /// composites itself, see the web-only entrypoint
+  /// `package:thermion_dart/thermion_dart_web.dart`.
+  Future<SwapChain> createSwapChain(T handle, {bool hasStencilBuffer = false});
 
   //
   Future<View> createView({bool createScene = false});
