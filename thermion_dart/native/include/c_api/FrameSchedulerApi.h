@@ -17,6 +17,13 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void FrameScheduler_startWithCallback(FrameTickCallback tickCallback, int targetFps);
         EMSCRIPTEN_KEEPALIVE void FrameScheduler_stop();
 
+        // Stops the scheduler as FrameScheduler_stop does, in the signature of
+        // a Dart NativeFinalizer callback, which ignores its token. The Dart
+        // VM runs attached native finalizers when the isolate group shuts
+        // down, so the scheduler never ticks a Dart callback the VM has torn
+        // down. A tick after VM shutdown aborts the process.
+        EMSCRIPTEN_KEEPALIVE void FrameScheduler_finalize(void* token);
+
         EMSCRIPTEN_KEEPALIVE int FrameScheduler_initDartApi(void* data);
         EMSCRIPTEN_KEEPALIVE void FrameScheduler_startWithPort(int64_t port, int targetFps);
 

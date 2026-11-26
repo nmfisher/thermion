@@ -729,6 +729,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TFilamentAsset> tFilamentAsset,
     Pointer<NativeFunction<void Function(EntityId)>> onComplete,
   );
+  external void _FrameScheduler_finalize(Pointer<Void> token);
   external int _FrameScheduler_initDartApi(Pointer<Void> data);
   external void _FrameScheduler_setTargetFps(int fps);
   external void _FrameScheduler_startWithCallback(FrameTickCallback tickCallback, int targetFps);
@@ -4913,6 +4914,11 @@ void FilamentAsset_getWireframeJobThread(
     tFilamentAsset.cast(),
     onComplete.cast(),
   );
+  return result;
+}
+
+void FrameScheduler_finalize(Pointer<Void> token) {
+  final result = GeneratedBindings.instance._FrameScheduler_finalize(token);
   return result;
 }
 

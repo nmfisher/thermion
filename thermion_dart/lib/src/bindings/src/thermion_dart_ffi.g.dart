@@ -1465,6 +1465,9 @@ external void FilamentAsset_getWireframeJobThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> onComplete,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+external void FrameScheduler_finalize(ffi.Pointer<ffi.Void> token);
+
 @ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
 external int FrameScheduler_initDartApi(ffi.Pointer<ffi.Void> data);
 
