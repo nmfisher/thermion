@@ -26,12 +26,16 @@ readback round-trip through the CPU.
   with a single `Engine.update()` and builds the static BLAS **once**
   (`engine.prepare(scene)`; the per-frame `update()` afterwards must only ever
   report the camera, never the scene).
-- Every frame the sidecar accumulates path-traced samples (`Render.refine`),
-  snapshots Thermion's offscreen frame and calls `engine.display.present(render)`,
-  which runs a registered `Display.addPostProcess` pass **on the shared
-  device**: it blends the tone-mapped path-traced image over the Thermion
-  snapshot in linear space, and `present()` draws the composite on the visible
-  `#thermion_canvas`.
+- Every frame the sidecar snapshots Thermion's offscreen frame and calls
+  `engine.display.present(render)`, which runs a registered
+  `Display.addPostProcess` pass **on the shared device**: it blends the
+  tone-mapped path-traced image over the Thermion snapshot in linear space,
+  and `present()` draws the composite on the visible `#thermion_canvas`.
+  The path-traced image follows MuTracer's interactive policy: while the
+  camera moves, a cheap **preview** `Render` (reduced resolution, adaptive
+  scale, 1 spp) is refined for the new view and shown every frame; once the
+  camera is stable the full `Render` (`?samples`) converges and takes over
+  as soon as it has its first sample for that view.
 - An **orbit camera** (drag = orbit, wheel = dolly) drives Thermion's camera,
   and the very same view matrix is pushed to the sidecar **every frame**
   (`window.thermionSidecarCamera`); the sidecar applies it to the MuTracer
@@ -44,7 +48,7 @@ readback round-trip through the CPU.
 ```
 Thermion (Dart/WASM)                     MuTracer sidecar (JS)
   WebGPU backend ── GPUDevice ──────────── Engine({ device })   (same object)
-  createOffscreenSwapChain()               Render.refine() samples   (raytrace)
+  createOffscreenSwapChain()               Render.refine() (preview|final)
   hidden offscreen canvas ── texture ─────► composite post-process
                                copy         display.present() ──► visible canvas
   orbit camera ── viewMatrix/revision ───► camera.transform + restart
@@ -97,9 +101,10 @@ dart run tool/serve.dart
 Open http://localhost:8080 in a WebGPU-capable browser (Chrome/Edge; on Linux
 without a GPU add `--enable-unsafe-webgpu`). The status line at the bottom
 shows the current mode and the controls hint on the left (`mode: … ·
-drag=orbit · wheel=zoom · R=toggle`) and the sidecar's sample progress next to
-it. Everything in `web/` except `index.html` and `main.dart` is a build
-artifact (see `.gitignore`).
+drag=orbit · wheel=zoom · R=toggle`) and the sidecar's progress next to it
+(`camera moving, preview N spp at WxH` during a drag, then `N/M samples…`
+and `N samples on Thermion's GPUDevice` once converged). Everything in `web/`
+except `index.html` and `main.dart` is a build artifact (see `.gitignore`).
 
 ## Controls and modes
 
@@ -131,12 +136,29 @@ resulting view matrix is republished to the sidecar every animation frame:
 The sidecar reacts as follows:
 
 - **raytrace** — a new `revision` is inverted (rigid inverse) into the
-  MuTracer camera's camera-to-world `transform` and `render.restart()` drops
-  the accumulated samples; then `Render.refine()` and the composite
-  `display.present()` continue as before. The per-frame `engine.update()`
-  still runs: a camera edit is expected to report a change (it never touches
-  the BLAS), and any *other* change would trip the "scene re-committed"
-  warning in the status line.
+  MuTracer camera's camera-to-world `transform`, both renders restart, and
+  the frame loop applies MuTracer's interactive policy (`changing ? preview :
+  final`, the default of its `RenderLoop`):
+  - *camera moving* (a new revision, or within 150 ms of one): the preview
+    `Render` — canvas-relative, half resolution with `adaptiveResolution`
+    down to 1/8 at an 80 ms frame target, 2 bounces, no bevel, one
+    wavelength, two light candidates, at most 4 spp — is refined until it
+    has a complete sample for the new view (the first `trace()` after a
+    reset may be a hidden timing probe and a slow sample is split into
+    tiles, so "restart, refine once" can legitimately yield 0 samples; the
+    loop is capped at 6 refines per frame). `display.present(render)` then
+    shows the preview, because it is `render`'s `fallback`. The full render
+    is not refined while the camera moves, so no full-resolution sample is
+    started that the next move would discard.
+  - *camera stable*: the full `render` converges (`refine()` per frame until
+    `?samples`), the preview stays on screen only until the full image has
+    its first sample for the current view, and `display.present()` is
+    called every frame (if neither render has a complete sample for the
+    current camera it presents nothing and the canvas keeps the previous
+    image — it never blanks).
+  The per-frame `engine.update()` still runs: a camera edit is expected to
+  report a change (it never touches the BLAS), and any *other* change would
+  trip the "scene re-committed" warning in the status line.
 - **viewport** — no `refine()` at all. The sidecar still snapshots Thermion's
   offscreen frame (the single present-skip swapchain is kept in both modes)
   and draws that snapshot **unchanged** to the visible canvas' current
@@ -147,9 +169,13 @@ The sidecar reacts as follows:
 - Switching modes resets the accumulation too, so samples are never mixed
   across views or modes.
 
-`window.thermionSidecarDebug.snapshot()` exposes the sidecar's counters
-(`mode`, `cameraRevision`, `restarts`, `refineCalls`, `viewportFrames`,
-`unexpectedCommits`, `samples`) for headless checks.
+`window.thermionSidecarDebug.snapshot()` exposes the sidecar's counters for
+headless checks: `mode`, `cameraRevision`, `restarts` (one per camera
+revision or mode toggle; it restarts both renders), `refineCalls` (full
+image), `previewRefines`, `previewFrames` / `finalFrames` (which image
+`present()` showed), `changing`, `viewportFrames`, `unexpectedCommits`,
+`samples` / `converged` / `maxSamples` (full image) and `preview`
+(`samples`, `maxSamples`, `resolutionScale`, `width`, `height`).
 
 URL parameters:
 
@@ -236,6 +262,38 @@ Orbit camera + mode toggle (headless Playwright script, not committed):
 - Toggling back with the button resets the accumulation again and
   `refineCalls`/`samples` resume from 0.
 
+Drag motion in raytrace mode (same headless setup, Playwright script not
+committed; `?samples=8`, 480x320): after the static view converged, an
+in-page drag dispatches `pointerdown` and then one `pointermove` (3 px) per
+animation frame on `#thermion_canvas` for ~9 s **without `pointerup`**
+(SwiftShader runs the page at ~8 fps under the path tracer). The canvas is
+captured four times during the drag, together with the debug snapshot:
+
+| capture | t after first move | camera revision | presented | pixels changed vs previous capture (>24/channel) |
+| ------- | ------------------ | --------------- | --------- | ------------------------------------------------ |
+| D1      | 1.1 s              | 7               | preview, 1 spp @ 64x48 | 10.0% (vs the converged pre-drag frame) |
+| D2      | 2.5 s              | 14              | preview, 1 spp @ 64x48 | 9.0%  |
+| D3      | 3.3 s              | 21              | preview, 1 spp @ 64x48 | 1.9%  |
+| D4      | 4.0 s              | 28              | preview, 1 spp @ 64x48 | 2.5%  |
+
+All four captures are non-blank and every consecutive pair differs (idle
+noise floor between two converged frames: 0.000%); `previewFrames` advanced
+by exactly one per camera revision and `refineCalls` stayed flat while the
+camera moved (`changing: true`). Before the fix the same drag left D1–D4
+pixel-identical (0.00% change, `samples` 0 throughout) and the image only
+jumped on release. With the button still held and the pointer idle, the full
+render resumed by itself (`changing: false`, `refineCalls` 246 → 271,
+`samples` 1); after `pointerup` it reached `8 samples on Thermion's GPUDevice
+(shared, BLAS built once)` with `unexpectedCommits == 0`. The viewport
+pass-through was re-checked in the same run (non-blank, 0.000% change between
+idle frames, 99% different from the composite), and `?blend=0`, `?blend=1`,
+the default blend and `?samples=1` still reach `N samples on Thermion's
+GPUDevice`. On SwiftShader the preview adapts to the 1/8 scale floor (60x40
+requested, 64x48 internal) because a half-resolution sample exceeds the
+80 ms target there; the composite crops nothing for it (scale 1) and the
+Thermion snapshot is sampled 1:1, so the upscaled preview lines up with the
+raster frame.
+
 Cube mirror (same headless setup): one screenshot pair per cube face with the
 camera orbited onto that face's outward normal (the pitch clamp leaves the top
 and bottom views ~3° off), checking a 16x16 px box on the face centre in the
@@ -249,8 +307,10 @@ black in both renderers (nothing lights it in this scene); its silhouette
 still matches the raster frame (IoU 0.99).
 
 Cannot be checked headlessly here: perceived smoothness of the orbit on a
-real GPU (SwiftShader path-traces ~1 sample/s at 480x320), so each drag step
-resets the accumulation to a 1-sample image there.
+real GPU. SwiftShader path-traces ~1 sample/s at 480x320 and each headless
+screenshot takes 0.7–1.9 s, so the mid-drag captures above prove that a new
+preview image is presented for every camera revision, not the frame rate a
+real GPU gets (half-resolution 1 spp previews there).
 
 ## Files
 
@@ -261,8 +321,10 @@ resets the accumulation to a 1-sample image there.
   button); pumps `app.render()` every animation frame and publishes the
   per-frame camera channel.
 - `js/mutracer_sidecar.js` — device import, scene mirror, BLAS-once commit,
-  per-frame camera sync, frame snapshot (skipped-frame aware), path tracing,
-  compositing post-process, viewport pass-through, presentation.
+  per-frame camera sync, frame snapshot (skipped-frame aware), the
+  preview/final interactive policy (preview `Render` as the full render's
+  `fallback`, present every frame), compositing post-process, viewport
+  pass-through, presentation.
 - `tool/build_sidecar.mjs` — esbuild bundle script (`npm run build`).
 - `tool/stage_engine.dart` — copies the local WebGPU engine into `web/`.
 - `tool/serve.dart` — COOP/COEP dev server for `web/`.

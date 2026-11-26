@@ -22,12 +22,24 @@
 //       column-major view matrix is inverted into its camera-to-world
 //       transform) and resets the sample accumulation.
 //   window.thermionSidecarMode    'raytrace' | 'viewport'
-//       'raytrace' (default): Render.refine() accumulates path-traced samples
-//       and display.present() runs the composite pass below.
+//       'raytrace' (default): MuTracer's interactive policy — a cheap PREVIEW
+//       Render (reduced resolution, adaptive scale) is shown while the camera
+//       is moving, the full Render converges once it is stable — and
+//       display.present() runs the composite pass below.
 //       'viewport': no path tracing at all; Thermion's offscreen snapshot is
 //       drawn unchanged to the visible canvas (pass-through of the Filament
 //       raster frame). Both modes are presented by this sidecar, on the shared
 //       device, and the single offscreen swapchain is kept in both.
+//
+// Raytrace motion: the first trace() after an accumulation reset can be a
+// hidden timing probe (0 samples) and a sample slower than the tile budget is
+// split over several refine() calls, so "restart, refine once, present if
+// samples > 0" never presents while the camera changes every frame — the
+// image froze during a drag and jumped on release. Now a camera change
+// restarts the preview and refines it (capped) until it has a visible sample
+// for the new view, and present() is called EVERY frame: `render` has the
+// preview as its fallback, so display.present(render) shows the preview until
+// the full image has its own sample for the current view.
 //
 // Compositing: every frame (after Thermion rendered) the hidden offscreen
 // canvas' current swapchain texture is copied into a sampleable texture on the
@@ -72,6 +84,17 @@ const query = new URLSearchParams(window.location.search);
 const maxSamples = Math.max(1, Number(query.get('samples')) || 256);
 const blend = Math.min(1, Math.max(0, Number(query.get('blend') ?? 0.85)));
 const exposure = Number(query.get('exposure')) || 1;
+
+// Interactive policy (MuTracer RenderLoop defaults): the preview accumulates a
+// few samples while it is on screen, a camera edit is followed by a short idle
+// window before the full image resumes (so a brief pause between pointer moves
+// does not start a full-resolution sample that the next move would discard),
+// and after a restart the preview is refined at most this many times in one
+// frame until it has a visible sample (hidden probe, tiled first sample); the
+// cap keeps a slow adapter from busy-looping inside a frame.
+const PREVIEW_SAMPLES = 4;
+const IDLE_MS = 150;
+const PREVIEW_REFINE_CAP = 6;
 
 // --- Scene mirror -----------------------------------------------------------
 // Vertex data identical to Thermion's GeometryUtils.cube() / plane(12, 12),
@@ -206,7 +229,7 @@ fn vs(@builtin(vertex_index) i: u32) -> VSOut {
 // as `input` (a regular texture) and must fully write `output`; the pipeline
 // is built per output format and the pass's encoder is borrowed, exactly as
 // MuTracer's PostProcessContext documents.
-function makeCompositor(device, offscreenCanvas, width, height) {
+function makeCompositor(device, offscreenCanvas) {
   const thermionContext = offscreenCanvas.getContext('webgpu');
   if (!thermionContext) fail('Thermion\u2019s offscreen canvas has no WebGPU context.');
 
@@ -286,10 +309,11 @@ fn toSrgb(c: vec3f) -> vec3f {
 
 @fragment
 fn fs(in: VSOut) -> @location(0) vec4f {
-  // Centered crop of the (possibly larger) internal image onto the requested
-  // rectangle, matching Render's fixed-size framing.
+  // Centered crop of a (possibly larger) fixed render's internal image onto
+  // its requested rectangle (scale 1 for the preview), matching Render's
+  // fixed-size framing. Thermion's snapshot is the full frame: 1:1.
   let uv = (in.uv - 0.5) * vec2f(params.scaleX, params.scaleY) + 0.5;
-  let base = textureSampleLevel(thermionTexture, tracedSampler, uv, 0.0);
+  let base = textureSampleLevel(thermionTexture, tracedSampler, in.uv, 0.0);
   let traced = textureSampleLevel(tracedTexture, tracedSampler, uv, 0.0);
   // Both inputs are premultiplied sRGB. Un-premultiply, decode, blend, re-encode.
   let baseRgb = toLinear(base.rgb / max(base.a, 1e-4));
@@ -317,13 +341,16 @@ fn fs(in: VSOut) -> @location(0) vec4f {
     return pipeline;
   };
 
-  // MuTracer's fixed-size renders may round the internal target up and widen
-  // the view; the post-process images stay at the internal size while the
-  // canvases keep the requested size. Scale UVs into the centered requested
-  // rectangle so the composite lines up with Thermion's framing.
+  // The post-process image (`input`, and `output`) is at the render's internal
+  // size. A fixed-size render may round that up and widen the view; its
+  // width/height is then the requested centered rectangle, so UVs are scaled
+  // into it to keep the framing. A scale-based preview render covers exactly
+  // the canvas view at a smaller size: scale 1 (the image is simply upscaled
+  // by present()). The Thermion snapshot is the full frame in both cases and
+  // is sampled 1:1, so both images line up for either render.
   let lastScaleX = 1, lastScaleY = 1;
-  const postProcess = ({ device: passDevice, encoder, input, output, width: renderWidth, height: renderHeight }) => {
-    const scaleX = width / renderWidth, scaleY = height / renderHeight;
+  const postProcess = ({ device: passDevice, encoder, input, output, render }) => {
+    const scaleX = render.width / input.width, scaleY = render.height / input.height;
     if (scaleX !== lastScaleX || scaleY !== lastScaleY) {
       lastScaleX = scaleX; lastScaleY = scaleY;
       device.queue.writeBuffer(paramsBuffer, 0,
@@ -492,15 +519,34 @@ async function start() {
   await engine.prepare(scene); // static BLAS, built once
   setStatus('MuTracer: BLAS built; compiling shaders\u2026');
 
+  // Full image: fixed size, up to maxSamples, 4 bounces.
   const render = new Render(engine, {
     width: bridge.width,
     height: bridge.height,
     maxSamples,
     bounces: 4,
   });
+  // Interactive preview, with MuTracer's RenderLoop preview defaults: a
+  // canvas-relative Render at half resolution whose scale adapts to the frame
+  // time (down to 1/8), 2 bounces, no bevel, one wavelength and two light
+  // candidates, so a sample fits a frame even on a slow adapter. Shown while
+  // the camera moves and until the full image has a sample for that view.
+  const preview = new Render(engine, {
+    resolutionScale: 0.5,
+    maxSamples: PREVIEW_SAMPLES,
+    timeBudgetMs: 80,
+    adaptiveResolution: { targetFrameMs: 80, minScale: 0.125 },
+    bounces: 2,
+    bevel: false,
+    dispersionWavelengths: 1,
+    directLightCandidates: 2,
+  });
+  // display.present(render) falls back to the preview while `render` has no
+  // presentable image for the current camera (after every restart).
+  render.fallback = preview;
   engine.display.toneMapping = 'aces';
   engine.display.toneMappingExposure = 1;
-  const compositor = makeCompositor(device, offscreenCanvas, bridge.width, bridge.height);
+  const compositor = makeCompositor(device, offscreenCanvas);
   engine.display.addPostProcess(compositor.postProcess);
   const viewportPresenter = makeViewportPresenter(device, presentCanvas);
   const { presentViewport } = viewportPresenter;
@@ -509,8 +555,12 @@ async function start() {
   const stats = {
     mode: 'raytrace',
     cameraRevision: -1, // last revision applied to the MuTracer camera
-    restarts: 0, // accumulation resets (camera or mode changes)
-    refineCalls: 0,
+    restarts: 0, // accumulation resets (camera or mode changes; both renders)
+    refineCalls: 0, // full-image refine() calls
+    previewRefines: 0, // preview refine() calls
+    previewFrames: 0, // raytrace frames that presented the preview
+    finalFrames: 0, // raytrace frames that presented the full image
+    changing: false, // camera moving (or inside the idle window after a move)
     viewportFrames: 0,
     raytraceFrames: 0,
     unexpectedCommits: 0, // update() reported changes without a camera edit
@@ -519,6 +569,7 @@ async function start() {
     window.thermionSidecarMode === 'viewport' ? 'viewport' : 'raytrace';
   let mode = currentMode();
   stats.mode = mode;
+  let lastCameraChange = -Infinity; // performance.now() of the last camera edit
   // Exposed for headless checks (README, Verification); read-only.
   const debug = {
     snapshot: () => ({
@@ -528,6 +579,13 @@ async function start() {
       samples: render.samples,
       converged: render.converged,
       maxSamples,
+      preview: {
+        samples: preview.samples,
+        maxSamples: preview.maxSamples,
+        resolutionScale: preview.resolutionScale,
+        width: preview.width,
+        height: preview.height,
+      },
       cameraPosition: Array.from(camera.position),
       capture: compositor.info,
     }),
@@ -535,6 +593,7 @@ async function start() {
   window.thermionSidecarDebug = debug;
 
   const frame = () => {
+    const now = performance.now();
     // 1. Per-frame camera sync. A new revision means the orbit camera moved:
     // apply it to the MuTracer camera and restart accumulation.
     const channel = window.thermionSidecarCamera;
@@ -543,6 +602,7 @@ async function start() {
       stats.cameraRevision = channel.revision;
       camera.transform = cameraToWorld(channel.viewMatrix);
       cameraChanged = true;
+      lastCameraChange = now;
     }
 
     // 2. Mode: Dart writes window.thermionSidecarMode on every toggle.
@@ -555,9 +615,12 @@ async function start() {
     if (engine.update() && !cameraChanged) stats.unexpectedCommits++;
 
     // 4. Reset the accumulation when the camera or the mode changed, so the
-    //    path-traced image never mixes samples from different views.
+    //    path-traced image never mixes samples from different views. Both
+    //    renders restart; neither is presentable for the new view until it has
+    //    traced a sample for it (display.present() checks exactly that).
     if (cameraChanged || modeChanged) {
       render.restart();
+      preview.restart();
       stats.restarts++;
     }
 
@@ -570,20 +633,50 @@ async function start() {
       // Pass-through of the Filament raster frame: no refine(), no blend.
       if (compositor.captured) presentViewport(compositor.captured);
       stats.viewportFrames++;
+      stats.changing = false;
       setStatus(`Viewport: Thermion\u2019s raster frame passed through unchanged (path tracing paused).`);
     } else {
-      // No scene edits: path-trace and composite as before.
-      if (!render.converged) {
-        render.refine();
-        stats.refineCalls++;
+      // MuTracer's interactive policy: changing ? preview : final.
+      const changing = cameraChanged || now - lastCameraChange < IDLE_MS;
+      stats.changing = changing;
+      if (changing) {
+        // Camera moving: the preview must show THIS view this frame. The
+        // restart dropped it to 0 samples; the first refine() after a reset
+        // may be a hidden timing probe and a slow sample is split into tiles,
+        // so keep refining (capped) until a sample is complete. Inside the
+        // idle window after a move (no new revision) let it converge a little.
+        const wanted = cameraChanged ? 1 : preview.maxSamples;
+        const cap = cameraChanged ? PREVIEW_REFINE_CAP : 1;
+        for (let i = 0; i < cap && preview.samples < wanted; i++) {
+          preview.refine();
+          stats.previewRefines++;
+        }
+      } else {
+        // Camera stable: the full image converges. The preview stays on
+        // screen (fallback) only until the full image has its first sample.
+        if (!render.converged) {
+          render.refine();
+          stats.refineCalls++;
+        }
+        if (render.samples === 0 && !preview.converged) {
+          preview.refine();
+          stats.previewRefines++;
+        }
       }
-      if (render.samples > 0) {
-        engine.display.present(render);
-      }
+      // Present EVERY raytrace frame: the full image, or the preview while the
+      // full image has no complete sample for the current camera. If neither
+      // has one (nothing visible was produced this frame) present() draws
+      // nothing and the canvas keeps showing the previous image; it never
+      // blanks and never freezes on a stale view while the preview has one.
+      const presented = engine.display.present(render);
+      if (presented === preview) stats.previewFrames++;
+      else if (presented === render) stats.finalFrames++;
       stats.raytraceFrames++;
       setStatus(render.converged
         ? `MuTracer sidecar: ${render.samples} samples on Thermion's GPUDevice (shared, BLAS built once${stats.unexpectedCommits ? ' — WARNING: scene re-committed' : ''}). Blend ${blend}.`
-        : `MuTracer sidecar: ${render.samples}/${maxSamples} samples\u2026`);
+        : changing
+          ? `MuTracer sidecar: camera moving, preview ${preview.samples} spp at ${preview.width}x${preview.height} (full image resumes when the camera stops)\u2026`
+          : `MuTracer sidecar: ${render.samples}/${maxSamples} samples\u2026`);
     }
     requestAnimationFrame(frame);
   };
