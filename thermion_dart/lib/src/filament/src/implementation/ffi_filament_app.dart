@@ -33,7 +33,6 @@ import 'package:logging/logging.dart';
 import 'ffi_frame_info_history.dart' as frame_info_history;
 import 'ffi_gltf_mesh_data.dart';
 import 'resource_loader.dart';
-import 'swapchain_flags.dart' as swapchain_flags;
 
 int _geometryCapabilitiesToNative(Set<SceneAssetGeometryCapability> capabilities) {
   var bits = TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_NONE;
@@ -350,28 +349,17 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   //
   @override
-  Future<SwapChain> createSwapChain(Pointer window, {bool hasStencilBuffer = false}) {
+  Future<SwapChain> createSwapChain(Pointer window, {bool hasStencilBuffer = false}) async {
     var flags = TSWAP_CHAIN_CONFIG_TRANSPARENT | TSWAP_CHAIN_CONFIG_READABLE;
     if (hasStencilBuffer) {
       flags |= TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
     }
-    return createSwapChainFromFlags(window.address, flags);
-  }
 
-  /// Creates a swapchain from a raw window handle address and raw
-  /// `TSWAP_CHAIN_CONFIG_*` flags, and registers it for teardown like
-  /// [createSwapChain]. Platform-neutral escape hatch for platform-specific
-  /// flag bits (always pure Filament `SWAP_CHAIN_CONFIG_*` values, which
-  /// `TSWAP_CHAIN_CONFIG_*` mirrors 1:1).
-  ///
-  /// [flags] is the bindings' flag word: `int` on native, `BigInt` on web
-  /// (the generated signatures differ; each platform passes its own type).
-  Future<SwapChain> createSwapChainFromFlags(int windowAddress, Object flags) async {
     final swapChain = await withPointerCallback<TSwapChain>(
-      (cb) => swapchain_flags.engineCreateSwapChainJobThread(
+      (cb) => Engine_createSwapChainJobThread(
         jobThreadHandle,
         this.engine,
-        Pointer<Void>.fromAddress(windowAddress),
+        Pointer<Void>.fromAddress(window.address),
         flags,
         cb,
       ),

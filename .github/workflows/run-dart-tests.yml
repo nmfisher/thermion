@@ -625,22 +625,21 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release -DTHERMION_ENABLE_WEBGPU=ON
           cmake --build thermion_dart/native/web/build-webgpu --parallel 3
 
-      - name: Select the WebGPU engine and disable unused native build
+      - name: Disable the unused native build
         working-directory: thermion_dart
         run: |
           # Mirror runtime-materials-web's pubspec rewrite: keep a materials:
-          # map so web_test_runner's publishWebMaterials appends the built-in
-          # material sections to the staged engine exactly once. backend:
-          # webgpu selects the WGSL material variant for this engine.
+          # map — web_test_runner's publishWebMaterials stages the flat test/
+          # engine into test/embedded_engine/ and appends the built-in
+          # material sections selected under materials: exactly once. The
+          # scene renders with gltfio ubershaders, so the map is empty.
           sed -i '' '/^hooks:/,$d' pubspec.yaml
           cat >> pubspec.yaml <<'EOF'
           hooks:
             user_defines:
               thermion_dart:
                 skip_native_build: true
-                backend: webgpu
-                materials:
-                  sharp_edge: true
+                materials: {}
           EOF
           dart pub get
 

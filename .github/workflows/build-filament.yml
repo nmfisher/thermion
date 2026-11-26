@@ -945,12 +945,6 @@ jobs:
         run: |
           set -euo pipefail
           unzip -o "webgpu-engines/thermion_dart-$WEB_ENGINE_VERSION-web-webgpu.zip" -d "$RUNNER_TEMP/webgpu-scene"
-          # Also copy the built engine FLAT into test/ (the layout
-          # runtime-materials-web unzips into), so any later staging on this
-          # checkout starts from the pristine engine, never a previously
-          # material-appended test/embedded_engine copy.
-          cp "$RUNNER_TEMP/webgpu-scene/thermion_dart.js" \
-             "$RUNNER_TEMP/webgpu-scene/thermion_dart.wasm" thermion_dart/test/
           python3 scripts/check-webgpu-canvas.py "$RUNNER_TEMP/webgpu-scene" --chrome "$CHROME_EXECUTABLE"
 
       - name: Publish and verify the public archives
@@ -977,8 +971,4 @@ jobs:
           curl -fL --retry 3 "$R2_PUBLIC_URL/thermion_dart-$WEB_ENGINE_VERSION-web-webgpu.zip" \
             -o "$RUNNER_TEMP/published-webgpu.zip"
           unzip -o "$RUNNER_TEMP/published-webgpu.zip" -d "$RUNNER_TEMP/webgpu-scene"
-          # Keep test/ holding the pristine engine (see the staged-archive
-          # step above).
-          cp "$RUNNER_TEMP/webgpu-scene/thermion_dart.js" \
-             "$RUNNER_TEMP/webgpu-scene/thermion_dart.wasm" thermion_dart/test/
           python3 scripts/check-webgpu-canvas.py "$RUNNER_TEMP/webgpu-scene" --chrome "$CHROME_EXECUTABLE"

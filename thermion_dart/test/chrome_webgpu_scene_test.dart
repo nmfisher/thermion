@@ -160,7 +160,7 @@ void main() {
       await app.destroySwapChain(swapChain);
       await material.setParameterFloat4('baseColorFactor', 1, 0, 0, 1);
 
-      final offscreen = await app.createOffscreenSwapChain(0);
+      final offscreen = await app.createOffscreenSwapChain();
       final redPixel = await _renderCubeInto(app, viewer, offscreen, hidden, scratch, _isRed, 'red', errors);
 
       final visiblePixel = _sampleCenter(scratch, canvas);

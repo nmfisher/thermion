@@ -70,12 +70,10 @@ extension ThermionWebFilamentApp on FilamentApp {
   /// into the hidden canvas reported by [offscreenCanvasSelector] and never
   /// presented, so JavaScript can composite the frames itself.
   ///
-  /// [windowAddress] is the raw native window handle address
-  /// (`Pointer.address`); pass 0 on web — the engine renders to its own
-  /// canvas, like `createSwapChain(nullptr)`. WebGPU engines on web only
-  /// (a WebGL2 engine build reports the feature unavailable); throws
-  /// [UnsupportedError] synchronously everywhere else.
-  Future<SwapChain> createOffscreenSwapChain(int windowAddress, {bool hasStencilBuffer = false}) {
+  /// The engine renders to its own canvas, like `createSwapChain(nullptr)`.
+  /// WebGPU engines on web only (a WebGL2 engine build reports the feature
+  /// unavailable); throws [UnsupportedError] synchronously everywhere else.
+  Future<SwapChain> createOffscreenSwapChain({bool hasStencilBuffer = false}) {
     if (backend != Backend.WEBGPU || !offscreen.supportsSkipPresent) {
       throw UnsupportedError(
         'Offscreen (present-skip) swapchains are only supported by the WebGPU engine in web builds.',

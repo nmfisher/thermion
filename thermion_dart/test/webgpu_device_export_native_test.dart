@@ -35,7 +35,7 @@ void main() {
 
     test('createOffscreenSwapChain throws UnsupportedError on native', () async {
       // The guard throws synchronously, before any future is created.
-      expect(() => app.createOffscreenSwapChain(0), throwsUnsupportedError);
+      expect(() => app.createOffscreenSwapChain(), throwsUnsupportedError);
       // The rejected call must not have registered a swapchain.
       expect(await app.getSwapChains(), isEmpty);
     });
