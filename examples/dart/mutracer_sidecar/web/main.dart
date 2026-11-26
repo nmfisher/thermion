@@ -90,6 +90,19 @@ const _controlsHint = 'drag=orbit · wheel=zoom · R=toggle';
 double _clampDouble(double value, double min, double max) =>
     value < min ? min : (value > max ? max : value);
 
+/// PointerEvent clientX/clientY as doubles, read through JS interop.
+///
+/// package:web types these getters as `int`, but browsers deliver FRACTIONAL
+/// coordinates (trackpads, high-DPI or zoomed displays). Under dart2wasm the
+/// int-typed getter converts the JS number at the boundary and THROWS on any
+/// non-integral value, so the typed getter is unusable here. Reading the
+/// property as a JS number keeps the fraction. (`pointerId` really is an
+/// integer, so it stays typed.)
+(double, double) _clientCoords(web.PointerEvent e) => (
+      (e as JSObject).getProperty<JSNumber>('clientX'.toJS).toDartDouble,
+      (e as JSObject).getProperty<JSNumber>('clientY'.toJS).toDartDouble,
+    );
+
 /// Orbit camera state around a focus point, held as spherical coordinates so
 /// that drags are increments and the camera never drifts or flips.
 class _OrbitState {
@@ -362,14 +375,16 @@ Future<void> main() async {
   // Thermion's own canvas is hidden, so this is where the user looks.
   var dragging = false;
   var activePointer = -1;
-  var lastX = 0, lastY = 0; // clientX/clientY are integers in package:web
+  // Last pointer position in CSS pixels; fractional (see _clientCoords).
+  var lastX = 0.0, lastY = 0.0;
 
   void onPointerDown(web.PointerEvent e) {
     if (dragging) return;
     dragging = true;
     activePointer = e.pointerId;
-    lastX = e.clientX;
-    lastY = e.clientY;
+    final (x, y) = _clientCoords(e);
+    lastX = x;
+    lastY = y;
     // Keep receiving moves outside the canvas until the pointer is released.
     try {
       canvas.setPointerCapture(e.pointerId);
@@ -381,9 +396,10 @@ Future<void> main() async {
 
   void onPointerMove(web.PointerEvent e) {
     if (!dragging || e.pointerId != activePointer) return;
-    orbit.orbit((e.clientX - lastX).toDouble(), (e.clientY - lastY).toDouble());
-    lastX = e.clientX;
-    lastY = e.clientY;
+    final (x, y) = _clientCoords(e);
+    orbit.orbit(x - lastX, y - lastY);
+    lastX = x;
+    lastY = y;
     cameraDirty = true;
     e.preventDefault();
   }

@@ -110,8 +110,13 @@ artifact (see `.gitignore`).
 | `R` key / button    | toggle `raytrace` ↔ `viewport`                               |
 
 The camera is a spherical orbit around the scene's focus point
-(`web/main.dart`, `_OrbitState`). Every change is applied to the Thermion
-camera (`getActiveCamera()` → `lookAt(position, focus: focus)`) and the
+(`web/main.dart`, `_OrbitState`). Pointer coordinates are read as **doubles**
+through JS interop (`_clientCoords`), not through package:web's `clientX` /
+`clientY` getters: those are typed `int`, but browsers deliver fractional
+coordinates on trackpads and high-DPI/zoomed displays, and dart2wasm's int
+conversion at the boundary throws on any non-integral value (the first drag on
+such a device raised an uncaught exception). Every change is applied to the
+Thermion camera (`getActiveCamera()` → `lookAt(position, focus: focus)`) and the
 resulting view matrix is republished to the sidecar every animation frame:
 
 - `window.thermionSidecarCamera` — `{ viewMatrix, position, focus, revision }`
