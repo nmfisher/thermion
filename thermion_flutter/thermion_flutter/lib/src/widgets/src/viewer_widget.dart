@@ -243,7 +243,8 @@ class _ViewerWidgetState extends State<ViewerWidget> {
       case ManipulatorType.ORBIT:
         _inputHandler = DelegateInputHandler.fixedOrbit(
           viewer!,
-          minimumDistance: widget.initialCameraPosition.length,
+          //minimumDistance: widget.initialCameraPosition.length,
+          minimumDistance: 0.1,
           moveOnHover: false,
         );
         break;
