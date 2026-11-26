@@ -34,9 +34,6 @@ import 'package:yaml_edit/yaml_edit.dart';
 // Must match emscripten's OFFSCREENCANVASES_TO_PTHREAD target id.
 const _canvasId = 'thermion_canvas';
 
-// The engine pair publishWebMaterials stages into the HTML wrapper's dir.
-const _engineFiles = ['thermion_dart.js', 'thermion_dart.wasm'];
-
 String _wrapperHtml(String testFileName) =>
     '''<!DOCTYPE html>
 <html>
@@ -168,38 +165,13 @@ Future<void> main(List<String> args) async {
     'thermion_dart',
     'materials',
   ], orElse: () => wrapAsYamlNode(null)).value;
-  // Engine source: prefer an already-staged test/embedded_engine/ (the
-  // webgpu-scene CI job builds the engine locally and stages it there via
-  // tool/stage_web_engine.dart), falling back to the flat test/ layout the
-  // runtime-materials jobs produce by unzipping the published artifact.
-  // publishWebMaterials refuses identical source/destination dirs, so an
-  // embedded_engine source is snapshotted to a temp dir first (same trick
-  // as tool/stage_web_engine.dart).
-  final embeddedEngine = Directory('test/embedded_engine');
-  final embeddedComplete = _engineFiles.every((name) => File('${embeddedEngine.path}/$name').existsSync());
-  Directory engineDir = Directory('test');
-  Directory? engineSnapshot;
-  if (embeddedComplete) {
-    engineSnapshot = Directory.systemTemp.createTempSync('thermion-engine-src-');
-    for (final name in _engineFiles) {
-      File('${embeddedEngine.path}/$name').copySync('${engineSnapshot.path}/$name');
-    }
-    engineDir = engineSnapshot;
-    stderr.writeln('Engine: staging from ${embeddedEngine.path} (pre-staged engine).');
-  } else {
-    stderr.writeln('Engine: staging from test/ (published-zip layout).');
-  }
-  try {
-    await publishWebMaterials(
-      root: Directory.current,
-      engineDir: engineDir,
-      webDir: Directory('test/embedded_engine'),
-      materials: selectBuiltInMaterials(materialConfig, onWarning: stderr.writeln),
-      onLog: stderr.writeln,
-    );
-  } finally {
-    engineSnapshot?.deleteSync(recursive: true);
-  }
+  await publishWebMaterials(
+    root: Directory.current,
+    engineDir: Directory('test'),
+    webDir: Directory('test/embedded_engine'),
+    materials: selectBuiltInMaterials(materialConfig, onWarning: stderr.writeln),
+    onLog: stderr.writeln,
+  );
 
   // 2. Generate the HTML wrappers.
   final generated = <File>[];

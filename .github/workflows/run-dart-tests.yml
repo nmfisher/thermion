@@ -625,28 +625,33 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release -DTHERMION_ENABLE_WEBGPU=ON
           cmake --build thermion_dart/native/web/build-webgpu --parallel 3
 
-      - name: Disable the native build
+      - name: Select the WebGPU engine and disable unused native build
         working-directory: thermion_dart
         run: |
+          # Mirror runtime-materials-web's pubspec rewrite: keep a materials:
+          # map so web_test_runner's publishWebMaterials appends the built-in
+          # material sections to the staged engine exactly once. backend:
+          # webgpu selects the WGSL material variant for this engine.
           sed -i '' '/^hooks:/,$d' pubspec.yaml
           cat >> pubspec.yaml <<'EOF'
           hooks:
             user_defines:
               thermion_dart:
                 skip_native_build: true
+                backend: webgpu
+                materials:
+                  sharp_edge: true
           EOF
           dart pub get
 
-      - name: Stage the engine and WGSL materials for the browser test
+      - name: Copy the built engine flat into test/
         working-directory: thermion_dart
         run: |
           set -euo pipefail
-          # Same layout the runtime-materials web jobs unzip into test/, so
-          # the web_test_runner HTML wrapper finds embedded_engine/.
-          mkdir -p test/embedded_engine
+          # Same flat layout the runtime-materials-web jobs unzip into test/:
+          # web_test_runner stages test/ -> test/embedded_engine/ itself.
           cp native/web/build-webgpu/build/out/thermion_dart.js \
-             native/web/build-webgpu/build/out/thermion_dart.wasm test/embedded_engine/
-          dart run tool/stage_web_engine.dart --backend=webgpu
+             native/web/build-webgpu/build/out/thermion_dart.wasm test/
 
       - name: Configure Chrome software rendering
         run: |
