@@ -77,102 +77,106 @@ Future<Uint8ClampedList> _renderCubeInto(
 }
 
 void main() {
-  test('WebGPU device export + presenting/offscreen swapchains render the scene', () async {
-    final canvas = web.document.getElementById('thermion_canvas') as web.HTMLCanvasElement;
-    // All pixel reads go through this scratch 2D canvas; the WebGPU canvases
-    // are never asked for a 2D context.
-    final scratch = web.HTMLCanvasElement()
-      ..width = canvas.width
-      ..height = canvas.height;
+  test(
+    'WebGPU device export + presenting/offscreen swapchains render the scene',
+    () async {
+      final canvas = web.document.getElementById('thermion_canvas') as web.HTMLCanvasElement;
+      // All pixel reads go through this scratch 2D canvas; the WebGPU canvases
+      // are never asked for a 2D context.
+      final scratch = web.HTMLCanvasElement()
+        ..width = canvas.width
+        ..height = canvas.height;
 
-    // Waits for the host page's module promise, then binds the JS interop
-    // layer to globalThis.thermion_dart.
-    await initTestBindings();
-    final module = globalContext['thermion_dart'] as JSObject;
-    final errors = <String>[];
-    final device = module['preinitializedWebGPUDevice'] as web.EventTarget?;
-    expect(device, isNotNull, reason: 'Chrome did not create a WebGPU device.');
-    device!.addEventListener(
-      'uncapturederror',
-      ((web.Event event) {
-        final error = (event as JSObject)['error'] as JSObject;
-        errors.add((error['message'] as JSString).toDart);
-      }).toJS,
-    );
+      // Waits for the host page's module promise, then binds the JS interop
+      // layer to globalThis.thermion_dart.
+      await initTestBindings();
+      final module = globalContext['thermion_dart'] as JSObject;
+      final errors = <String>[];
+      final device = module['preinitializedWebGPUDevice'] as web.EventTarget?;
+      expect(device, isNotNull, reason: 'Chrome did not create a WebGPU device.');
+      device!.addEventListener(
+        'uncapturederror',
+        ((web.Event event) {
+          final error = (event as JSObject)['error'] as JSObject;
+          errors.add((error['message'] as JSString).toDart);
+        }).toJS,
+      );
 
-    await FFIFilamentApp.create(config: FFIFilamentConfig(backend: Backend.WEBGPU));
-    final app = FilamentApp.instance! as FFIFilamentApp;
-    addTearDown(app.destroy);
-    final viewer = ThermionViewerFFI(app: app);
-    await viewer.initialized;
-    addTearDown(viewer.dispose);
+      await FFIFilamentApp.create(config: FFIFilamentConfig(backend: Backend.WEBGPU));
+      final app = FilamentApp.instance! as FFIFilamentApp;
+      addTearDown(app.destroy);
+      final viewer = ThermionViewerFFI(app: app);
+      await viewer.initialized;
+      addTearDown(viewer.dispose);
 
-    // The web-only extension exports the browser GPUDevice the engine runs
-    // on; it must be the very object Chrome preinitialized the engine with
-    // (strict JS equality — Dart wrappers are not comparable).
-    final exportedDevice = app.webGPUDevice;
-    expect(exportedDevice, isNotNull, reason: 'webGPUDevice is null on a WebGPU engine.');
-    expect(
-      (exportedDevice!.jsObject as JSObject).strictEquals(device as JSObject).toDart,
-      isTrue,
-      reason: 'webGPUDevice is not the preinitialized browser device.',
-    );
-    final moduleDevice = module['thermionWebGPUDevice'] as JSObject?;
-    expect(moduleDevice, isNotNull, reason: 'Module.thermionWebGPUDevice was not exported.');
-    expect(
-      moduleDevice!.strictEquals(device as JSObject).toDart,
-      isTrue,
-      reason: 'Module.thermionWebGPUDevice is not the preinitialized device.',
-    );
+      // The web-only extension exports the browser GPUDevice the engine runs
+      // on; it must be the very object Chrome preinitialized the engine with
+      // (strict JS equality — Dart wrappers are not comparable).
+      final exportedDevice = app.webGPUDevice;
+      expect(exportedDevice, isNotNull, reason: 'webGPUDevice is null on a WebGPU engine.');
+      expect(
+        (exportedDevice!.jsObject as JSObject).strictEquals(device as JSObject).toDart,
+        isTrue,
+        reason: 'webGPUDevice is not the preinitialized browser device.',
+      );
+      final moduleDevice = module['thermionWebGPUDevice'] as JSObject?;
+      expect(moduleDevice, isNotNull, reason: 'Module.thermionWebGPUDevice was not exported.');
+      expect(
+        moduleDevice!.strictEquals(device as JSObject).toDart,
+        isTrue,
+        reason: 'Module.thermionWebGPUDevice is not the preinitialized device.',
+      );
 
-    // Default selector: the engine was created without a canvasSelector, so
-    // the getter must resolve the engine's default canvas from its job thread.
-    expect(app.offscreenCanvasSelector, '#thermion_canvas__thermion_offscreen');
-    final hidden = web.document.getElementById('thermion_canvas__thermion_offscreen') as web.HTMLCanvasElement?;
-    expect(hidden, isNotNull, reason: 'The hidden offscreen canvas was not created.');
-    expect(hidden!.style.display, 'none', reason: 'The offscreen canvas must never be visible.');
+      // Default selector: the engine was created without a canvasSelector, so
+      // the getter must resolve the engine's default canvas from its job thread.
+      expect(app.offscreenCanvasSelector, '#thermion_canvas__thermion_offscreen');
+      final hidden = web.document.getElementById('thermion_canvas__thermion_offscreen') as web.HTMLCanvasElement?;
+      expect(hidden, isNotNull, reason: 'The hidden offscreen canvas was not created.');
+      expect(hidden!.style.display, 'none', reason: 'The offscreen canvas must never be visible.');
 
-    await viewer.setPostProcessing(false);
-    await (await viewer.getActiveCamera()).lookAt(Vector3(0, 0, 5), focus: Vector3.zero());
+      await viewer.setPostProcessing(false);
+      await (await viewer.getActiveCamera()).lookAt(Vector3(0, 0, 5), focus: Vector3.zero());
 
-    // One cube for both steps; only its color changes between them.
-    final material = await app.createUbershaderMaterialInstance(unlit: true);
-    await material.setParameterFloat4('baseColorFactor', 0, 1, 0, 1);
-    final cube = await viewer.createGeometry(GeometryUtils.cube(), materialInstances: [material]);
-    await viewer.addToScene(cube);
-    // Tear-down order: detach/destroy the renderable first (viewer.dispose
-    // also covers it), then the material instance — Filament aborts when a
-    // MaterialInstance is destroyed while still attached to a Renderable.
-    addTearDown(material.destroy);
-    addTearDown(() => viewer.destroyAsset(cube));
+      // One cube for both steps; only its color changes between them.
+      final material = await app.createUbershaderMaterialInstance(unlit: true);
+      await material.setParameterFloat4('baseColorFactor', 0, 1, 0, 1);
+      final cube = await viewer.createGeometry(GeometryUtils.cube(), materialInstances: [material]);
+      await viewer.addToScene(cube);
+      // Tear-down order: detach/destroy the renderable first (viewer.dispose
+      // also covers it), then the material instance — Filament aborts when a
+      // MaterialInstance is destroyed while still attached to a Renderable.
+      addTearDown(material.destroy);
+      addTearDown(() => viewer.destroyAsset(cube));
 
-    // 1) A normal swapchain presents the GREEN cube to the visible canvas.
-    final swapChain = await app.createSwapChain(nullptr);
-    final greenPixel = await _renderCubeInto(app, viewer, swapChain, canvas, scratch, _isGreen, 'green', errors);
+      // 1) A normal swapchain presents the GREEN cube to the visible canvas.
+      final swapChain = await app.createSwapChain(nullptr);
+      final greenPixel = await _renderCubeInto(app, viewer, swapChain, canvas, scratch, _isGreen, 'green', errors);
 
-    // 2) Switch the cube to RED and render through an offscreen (present-skip)
-    //    swapchain: the hidden canvas must show red while the visible canvas
-    //    keeps showing the last presented (green) frame.
-    await viewer.setRendering(false);
-    await app.renderManager.detach(viewer.view, swapChain: swapChain);
-    await app.destroySwapChain(swapChain);
-    await material.setParameterFloat4('baseColorFactor', 1, 0, 0, 1);
+      // 2) Switch the cube to RED and render through an offscreen (present-skip)
+      //    swapchain: the hidden canvas must show red while the visible canvas
+      //    keeps showing the last presented (green) frame.
+      await viewer.setRendering(false);
+      await app.renderManager.detach(viewer.view, swapChain: swapChain);
+      await app.destroySwapChain(swapChain);
+      await material.setParameterFloat4('baseColorFactor', 1, 0, 0, 1);
 
-    final offscreen = await app.createOffscreenSwapChain(0);
-    final redPixel = await _renderCubeInto(app, viewer, offscreen, hidden, scratch, _isRed, 'red', errors);
+      final offscreen = await app.createOffscreenSwapChain(0);
+      final redPixel = await _renderCubeInto(app, viewer, offscreen, hidden, scratch, _isRed, 'red', errors);
 
-    final visiblePixel = _sampleCenter(scratch, canvas);
-    expect(
-      _isGreen(visiblePixel),
-      isTrue,
-      reason: 'Visible canvas must still show the green frame: RGBA ${visiblePixel.toList()}.',
-    );
+      final visiblePixel = _sampleCenter(scratch, canvas);
+      expect(
+        _isGreen(visiblePixel),
+        isTrue,
+        reason: 'Visible canvas must still show the green frame: RGBA ${visiblePixel.toList()}.',
+      );
 
-    await app.destroySwapChain(offscreen);
-    expect(errors, isEmpty, reason: 'WebGPU uncaptured errors during rendering.');
-    print(
-      'visible green RGBA ${greenPixel.toList()}, offscreen red RGBA ${redPixel.toList()}, '
-      'visible stayed green RGBA ${visiblePixel.toList()}, device exported',
-    );
-  }, timeout: const Timeout(Duration(seconds: 240)));
+      await app.destroySwapChain(offscreen);
+      expect(errors, isEmpty, reason: 'WebGPU uncaptured errors during rendering.');
+      print(
+        'visible green RGBA ${greenPixel.toList()}, offscreen red RGBA ${redPixel.toList()}, '
+        'visible stayed green RGBA ${visiblePixel.toList()}, device exported',
+      );
+    },
+    timeout: const Timeout(Duration(seconds: 240)),
+  );
 }
