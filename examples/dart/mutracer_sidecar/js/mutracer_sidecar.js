@@ -91,7 +91,17 @@ function cubeGeometry() {
   faces.forEach((face, f) => {
     face.v.forEach((v) => { position.push(...v); normal.push(...face.n); });
     const b = f * 4;
-    indices.push(b, b + 1, b + 2, b, b + 2, b + 3);
+    // Index order must match Thermion's cube (cube.dart): the -Z (back) face,
+    // faces[1] (b = 4), is REVERSED (5,4,7 / 5,7,6) so that it is
+    // counter-clockwise seen from outside, i.e. front-facing w.r.t. its normal
+    // [0,0,-1]. With the generic quad pattern its winding is flipped and
+    // MuTracer backface-culls it (that side of the cube goes missing). The
+    // other five faces use the generic pattern. Keep in sync with cube.dart.
+    if (f === 1) {
+      indices.push(b + 1, b, b + 3, b + 1, b + 3, b + 2);
+    } else {
+      indices.push(b, b + 1, b + 2, b, b + 2, b + 3);
+    }
   });
   return new Geometry({
     position: new Attribute(new Float32Array(position), 3),

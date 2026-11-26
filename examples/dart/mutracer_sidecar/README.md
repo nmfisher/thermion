@@ -236,6 +236,18 @@ Orbit camera + mode toggle (headless Playwright script, not committed):
 - Toggling back with the button resets the accumulation again and
   `refineCalls`/`samples` resume from 0.
 
+Cube mirror (same headless setup): one screenshot pair per cube face with the
+camera orbited onto that face's outward normal (the pitch clamp leaves the top
+and bottom views ~3° off), checking a 16x16 px box on the face centre in the
+raster (viewport) frame and in the path-traced image (`?blend=1`). All six
+faces are drawn. The `-Z` back face depends on `cubeGeometry()` keeping
+cube.dart's reversed index order (`5,4,7` / `5,7,6`): with the generic quad
+pattern on every face its box was exactly the sky colour (the ray passed
+through the culled face; cube-silhouette IoU raster vs path-traced 0.10),
+with the reversal it is the cube's (IoU 0.81). The `-Y` underside is drawn but
+black in both renderers (nothing lights it in this scene); its silhouette
+still matches the raster frame (IoU 0.99).
+
 Cannot be checked headlessly here: perceived smoothness of the orbit on a
 real GPU (SwiftShader path-traces ~1 sample/s at 480x320), so each drag step
 resets the accumulation to a 1-sample image there.
