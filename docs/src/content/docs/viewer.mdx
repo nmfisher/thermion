@@ -1,128 +1,223 @@
 ---
-title: ThermionViewer (Flutter)
-description: Build and control a Thermion scene in Flutter.
+title: Build a scene
+description: Load and move models, add orbit controls, play animations, and release scene resources.
 ---
 
-If you just want to display a 3D object with basic camera controls, use the
-[ViewerWidget described in the Quickstart](/quickstart/).
+Use `ThermionViewer` when you want to control a scene yourself. This guide shows
+the scene code behind a Flutter viewport. Start with
+[Show your first model](/quickstart/) for package and asset setup.
 
-When you need finer-grained control — loading assets, positioning the camera, adding
-lights, driving animation — work with the `ThermionViewer` API directly.
+<span id="1-declare-your-assets"></span>
+<span id="2-create-a-viewer"></span>
+<span id="4-load-the-scene"></span>
+<span id="6-add-a-light"></span>
+<span id="loading-gltf"></span>
 
-> The full project for this walkthrough lives in
-> [`examples/flutter/viewer`](https://github.com/nmfisher/thermion/tree/develop/examples/flutter/viewer).
+## Load and display a model
 
-## 1. Declare your assets
-
-Add a folder containing your assets (a glTF model plus a skybox/IBL ktx) to your
-`pubspec.yaml`:
-
-```yaml
-flutter:
-  assets:
-    - assets/
-```
-
-## 2. Create a viewer
-
-`ThermionFlutterPlugin.createViewer()` returns a `ThermionViewer`. Create one in
-`initState` and store it in state:
+Create the viewer once for the lifetime of the screen. Load the model, move
+the camera back so it can see the model at the origin, and add a light.
 
 ```dart
-import 'package:flutter/material.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 
-class _MyAppState extends State<MyApp> {
-  ThermionViewer? _viewer;
-
-  @override
-  void initState() {
-    super.initState();
-    ThermionFlutterPlugin.createViewer().then((viewer) {
-      setState(() => _viewer = viewer);
-    });
+Future<ThermionViewer> createScene() async {
+  final viewer = await ThermionFlutterPlugin.createViewer();
+  try {
+    await viewer.loadGltf('assets/model.glb');
+    final camera = await viewer.getActiveCamera();
+    await camera.lookAt(Vector3(0, 1, 5));
+    await viewer.addDirectLight(DirectLight.sun());
+    return viewer;
+  } catch (_) {
+    await viewer.dispose();
+    rethrow;
   }
 }
 ```
 
-## 3. Render it with `ThermionWidget`
+<span id="3-render-it-with-thermionwidget"></span>
+<span id="7-run-it"></span>
 
-`ThermionWidget` takes the `viewer` you just created and renders it into the Flutter
-tree:
+Put `ThermionWidget.create` in your Flutter widget tree. The widget calls
+your factory when the platform is ready and disposes the viewer when the
+widget is removed.
 
 ```dart
-@override
-Widget build(BuildContext context) {
-  return Stack(
-    children: [
-      if (_viewer != null)
-        Positioned.fill(child: ThermionWidget(viewer: _viewer!)),
-    ],
-  );
+ThermionWidget.create(viewerFactory: createScene)
+```
+
+A loaded model is a `ThermionAsset`. Its root entity holds the model's transform,
+and its children represent parts like meshes and bones. Keep the returned asset
+if you want to move it or animate it later.
+
+Flutter paths are relative to the asset bundle. Use a `file://` URI for local
+files in a native Dart app. For `.gltf` files with external textures or buffers,
+keep those files next to the model or pass `resourceUri` to tell Thermion where
+to look.
+
+<span id="positions-and-movement"></span>
+
+## Move or resize a model
+
+Use the `asset` returned by `loadGltf`. `setTransform` takes the complete
+position, rotation, and scale as a `Matrix4`. For a relative movement, read the
+current transform and add the offset before writing it back.
+
+```dart
+await asset.setTransform(Matrix4.translation(Vector3(0, 1, 2)));
+
+final transform = await asset.getLocalTransform();
+transform.translateByVector3(Vector3(0, 0.5, 0));
+await asset.setTransform(transform);
+```
+
+<span id="hierarchy"></span>
+<span id="querying-an-asset"></span>
+
+### Work with parts of a model
+
+Use `getChildEntityNames()` to see named parts and `getChildEntity('Wheel')` to
+find one. Pass a child handle as `entity:` to `setTransform` to move that part.
+Use `viewer.app.setParent(child, parent)` to make one entity follow another.
+
+`asset.getBoundingBox()` reads the model's bounds. `asset.transformToUnitCube()`
+fits it inside a unit cube when the root has valid renderable bounds. If you
+already know the correct bounds, pass them to
+`viewer.app.transformManager.transformToUnitCube(asset.entity, bounds)`.
+
+<span id="gpu-instancing"></span>
+
+### Make many copies
+
+Pass `initialInstances` to `loadGltf` to allocate copies up front. Each copy
+shares the source model's geometry and can have its own transform.
+
+```dart
+final rocks = await viewer.loadGltf('assets/rock.glb', initialInstances: 100);
+for (var i = 0; i < 100; i++) {
+  final rock = await rocks.getInstance(i);
+  await rock.setTransform(Matrix4.translation(Vector3(i * 2.0, 0, 0)));
 }
 ```
 
-## 4. Load the scene
+Use `createInstance()` to add copies later. Keep `releaseSourceData` disabled
+if you plan to do that.
 
-Load image-based lighting, a skybox, and your glTF model:
+## Draw something without a model file
 
-```dart
-final viewer = _viewer!;
-await viewer.loadIbl('assets/default_env_ibl.ktx');
-await viewer.loadSkybox('assets/default_env_skybox.ktx');
-final asset = await viewer.loadGltf('assets/cube.glb');
-```
-
-A **skybox** is the background image rendered behind everything else in the scene.
-**Image-based lighting (IBL)** uses an image to determine the direction and intensity
-of ambient light. Anything added to the scene — models, lights, cameras — is an
-**entity**, and entities are placed at position `(0, 0, 0)`. See
-[Entities](/entities/) for the entity model, transforms, and instancing, and
-[Lighting](/lighting/) for the full lighting API.
-
-The default camera sits at the origin looking down `-Z`, so a model placed at the
-origin starts *inside* the camera. Move the camera back to see it.
-
-## 5. Position the camera
-
-There is no `setCameraPosition` on the viewer. Get the active camera and aim it with
-`lookAt`:
+Pass a shape to `createGeometry`. This unlit cube stays visible without a light.
+Use the built-in sphere, plane, or cylinder the same way.
 
 ```dart
-import 'package:vector_math/vector_math_64.dart' as v;
-
-final camera = await viewer.getActiveCamera();
-await camera.lookAt(v.Vector3(0, 1, 10));
-```
-
-`lookAt` takes the camera's position and, optionally, a focus point and up vector —
-it defaults to looking at the origin with `+Y` up.
-
-## 6. Add a light
-
-Add a sun (directional) light so the model is shaded. Lights are added with
-`addDirectLight` and a `DirectLight`:
-
-```dart
-await viewer.addDirectLight(
-  DirectLight.sun(direction: v.Vector3(0, -1, -1)),
+final unlit = await viewer.app.createUnlitMaterialInstance();
+final cube = await viewer.createGeometry(
+  CubeGeometry.cube(),
+  materialInstances: [unlit],
 );
 ```
 
-Point lights, spot lights, color/temperature, and the light manager are
-covered in [Lighting](/lighting/); shadow-casting lights in
-[Shadows](/shadows/).
+<span id="5-position-the-camera"></span>
+<span id="camera-basics"></span>
 
-## 7. Run it
+## Move and aim the camera
 
-```bash
-flutter run -d macos
+Get the current camera and call `lookAt`. Coordinates use `+Y` for up and `-Z`
+for forward. Pass `focus:` to look away from the origin.
+
+```dart
+final camera = await viewer.getActiveCamera();
+await camera.lookAt(Vector3(0, 1, 5), focus: Vector3(0, 0.5, 0));
 ```
 
-:::note
-The first build downloads the prebuilt Filament binaries from Cloudflare, which can
-take a while (especially on Windows). They're cached afterwards; running
-`flutter clean` will trigger another download.
-:::
+Create another camera with `viewer.createCamera()` and make it active with
+`viewer.setActiveCamera(camera)`.
 
-![Screenshot of a Thermion viewer project](/images/thermion_sample_project.png)
+<span id="input-handlers"></span>
+<span id="wiring-input-to-a-widget"></span>
+
+## Let users orbit the model
+
+If your screen already owns a viewer, create an input handler from it.
+Put `ThermionListenerWidget` around the viewport to forward Flutter's pointer,
+touch, scroll, and keyboard events to that handler.
+
+```dart
+final input = DelegateInputHandler.fixedOrbit(viewer, minimumDistance: 0.1);
+```
+
+```dart
+ThermionListenerWidget(
+  inputHandler: input,
+  child: ThermionWidget(viewer: viewer),
+)
+```
+
+<span id="sensitivity"></span>
+<span id="custom-controls"></span>
+
+Use `DelegateInputHandler.flight(viewer)` for free movement. Pass
+`InputSensitivityOptions` to tune the built-in controls, or supply your own
+`InputHandlerDelegate` for custom pointer and keyboard behavior.
+
+<span id="gltf-animations"></span>
+
+## Play a glTF animation
+
+If the model contains animations, call `getGltfAnimationNames()` to see what's
+available. This plays the first clip and repeats it.
+
+```dart
+final names = await asset.getGltfAnimationNames();
+if (names.isNotEmpty) {
+  await asset.playGltfAnimation(0, loop: true);
+}
+```
+
+When your app owns the animation clock, as in the headless example,
+pass an increasing frame timestamp in nanoseconds to
+`viewer.app.animationManager.update(frameTimeInNanos)`.
+Call `stopGltfAnimation(0)` to stop, or `setGltfAnimationTime(index, seconds)`
+to jump to a point in a clip.
+
+<span id="notes"></span>
+<span id="animations-when-backgrounded"></span>
+
+Pause animation updates when your app is backgrounded. Queueing animation
+commands while rendering is paused can overflow the render command buffer.
+
+<span id="morph-targets"></span>
+<span id="bones--skeletal-animation"></span>
+
+### Drive morph targets or bones
+
+For facial expressions or other blends you control yourself, call
+`asset.getMorphTargetSets()` to find the model's targets. Use `setWeightAt`
+on one of those sets to change a target by index.
+
+```dart
+final targets = await asset.getMorphTargetSets();
+if (targets.isNotEmpty && targets.first.targets.isNotEmpty) {
+  await targets.first.setWeightAt(0, 0.5);
+}
+```
+
+For bone animations or direct bone transforms, see the
+[animation sample](https://github.com/nmfisher/thermion/tree/develop/examples/flutter/animations)
+and the [ThermionAsset API](https://pub.dev/documentation/thermion_dart/latest/).
+Attach an animation component with `addAnimationComponent()` if the asset needs one.
+
+<span id="cleanup"></span>
+
+## Release scene resources
+
+Call `viewer.destroyAsset(asset)` when an asset is no longer needed. If you
+destroy all assets with `viewer.destroyAssets()`, discard their old entity
+handles too. Dispose of any material instances and textures you created.
+
+If you supplied the viewer to `ThermionWidget(viewer: viewer)`, dispose of
+it after removing the widget from the tree. `ThermionWidget.create` takes
+care of this for a viewer created by its factory.
+
+See the [complete Flutter viewer example](https://github.com/nmfisher/thermion/tree/develop/examples/flutter/viewer)
+for a runnable project, or continue with [Light and style a scene](/materials/).

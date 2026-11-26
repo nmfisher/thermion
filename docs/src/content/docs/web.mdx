@@ -1,29 +1,78 @@
 ---
-title: Web
-description: Run Thermion in the browser via WebAssembly.
+title: Run on the web
+description: Run a Flutter or Dart app in the browser and choose WebGL2 or WebGPU.
 ---
 
-Thermion uses a prebuilt WebAssembly engine in the browser. In a Flutter
-build, the build hook copies `thermion_dart.js` and `thermion_dart.wasm` into
-`web/`. For a standalone Dart app, stage them with
-[`download_web`](#pre-fetching-the-artifacts).
+Thermion uses a prebuilt WebAssembly engine on the web. **WebGL2 is the
+default.** Follow the Flutter or Dart steps below to get an app running,
+then [choose a backend](#choose-a-backend) if you need WebGPU.
 
-## Quick start
+<span id="quick-start"></span>
 
-Run or build your Flutter app for the web as usual:
+## Flutter
+
+Use the app from [Show your first model](/quickstart/). Run it locally in
+Chrome with the response headers below. The Flutter build downloads
+Thermion's engine files into your app's `web/` directory.
 
 ```bash
-flutter run -d chrome
-# or
-flutter build web
+flutter run -d chrome \
+  --web-header=Cross-Origin-Opener-Policy=same-origin \
+  --web-header=Cross-Origin-Embedder-Policy=require-corp
 ```
 
-Serve the app with the headers in [Cross-origin isolation](#cross-origin-isolation).
+For production, run `flutter build web`, upload `build/web/` to your host,
+and [set the headers on the host](#cross-origin-isolation).
+
+<span id="pre-fetching-the-artifacts"></span>
+
+## Dart
+
+In a plain Dart project, use `download_web` to put `thermion_dart.js` and
+`thermion_dart.wasm` in `web/` before compiling your app. The page loads the
+engine first, then starts your Dart program.
+
+The [gallery source](https://github.com/nmfisher/thermion/tree/develop/examples/dart/web_gallery)
+has a complete browser app, including the canvas, loader, and local server.
+From the root of a Thermion checkout, run these commands and visit
+`http://localhost:8080/`.
+
+```bash
+cd examples/dart/web_gallery
+dart pub get
+dart run thermion_dart:download_web -o web \
+  --materials gizmo,wireframe,edge_outline,silhouette
+cp -R ../../assets web/
+dart compile wasm web/main.dart -o web/main.wasm
+dart run tool/serve.dart
+```
+
+The gallery requests the extra materials used in its scenes. Your app can
+omit `--materials` if it doesn't use any of the built-in helpers. `-o web`
+is the default output location.
 
 ## Choose a backend
 
-The build hook and `download_web` default to WebGL2 with GLSL materials.
-In a Flutter app's `pubspec.yaml`, set `backend.web` to choose a backend.
+There are two settings. The **build** setting decides which shaders the app
+ships. The **startup** setting selects the renderer that uses those shaders.
+
+| What you want | Build setting | Startup setting |
+| --- | --- | --- |
+| Use WebGL2 | `webgl2` (default), with GLSL shaders | `Backend.OPENGL` |
+| Use WebGPU | `webgpu`, with WGSL shaders | `Backend.WEBGPU` |
+| Choose at startup | `hybrid`, with both shader formats | Either backend |
+
+GLSL and WGSL are shader languages. A hybrid build lets the app choose which
+renderer to start, so compile [your custom materials](/build_configuration/#compile-a-custom-material-at-build-time)
+for both. WebGPU also needs browser support and a usable GPU device.
+WebGPU and hybrid builds use precompiled materials. For
+[runtime material compilation](/build_configuration/#compile-a-material-at-runtime),
+use WebGL2 with `runtime_materials: true` in Flutter or
+`--variant runtime-materials` with `download_web`.
+
+### Select WebGPU in Flutter
+
+Add the build setting to `pubspec.yaml`.
 
 ```yaml
 hooks:
@@ -33,41 +82,7 @@ hooks:
         web: webgpu
 ```
 
-For a standalone Dart app, pass one of the same values to `download_web --backend`.
-
-| Build choice | Built-in shaders | Backend to pass at startup |
-| --- | --- | --- |
-| `webgl2` (default) | GLSL | `Backend.OPENGL` |
-| `webgpu` | WGSL | `Backend.WEBGPU` |
-| `hybrid` | GLSL and WGSL | `Backend.OPENGL` or `Backend.WEBGPU` |
-
-The build setting selects what the app ships. The runtime setting selects the
-renderer when you create the engine. Use `hybrid` to make that choice at
-startup and compile any [custom materials](/materials/#building-custom-materials)
-for both backends.
-
-The `webgpu` and `hybrid` choices use the same main-thread engine and precompiled
-materials. To [compile materials at runtime](/materials/#compiling-materials-at-runtime),
-choose WebGL2 and set `runtime_materials: true` in Flutter or pass
-`--variant runtime-materials` to `download_web`.
-
-### Dart
-
-Import `package:thermion_dart/thermion_dart.dart` and
-`package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart`.
-Pass the backend when creating the engine, after loading `thermion_dart.js`
-and initializing the bindings.
-
-```dart
-await FFIFilamentApp.create(
-  config: FFIFilamentConfig(backend: Backend.WEBGPU),
-);
-```
-
-### Flutter
-
-Import `package:thermion_flutter/thermion_flutter.dart`. In `main()`, set
-the backend before calling `runApp()` or creating a Thermion viewer.
+Set the runtime option at the start of `main()`, before creating a viewer.
 
 ```dart
 ThermionFlutterPlugin.instance.setOptions(
@@ -77,82 +92,77 @@ ThermionFlutterPlugin.instance.setOptions(
 );
 ```
 
-For a `hybrid` build, Flutter's `WebGpu.isSupported()` can help choose a
-renderer at startup. It checks whether the browser exposes WebGPU. Rendering
-with WebGPU also requires a usable GPU device.
+With `hybrid` in `pubspec.yaml`, you can call `WebGpu.isSupported()` before
+choosing a backend. It checks whether the browser exposes WebGPU.
 
-## Cross-origin isolation
+### Select WebGPU in Dart
 
-Thermion's browser engines use shared WebAssembly memory. Serve your app with
-COOP and COEP headers to enable `SharedArrayBuffer`.
-
-For local runs, pass them on the command line:
-
-```bash
-flutter run -d chrome \
-  --web-header=Cross-Origin-Opener-Policy=same-origin \
-  --web-header=Cross-Origin-Embedder-Policy=require-corp
-```
-
-For production, set the headers on your host. On Cloudflare Pages, add a `web/_headers`
-file:
-
-```
-/*
-  Cross-Origin-Opener-Policy: same-origin
-  Cross-Origin-Embedder-Policy: require-corp
-  Cross-Origin-Resource-Policy: cross-origin
-```
-
-## Pre-fetching the artifacts
-
-In a standalone Dart app, run this command before compiling the app to
-WebAssembly.
+Pass the build setting to the download tool.
 
 ```bash
 dart run thermion_dart:download_web --backend webgpu
 ```
 
-Use `--backend hybrid` to ship both shader formats. Omit `--backend` for
-WebGL2. The command writes to `web/` by default. Use `-o` to choose another
-directory.
+In your Dart entry point, select the matching backend when creating the
+engine. The gallery's [entry point](https://github.com/nmfisher/thermion/blob/develop/examples/dart/web_gallery/web/main.dart)
+shows where to do this after initializing the bindings.
 
-## Building the WASM locally
-
-Building the WASM yourself is only needed if you're modifying Thermion's native C++ and
-want to test on web without bumping the pinned version and waiting for CI to rebuild the
-R2 artifacts.
-
-Build the emscripten target locally and opt in via your app's `pubspec.yaml`:
-
-```yaml
-hooks:
-  user_defines:
-    thermion_dart:
-      web_local: true
+```dart
+await FFIFilamentApp.create(
+  config: FFIFilamentConfig(backend: Backend.WEBGPU),
+);
 ```
 
+The imports are `package:thermion_dart/thermion_dart.dart` and
+`package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart`.
+To ship both options, pass `--backend hybrid` and choose the renderer before
+creating the engine.
+
+## Cross-origin isolation
+
+The browser engine needs shared memory. Serve your app with these two HTTP
+response headers so the browser exposes `SharedArrayBuffer`.
+
+```text
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+```
+
+For Cloudflare Pages, put the headers in `web/_headers` under a `/*` rule.
+For other hosts, configure the equivalent headers for your app. The
+`require-corp` policy also requires external resources to permit loading
+from your origin.
+
+If the engine fails to start, enter `crossOriginIsolated` in the browser
+console. If it returns `false`, check that both headers are on the document
+response and that you're serving from HTTPS or localhost.
+
+<span id="building-the-wasm-locally"></span>
+
+## Build the engine locally
+
+Use this when testing changes to Thermion's native code. Set
+`web_local: true` under `hooks.user_defines.thermion_dart` in your app.
 Extract the matching Filament release archive into
-`thermion_dart/native/web/lib/release`. For WebGL2, build from
-`thermion_dart/native/web`.
+`thermion_dart/native/web/lib/release`. From `thermion_dart/native/web`, build the
+WebGL2 engine.
 
 ```bash
 emcmake cmake -S . -B build
 cmake --build build
 ```
 
-For `webgpu` or `hybrid`, use the WebGPU Filament archive and build from the
-same directory.
+For WebGPU or hybrid, extract the WebGPU Filament archive and enable WebGPU
+in the build.
 
 ```bash
 emcmake cmake -S . -B build-webgpu -DTHERMION_ENABLE_WEBGPU=ON
 cmake --build build-webgpu
 ```
 
-With `web_local: true`, the hook stages the engine from `build/build/out` for
-the default WebGL2 build or `build-webgpu/build/out` for WebGPU and hybrid.
+The hook looks for the engine in `build/build/out` for WebGL2 or
+`build-webgpu/build/out` for WebGPU and hybrid.
 
 ## Live examples
 
-See Thermion running in the browser in the [live examples on the overview](/#live-examples),
-or open the [full-screen gallery](/gallery/).
+Try the [browser gallery](/gallery/) to see a running Dart app.

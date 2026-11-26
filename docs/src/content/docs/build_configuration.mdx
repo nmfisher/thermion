@@ -1,36 +1,126 @@
 ---
-title: Build Configuration
-description: Configure Thermion's native build via hooks.user_defines.
+title: Advanced rendering and builds
+description: Render off-screen, compile custom materials, and configure native builds.
 ---
 
-Thermion's native build is configured from your app's `pubspec.yaml` under
-`hooks.user_defines.thermion_dart`:
+Use this guide when you need to render without a window, write a shader,
+or change how Thermion builds. For a viewport with a model, start with
+[Build a scene](/viewer/).
+
+<span id="the-filamentapp-facade"></span>
+<span id="when-to-use-which-layer"></span>
+
+## Render with FilamentApp
+
+`ThermionViewer` manages a scene for you. Its `app` is a `FilamentApp`, the
+Dart interface to the Filament renderer. Use it to create multiple views,
+scenes, or render targets with their own lifetimes.
+
+```dart
+final app = viewer.app;
+final view = await app.createView(createScene: true);
+
+// Use the view, then release it when finished.
+await app.destroyView(view);
+```
+
+Destroy the views, scenes, swap chains, textures, and other resources your
+code creates. A viewer owns its own scene resources.
+
+### Headless rendering
+
+Use `createHeadlessSwapChain` to render without a window. For an image you can
+read back, create a render target and attach it to a view. The
+[headless Dart example](https://github.com/nmfisher/thermion/tree/develop/examples/dart/cli_headless)
+shows the complete flow, from creating the engine to saving the image.
+
+<span id="animations-when-backgrounded"></span>
+
+For animation and app lifecycle guidance, see
+[Play a glTF animation](/viewer/#play-a-gltf-animation).
+
+<span id="building-your-own-materials"></span>
+
+## Compile a custom material at build time
+
+Write a Filament `.mat` file and point Thermion at it in your app's
+`pubspec.yaml`. Thermion will compile it to a `.filamat` file with the matching
+Filament compiler.
 
 ```yaml
 hooks:
   user_defines:
     thermion_dart:
-      # ... any of the keys described below
+      material_compilation:
+        inputs:
+          - materials/paint.mat
+        output: assets/materials
 ```
 
-## Material backend variants
+This produces `assets/materials/paint.filamat`. Create the output directory
+and list `assets/materials/` under `flutter.assets` in a Flutter app. Use
+`rootBundle` from `package:flutter/services.dart` to load the file. In a
+native Dart tool, read its bytes from disk.
 
-Set each built-in helper your app uses to `true` under `materials`. For
-example, a transform gizmo needs `gizmo: true` and a background image needs
-`image: true`. Apps that only render glTF assets with their authored materials
-can omit the section.
+```dart
+final data = await rootBundle.load('assets/materials/paint.filamat');
+final material = await viewer.app.createMaterial(
+  data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+);
+final paint = await material.createInstance();
+await asset.setMaterialInstanceForAll(paint);
+```
 
-For each enabled helper, the native build compiles shaders for the following
-backends by default.
+`inputs` accepts file paths, directories, and globs relative to the app root.
+The first build downloads the tools and compiles the materials. Later builds
+reuse the output until a source, include, or compiler changes.
 
-| Platform | Default variant | Backends included |
-| --- | --- | --- |
-| iOS / macOS | `_apple` | Metal |
-| Android | `_android` | Vulkan + OpenGL |
-| Linux / Windows | `_desktop` | Vulkan + OpenGL |
+Use `backends: all` (the default) to ship shaders for Metal, Vulkan, OpenGL,
+and WebGPU in one file. Use `native` for Metal, Vulkan, and OpenGL, or `web`
+for WebGL2 and WebGPU. You can also list individual compiler targets such
+as `[vulkan]`. Choose the targets your app will use.
 
-If your app commits to specific backends, you can drop the others and shave
-the unused shader code out of your binary with `materials.backends`:
+You can also compile a `.mat` directly with a version-matched `matc`. For
+embedding material bytes in a native library, see
+[generated C assets and build internals](https://github.com/nmfisher/thermion/blob/develop/docs/material-build-internals.md).
+
+## Compile a material at runtime
+
+If your app generates shaders or lets users edit them, add
+`runtime_materials: true` under `hooks.user_defines.thermion_dart` in
+`pubspec.yaml`. At startup, check `FilamentApp.runtimeMaterialsSupported`
+before calling the compiler.
+
+```dart
+final material = await viewer.app.compileMaterialSource(
+  'red',
+  '''
+  void material(inout MaterialInputs material) {
+    prepareMaterial(material);
+    material.baseColor.rgb = float3(1.0, 0.0, 0.0);
+  }
+  ''',
+  shading: MaterialShading.lit,
+);
+```
+
+Use `compileMaterialPackage` for a full `.mat` with a configuration block,
+parameters, or vertex code. Pass named include files in its `includes` map.
+The compiler resolves includes by name from that map.
+
+Runtime compilation adds to your app's size and can take hundreds of
+milliseconds. On the web it runs inline and requires the WebGL2 runtime-materials
+engine. WebGPU and hybrid builds use precompiled materials.
+See [Run on the web](/web/#choose-a-backend) and the
+[material editor example](https://github.com/nmfisher/thermion/tree/develop/examples/dart/material_editor).
+
+<span id="material-backend-variants"></span>
+
+## Include the built-in materials you use
+
+Enable built-in helpers used by your app under `materials`. For example,
+a transform gizmo uses `gizmo` and a background image uses `image`. A scene
+that only uses materials supplied by its glTF files can omit this setting.
 
 ```yaml
 hooks:
@@ -39,49 +129,60 @@ hooks:
       materials:
         gizmo: true
         image: true
+```
+
+By default, iOS and macOS include Metal shaders. Android, Linux, and Windows
+include Vulkan and OpenGL. To limit what your app ships on a target, list
+its backends under `materials.backends`.
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      materials:
+        gizmo: true
         backends:
-          ios: metal
           android: [opengl, vulkan]
-          linux: [opengl]
           windows: [vulkan]
 ```
 
-- **OS keys**: `ios`, `macos`, `apple` (alias covering both), `android`,
-  `linux`, `windows`. Each value is a backend name or a list. An OS you don't
-  list keeps its all-backends default from the table above.
-- **Backends**: `metal` on iOS/macOS (the only option there); `opengl` and
-  `vulkan` on Android/Linux/Windows, individually or together.
-- Selecting a single backend means exactly that: a device that doesn't
-  support it will fail to render those materials — there is no fallback
-  compiled in.
-- For native WebGPU, set `backend: webgpu`. A matching `materials.backends`
-  entry takes precedence for the native material variant.
-- For the browser engine and its material variants, see
-  [Choose a backend](/web/#choose-a-backend).
+A device needs at least one of the listed backends to render those materials.
+Omitted platforms keep their defaults. Use `backend: webgpu` to select native
+WebGPU. A matching `materials.backends` setting takes precedence for the
+material variant. Use [Web backend settings](/web/#choose-a-backend) for browsers.
 
-Invalid configuration (a typo'd OS key, `metal` on Android, an empty list)
-fails the build with an error naming the problem key.
+<span id="other-keys"></span>
 
-## Other keys
+## Debug a native build
 
-- `mode: debug` and `tracing: enabled` — see
-  [Debugging](/debugging/).
-- `web_local: true` — serve locally-built web artifacts instead of the
-  prebuilt ones, see [Web](/web/).
-- `skip_native_build: true` — skip the native C++ build entirely (used when
-  running pure-Dart tooling in this package).
+Flutter's debug mode still uses Thermion's release libraries by default.
+To use the debug libraries and turn on tracing, add these settings to
+`pubspec.yaml`.
 
-## Native error handling
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      mode: debug
+      tracing: enabled
+```
 
-Thermion and the Filament libraries it ships use the same C++ build settings in
-debug and release: C++ exceptions are disabled. This avoids including C++ error
-recovery machinery that Thermion does not use. The size saving depends on the
-platform and has not yet been measured.
+If Flutter keeps using the old settings, run `flutter clean` and rebuild.
+An upstream Filament issue currently prevents Android debug libraries from
+working. Use release libraries on Android.
 
-A Filament panic is fatal and stops the application. It cannot be recovered
-through a Dart `try`/`catch`. Ordinary errors reported through return values
-still work, as do Dart's own exceptions and failed Futures.
+### Native error handling
 
-Custom native plugins must use compatible build settings. Filament's desktop
-tools, such as `matc` and `cmgen`, run separately during development and retain
-their own build settings; they are not linked into your application.
+A Filament panic stops the process. Dart can handle ordinary Dart exceptions
+and failed futures. Native plugins that link Filament need compatible C++ build
+settings, including disabled C++ exceptions.
+
+<span id="building-filament-from-source"></span>
+
+## Work on Thermion itself
+
+Follow the [repository's contributor guide](https://github.com/nmfisher/thermion/blob/develop/CONTRIBUTING.md)
+if you're changing Thermion's C++ code or rebuilding its bundled materials.
+To use a locally built browser engine, see [Build the engine locally](/web/#building-the-wasm-locally).
+`skip_native_build: true` is available for pure Dart tools that need to skip
+the native C++ build.
