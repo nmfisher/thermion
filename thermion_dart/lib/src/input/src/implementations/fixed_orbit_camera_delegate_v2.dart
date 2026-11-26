@@ -22,6 +22,10 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
 
   Vector2? _lastPointerPosition;
 
+  // ★ 新增：上一帧的触点数量。用来识别"两指 → 一指"的瞬间，
+  //   否则 focal point 突变会被当成一次旋转，抬手时画面会跳一下。
+  int _lastPointerCount = 1;
+
   final bool moveOnHover;
 
   OrbitInputHandlerDelegate(
@@ -35,6 +39,19 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
        _radius = (minZoomDistance + maxZoomDistance) / 2, // Initial default radius
        _azimuth = 0.0,
        _elevation = math.pi / 4;
+
+  /// ★ 新增：把已经"预览"出去的捏合比例结算进 _radius。
+  ///
+  /// 这里是【除以】(张开手指 = scale > 1 = 半径变小 = 物体变大)，
+  /// 必须与 handle() 渲染时 radius = _radius / _radiusScaleFactor 保持一致，
+  /// 否则松手的一瞬间会跳变。
+  void _settlePinch() {
+    final factor = _radiusScaleFactor;
+    if (factor.isFinite && factor > 0.0001 && factor != 1.0) {
+      _radius = (_radius / factor).clamp(minZoomDistance, maxZoomDistance);
+    }
+    _radiusScaleFactor = 1.0;
+  }
 
   Future<void> _initializeFromCamera(Camera activeCamera) async {
     final currentModelMatrix = await activeCamera.getModelMatrix();
@@ -131,7 +148,7 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
                 final dragDelta = localPosition - _lastPointerPosition!;
                 // X-drag affects azimuth, Y-drag affects elevation
                 deltaAzimuth -= dragDelta.x * sensitivity.mouseSensitivity; // Invert X for natural feel
-                deltaElevation -= dragDelta.y * sensitivity.mouseSensitivity; // Invert Y for natural feel
+                deltaElevation += dragDelta.y * sensitivity.mouseSensitivity; // Invert Y for natural feel
                 _lastPointerPosition = localPosition;
               } else if (type == MouseEventType.hover) {
                 // Allow hover to set initial if not dragging
@@ -155,15 +172,37 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
           localFocalPoint: _,
           localFocalPointDelta: final localFocalPointDelta,
         ):
-          if (numPointers == 1) {
-            deltaAzimuth -= localFocalPointDelta!.$1 * sensitivity.touchSensitivity;
-            deltaElevation -= localFocalPointDelta.$2 * sensitivity.touchSensitivity;
+          final bool cameFromMultiTouch = _lastPointerCount >= 2;
+          _lastPointerCount = numPointers;
+
+          if (numPointers >= 2) {
+            // ★ 过滤 0 / NaN / Inf：两指重合时 span 为 0，scale 会退化成 0，
+            //   直接把 _radiusScaleFactor 设成 0 会让半径变成 0（相机怼进模型里）。
+            if (scaleFactor.isFinite && scaleFactor > 0.01) {
+              _radiusScaleFactor = scaleFactor;
+            }
           } else {
-            _radiusScaleFactor = scaleFactor;
+            // ★ 两指 → 一指：先把这轮捏合结算掉并复位比例因子，
+            //   否则残留的 _radiusScaleFactor 会在单指旋转时继续参与半径计算。
+            _settlePinch();
+
+            // ★ 只在触点数量没变化时吃 focal delta。捏合中途抬起/落下手指那一帧，
+            //   Flutter 重算了 initial span/focal point，delta 会突变。
+            final delta = localFocalPointDelta;
+            if (delta != null && !cameFromMultiTouch) {
+              deltaAzimuth -= delta.$1 * sensitivity.touchSensitivity;
+              deltaElevation += delta.$2 * sensitivity.touchSensitivity; // 已修正
+            }
           }
+          break;
+
         case ScaleEndEvent():
-          _radius *= _radiusScaleFactor;
-          _radiusScaleFactor = 1.0;
+          // ★ 原来是 _radius *= _radiusScaleFactor（仅此一处 clamp 都没有），
+          //   改成走统一的结算方法，保证方向、clamp、复位三件事一致。
+          _settlePinch();
+          _lastPointerCount = 1;
+          break;
+
         default:
           break;
       }
@@ -175,13 +214,18 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
 
     _azimuth += deltaAzimuth;
     _elevation += deltaElevation;
-    _radius += deltaRadius;
 
-    var radius = _radius * _radiusScaleFactor;
+    // ★ 关键：_radius 自身也要 clamp。原来只有临时变量 radius 被 clamp，
+    //   _radius 会一路漂到 [min, max] 之外（滚轮/捏合累积），
+    //   表现为"怎么滚都没反应，然后突然跳一大截"。
+    _radius = (_radius + deltaRadius).clamp(minZoomDistance, maxZoomDistance);
+
+    // ★ 关键：原来是 * _radiusScaleFactor —— 张开手指 → 半径变大 → 物体变小，方向反了。
+    //   改成除法：张开手指 → 半径变小 → 物体变大。
+    var radius = (_radius / _radiusScaleFactor).clamp(minZoomDistance, maxZoomDistance);
 
     // Clamp parameters
     _elevation = _elevation.clamp(-math.pi / 2 + 0.01, math.pi / 2 - 0.01); // Prevent gimbal lock at poles
-    radius = radius.clamp(minZoomDistance, maxZoomDistance);
     _azimuth = _azimuth % (2 * math.pi); // Keep azimuth within 0-2PI range (optional)
 
     final double xOffset = radius * math.cos(_elevation) * math.sin(_azimuth);
