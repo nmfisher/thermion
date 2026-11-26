@@ -935,7 +935,11 @@ jobs:
         run: |
           dart pub get
           mkdir -p "$RUNNER_TEMP/webgpu-scene"
-          dart compile js test/chrome_webgpu_scene.dart -o "$RUNNER_TEMP/webgpu-scene/app.js"
+          # Same scene CI runs as a package:test browser suite
+          # (run-dart-tests.yml, "Dart Tests (web, chrome, webgpu scene)"):
+          # the harness hosts the suite's main() and POSTs the result to
+          # scripts/check-webgpu-canvas.py.
+          dart compile js tool/webgpu_scene_harness.dart -o "$RUNNER_TEMP/webgpu-scene/app.js"
 
       - name: Render a WebGPU scene from the staged archive
         run: |

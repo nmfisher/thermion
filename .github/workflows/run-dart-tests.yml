@@ -584,6 +584,87 @@ jobs:
             test/embedded_material_loading_test.dart \
             ${{ matrix.enabled && 'test/runtime_material_metadata_test.dart test/runtime_material_diagnostics_test.dart' || '' }}
 
+  webgpu-chrome-scene:
+    timeout-minutes: 40
+    name: Dart Tests (web, chrome, webgpu scene)
+    # Linux Chromium's software compositor cannot present a WebGPU canvas
+    # (the same constraint that keeps build-filament.yml's verify-webgpu-
+    # engine job on macOS), so the browser half runs on a macOS runner with
+    # real Chrome. The swiftshader wrapper flags below are kept from the
+    # runtime-materials web jobs; they force software WebGPU when no GPU is
+    # available and are harmless otherwise.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+
+      - uses: dart-lang/setup-dart@v1
+
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '6.0.4'
+          actions-cache-folder: emsdk-cache
+
+      - name: Download the Filament WebGPU web libraries
+        run: |
+          set -euo pipefail
+          filament_libs="thermion_dart/native/web/lib/release"
+          mkdir -p "$filament_libs"
+          # Pin-aware URL ("web-webgpu/release" pin entry when present, else
+          # the legacy -webgpu key). The archive carries emdawnwebgpu_pkg.
+          curl -fL --retry 3 --retry-all-errors \
+            "$(python3 scripts/filament-artifact-url.py web-webgpu release)" \
+            -o "$RUNNER_TEMP/filament-web-webgpu.zip"
+          unzip -o "$RUNNER_TEMP/filament-web-webgpu.zip" -d "$filament_libs"
+
+      - name: Build the WebGPU engine from this branch
+        run: |
+          set -euo pipefail
+          emcmake cmake -S thermion_dart/native/web -B thermion_dart/native/web/build-webgpu \
+            -DCMAKE_BUILD_TYPE=Release -DTHERMION_ENABLE_WEBGPU=ON
+          cmake --build thermion_dart/native/web/build-webgpu --parallel 3
+
+      - name: Disable the native build
+        working-directory: thermion_dart
+        run: |
+          sed -i '' '/^hooks:/,$d' pubspec.yaml
+          cat >> pubspec.yaml <<'EOF'
+          hooks:
+            user_defines:
+              thermion_dart:
+                skip_native_build: true
+          EOF
+          dart pub get
+
+      - name: Stage the engine and WGSL materials for the browser test
+        working-directory: thermion_dart
+        run: |
+          set -euo pipefail
+          # Same layout the runtime-materials web jobs unzip into test/, so
+          # the web_test_runner HTML wrapper finds embedded_engine/.
+          mkdir -p test/embedded_engine
+          cp native/web/build-webgpu/build/out/thermion_dart.js \
+             native/web/build-webgpu/build/out/thermion_dart.wasm test/embedded_engine/
+          dart run tool/stage_web_engine.dart --backend=webgpu
+
+      - name: Configure Chrome software rendering
+        run: |
+          chrome="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+          printf '#!/bin/sh\nexec "%s" --no-sandbox --use-angle=swiftshader --enable-unsafe-swiftshader --enable-unsafe-webgpu --use-webgpu-adapter=swiftshader "$@"\n' \
+            "$chrome" > "$RUNNER_TEMP/thermion-test-chrome"
+          chmod +x "$RUNNER_TEMP/thermion-test-chrome"
+          echo "CHROME_EXECUTABLE=$RUNNER_TEMP/thermion-test-chrome" >> "$GITHUB_ENV"
+
+      - name: Run the WebGPU chrome scene test
+        working-directory: thermion_dart
+        run: |
+          # web_test_runner stamps the package:test HTML host wrapper and
+          # runs the COOP/COEP proxy the pthreads engine needs, then invokes
+          # `dart test test/chrome_webgpu_scene_test.dart -p chrome`.
+          dart run tool/web_test_runner.dart --clean --timeout=300s \
+            test/chrome_webgpu_scene_test.dart
+
   runtime-materials-ios:
     timeout-minutes: 30
     name: Runtime Materials (iOS simulator)

@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""Render the staged WebGPU scene in a top-level Chromium page."""
+"""Run the staged WebGPU scene test in a top-level Chromium page.
+
+The site directory must hold thermion_dart.js/.wasm and app.js — the dart2js
+output of tool/webgpu_scene_harness.dart, which hosts the same
+package:test suite CI runs (test/chrome_webgpu_scene_test.dart) and POSTs
+{passed, message} to /result. The page mirrors the engine host wrapper
+tool/web_test_runner.dart generates (canvas + __thermionReady). A failing
+(or missing) report fails the check.
+"""
 
 import argparse
 from functools import partial
@@ -16,9 +24,6 @@ PAGE = """<!doctype html>
 <canvas id="thermion_canvas" width="64" height="64"></canvas>
 <script src="thermion_dart.js"></script>
 <script>
-window.finishWebGpuCheck = (passed, message) => fetch('/result', {
-  method: 'POST', body: JSON.stringify({passed, message}),
-});
 window.__thermionReady = thermion_dart().then(module => {
   window.thermion_dart = module;
   return module;
@@ -65,7 +70,7 @@ def main():
                     f"--user-data-dir={profile}", f"http://127.0.0.1:{server.server_port}/",
                 ], stdout=log, stderr=subprocess.STDOUT)
                 try:
-                    finished.wait(timeout=40)
+                    finished.wait(timeout=120)
                 finally:
                     if chrome.poll() is None:
                         chrome.terminate()
