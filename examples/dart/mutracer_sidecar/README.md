@@ -44,6 +44,11 @@ readback round-trip through the CPU.
   between `raytrace` (the composite above) and `viewport` (Thermion's raster
   frame passed through unchanged, no path tracing); both modes are presented
   by the sidecar on the shared device.
+- A **mode-aware screenshot** (`C` key or the Capture button) saves the
+  current frame as a PNG: in raytrace mode the sidecar reads back the frame
+  it presents (`window.thermionSidecarCapture()`), in viewport mode Thermion's
+  own capture API is used (`app.capture()`, with a fallback to the sidecar
+  readback — see [Screenshot capture](#screenshot-capture)).
 
 ```
 Thermion (Dart/WASM)                     MuTracer sidecar (JS)
@@ -113,6 +118,7 @@ except `index.html` and `main.dart` is a build artifact (see `.gitignore`).
 | drag on the canvas  | orbit around the focus point (yaw, pitch clamped to ±86°)    |
 | mouse wheel         | dolly (distance 1.5–30 scene units)                          |
 | `R` key / button    | toggle `raytrace` ↔ `viewport`                               |
+| `C` key / button    | save the current frame as a PNG download                       |
 
 The camera is a spherical orbit around the scene's focus point
 (`web/main.dart`, `_OrbitState`). Pointer coordinates are read as **doubles**
@@ -175,7 +181,10 @@ revision or mode toggle; it restarts both renders), `refineCalls` (full
 image), `previewRefines`, `previewFrames` / `finalFrames` (which image
 `present()` showed), `changing`, `viewportFrames`, `unexpectedCommits`,
 `samples` / `converged` / `maxSamples` (full image) and `preview`
-(`samples`, `maxSamples`, `resolutionScale`, `width`, `height`).
+(`samples`, `maxSamples`, `resolutionScale`, `width`, `height`), plus the
+screenshot counters `screenshotRequests` / `screenshotReadbacks` /
+`screenshotFailures` and `screenshot` (`format`, `width`, `height`, `bytes`
+of the last readback).
 
 URL parameters:
 
@@ -218,6 +227,60 @@ acquired — Thermion's Emscripten surface code calls that very method — and
 snapshots only when the current texture is that one. On a skipped frame the
 previous snapshot remains the latest Thermion frame for both modes. The
 debug snapshot exposes `captures` and `skippedFrames` counters.
+
+## Screenshot capture
+
+One Dart-facing API, `capture()` in `web/main.dart` (bound to the **Capture**
+button and the `C` key), returns the current frame as RGBA8, top-left origin,
+`canvas.width × canvas.height × 4` bytes; `saveCapture()` encodes it with
+Thermion's `pixelBufferToPng` and downloads it as
+`mutracer_<mode>_<WxH>_<timestamp>.png`. The status line reports mode,
+dimensions, the path that produced the pixels and the PNG byte count, and the
+button is disabled while a capture is in flight.
+
+- **raytrace** — `window.thermionSidecarCapture()` (JS → `Promise<Uint8Array>`,
+  `js/mutracer_sidecar.js`). Thermion's `app.capture()` is a Filament
+  `readPixels` on a Filament target and cannot see MuTracer's textures, so
+  the sidecar reads back what it presents: a request is queued and served in
+  the frame loop **in the same frame as the present**, right after
+  `engine.display.present(render)` (the preview while the camera moves, the
+  full image once it has a sample). The visible canvas' current swapchain
+  texture — the one `present()` just drew into — is copied with
+  `copyTextureToBuffer` into a `MAP_READ | COPY_DST` buffer (rows padded to
+  256 bytes), submitted on the shared queue after the present draw, then
+  `mapAsync` + `getMappedRange`; the padding is stripped and R/B are swapped
+  when the canvas format is BGRA. The texture format is the preferred canvas
+  format (`rgba8unorm` on the headless Chromium used for verification;
+  `bgra8unorm` on most desktop platforms). The canvas context is configured
+  by MuTracer for rendering only, so the sidecar reconfigures it once with
+  `RENDER_ATTACHMENT | COPY_SRC` (same format and alpha mode). Requests wait
+  for a frame that actually presented (never a blank texture), are rejected
+  with a clear `Error` when the device is lost or before the sidecar is up,
+  and are also served after the viewport pass-through present.
+- **viewport** — Thermion's `app.capture(swapChain, view, pixelDataType:
+  UBYTE)` on the offscreen swapchain, i.e. the raster frame the sidecar passes
+  through. Filament's WebGPU `readPixels` copies rows in texture order
+  (row 0 = top), the same top-left origin as the sidecar, so no flip is
+  applied. Two things are driven for it from the example:
+  - *Admission.* Filament admits a frame only once the previous one has
+    signalled completion (a poll it flushes on rejection). The render pump
+    submits a frame every animation frame and is always admitted on its
+    retry; a capture arriving behind it is rejected and, on a software
+    adapter, fails with `Failed to begin frame`. While a viewport capture is
+    in flight the pump therefore renders only every 4th frame (the sidecar
+    keeps presenting the last raster frame, so nothing visibly changes).
+  - *Completion, and the fallback.* The readback is a GPU buffer map whose
+    callback the engine must deliver to Dart. On the Emscripten (main-thread)
+    WebGPU engine build this spike runs on it is never delivered: the
+    capture does not complete (checked headlessly for 20 s), and
+    `Engine_flushAndWait` is no way out — `WebGPUDriver::finish` waits for
+    the readback without processing events on Emscripten and hangs the page.
+    So the viewport capture waits up to 2 s for Thermion's result and then
+    reads back the presented frame through the same sidecar path instead —
+    in viewport mode that is the same raster frame, passed through
+    unchanged. The status line names the source (`[Thermion app.capture()]`
+    or `[sidecar readback]`). On an engine build that delivers the readback,
+    the Thermion path is used.
 
 ## Verification
 
@@ -306,6 +369,37 @@ with the reversal it is the cube's (IoU 0.81). The `-Y` underside is drawn but
 black in both renderers (nothing lights it in this scene); its silhouette
 still matches the raster frame (IoU 0.99).
 
+Screenshot capture (same headless setup, `?samples=8`, 480x320, Playwright
+script not committed; the PNGs are taken from the actual `C`-key / button
+downloads and the canvas screenshot is compared over the rows without the
+button and status overlays):
+
+| capture                                                 | PNG                                           | vs canvas screenshot (mean abs diff / vertically flipped) | vs the other captures                   |
+| ------------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------- | --------------------------------------- |
+| A raytrace, converged (`C` key)                         | `89 50 4E 47 0D 0A 1A 0A`, 480x320, non-blank | **1.41** / 31.03                                         | —                                       |
+| B viewport (Capture button)                             | 480x320, non-blank                            | **3.95** / 45.27                                         | 100.00% of pixels differ from A         |
+| C raytrace, mid-drag (pointer held, `changing: true`)   | 480x320, non-blank                            | —                                                        | 9.38% of pixels differ from the pre-drag A |
+
+- A: `screenshotRequests` and `screenshotReadbacks` each advanced by 1,
+  `screenshot = { format: "rgba8unorm", width: 480, height: 320, bytes:
+  614400 }` (W×H×4), `screenshotFailures: 0`; the download is named
+  `mutracer_raytrace_480x320_<timestamp>.png` and the status line reads
+  `captured raytrace 480x320 [sidecar readback] → 90336 bytes PNG (…)`.
+  The capture is the presented composite, in the same orientation as the
+  canvas (the flipped comparison differs by a factor of 20).
+- B: `app.capture()` did not complete within the 2 s bound on this engine
+  build (see above), so the image came from the sidecar readback of the
+  passed-through frame (`[sidecar readback]` in the status line). It is the
+  raster frame (not the composite: every pixel differs from A) and matches
+  the canvas with the same top-left orientation.
+- C: captured while the pointer was still down and the camera moving
+  (`changing: true`, `previewFrames` advanced): the on-screen preview,
+  non-blank and different from the converged pre-drag frame.
+- The button is disabled synchronously on click and re-enabled when the
+  capture finishes; the button click downloads a PNG as well. Convergence
+  (8/8 samples before and after the drag), `unexpectedCommits == 0`, no
+  console errors and no uncaught page errors still hold in the same run.
+
 Cannot be checked headlessly here: perceived smoothness of the orbit on a
 real GPU. SwiftShader path-traces ~1 sample/s at 480x320 and each headless
 screenshot takes 0.7–1.9 s, so the mid-drag captures above prove that a new
@@ -318,18 +412,22 @@ real GPU gets (half-resolution 1 spp previews there).
   (`createOffscreenSwapChain`) + device export (`webGPUDevice`) + JSON scene
   bridge (including `offscreenCanvasSelector`); orbit camera (pointer/wheel
   on the visible canvas → `camera.lookAt`) and the mode toggle (R key +
-  button); pumps `app.render()` every animation frame and publishes the
-  per-frame camera channel.
+  button); the mode-aware screenshot (`capture()`, C key + Capture button →
+  PNG download); pumps `app.render()` every animation frame (throttled while
+  a viewport capture is in flight) and publishes the per-frame camera
+  channel.
 - `js/mutracer_sidecar.js` — device import, scene mirror, BLAS-once commit,
   per-frame camera sync, frame snapshot (skipped-frame aware), the
   preview/final interactive policy (preview `Render` as the full render's
   `fallback`, present every frame), compositing post-process, viewport
-  pass-through, presentation.
+  pass-through, presentation, and the presented-frame readback behind
+  `window.thermionSidecarCapture()`.
 - `tool/build_sidecar.mjs` — esbuild bundle script (`npm run build`).
 - `tool/stage_engine.dart` — copies the local WebGPU engine into `web/`.
 - `tool/serve.dart` — COOP/COEP dev server for `web/`.
 - `web/index.html` — loads the engine module first, then the sidecar bundle,
-  then the Dart WASM entry.
+  then the Dart WASM entry; the Capture button and the `#capture_status`
+  status span live here.
 
 ## Notes / limits (spike scope)
 

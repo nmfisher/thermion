@@ -52,6 +52,13 @@
 // of every frame, so the snapshot is only taken on frames Thermion actually
 // rendered (see makeCompositor); on skipped frames the latest snapshot is
 // reused by both modes.
+//
+// Screenshot capture: window.thermionSidecarCapture() resolves with the RGBA8
+// pixels (top-left origin) of the frame the sidecar presents next. The readback
+// (copyTextureToBuffer + mapAsync) is issued in the frame loop right after the
+// present of the same frame, on the visible canvas' current texture — the one
+// MuTracer just drew into (see makeFrameReader). Requests are queued until a
+// frame is actually presented; they are never served from a blank texture.
 import {
   Engine,
   Render,
@@ -474,7 +481,126 @@ fn fs(in: VSOut) -> @location(0) vec4f {
   return { presentViewport, get info() { return lastTarget; } };
 }
 
+// --- Frame readback (screenshot capture) ------------------------------------
+// Serves window.thermionSidecarCapture(): the visible canvas' current
+// swapchain texture — the exact image present() / presentViewport() drew this
+// frame — is copied into a MAP_READ buffer on the shared queue (ordered after
+// the present draw) and mapped. Must be called in the same frame as the
+// present, after it: the texture only exists for that frame, and calling
+// getCurrentTexture() on a frame that presents nothing would hand back (and
+// clear the canvas to) a blank texture.
+function makeFrameReader(device, presentCanvas) {
+  const context = presentCanvas.getContext('webgpu');
+  if (!context) fail('The visible canvas has no WebGPU context.');
+
+  // MuTracer configures this context for RENDER_ATTACHMENT only, and a canvas
+  // texture is only copyable when its configuration asks for COPY_SRC. Keep
+  // MuTracer's format (the preferred canvas format: bgra8unorm on most
+  // platforms) and alpha mode, add the usage. MuTracer only reconfigures on an
+  // HDR toggle, which this spike never enables, so once is enough.
+  const configured = context.getConfiguration?.();
+  context.configure({
+    device,
+    format: configured?.format ?? navigator.gpu.getPreferredCanvasFormat(),
+    alphaMode: configured?.alphaMode ?? 'premultiplied',
+    ...(configured?.colorSpace ? { colorSpace: configured.colorSpace } : {}),
+    ...(configured?.toneMapping ? { toneMapping: configured.toneMapping } : {}),
+    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+  });
+
+  const stats = { requested: 0, readbacks: 0, failures: 0 };
+  let last = null; // { format, width, height, bytes } of the last readback
+  let lost = null; // device-lost message, if the device was lost
+  const pending = []; // { resolve, reject } waiters, served by the next present
+
+  device.lost.then((info) => {
+    lost = info?.message || 'GPUDevice lost';
+    for (const waiter of pending.splice(0)) {
+      waiter.reject(new Error(`MuTracer sidecar capture: GPUDevice lost (${lost}).`));
+    }
+  });
+
+  // window.thermionSidecarCapture: RGBA8 of the next presented frame.
+  const request = () => new Promise((resolve, reject) => {
+    if (lost) {
+      reject(new Error(`MuTracer sidecar capture: GPUDevice lost (${lost}).`));
+      return;
+    }
+    stats.requested++;
+    pending.push({ resolve, reject });
+  });
+
+  // Call once per frame, right after a present that actually drew. Returns
+  // whether a readback was issued; the waiters resolve once the buffer is
+  // mapped (a few frames later on a software adapter).
+  const readPresented = () => {
+    if (!pending.length) return false;
+    const texture = context.getCurrentTexture();
+    if (!(texture.usage & GPUTextureUsage.COPY_SRC)) {
+      stats.failures++;
+      const error = new Error(
+        `MuTracer sidecar capture: the canvas texture (${texture.format}) is not copyable.`);
+      for (const waiter of pending.splice(0)) waiter.reject(error);
+      return false;
+    }
+    const { width, height } = texture;
+    const bgra = texture.format.startsWith('bgra');
+    // copyTextureToBuffer needs rows aligned to 256 bytes; the padding is
+    // stripped below.
+    const bytesPerRow = Math.ceil((width * 4) / 256) * 256;
+    const buffer = device.createBuffer({
+      label: 'thermion-sidecar-screenshot',
+      size: bytesPerRow * height,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+    const encoder = device.createCommandEncoder({ label: 'thermion-sidecar-screenshot' });
+    encoder.copyTextureToBuffer(
+      { texture }, { buffer, bytesPerRow, rowsPerImage: height }, [width, height, 1]);
+    device.queue.submit([encoder.finish()]);
+    const waiters = pending.splice(0);
+    buffer.mapAsync(GPUMapMode.READ).then(() => {
+      const mapped = new Uint8Array(buffer.getMappedRange());
+      const pixels = new Uint8Array(width * height * 4);
+      for (let y = 0; y < height; y++) {
+        const from = y * bytesPerRow, to = y * width * 4;
+        if (bgra) {
+          // BGRA canvas format: swap R and B on the way out.
+          for (let x = 0; x < width; x++) {
+            const i = from + x * 4, o = to + x * 4;
+            pixels[o] = mapped[i + 2];
+            pixels[o + 1] = mapped[i + 1];
+            pixels[o + 2] = mapped[i];
+            pixels[o + 3] = mapped[i + 3];
+          }
+        } else {
+          pixels.set(mapped.subarray(from, from + width * 4), to);
+        }
+      }
+      buffer.unmap();
+      buffer.destroy();
+      stats.readbacks++;
+      last = { format: texture.format, width, height, bytes: pixels.length };
+      for (const waiter of waiters) waiter.resolve(pixels.slice());
+    }, (error) => {
+      buffer.destroy();
+      stats.failures++;
+      const failure = new Error(`MuTracer sidecar capture: readback failed (${error?.message ?? error}).`);
+      for (const waiter of waiters) waiter.reject(failure);
+    });
+    return true;
+  };
+
+  return { request, readPresented, stats, get last() { return last; } };
+}
+
 // --- Boot -------------------------------------------------------------------
+
+// Defined before start() so a caller never meets an undefined global: until
+// the sidecar is up (or if it never comes up — no WebGPU, engine failure) a
+// capture request rejects with a clear error instead of throwing TypeError.
+let captureFrame = () => Promise.reject(new Error(
+  'MuTracer sidecar capture is unavailable: the sidecar is not running (WebGPU required).'));
+window.thermionSidecarCapture = () => captureFrame();
 
 async function start() {
   const bridge = JSON.parse(window.thermionSidecarScene);
@@ -550,6 +676,9 @@ async function start() {
   engine.display.addPostProcess(compositor.postProcess);
   const viewportPresenter = makeViewportPresenter(device, presentCanvas);
   const { presentViewport } = viewportPresenter;
+  // Screenshot readback of the presented frame (window.thermionSidecarCapture).
+  const frameReader = makeFrameReader(device, presentCanvas);
+  captureFrame = frameReader.request;
 
   // Per-frame channel state.
   const stats = {
@@ -588,6 +717,11 @@ async function start() {
       },
       cameraPosition: Array.from(camera.position),
       capture: compositor.info,
+      // Screenshot readbacks (window.thermionSidecarCapture).
+      screenshotRequests: frameReader.stats.requested,
+      screenshotReadbacks: frameReader.stats.readbacks,
+      screenshotFailures: frameReader.stats.failures,
+      screenshot: frameReader.last,
     }),
   };
   window.thermionSidecarDebug = debug;
@@ -631,7 +765,9 @@ async function start() {
 
     if (mode === 'viewport') {
       // Pass-through of the Filament raster frame: no refine(), no blend.
-      if (compositor.captured) presentViewport(compositor.captured);
+      const shown = !!compositor.captured;
+      if (shown) presentViewport(compositor.captured);
+      if (shown) frameReader.readPresented();
       stats.viewportFrames++;
       stats.changing = false;
       setStatus(`Viewport: Thermion\u2019s raster frame passed through unchanged (path tracing paused).`);
@@ -671,6 +807,9 @@ async function start() {
       const presented = engine.display.present(render);
       if (presented === preview) stats.previewFrames++;
       else if (presented === render) stats.finalFrames++;
+      // Screenshot readback of THIS frame (same texture present() drew into);
+      // a pending request waits for a frame that actually presented.
+      if (presented) frameReader.readPresented();
       stats.raytraceFrames++;
       setStatus(render.converged
         ? `MuTracer sidecar: ${render.samples} samples on Thermion's GPUDevice (shared, BLAS built once${stats.unexpectedCommits ? ' — WARNING: scene re-committed' : ''}). Blend ${blend}.`

@@ -13,15 +13,18 @@
       text-shadow: 0 1px 2px #000; max-width: 90vw;
     }
     #status #mode_label { color: #8fd; }
+    #status #capture_status { color: #fd8; }
     #controls {
       position: absolute; top: 8px; left: 8px; z-index: 10;
+      display: flex; gap: 6px;
     }
-    #mode_toggle {
+    #mode_toggle, #capture {
       font: 12px ui-monospace, monospace; color: #ddd; background: #223;
       border: 1px solid #557; border-radius: 4px; padding: 4px 10px;
       cursor: pointer;
     }
-    #mode_toggle:hover { background: #335; }
+    #mode_toggle:hover, #capture:hover { background: #335; }
+    #capture:disabled { color: #667; background: #1a1a22; cursor: wait; }
     #error {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
       color: #f88; font: 14px ui-monospace, monospace; max-width: 80%;
@@ -35,9 +38,14 @@
     <!-- Label/text is kept in sync by Dart (web/main.dart): shows the mode a
          click switches TO; the R key does the same. -->
     <button id="mode_toggle" type="button" title="Path-trace on the shared device and composite">Viewport (R)</button>
+    <!-- Mode-aware screenshot (Dart, web/main.dart): the presented frame in
+         raytrace mode, Thermion's capture API in viewport mode; C key does
+         the same. Downloads a PNG and reports in #capture_status. -->
+    <button id="capture" type="button" title="Save the current frame as PNG (C)">Capture (C)</button>
   </div>
-  <!-- One status line: mode + controls hint (Dart) and progress (sidecar). -->
-  <div id="status"><span id="mode_label">mode: raytrace · drag=orbit · wheel=zoom · R=toggle</span> · <span id="progress">Loading engine…</span></div>
+  <!-- One status line: mode + controls hint (Dart), capture result (Dart) and
+       progress (sidecar). -->
+  <div id="status"><span id="mode_label">mode: raytrace · drag=orbit · wheel=zoom · R=toggle</span> · <span id="progress">Loading engine…</span><span id="capture_status"></span></div>
   <div id="error"></div>
 
   <script>

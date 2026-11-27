@@ -25,6 +25,14 @@
 // Camera: an orbit camera (drag = orbit around the focus point, wheel =
 // dolly) drives the Thermion camera, and the very same view matrix is pushed
 // to the sidecar so both renderers stay in sync.
+//
+// Screenshot capture (C key / Capture button) is mode-aware behind one API,
+// `capture()`: in raytrace mode the sidecar reads back the frame it presents
+// (`window.thermionSidecarCapture`, a WebGPU readback of the visible canvas'
+// swapchain texture — Thermion's capture API cannot see MuTracer's textures);
+// in viewport mode Thermion's own `app.capture()` reads the raster frame the
+// sidecar passes through. Both return RGBA8, top-left origin; the result is
+// encoded as PNG and downloaded.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:js_interop';
@@ -85,7 +93,7 @@ const _minDistance = 1.5;
 const _maxDistance = 30.0;
 const _dollyScalePerWheelPixel = 1.001; // ~10% per 100-unit wheel notch.
 
-const _controlsHint = 'drag=orbit · wheel=zoom · R=toggle';
+const _controlsHint = 'drag=orbit · wheel=zoom · R=toggle · C=capture';
 
 double _clampDouble(double value, double min, double max) =>
     value < min ? min : (value > max ? max : value);
@@ -363,11 +371,173 @@ Future<void> main() async {
     modeButton.blur();
   }).toJS);
 
+  // --- Screenshot capture (mode-aware) ---------------------------------------
+
+  // One Dart-facing API for both modes. Both paths return the SAME shape:
+  // RGBA8, top-left origin, `canvas.width * canvas.height * 4` bytes.
+  //
+  //   raytrace: the sidecar reads back the frame it presents
+  //     (`window.thermionSidecarCapture()`, js/mutracer_sidecar.js) in its
+  //     frame loop, right after `display.present()`. While the camera moves
+  //     this is the preview that is on screen. Thermion's `app.capture()` is
+  //     a Filament `readPixels` on a Filament target and cannot see MuTracer's
+  //     textures, so it is not an option here.
+  //   viewport: Thermion's capture API on the offscreen swapchain
+  //     (`app.capture(swapChain, pixelDataType: UBYTE)`), which is exactly
+  //     the raster frame the sidecar passes through. Filament's WebGPU
+  //     `readPixels` copies rows in texture order (row 0 = top), so the
+  //     orientation matches the sidecar's and no flip is needed.
+  //
+  // The viewport capture begins a Filament frame of its own. Filament admits a
+  // frame only once the previous one has signalled completion, and it learns
+  // that from a poll it flushes on rejection — so the render pump (a frame
+  // every animation frame) always gets admitted on its retry while a capture
+  // arriving right behind it is rejected and, on a software adapter, fails
+  // outright with "Failed to begin frame" (its 16 ms retries stay phase-locked
+  // to the pump's frames). While a viewport capture is in flight the pump
+  // therefore renders only every 4th frame (see [pump]): the sidecar keeps
+  // presenting the last raster frame, so nothing visibly changes.
+  //
+  // Fallback: the readback of `app.capture()` is a GPU buffer map whose
+  // callback the engine must pump to the Dart side, and on the Emscripten
+  // (main-thread) WebGPU engine build this spike runs on it is never
+  // delivered — the capture never completes (`Engine_flushAndWait` is no way
+  // out either: its wait loop does not process events on Emscripten and hangs
+  // the page). So a viewport capture waits a bounded time for Thermion's
+  // result and otherwise reads back the PRESENTED frame from the sidecar — in
+  // viewport mode that is the same raster frame, passed through unchanged.
+  // The status line says which of the two produced the image.
+  const thermionCaptureTimeout = Duration(seconds: 2);
+  var captureHold = false;
+  final _logger = Logger('mutracer_sidecar');
+
+  /// The sidecar's readback of the frame it presents next (either mode).
+  Future<Uint8List> _captureFromSidecar() async {
+    if (!(web.window as JSObject).has('thermionSidecarCapture')) {
+      throw StateError(
+          'The sidecar capture API (window.thermionSidecarCapture) is missing: '
+          'the sidecar did not start.');
+    }
+    final promise = web.window
+        .callMethod<JSPromise<JSUint8Array>>('thermionSidecarCapture'.toJS);
+    // Copy out of the JS buffer so the result does not alias the readback.
+    return Uint8List.fromList((await promise.toDart).toDart);
+  }
+
+  /// Thermion's own readback of the offscreen swapchain (viewport mode).
+  Future<Uint8List> _captureFromThermion() async {
+    final captured = await app.capture(
+      swapChain,
+      view: viewer.view,
+      pixelDataFormat: PixelDataFormat.RGBA,
+      pixelDataType: PixelDataType.UBYTE,
+    );
+    if (captured.isEmpty) {
+      throw StateError('Thermion capture returned no view.');
+    }
+    return captured.first.$2;
+  }
+
+  /// Captures the current frame as RGBA8 (see the comment above). Returns the
+  /// pixels and the path that produced them, for the status line.
+  Future<({Uint8List rgba, String source})> capture() async {
+    if (mode == RenderMode.viewport) {
+      final pending = _captureFromThermion();
+      // A late result (or error) of an abandoned capture must not surface as
+      // an unhandled asynchronous error.
+      unawaited(pending.then<void>((_) {}, onError: (Object error) {
+        _logger.warning('late Thermion capture result: $error');
+      }));
+      try {
+        final rgba = await pending.timeout(thermionCaptureTimeout);
+        return (rgba: rgba, source: 'Thermion app.capture()');
+      } on Object catch (error) {
+        _logger.warning(
+            'Thermion capture did not complete ($error); reading the '
+            'presented frame back through the sidecar instead.');
+        return (rgba: await _captureFromSidecar(), source: 'sidecar readback');
+      }
+    }
+    return (rgba: await _captureFromSidecar(), source: 'sidecar readback');
+  }
+
+  final captureButton =
+      web.document.querySelector('#capture') as web.HTMLButtonElement?;
+  final captureStatus = web.document.querySelector('#capture_status');
+  var captureInFlight = false;
+
+  void reportCapture(String text) {
+    if (captureStatus != null) {
+      captureStatus.textContent = text.isEmpty ? '' : ' · $text';
+    }
+  }
+
+  void downloadPng(String name, Uint8List png) {
+    final blob = web.Blob([png.toJS].toJS, web.BlobPropertyBag(type: 'image/png'));
+    final url = web.URL.createObjectURL(blob);
+    final anchor = web.HTMLAnchorElement()
+      ..href = url
+      ..download = name;
+    web.document.body?.append(anchor);
+    anchor.click();
+    anchor.remove();
+    // The download starts inside click(); release the blob afterwards.
+    unawaited(Future<void>.delayed(
+        const Duration(seconds: 10), () => web.URL.revokeObjectURL(url)));
+  }
+
+  // Captures the current mode's frame, encodes it as PNG and downloads it as
+  // `mutracer_<mode>_<WxH>_<timestamp>.png`. The button is disabled while a
+  // capture is in flight (a readback takes a few frames; a viewport capture
+  // may wait up to 2 s for Thermion's result).
+  Future<void> saveCapture() async {
+    if (captureInFlight) return;
+    captureInFlight = true;
+    if (captureButton != null) captureButton.disabled = true;
+    final capturedMode = mode.name;
+    reportCapture('capturing $capturedMode…');
+    if (mode == RenderMode.viewport) captureHold = true;
+    try {
+      final (rgba: rgba, source: source) = await capture();
+      final width = canvas.width;
+      final height = rgba.length ~/ (width * 4);
+      if (height <= 0 || rgba.length != width * height * 4) {
+        throw StateError(
+            'unexpected pixel buffer: ${rgba.length} bytes at width $width');
+      }
+      final png = await pixelBufferToPng(rgba, width, height,
+          hasAlpha: true, isFloat: false);
+      final name = 'mutracer_${capturedMode}_${width}x${height}_'
+          '${DateTime.now().millisecondsSinceEpoch}.png';
+      downloadPng(name, png);
+      reportCapture('captured $capturedMode ${width}x${height} [$source] → '
+          '${png.length} bytes PNG ($name)');
+    } on Object catch (error) {
+      _logger.severe('capture ($capturedMode) failed: $error');
+      reportCapture('capture ($capturedMode) failed: $error');
+    } finally {
+      captureHold = false;
+      captureInFlight = false;
+      if (captureButton != null) captureButton.disabled = false;
+    }
+  }
+
+  captureButton?.addEventListener('click', ((web.Event _) {
+    // Keep Space/Enter from re-triggering the button while it is disabled.
+    captureButton.blur();
+    saveCapture();
+  }).toJS);
+
+  // R toggles the mode, C captures (both ignored with a modifier key held
+  // and on key auto-repeat).
   web.document.addEventListener('keydown', ((web.KeyboardEvent e) {
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
     if (e.key == 'r' || e.key == 'R') {
       e.preventDefault();
       toggleMode();
+    } else if (e.key == 'c' || e.key == 'C') {
+      e.preventDefault();
+      saveCapture();
     }
   }).toJS);
 
@@ -450,7 +620,9 @@ Future<void> main() async {
   // refreshed every frame BEFORE rendering, so the sidecar's frame (same
   // animation frame, later callback) always sees the matrix Thermion just
   // rendered with.
+  var pumpFrame = 0;
   void pump(num timestamp) {
+    pumpFrame++;
     if (cameraDirty) {
       cameraDirty = false;
       cameraRevision++;
@@ -463,7 +635,9 @@ Future<void> main() async {
       });
     }
     publishCamera();
-    app.render();
+    // Throttled to every 4th frame while a viewport capture is in flight
+    // (see [captureHold]).
+    if (!captureHold || pumpFrame % 4 == 0) app.render();
     web.window.requestAnimationFrame(pump.toJS);
   }
 
