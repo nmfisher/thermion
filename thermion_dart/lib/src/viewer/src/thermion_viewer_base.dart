@@ -286,6 +286,12 @@ abstract class ThermionViewer {
   //
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa);
 
+  //
+  // Set temporal anti-aliasing tuning (see [TemporalAntiAliasingOptions]). TAA itself is
+  // enabled via [setAntiAliasing]; these values persist across that call.
+  //
+  Future setTemporalAntiAliasingOptions(TemporalAntiAliasingOptions options);
+
   // Sets the draw priority for the given entity. See RenderableManager.h for
   // more details.
   Future setPriority(ThermionEntity entityId, int priority);

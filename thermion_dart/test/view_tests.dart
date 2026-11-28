@@ -1075,6 +1075,17 @@ void main() async {
     });
   });
 
+  test('ThermionViewer.setTemporalAntiAliasingOptions forwards to the view', () async {
+    await ViewerBuilder(testHelper).setRenderTargetEnabled(true).execute((result) async {
+      await result.viewer.setTemporalAntiAliasingOptions(
+        const TemporalAntiAliasingOptions(feedback: 0.25, sharpness: 0.4),
+      );
+      final options = result.viewer.view.getTemporalAntiAliasingOptions();
+      expect(options.feedback, closeTo(0.25, 0.001));
+      expect(options.sharpness, closeTo(0.4, 0.001));
+    });
+  });
+
   test('SoftShadowOptions functionality', () async {
     await ViewerBuilder(testHelper).setRenderTargetEnabled(true).execute((result) async {
       // Test default options (check what Filament returns as default)

@@ -805,6 +805,12 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
+  Future setTemporalAntiAliasingOptions(TemporalAntiAliasingOptions options) async {
+    await view.setTemporalAntiAliasingOptions(options);
+  }
+
+  //
+  @override
   Future setBloom(bool enabled, double strength) async {
     View_setBloom(view.getNativeHandle(), enabled, strength);
   }
