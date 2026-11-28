@@ -994,7 +994,11 @@ void main() async {
             counts[name] = partialPixels(capture.values.first);
           }
           print('partially covered edge pixels: $counts');
-          expect(counts['2x']!, greaterThan(counts['off']!));
+          // Only 4x is asserted: Filament's effective sample count depends on
+          // the device, and CI's software renderers only support 4x. A 2x
+          // request renders without MSAA on Windows/Vulkan (0 blended pixels)
+          // and as 4x on Linux/GL. 4x support is guaranteed on
+          // Vulkan, GLES 3 and Metal.
           expect(counts['4x']!, greaterThan(counts['off']!));
         });
   });
