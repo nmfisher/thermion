@@ -969,9 +969,7 @@ void main() async {
       expect(defaults.feedback, closeTo(0.12, 0.001));
       expect(defaults.sharpness, closeTo(0.0, 0.001));
 
-      await view.setTemporalAntiAliasingOptions(
-        const TemporalAntiAliasingOptions(feedback: 0.3, sharpness: 0.5),
-      );
+      await view.setTemporalAntiAliasingOptions(const TemporalAntiAliasingOptions(feedback: 0.3, sharpness: 0.5));
       var options = view.getTemporalAntiAliasingOptions();
       expect(options.feedback, closeTo(0.3, 0.001));
       expect(options.sharpness, closeTo(0.5, 0.001));
