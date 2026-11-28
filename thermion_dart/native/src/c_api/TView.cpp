@@ -471,11 +471,33 @@ namespace thermion
             multiSampleAntiAliasingOptions.sampleCount = 2;
             view->setMultiSampleAntiAliasingOptions(multiSampleAntiAliasingOptions);
 
-            TemporalAntiAliasingOptions taaOpts;
+            // Preserve any TAA tuning (feedback, sharpness) and only toggle enabled.
+            auto taaOpts = view->getTemporalAntiAliasingOptions();
             taaOpts.enabled = taa;
 
             view->setTemporalAntiAliasingOptions(taaOpts);
             view->setAntiAliasing(fxaa ? AntiAliasing::FXAA : AntiAliasing::NONE);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void View_setTemporalAntiAliasingOptions(TView *tView, TTemporalAntiAliasingOptions options)
+        {
+            THERMION_ENGINE_API_GUARD;
+            auto view = reinterpret_cast<View *>(tView);
+            auto taaOpts = view->getTemporalAntiAliasingOptions();
+            taaOpts.feedback = options.feedback;
+            taaOpts.sharpness = options.sharpness;
+            view->setTemporalAntiAliasingOptions(taaOpts);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TTemporalAntiAliasingOptions View_getTemporalAntiAliasingOptions(TView *tView)
+        {
+            THERMION_ENGINE_API_GUARD;
+            auto view = reinterpret_cast<View *>(tView);
+            auto taaOpts = view->getTemporalAntiAliasingOptions();
+            TTemporalAntiAliasingOptions tOptions;
+            tOptions.feedback = taaOpts.feedback;
+            tOptions.sharpness = taaOpts.sharpness;
+            return tOptions;
         }
 
         EMSCRIPTEN_KEEPALIVE void View_setLayerEnabled(TView *tView, int layer, bool enabled)

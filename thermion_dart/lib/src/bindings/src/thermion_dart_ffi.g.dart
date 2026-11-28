@@ -5676,6 +5676,9 @@ external int View_getShadowType(ffi.Pointer<TView> tView);
 @ffi.Native<TSoftShadowOptions Function(ffi.Pointer<TView>)>(isLeaf: true)
 external TSoftShadowOptions View_getSoftShadowOptions(ffi.Pointer<TView> tView);
 
+@ffi.Native<TTemporalAntiAliasingOptions Function(ffi.Pointer<TView>)>(isLeaf: true)
+external TTemporalAntiAliasingOptions View_getTemporalAntiAliasingOptions(ffi.Pointer<TView> tView);
+
 @ffi.Native<TViewport Function(ffi.Pointer<TView>)>(isLeaf: true)
 external TViewport View_getViewport(ffi.Pointer<TView> view);
 
@@ -5989,6 +5992,20 @@ external void View_setStencilBufferEnabledJobThread(
   ffi.Pointer<TJobThread> jobThread,
   ffi.Pointer<TView> tView,
   bool enabled,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TTemporalAntiAliasingOptions)>(isLeaf: true)
+external void View_setTemporalAntiAliasingOptions(ffi.Pointer<TView> tView, TTemporalAntiAliasingOptions options);
+
+@ffi.Native<
+  ffi.Void Function(ffi.Pointer<TJobThread>, ffi.Pointer<TView>, TTemporalAntiAliasingOptions, ffi.Uint32, VoidCallback)
+>(isLeaf: true)
+external void View_setTemporalAntiAliasingOptionsJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TView> tView,
+  TTemporalAntiAliasingOptions options,
   int requestId,
   VoidCallback onComplete,
 );
@@ -6932,6 +6949,18 @@ final class TSurfaceOrientation extends ffi.Opaque {}
 final class TSurfaceOrientationBuilder extends ffi.Opaque {}
 
 final class TSwapChain extends ffi.Opaque {}
+
+/// Tuning for temporal anti-aliasing. TAA itself is switched on/off via
+/// View_setAntiAliasing; these values are preserved across that call.
+final class TTemporalAntiAliasingOptions extends ffi.Struct {
+  /// history feedback, between 0 (maximum temporal AA) and 1 (no temporal AA).
+  @ffi.Float()
+  external double feedback;
+
+  /// post-TAA sharpen, between 0 (none) and 1.
+  @ffi.Float()
+  external double sharpness;
+}
 
 final class TTexture extends ffi.Opaque {}
 

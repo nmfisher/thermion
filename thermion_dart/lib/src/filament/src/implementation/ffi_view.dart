@@ -149,6 +149,23 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   @override
+  Future setTemporalAntiAliasingOptions(TemporalAntiAliasingOptions options) async {
+    final tOptions = StructAllocator.create<TTemporalAntiAliasingOptions>();
+    tOptions.feedback = options.feedback;
+    tOptions.sharpness = options.sharpness;
+    await withVoidCallback(
+      (requestId, cb) =>
+          View_setTemporalAntiAliasingOptionsJobThread(_app.jobThreadHandle, view, tOptions, requestId, cb),
+    );
+  }
+
+  @override
+  TemporalAntiAliasingOptions getTemporalAntiAliasingOptions() {
+    final tOptions = View_getTemporalAntiAliasingOptions(view);
+    return TemporalAntiAliasingOptions(feedback: tOptions.feedback, sharpness: tOptions.sharpness);
+  }
+
+  @override
   Future setPostProcessing(bool enabled) async {
     await withVoidCallback(
       (requestId, cb) => View_setPostProcessingJobThread(_app.jobThreadHandle, view, enabled, requestId, cb),

@@ -962,6 +962,27 @@ void main() async {
     });
   });
 
+  test('TemporalAntiAliasingOptions set/get survives TAA toggle', () async {
+    await ViewerBuilder(testHelper).setRenderTargetEnabled(true).execute((result) async {
+      final view = result.viewer.view;
+      final defaults = view.getTemporalAntiAliasingOptions();
+      expect(defaults.feedback, closeTo(0.12, 0.001));
+      expect(defaults.sharpness, closeTo(0.0, 0.001));
+
+      await view.setTemporalAntiAliasingOptions(const TemporalAntiAliasingOptions(feedback: 0.3, sharpness: 0.5));
+      var options = view.getTemporalAntiAliasingOptions();
+      expect(options.feedback, closeTo(0.3, 0.001));
+      expect(options.sharpness, closeTo(0.5, 0.001));
+
+      // Toggling AA must not reset the TAA tuning.
+      await view.setAntiAliasing(false, false, true);
+      await view.setAntiAliasing(false, true, false);
+      options = view.getTemporalAntiAliasingOptions();
+      expect(options.feedback, closeTo(0.3, 0.001));
+      expect(options.sharpness, closeTo(0.5, 0.001));
+    });
+  });
+
   test('SoftShadowOptions functionality', () async {
     await ViewerBuilder(testHelper).setRenderTargetEnabled(true).execute((result) async {
       // Test default options (check what Filament returns as default)

@@ -34,6 +34,23 @@ class FogOptions {
   }
 }
 
+/// Tuning for temporal anti-aliasing (TAA).
+///
+/// TAA itself is enabled via [View.setAntiAliasing]; these values are
+/// preserved when TAA is toggled.
+class TemporalAntiAliasingOptions {
+  /// History feedback, between 0 (maximum temporal AA) and 1 (no temporal AA).
+  ///
+  /// Higher values settle faster after camera motion, at the cost of less
+  /// smoothing.
+  final double feedback;
+
+  /// Post-TAA sharpening, between 0 (none) and 1.
+  final double sharpness;
+
+  const TemporalAntiAliasingOptions({this.feedback = 0.12, this.sharpness = 0.0});
+}
+
 class SsctOptions {
   final double lightConeRad;
   final double shadowDistance;
@@ -394,6 +411,8 @@ abstract class View<T> extends NativeHandle<T> {
   Future<Camera> getCamera();
   Future setPostProcessing(bool enabled);
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa);
+  Future setTemporalAntiAliasingOptions(TemporalAntiAliasingOptions options);
+  TemporalAntiAliasingOptions getTemporalAntiAliasingOptions();
   Future setFrustumCullingEnabled(bool enabled);
   Future setStencilBufferEnabled(bool enabled);
   Future<bool> isStencilBufferEnabled();
