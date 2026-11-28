@@ -10,7 +10,6 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
-import 'src/test_io.dart' show isWeb;
 
 void main() async {
   final testHelper = TestHelper("view");
