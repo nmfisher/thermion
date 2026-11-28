@@ -965,15 +965,18 @@ void main() async {
     // Counts pixels whose luminance lies strictly between the background and
     // the flat-shaded cube, i.e. partially covered edge pixels. Without MSAA
     // the silhouette is hard-edged; with MSAA edge pixels are blended.
-    int partialPixels(Uint8List floatRgba) {
-      final px = floatRgba.buffer.asFloat32List(floatRgba.offsetInBytes, floatRgba.lengthInBytes ~/ 4);
+    int partialPixels(Uint8List rgba) {
+      final px = rgba;
       final lum = [for (var i = 0; i < px.length; i += 4) 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]];
       final maxLum = lum.reduce((a, b) => a > b ? a : b);
       return lum.where((l) => l > 0.05 * maxLum && l < 0.95 * maxLum).length;
     }
 
     await ViewerBuilder(testHelper)
-        .setRenderTargetEnabled(true)
+        // No offscreen render target: the harness's depth texture is
+        // SAMPLEABLE, and Filament asserts (debug builds) when MSAA is enabled
+        // on a render target with sampleable depth. Render to the headless
+        // swap chain instead.
         .setPostProcessing(true)
         .addCube(unlit: true, rotation: Quaternion.axisAngle(Vector3(0, 1, 0), 0.4))
         .setCameraLookAt(Vector3(0, 2, 6))
@@ -983,7 +986,11 @@ void main() async {
           for (final (name, enabled, samples) in [('off', false, 2), ('2x', true, 2), ('4x', true, 4)]) {
             await view.setMultiSampleAntiAliasingOptions(MultiSampleAntiAliasingOptions(sampleCount: samples));
             await view.setAntiAliasing(enabled, false, false);
-            final capture = await testHelper.capture(view, 'msaa_sample_count_$name');
+            final capture = await testHelper.capture(
+              view,
+              'msaa_sample_count_$name',
+              pixelDataType: PixelDataType.UBYTE,
+            );
             counts[name] = partialPixels(capture.values.first);
           }
           print('partially covered edge pixels: $counts');
@@ -993,7 +1000,8 @@ void main() async {
   });
 
   test('MultiSampleAntiAliasingOptions set/get survives MSAA toggle', () async {
-    await ViewerBuilder(testHelper).setRenderTargetEnabled(true).execute((result) async {
+    // No offscreen render target (see 'MSAA sample count reaches the renderer').
+    await ViewerBuilder(testHelper).execute((result) async {
       final view = result.viewer.view;
       final defaults = view.getMultiSampleAntiAliasingOptions();
       expect(defaults.sampleCount, 2);
