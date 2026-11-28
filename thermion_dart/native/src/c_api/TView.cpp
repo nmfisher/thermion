@@ -463,8 +463,9 @@ namespace thermion
             builder->gamutMapping(enabled);
         }
 
-        void View_setAntiAliasing(TView *tView, bool msaa, bool fxaa, bool taa)
+        EMSCRIPTEN_KEEPALIVE void View_setAntiAliasing(TView *tView, bool msaa, bool fxaa, bool taa)
         {
+            THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
             View::MultiSampleAntiAliasingOptions multiSampleAntiAliasingOptions;
             multiSampleAntiAliasingOptions.enabled = msaa;
