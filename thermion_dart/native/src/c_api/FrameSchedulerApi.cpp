@@ -72,6 +72,10 @@ extern "C"
 #endif
   }
 
+  EMSCRIPTEN_KEEPALIVE void FrameScheduler_finalize(void* /* token */) {
+    FrameScheduler_stop();
+  }
+
 #ifndef __EMSCRIPTEN__
   static bool _dartApiInitialized = false;
 #endif

@@ -11,6 +11,7 @@ import 'package:logging/logging.dart';
 // ignore: implementation_imports
 import 'package:thermion_dart/src/bindings/src/thermion_dart_ffi.g.dart'
     show
+        FrameScheduler_finalize,
         FrameScheduler_startWithCallback,
         FrameScheduler_stop,
         FrameTickCallbackFunction,
@@ -27,7 +28,14 @@ import 'package:thermion_dart/src/bindings/src/thermion_dart_ffi.g.dart'
 ///   Hot-restart safe — messages to dead ports are silently dropped.
 /// - **Flutter-synced** (Linux): Flutter's persistent frame callback drives
 ///   the same Dart callback pipeline as the native display-link sources.
-class FrameScheduler {
+///
+/// The first native start attaches a [ffi.NativeFinalizer] that stops the
+/// native scheduler when the isolate group shuts down. A platform display
+/// link keeps ticking on its own thread until stopped, and a tick that
+/// reaches a direct callback after the Dart VM shuts down aborts the
+/// process. On macOS the engine shuts the VM down as the app terminates,
+/// without detaching plugins, so this is the stop that runs on every quit.
+class FrameScheduler implements ffi.Finalizable {
   FrameScheduler._({
     int Function()? sourceClockUs,
     int Function()? steadyClockUs,
@@ -82,6 +90,14 @@ class FrameScheduler {
   ffi.NativeCallable<FrameTickCallbackFunction>? _tickCallable;
   ReceivePort? _framePort;
 
+  static final _shutdownStop = ffi.NativeFinalizer(
+    ffi.Native.addressOf<
+          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>
+        >(FrameScheduler_finalize)
+        .cast(),
+  );
+  bool _shutdownStopAttached = false;
+
   int Function()? _flutterTargetFps;
   int _flutterAppliedFpsLimit = 0;
   int _nextFlutterFrameUs = 0;
@@ -121,6 +137,10 @@ class FrameScheduler {
     if (_active) return;
     _active = true;
     final generation = ++_sourceGeneration;
+    if (!_shutdownStopAttached) {
+      _shutdownStop.attach(this, ffi.nullptr);
+      _shutdownStopAttached = true;
+    }
 
     final usePortMode =
         kDebugMode &&
