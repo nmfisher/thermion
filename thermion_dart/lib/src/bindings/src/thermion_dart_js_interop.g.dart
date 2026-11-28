@@ -2822,6 +2822,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<TScene> _View_getScene(Pointer<TView> tView);
   external int _View_getShadowType(Pointer<TView> tView);
   external void _View_getSoftShadowOptions(Pointer<TSoftShadowOptions> TSoftShadowOptions_out, Pointer<TView> tView);
+  external void _View_getTemporalAntiAliasingOptions(
+    Pointer<TTemporalAntiAliasingOptions> TTemporalAntiAliasingOptions_out,
+    Pointer<TView> tView,
+  );
   external void _View_getViewport(Pointer<TViewport> TViewport_out, Pointer<TView> view);
   external int _View_getVisibleRenderableCount(Pointer<TView> view);
   external void _View_getVsmShadowOptions(Pointer<TVsmShadowOptions> TVsmShadowOptions_out, Pointer<TView> tView);
@@ -2998,6 +3002,17 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TJobThread> jobThread,
     Pointer<TView> tView,
     bool enabled,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setTemporalAntiAliasingOptions(
+    Pointer<TView> tView,
+    Pointer<TTemporalAntiAliasingOptions> optionsPtr,
+  );
+  external void _View_setTemporalAntiAliasingOptionsJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TView> tView,
+    Pointer<TTemporalAntiAliasingOptions> optionsPtr,
     int requestId,
     VoidCallback onComplete,
   );
@@ -10260,6 +10275,15 @@ TSoftShadowOptions View_getSoftShadowOptions(Pointer<TView> tView) {
   return TSoftShadowOptions_out.toDart();
 }
 
+TTemporalAntiAliasingOptions View_getTemporalAntiAliasingOptions(Pointer<TView> tView) {
+  final TTemporalAntiAliasingOptions_out = TTemporalAntiAliasingOptions.stackAlloc();
+  final result = GeneratedBindings.instance._View_getTemporalAntiAliasingOptions(
+    TTemporalAntiAliasingOptions_out.cast(),
+    tView.cast(),
+  );
+  return TTemporalAntiAliasingOptions_out.toDart();
+}
+
 TViewport View_getViewport(Pointer<TView> view) {
   final TViewport_out = TViewport.stackAlloc();
   final result = GeneratedBindings.instance._View_getViewport(TViewport_out.cast(), view.cast());
@@ -10770,6 +10794,30 @@ void View_setStencilBufferEnabledJobThread(
     jobThread.cast(),
     tView.cast(),
     enabled,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+void View_setTemporalAntiAliasingOptions(Pointer<TView> tView, TTemporalAntiAliasingOptions options) {
+  final optionsPtr = options.address;
+  final result = GeneratedBindings.instance._View_setTemporalAntiAliasingOptions(tView.cast(), optionsPtr.cast());
+  return result;
+}
+
+void View_setTemporalAntiAliasingOptionsJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TView> tView,
+  TTemporalAntiAliasingOptions options,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final optionsPtr = options.address;
+  final result = GeneratedBindings.instance._View_setTemporalAntiAliasingOptionsJobThread(
+    jobThread.cast(),
+    tView.cast(),
+    optionsPtr.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );
@@ -13930,6 +13978,74 @@ final class TSwapChain extends Struct {
   }
 }
 
+/// Tuning for temporal anti-aliasing. TAA itself is switched on/off via
+/// View_setAntiAliasing; these values are preserved across that call.
+
+extension TTemporalAntiAliasingOptionsExt on Pointer<TTemporalAntiAliasingOptions> {
+  TTemporalAntiAliasingOptions toDart() {
+    return TTemporalAntiAliasingOptions(this);
+  }
+
+  TTemporalAntiAliasingOptions operator [](int index) {
+    return TTemporalAntiAliasingOptions(
+      Pointer<TTemporalAntiAliasingOptions>(addr + index * TTemporalAntiAliasingOptions.byteSize),
+    );
+  }
+}
+
+final class TTemporalAntiAliasingOptions extends Struct {
+  Pointer<TTemporalAntiAliasingOptions> get address => super.address.cast();
+  static const int byteSize = 8;
+
+  /// history feedback, between 0 (maximum temporal AA) and 1 (no temporal AA).
+  double get feedback {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set feedback(double val) {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 0);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
+  }
+
+  /// post-TAA sharpen, between 0 (none) and 1.
+  double get sharpness {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set sharpness(double val) {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 4);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
+  }
+
+  TTemporalAntiAliasingOptions(super.address);
+
+  static Pointer<TTemporalAntiAliasingOptions> stackAlloc() {
+    return Pointer<TTemporalAntiAliasingOptions>(NativeLibrary.instance.stackAlloc<TTemporalAntiAliasingOptions>(8));
+  }
+}
+
 extension TTextureExt on Pointer<TTexture> {
   TTexture toDart() {
     return TTexture(this);
@@ -14633,6 +14749,7 @@ int sizeOf<T extends NativeType>() {
   if (T == TShadowOptions) return TShadowOptions.byteSize;
   if (T == TSoftShadowOptions) return TSoftShadowOptions.byteSize;
   if (T == TSsct) return TSsct.byteSize;
+  if (T == TTemporalAntiAliasingOptions) return TTemporalAntiAliasingOptions.byteSize;
   if (T == TViewport) return TViewport.byteSize;
   if (T == TVsmShadowOptions) return TVsmShadowOptions.byteSize;
   if (T == double3) return double3.byteSize;
@@ -14798,6 +14915,9 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TSwapChain:
         final ptr = TSwapChain.stackAlloc();
+        return ptr.toDart() as T;
+      case TTemporalAntiAliasingOptions:
+        final ptr = TTemporalAntiAliasingOptions.stackAlloc();
         return ptr.toDart() as T;
       case TTexture:
         final ptr = TTexture.stackAlloc();

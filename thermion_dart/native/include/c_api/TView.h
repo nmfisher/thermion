@@ -187,6 +187,21 @@ EMSCRIPTEN_KEEPALIVE TVsmShadowOptions View_getVsmShadowOptions(TView* tView);
 EMSCRIPTEN_KEEPALIVE void View_setBloom(TView* tView, bool enabled, float strength);
 EMSCRIPTEN_KEEPALIVE void View_setRenderQuality(TView* tView, TQualityLevel qualityLevel);
 EMSCRIPTEN_KEEPALIVE void View_setAntiAliasing(TView *tView, bool msaa, bool fxaa, bool taa);
+
+/**
+ * Tuning for temporal anti-aliasing. TAA itself is switched on/off via
+ * View_setAntiAliasing; these values are preserved across that call.
+ */
+struct TTemporalAntiAliasingOptions {
+    /** history feedback, between 0 (maximum temporal AA) and 1 (no temporal AA). */
+    float feedback;
+    /** post-TAA sharpen, between 0 (none) and 1. */
+    float sharpness;
+};
+typedef struct TTemporalAntiAliasingOptions TTemporalAntiAliasingOptions;
+
+EMSCRIPTEN_KEEPALIVE void View_setTemporalAntiAliasingOptions(TView *tView, TTemporalAntiAliasingOptions options);
+EMSCRIPTEN_KEEPALIVE TTemporalAntiAliasingOptions View_getTemporalAntiAliasingOptions(TView *tView);
 EMSCRIPTEN_KEEPALIVE void View_setLayerEnabled(TView *tView, int layer, bool visible);
 EMSCRIPTEN_KEEPALIVE void View_setCamera(TView *tView, TCamera *tCamera);
 EMSCRIPTEN_KEEPALIVE TScene* View_getScene(TView *tView);
