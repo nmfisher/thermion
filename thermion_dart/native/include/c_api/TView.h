@@ -213,6 +213,20 @@ struct TTemporalAntiAliasingOptions {
     float feedback;
     /** post-TAA sharpen, between 0 (none) and 1. */
     float sharpness;
+    /** texturing lod bias (typically -1 or -2). */
+    float lodBias;
+    /** history rejection variance gamma, range [0.75, 1.25]. Higher values
+     *  increase ghosting, lower values increase jittering. */
+    float varianceGamma;
+    /** adjust the feedback dynamically to reduce flickering. */
+    bool preventFlickering;
+    /** filament::TemporalAntiAliasingOptions::BoxType (0 = AABB, 1 = AABB_VARIANCE). */
+    uint8_t boxType;
+    /** filament::TemporalAntiAliasingOptions::BoxClipping (0 = ACCURATE, 1 = CLAMP, 2 = NONE). */
+    uint8_t boxClipping;
+    /** filament::TemporalAntiAliasingOptions::JitterPattern (0 = RGSS_X4,
+     *  1 = UNIFORM_HELIX_X4, 2 = HALTON_23_X8, 3 = HALTON_23_X16, 4 = HALTON_23_X32). */
+    uint8_t jitterPattern;
 };
 typedef struct TTemporalAntiAliasingOptions TTemporalAntiAliasingOptions;
 

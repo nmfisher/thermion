@@ -173,6 +173,12 @@ class FFIView extends View<Pointer<TView>> {
     final tOptions = StructAllocator.create<TTemporalAntiAliasingOptions>();
     tOptions.feedback = options.feedback;
     tOptions.sharpness = options.sharpness;
+    tOptions.lodBias = options.lodBias;
+    tOptions.varianceGamma = options.varianceGamma;
+    tOptions.preventFlickering = options.preventFlickering;
+    tOptions.boxType = options.boxType.index;
+    tOptions.boxClipping = options.boxClipping.index;
+    tOptions.jitterPattern = options.jitterPattern.index;
     await withVoidCallback(
       (requestId, cb) =>
           View_setTemporalAntiAliasingOptionsJobThread(_app.jobThreadHandle, view, tOptions, requestId, cb),
@@ -182,7 +188,16 @@ class FFIView extends View<Pointer<TView>> {
   @override
   TemporalAntiAliasingOptions getTemporalAntiAliasingOptions() {
     final tOptions = View_getTemporalAntiAliasingOptions(view);
-    return TemporalAntiAliasingOptions(feedback: tOptions.feedback, sharpness: tOptions.sharpness);
+    return TemporalAntiAliasingOptions(
+      feedback: tOptions.feedback,
+      sharpness: tOptions.sharpness,
+      lodBias: tOptions.lodBias,
+      varianceGamma: tOptions.varianceGamma,
+      preventFlickering: tOptions.preventFlickering,
+      boxType: TaaBoxType.values[tOptions.boxType],
+      boxClipping: TaaBoxClipping.values[tOptions.boxClipping],
+      jitterPattern: TaaJitterPattern.values[tOptions.jitterPattern],
+    );
   }
 
   @override

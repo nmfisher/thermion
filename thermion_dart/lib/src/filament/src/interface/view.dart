@@ -63,8 +63,61 @@ class TemporalAntiAliasingOptions {
   /// Post-TAA sharpening, between 0 (none) and 1.
   final double sharpness;
 
-  const TemporalAntiAliasingOptions({this.feedback = 0.12, this.sharpness = 0.0});
+  const TemporalAntiAliasingOptions({
+    this.feedback = 0.12,
+    this.sharpness = 0.0,
+    this.lodBias = -1.0,
+    this.varianceGamma = 1.0,
+    this.preventFlickering = false,
+    this.boxType = TaaBoxType.AABB,
+    this.boxClipping = TaaBoxClipping.ACCURATE,
+    this.jitterPattern = TaaJitterPattern.HALTON_23_X16,
+  });
+
+  /// Texturing LOD bias (typically -1 or -2).
+  final double lodBias;
+
+  /// History rejection variance gamma, range [0.75, 1.25].
+  ///
+  /// Higher values increase ghosting; lower values increase jittering.
+  final double varianceGamma;
+
+  /// Adjust the feedback dynamically to reduce flickering.
+  final bool preventFlickering;
+
+  /// Colour gamut box used for history rejection.
+  final TaaBoxType boxType;
+
+  /// Clipping algorithm used for history rejection.
+  final TaaBoxClipping boxClipping;
+
+  /// Sub-pixel jitter pattern.
+  final TaaJitterPattern jitterPattern;
 }
+
+/// Mirrors `filament::TemporalAntiAliasingOptions::BoxType` (order matters).
+enum TaaBoxType {
+  /// Use an AABB neighbourhood.
+  AABB,
+
+  /// Use both AABB and variance.
+  AABB_VARIANCE,
+}
+
+/// Mirrors `filament::TemporalAntiAliasingOptions::BoxClipping` (order matters).
+enum TaaBoxClipping {
+  /// Accurate box clipping.
+  ACCURATE,
+
+  /// Clamping.
+  CLAMP,
+
+  /// No rejections (debugging only).
+  NONE,
+}
+
+/// Mirrors `filament::TemporalAntiAliasingOptions::JitterPattern` (order matters).
+enum TaaJitterPattern { RGSS_X4, UNIFORM_HELIX_X4, HALTON_23_X8, HALTON_23_X16, HALTON_23_X32 }
 
 class SsctOptions {
   final double lightConeRad;

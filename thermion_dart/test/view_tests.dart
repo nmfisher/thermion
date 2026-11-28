@@ -1041,6 +1041,40 @@ void main() async {
     });
   });
 
+  test('TemporalAntiAliasingOptions settling/ghosting options round-trip', () async {
+    await ViewerBuilder(testHelper).setRenderTargetEnabled(true).execute((result) async {
+      final view = result.viewer.view;
+      final defaults = view.getTemporalAntiAliasingOptions();
+      expect(defaults.lodBias, closeTo(-1.0, 0.001));
+      expect(defaults.varianceGamma, closeTo(1.0, 0.001));
+      expect(defaults.preventFlickering, isFalse);
+      expect(defaults.boxType, TaaBoxType.AABB);
+      expect(defaults.boxClipping, TaaBoxClipping.ACCURATE);
+      expect(defaults.jitterPattern, TaaJitterPattern.HALTON_23_X16);
+
+      await view.setTemporalAntiAliasingOptions(
+        const TemporalAntiAliasingOptions(
+          feedback: 0.2,
+          lodBias: -2.0,
+          varianceGamma: 0.8,
+          preventFlickering: true,
+          boxType: TaaBoxType.AABB_VARIANCE,
+          boxClipping: TaaBoxClipping.CLAMP,
+          jitterPattern: TaaJitterPattern.HALTON_23_X32,
+        ),
+      );
+      await view.setAntiAliasing(false, false, true);
+      final options = view.getTemporalAntiAliasingOptions();
+      expect(options.feedback, closeTo(0.2, 0.001));
+      expect(options.lodBias, closeTo(-2.0, 0.001));
+      expect(options.varianceGamma, closeTo(0.8, 0.001));
+      expect(options.preventFlickering, isTrue);
+      expect(options.boxType, TaaBoxType.AABB_VARIANCE);
+      expect(options.boxClipping, TaaBoxClipping.CLAMP);
+      expect(options.jitterPattern, TaaJitterPattern.HALTON_23_X32);
+    });
+  });
+
   test('SoftShadowOptions functionality', () async {
     await ViewerBuilder(testHelper).setRenderTargetEnabled(true).execute((result) async {
       // Test default options (check what Filament returns as default)
