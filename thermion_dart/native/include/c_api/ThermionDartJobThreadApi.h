@@ -205,6 +205,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void View_setViewportJobThread(TJobThread *jobThread, TView *tView, uint32_t width, uint32_t height, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setRenderTargetJobThread(TJobThread *jobThread, TView *tView, TRenderTarget *tRenderTarget, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setAntiAliasingJobThread(TJobThread *jobThread, TView *tView, bool msaa, bool fxaa, bool taa, uint32_t requestId, VoidCallback onComplete);
+        EMSCRIPTEN_KEEPALIVE void View_setMultiSampleAntiAliasingOptionsJobThread(TJobThread *jobThread, TView *tView, TMultiSampleAntiAliasingOptions options, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setTemporalAntiAliasingOptionsJobThread(TJobThread *jobThread, TView *tView, TTemporalAntiAliasingOptions options, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setPostProcessingJobThread(TJobThread *jobThread, TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabledJobThread(TJobThread *jobThread, TView *tView, bool enabled, uint32_t requestId, VoidCallback onComplete);

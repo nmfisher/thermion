@@ -34,6 +34,21 @@ class FogOptions {
   }
 }
 
+/// Tuning for multi-sample anti-aliasing (MSAA).
+///
+/// MSAA itself is enabled via [View.setAntiAliasing]; these values are
+/// preserved when MSAA is toggled.
+class MultiSampleAntiAliasingOptions {
+  /// Number of samples. 0 is treated as 1; 1 disables MSAA. The effective
+  /// count may be lower, depending on GPU capabilities.
+  final int sampleCount;
+
+  /// Custom resolve improves quality for HDR scenes, but may impact performance.
+  final bool customResolve;
+
+  const MultiSampleAntiAliasingOptions({this.sampleCount = 2, this.customResolve = false});
+}
+
 /// Tuning for temporal anti-aliasing (TAA).
 ///
 /// TAA itself is enabled via [View.setAntiAliasing]; these values are
@@ -411,6 +426,8 @@ abstract class View<T> extends NativeHandle<T> {
   Future<Camera> getCamera();
   Future setPostProcessing(bool enabled);
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa);
+  Future setMultiSampleAntiAliasingOptions(MultiSampleAntiAliasingOptions options);
+  MultiSampleAntiAliasingOptions getMultiSampleAntiAliasingOptions();
   Future setTemporalAntiAliasingOptions(TemporalAntiAliasingOptions options);
   TemporalAntiAliasingOptions getTemporalAntiAliasingOptions();
   Future setFrustumCullingEnabled(bool enabled);

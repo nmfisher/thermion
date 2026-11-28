@@ -5644,6 +5644,9 @@ external ffi.Pointer<TColorGrading> View_getColorGrading(ffi.Pointer<TView> tVie
 @ffi.Native<TFogOptions Function(ffi.Pointer<TView>)>(isLeaf: true)
 external TFogOptions View_getFogOptions(ffi.Pointer<TView> tView);
 
+@ffi.Native<TMultiSampleAntiAliasingOptions Function(ffi.Pointer<TView>)>(isLeaf: true)
+external TMultiSampleAntiAliasingOptions View_getMultiSampleAntiAliasingOptions(ffi.Pointer<TView> tView);
+
 @ffi.Native<ffi.Pointer<ffi.Char> Function(ffi.Pointer<TView>)>(isLeaf: true)
 external ffi.Pointer<ffi.Char> View_getName(ffi.Pointer<TView> tView);
 
@@ -5866,6 +5869,26 @@ external void View_setLayerEnabledJobThread(
   ffi.Pointer<TView> tView,
   int layer,
   bool visible,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TMultiSampleAntiAliasingOptions)>(isLeaf: true)
+external void View_setMultiSampleAntiAliasingOptions(ffi.Pointer<TView> tView, TMultiSampleAntiAliasingOptions options);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TJobThread>,
+    ffi.Pointer<TView>,
+    TMultiSampleAntiAliasingOptions,
+    ffi.Uint32,
+    VoidCallback,
+  )
+>(isLeaf: true)
+external void View_setMultiSampleAntiAliasingOptionsJobThread(
+  ffi.Pointer<TJobThread> jobThread,
+  ffi.Pointer<TView> tView,
+  TMultiSampleAntiAliasingOptions options,
   int requestId,
   VoidCallback onComplete,
 );
@@ -6574,6 +6597,19 @@ final class TMovementIntentExecutor extends ffi.Opaque {}
 sealed class TMovementSpace {
   static const MOVEMENT_SPACE_WORLD = 0;
   static const MOVEMENT_SPACE_OBJECT = 1;
+}
+
+/// Tuning for multi-sample anti-aliasing. MSAA itself is switched on/off via
+/// View_setAntiAliasing; these values are preserved across that call.
+final class TMultiSampleAntiAliasingOptions extends ffi.Struct {
+  /// number of samples (0 is treated as 1; 1 disables MSAA). The effective
+  /// count may be lower, depending on GPU capabilities.
+  @ffi.Uint8()
+  external int sampleCount;
+
+  /// custom resolve improves quality for HDR scenes, but may impact performance.
+  @ffi.Bool()
+  external bool customResolve;
 }
 
 final class TNameComponentManager extends ffi.Opaque {}
