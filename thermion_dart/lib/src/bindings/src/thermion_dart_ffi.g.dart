@@ -6960,6 +6960,32 @@ final class TTemporalAntiAliasingOptions extends ffi.Struct {
   /// post-TAA sharpen, between 0 (none) and 1.
   @ffi.Float()
   external double sharpness;
+
+  /// texturing lod bias (typically -1 or -2).
+  @ffi.Float()
+  external double lodBias;
+
+  /// history rejection variance gamma, range [0.75, 1.25]. Higher values
+  /// increase ghosting, lower values increase jittering.
+  @ffi.Float()
+  external double varianceGamma;
+
+  /// adjust the feedback dynamically to reduce flickering.
+  @ffi.Bool()
+  external bool preventFlickering;
+
+  /// filament::TemporalAntiAliasingOptions::BoxType (0 = AABB, 1 = AABB_VARIANCE).
+  @ffi.Uint8()
+  external int boxType;
+
+  /// filament::TemporalAntiAliasingOptions::BoxClipping (0 = ACCURATE, 1 = CLAMP, 2 = NONE).
+  @ffi.Uint8()
+  external int boxClipping;
+
+  /// filament::TemporalAntiAliasingOptions::JitterPattern (0 = RGSS_X4,
+  /// 1 = UNIFORM_HELIX_X4, 2 = HALTON_23_X8, 3 = HALTON_23_X16, 4 = HALTON_23_X32).
+  @ffi.Uint8()
+  external int jitterPattern;
 }
 
 final class TTexture extends ffi.Opaque {}

@@ -486,6 +486,12 @@ namespace thermion
             auto taaOpts = view->getTemporalAntiAliasingOptions();
             taaOpts.feedback = options.feedback;
             taaOpts.sharpness = options.sharpness;
+            taaOpts.lodBias = options.lodBias;
+            taaOpts.varianceGamma = options.varianceGamma;
+            taaOpts.preventFlickering = options.preventFlickering;
+            taaOpts.boxType = static_cast<TemporalAntiAliasingOptions::BoxType>(options.boxType);
+            taaOpts.boxClipping = static_cast<TemporalAntiAliasingOptions::BoxClipping>(options.boxClipping);
+            taaOpts.jitterPattern = static_cast<TemporalAntiAliasingOptions::JitterPattern>(options.jitterPattern);
             view->setTemporalAntiAliasingOptions(taaOpts);
         }
 
@@ -497,6 +503,12 @@ namespace thermion
             TTemporalAntiAliasingOptions tOptions;
             tOptions.feedback = taaOpts.feedback;
             tOptions.sharpness = taaOpts.sharpness;
+            tOptions.lodBias = taaOpts.lodBias;
+            tOptions.varianceGamma = taaOpts.varianceGamma;
+            tOptions.preventFlickering = taaOpts.preventFlickering;
+            tOptions.boxType = static_cast<uint8_t>(taaOpts.boxType);
+            tOptions.boxClipping = static_cast<uint8_t>(taaOpts.boxClipping);
+            tOptions.jitterPattern = static_cast<uint8_t>(taaOpts.jitterPattern);
             return tOptions;
         }
 

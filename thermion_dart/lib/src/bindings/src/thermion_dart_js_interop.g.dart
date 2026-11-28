@@ -13995,7 +13995,7 @@ extension TTemporalAntiAliasingOptionsExt on Pointer<TTemporalAntiAliasingOption
 
 final class TTemporalAntiAliasingOptions extends Struct {
   Pointer<TTemporalAntiAliasingOptions> get address => super.address.cast();
-  static const int byteSize = 8;
+  static const int byteSize = 20;
 
   /// history feedback, between 0 (maximum temporal AA) and 1 (no temporal AA).
   double get feedback {
@@ -14039,10 +14039,102 @@ final class TTemporalAntiAliasingOptions extends Struct {
     NativeLibrary.instance.setValue(addr, val.toJS, 'float');
   }
 
+  /// texturing lod bias (typically -1 or -2).
+  double get lodBias {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set lodBias(double val) {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 8);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
+  }
+
+  /// history rejection variance gamma, range [0.75, 1.25]. Higher values
+  /// increase ghosting, lower values increase jittering.
+  double get varianceGamma {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      return data.getFloat32(addr.addr, Endian.little);
+    }
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set varianceGamma(double val) {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 12);
+    if (addr.addr % 4 != 0) {
+      final data = ByteData.sublistView(NativeLibrary.instance.HEAPU8.toDart);
+      data.setFloat32(addr.addr, val, Endian.little);
+      return;
+    }
+    NativeLibrary.instance.setValue(addr, val.toJS, 'float');
+  }
+
+  /// adjust the feedback dynamically to reduce flickering.
+  bool get preventFlickering {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 16);
+    final value = NativeLibrary.instance.getValue(addr, 'i8');
+    return value.toDartInt == 1;
+  }
+
+  set preventFlickering(bool val) {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 16);
+    NativeLibrary.instance.setValue(addr, (val ? 1 : 0).toJS, 'i8');
+  }
+
+  /// filament::TemporalAntiAliasingOptions::BoxType (0 = AABB, 1 = AABB_VARIANCE).
+  int get boxType {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 17);
+    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    return value;
+  }
+
+  set boxType(int val) {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 17);
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i8');
+  }
+
+  /// filament::TemporalAntiAliasingOptions::BoxClipping (0 = ACCURATE, 1 = CLAMP, 2 = NONE).
+  int get boxClipping {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 18);
+    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    return value;
+  }
+
+  set boxClipping(int val) {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 18);
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i8');
+  }
+
+  /// filament::TemporalAntiAliasingOptions::JitterPattern (0 = RGSS_X4,
+  /// 1 = UNIFORM_HELIX_X4, 2 = HALTON_23_X8, 3 = HALTON_23_X16, 4 = HALTON_23_X32).
+  int get jitterPattern {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 19);
+    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    return value;
+  }
+
+  set jitterPattern(int val) {
+    final addr = Pointer<TTemporalAntiAliasingOptions>(this.address.addr + 19);
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i8');
+  }
+
   TTemporalAntiAliasingOptions(super.address);
 
   static Pointer<TTemporalAntiAliasingOptions> stackAlloc() {
-    return Pointer<TTemporalAntiAliasingOptions>(NativeLibrary.instance.stackAlloc<TTemporalAntiAliasingOptions>(8));
+    return Pointer<TTemporalAntiAliasingOptions>(NativeLibrary.instance.stackAlloc<TTemporalAntiAliasingOptions>(20));
   }
 }
 
