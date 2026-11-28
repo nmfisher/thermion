@@ -189,6 +189,22 @@ EMSCRIPTEN_KEEPALIVE void View_setRenderQuality(TView* tView, TQualityLevel qual
 EMSCRIPTEN_KEEPALIVE void View_setAntiAliasing(TView *tView, bool msaa, bool fxaa, bool taa);
 
 /**
+ * Tuning for multi-sample anti-aliasing. MSAA itself is switched on/off via
+ * View_setAntiAliasing; these values are preserved across that call.
+ */
+struct TMultiSampleAntiAliasingOptions {
+    /** number of samples (0 is treated as 1; 1 disables MSAA). The effective
+     *  count may be lower, depending on GPU capabilities. */
+    uint8_t sampleCount;
+    /** custom resolve improves quality for HDR scenes, but may impact performance. */
+    bool customResolve;
+};
+typedef struct TMultiSampleAntiAliasingOptions TMultiSampleAntiAliasingOptions;
+
+EMSCRIPTEN_KEEPALIVE void View_setMultiSampleAntiAliasingOptions(TView *tView, TMultiSampleAntiAliasingOptions options);
+EMSCRIPTEN_KEEPALIVE TMultiSampleAntiAliasingOptions View_getMultiSampleAntiAliasingOptions(TView *tView);
+
+/**
  * Tuning for temporal anti-aliasing. TAA itself is switched on/off via
  * View_setAntiAliasing; these values are preserved across that call.
  */

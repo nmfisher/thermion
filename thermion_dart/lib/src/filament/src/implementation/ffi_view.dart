@@ -149,6 +149,26 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   @override
+  Future setMultiSampleAntiAliasingOptions(MultiSampleAntiAliasingOptions options) async {
+    if (options.sampleCount < 0 || options.sampleCount > 255) {
+      throw ArgumentError.value(options.sampleCount, 'sampleCount', 'must be between 0 and 255');
+    }
+    final tOptions = StructAllocator.create<TMultiSampleAntiAliasingOptions>();
+    tOptions.sampleCount = options.sampleCount;
+    tOptions.customResolve = options.customResolve;
+    await withVoidCallback(
+      (requestId, cb) =>
+          View_setMultiSampleAntiAliasingOptionsJobThread(_app.jobThreadHandle, view, tOptions, requestId, cb),
+    );
+  }
+
+  @override
+  MultiSampleAntiAliasingOptions getMultiSampleAntiAliasingOptions() {
+    final tOptions = View_getMultiSampleAntiAliasingOptions(view);
+    return MultiSampleAntiAliasingOptions(sampleCount: tOptions.sampleCount, customResolve: tOptions.customResolve);
+  }
+
+  @override
   Future setTemporalAntiAliasingOptions(TemporalAntiAliasingOptions options) async {
     final tOptions = StructAllocator.create<TTemporalAntiAliasingOptions>();
     tOptions.feedback = options.feedback;

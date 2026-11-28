@@ -271,6 +271,10 @@ namespace thermion
             view->setShadowingEnabled(false);
             view->setAmbientOcclusionOptions({.enabled = false});
             view->setDynamicResolutionOptions({.enabled = false});
+            // Thermion has always used 2x MSAA (Filament defaults to 4x). Keep
+            // that as the default; callers can change it via
+            // View_setMultiSampleAntiAliasingOptions.
+            view->setMultiSampleAntiAliasingOptions({.enabled = false, .sampleCount = 2});
             return reinterpret_cast<TView *>(view);
         }
 

@@ -2810,6 +2810,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<TCamera> _View_getCamera(Pointer<TView> tView);
   external Pointer<TColorGrading> _View_getColorGrading(Pointer<TView> tView);
   external void _View_getFogOptions(Pointer<TFogOptions> TFogOptions_out, Pointer<TView> tView);
+  external void _View_getMultiSampleAntiAliasingOptions(
+    Pointer<TMultiSampleAntiAliasingOptions> TMultiSampleAntiAliasingOptions_out,
+    Pointer<TView> tView,
+  );
   external Pointer<Char> _View_getName(Pointer<TView> tView);
   external void _View_getNameJobThread(
     Pointer<TJobThread> jobThread,
@@ -2930,6 +2934,17 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TView> tView,
     int layer,
     bool visible,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setMultiSampleAntiAliasingOptions(
+    Pointer<TView> tView,
+    Pointer<TMultiSampleAntiAliasingOptions> optionsPtr,
+  );
+  external void _View_setMultiSampleAntiAliasingOptionsJobThread(
+    Pointer<TJobThread> jobThread,
+    Pointer<TView> tView,
+    Pointer<TMultiSampleAntiAliasingOptions> optionsPtr,
     int requestId,
     VoidCallback onComplete,
   );
@@ -10232,6 +10247,15 @@ TFogOptions View_getFogOptions(Pointer<TView> tView) {
   return TFogOptions_out.toDart();
 }
 
+TMultiSampleAntiAliasingOptions View_getMultiSampleAntiAliasingOptions(Pointer<TView> tView) {
+  final TMultiSampleAntiAliasingOptions_out = TMultiSampleAntiAliasingOptions.stackAlloc();
+  final result = GeneratedBindings.instance._View_getMultiSampleAntiAliasingOptions(
+    TMultiSampleAntiAliasingOptions_out.cast(),
+    tView.cast(),
+  );
+  return TMultiSampleAntiAliasingOptions_out.toDart();
+}
+
 Pointer<Char> View_getName(Pointer<TView> tView) {
   final result = GeneratedBindings.instance._View_getName(tView.cast());
   return Pointer<Char>(result);
@@ -10594,6 +10618,30 @@ void View_setLayerEnabledJobThread(
     tView.cast(),
     layer,
     visible,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+void View_setMultiSampleAntiAliasingOptions(Pointer<TView> tView, TMultiSampleAntiAliasingOptions options) {
+  final optionsPtr = options.address;
+  final result = GeneratedBindings.instance._View_setMultiSampleAntiAliasingOptions(tView.cast(), optionsPtr.cast());
+  return result;
+}
+
+void View_setMultiSampleAntiAliasingOptionsJobThread(
+  Pointer<TJobThread> jobThread,
+  Pointer<TView> tView,
+  TMultiSampleAntiAliasingOptions options,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final optionsPtr = options.address;
+  final result = GeneratedBindings.instance._View_setMultiSampleAntiAliasingOptionsJobThread(
+    jobThread.cast(),
+    tView.cast(),
+    optionsPtr.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );
@@ -12773,6 +12821,59 @@ sealed class TMovementSpace {
   static const MOVEMENT_SPACE_OBJECT = 1;
 }
 
+/// Tuning for multi-sample anti-aliasing. MSAA itself is switched on/off via
+/// View_setAntiAliasing; these values are preserved across that call.
+
+extension TMultiSampleAntiAliasingOptionsExt on Pointer<TMultiSampleAntiAliasingOptions> {
+  TMultiSampleAntiAliasingOptions toDart() {
+    return TMultiSampleAntiAliasingOptions(this);
+  }
+
+  TMultiSampleAntiAliasingOptions operator [](int index) {
+    return TMultiSampleAntiAliasingOptions(
+      Pointer<TMultiSampleAntiAliasingOptions>(addr + index * TMultiSampleAntiAliasingOptions.byteSize),
+    );
+  }
+}
+
+final class TMultiSampleAntiAliasingOptions extends Struct {
+  Pointer<TMultiSampleAntiAliasingOptions> get address => super.address.cast();
+  static const int byteSize = 2;
+
+  /// number of samples (0 is treated as 1; 1 disables MSAA). The effective
+  /// count may be lower, depending on GPU capabilities.
+  int get sampleCount {
+    final addr = Pointer<TMultiSampleAntiAliasingOptions>(this.address.addr + 0);
+    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    return value;
+  }
+
+  set sampleCount(int val) {
+    final addr = Pointer<TMultiSampleAntiAliasingOptions>(this.address.addr + 0);
+    NativeLibrary.instance.setValue(addr, val.toJS, 'i8');
+  }
+
+  /// custom resolve improves quality for HDR scenes, but may impact performance.
+  bool get customResolve {
+    final addr = Pointer<TMultiSampleAntiAliasingOptions>(this.address.addr + 1);
+    final value = NativeLibrary.instance.getValue(addr, 'i8');
+    return value.toDartInt == 1;
+  }
+
+  set customResolve(bool val) {
+    final addr = Pointer<TMultiSampleAntiAliasingOptions>(this.address.addr + 1);
+    NativeLibrary.instance.setValue(addr, (val ? 1 : 0).toJS, 'i8');
+  }
+
+  TMultiSampleAntiAliasingOptions(super.address);
+
+  static Pointer<TMultiSampleAntiAliasingOptions> stackAlloc() {
+    return Pointer<TMultiSampleAntiAliasingOptions>(
+      NativeLibrary.instance.stackAlloc<TMultiSampleAntiAliasingOptions>(2),
+    );
+  }
+}
+
 extension TNameComponentManagerExt on Pointer<TNameComponentManager> {
   TNameComponentManager toDart() {
     return TNameComponentManager(this);
@@ -14746,6 +14847,7 @@ int sizeOf<T extends NativeType>() {
   if (T == TFrameInfo) return TFrameInfo.byteSize;
   if (T == TGtao) return TGtao.byteSize;
   if (T == TMipLevel) return TMipLevel.byteSize;
+  if (T == TMultiSampleAntiAliasingOptions) return TMultiSampleAntiAliasingOptions.byteSize;
   if (T == TShadowOptions) return TShadowOptions.byteSize;
   if (T == TSoftShadowOptions) return TSoftShadowOptions.byteSize;
   if (T == TSsct) return TSsct.byteSize;
@@ -14870,6 +14972,9 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TMovementIntentExecutor:
         final ptr = TMovementIntentExecutor.stackAlloc();
+        return ptr.toDart() as T;
+      case TMultiSampleAntiAliasingOptions:
+        final ptr = TMultiSampleAntiAliasingOptions.stackAlloc();
         return ptr.toDart() as T;
       case TNameComponentManager:
         final ptr = TNameComponentManager.stackAlloc();

@@ -467,9 +467,9 @@ namespace thermion
         {
             THERMION_ENGINE_API_GUARD;
             auto view = reinterpret_cast<View *>(tView);
-            View::MultiSampleAntiAliasingOptions multiSampleAntiAliasingOptions;
+            // Preserve any MSAA tuning (sampleCount, customResolve) and only toggle enabled.
+            auto multiSampleAntiAliasingOptions = view->getMultiSampleAntiAliasingOptions();
             multiSampleAntiAliasingOptions.enabled = msaa;
-            multiSampleAntiAliasingOptions.sampleCount = 2;
             view->setMultiSampleAntiAliasingOptions(multiSampleAntiAliasingOptions);
 
             // Preserve any TAA tuning (feedback, sharpness) and only toggle enabled.
@@ -478,6 +478,27 @@ namespace thermion
 
             view->setTemporalAntiAliasingOptions(taaOpts);
             view->setAntiAliasing(fxaa ? AntiAliasing::FXAA : AntiAliasing::NONE);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void View_setMultiSampleAntiAliasingOptions(TView *tView, TMultiSampleAntiAliasingOptions options)
+        {
+            THERMION_ENGINE_API_GUARD;
+            auto view = reinterpret_cast<View *>(tView);
+            auto msaaOpts = view->getMultiSampleAntiAliasingOptions();
+            msaaOpts.sampleCount = options.sampleCount;
+            msaaOpts.customResolve = options.customResolve;
+            view->setMultiSampleAntiAliasingOptions(msaaOpts);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TMultiSampleAntiAliasingOptions View_getMultiSampleAntiAliasingOptions(TView *tView)
+        {
+            THERMION_ENGINE_API_GUARD;
+            auto view = reinterpret_cast<View *>(tView);
+            auto msaaOpts = view->getMultiSampleAntiAliasingOptions();
+            TMultiSampleAntiAliasingOptions tOptions;
+            tOptions.sampleCount = msaaOpts.sampleCount;
+            tOptions.customResolve = msaaOpts.customResolve;
+            return tOptions;
         }
 
         EMSCRIPTEN_KEEPALIVE void View_setTemporalAntiAliasingOptions(TView *tView, TTemporalAntiAliasingOptions options)

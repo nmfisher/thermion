@@ -961,6 +961,34 @@ void main() async {
     });
   });
 
+  test('MultiSampleAntiAliasingOptions set/get survives MSAA toggle', () async {
+    await ViewerBuilder(testHelper).setRenderTargetEnabled(true).execute((result) async {
+      final view = result.viewer.view;
+      final defaults = view.getMultiSampleAntiAliasingOptions();
+      expect(defaults.sampleCount, 2);
+      expect(defaults.customResolve, isFalse);
+
+      await view.setMultiSampleAntiAliasingOptions(
+        const MultiSampleAntiAliasingOptions(sampleCount: 4, customResolve: true),
+      );
+      var options = view.getMultiSampleAntiAliasingOptions();
+      expect(options.sampleCount, 4);
+      expect(options.customResolve, isTrue);
+
+      // Toggling AA must not reset the MSAA tuning.
+      await view.setAntiAliasing(true, false, false);
+      await view.setAntiAliasing(false, false, false);
+      options = view.getMultiSampleAntiAliasingOptions();
+      expect(options.sampleCount, 4);
+      expect(options.customResolve, isTrue);
+
+      expect(
+        () => view.setMultiSampleAntiAliasingOptions(const MultiSampleAntiAliasingOptions(sampleCount: 256)),
+        throwsArgumentError,
+      );
+    });
+  });
+
   test('TemporalAntiAliasingOptions set/get survives TAA toggle', () async {
     await ViewerBuilder(testHelper).setRenderTargetEnabled(true).execute((result) async {
       final view = result.viewer.view;

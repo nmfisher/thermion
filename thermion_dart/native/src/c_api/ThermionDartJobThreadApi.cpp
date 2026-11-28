@@ -1441,6 +1441,18 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void View_setMultiSampleAntiAliasingOptionsJobThread(TJobThread *jobThread, TView *tView, TMultiSampleAntiAliasingOptions options, uint32_t requestId, VoidCallback onComplete)
+  {
+    auto *rt = reinterpret_cast<JobThread*>(jobThread);
+    std::packaged_task<void()> lambda(
+        [=]
+        {
+          View_setMultiSampleAntiAliasingOptions(tView, options);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void View_setTemporalAntiAliasingOptionsJobThread(TJobThread *jobThread, TView *tView, TTemporalAntiAliasingOptions options, uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
